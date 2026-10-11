@@ -250,6 +250,11 @@ const CHAMBER_REFLOW_MS = 420
 const kratosPoseAsset = (pose: typeof KRATOS_POSES[number]) =>
   assetPath(`combat/characters/animated/kratos-${pose}.webp`)
 
+const isMonogatariVisual = (visual: string | undefined) =>
+  visual === 'monogatari_ironclad' || visual === 'monogatari_defect'
+const monogatariPoseAsset = (visual: string, pose: string) =>
+  assetPath(`combat/characters/${visual}-${pose}.webp`)
+
 const slimeAssetSlug = (defId: string): string => defId
   .replace(/^slime_boss_/, '')
   .replace(/_slime$/, '')
@@ -369,6 +374,18 @@ function KratosAttackPose({ ready }: { ready: boolean }) {
   ))}</> : <span className="character-attack__pose character-attack__pose--rig is-loaded is-fallback">
     <CombatAnimation src={assetPath('combat/characters/animated/kratos-idle.webp')} />
   </span>
+}
+
+function MonogatariAttackPose({ visual, ready }: { visual: string; ready: boolean }) {
+  const poses = visual === 'monogatari_ironclad' ? ['ready', 'impact'] : ['charge', 'release']
+  return <>
+    <span className={`character-attack__pose character-attack__pose--rig is-loaded ${ready ? 'monogatari-pose--idle' : 'is-fallback'}`}>
+      <img src={ready ? monogatariPoseAsset(visual, 'hero') : assetPath(`combat/characters/animated/${visual}-idle.webp`)} alt="" />
+    </span>
+    {ready ? poses.map(pose => <span key={pose} className={`character-attack__pose character-attack__pose--rig is-loaded monogatari-pose--${pose}`}>
+      <img src={monogatariPoseAsset(visual, pose)} alt="" />
+    </span>) : null}
+  </>
 }
 
 function GuardianPortrait({ mode, animate, restartKey }: {
@@ -703,9 +720,23 @@ function CombatScreenView({
     kratosPosesReadyByAttack.current.set(key, ready)
     return ready
   }
+  // Pose and cast origin share a latch: late artwork never re-aims a cold projectile.
+  const monogatariPosesReadyByAttack = useRef(new Map<string, boolean>())
+  const monogatariPosesReady = (visual: string, seq: number) => {
+    const key = `${state.combatId}:${seq}`
+    const latched = monogatariPosesReadyByAttack.current.get(key)
+    if (latched !== undefined) return latched
+    const poses = visual === 'monogatari_ironclad' ? ['hero', 'ready', 'impact'] : ['hero', 'charge', 'release']
+    const ready = poses.every(pose => characterAttackBlobs.has(monogatariPoseAsset(visual, pose)))
+    monogatariPosesReadyByAttack.current.set(key, ready)
+    return ready
+  }
   const characterAttackAssets = prefersReducedMotion ? '' : [...new Set(state.players.filter((player) => !player.dead).flatMap((player) =>
     playerVisualId(player) === 'kratos'
       ? [...KRATOS_POSES.map(kratosPoseAsset), ...['light', 'impact'].map(name => assetPath(`combat/vfx/actions/kratos/${name}.webp`))]
+      : isMonogatariVisual(playerVisualId(player))
+        ? ['hero', ...(player.character === 'ironclad' ? ['ready', 'impact'] : ['charge', 'release'])]
+          .map(pose => monogatariPoseAsset(playerVisualId(player), pose))
       : player.character === 'hexaghost'
       ? [assetPath(`combat/rigged/hero-hexaghost-heat-${Math.max(0, Math.min(6, player.heat))}-attack.webp`)]
       : player.character === 'guardian'
@@ -741,7 +772,7 @@ function CombatScreenView({
       .map((src) => [src, current.get(src)!])))
     void Promise.all(assets.filter((src) => !characterAttackBlobs.has(src)).map(async (src) => {
       try {
-        if (src.includes('/characters/animated/kratos-') || src.includes('/actions/kratos/')) {
+        if (src.includes('/characters/monogatari_') || src.includes('/characters/animated/kratos-') || src.includes('/actions/kratos/')) {
           const image = new Image()
           image.src = src
           await image.decode()
@@ -1346,6 +1377,7 @@ function CombatScreenView({
     if (!board) return
     if (prefersReducedMotion || !activeVfx.some(isCharacterAttack)) {
       kratosPosesReadyByAttack.current.clear()
+      monogatariPosesReadyByAttack.current.clear()
       setCharacterAttacks((current) => Object.keys(current).length === 0 ? current : {})
       return
     }
@@ -1391,10 +1423,16 @@ function CombatScreenView({
           if (!target) return []
           const rect = target.getBoundingClientRect()
           const body = combatBodyPoint(target)
-          const x = body.x - actorCenterX -
+          const monogatariDefect = playerVisualId(player) === 'monogatari_defect'
+          const monogatariWarm = monogatariDefect && monogatariPosesReady(playerVisualId(player), active.event.seq)
+          const castX = monogatariWarm ? .71 : .497
+          const castHeight = monogatariWarm ? .522 : .518
+          const x = monogatariDefect ? body.x - actorRect.left - actorRect.width * castX
+            : body.x - actorCenterX -
             (player.character === 'silent' ? actorRect.width * 0.15 :
               player.character === 'defect' ? -actorRect.width * 0.03 : 0)
-          const y = (player.character === 'watcher' ? rect.bottom : body.y) -
+          const y = monogatariDefect ? body.y - actorRect.bottom + actorRect.width * castHeight
+            : (player.character === 'watcher' ? rect.bottom : body.y) -
             actorCenterY + (player.character === 'silent' ? actorRect.height * 0.19 :
               player.character === 'defect' ? actorRect.height * 0.35 : 0)
           const startY = player.character === 'watcher'
@@ -1435,6 +1473,9 @@ function CombatScreenView({
     const running = new Set(Object.values(next).flat().map((attack) => `${state.combatId}:${attack.active.event.seq}`))
     for (const key of kratosPosesReadyByAttack.current.keys()) {
       if (!running.has(key)) kratosPosesReadyByAttack.current.delete(key)
+    }
+    for (const key of monogatariPosesReadyByAttack.current.keys()) {
+      if (!running.has(key)) monogatariPosesReadyByAttack.current.delete(key)
     }
     setCharacterAttacks(next)
   }, [activeVfx, prefersReducedMotion, stageScale, state.enemies, state.players])
@@ -6712,11 +6753,12 @@ function CombatScreenView({
         {rows.map((row) => {
           const occupant = state.players.find((player) => player.row === row)
           const occupantVisual = occupant ? playerVisualId(occupant) : undefined
+          const occupantAttackVisual = isMonogatariVisual(occupantVisual) ? occupant?.character : occupantVisual
           const foes = stageEnemies.filter((enemy) => enemy.row === row)
           const emptyRowTargetable = foes.length === 0 && isRowLaneClickTargetable(row)
           const actorEvents = occupant ? actorVfxFor(occupant.id) : []
           const actorVfx = actorEvents.filter(({ event }) => event.enemyIds.length === 0 &&
-            !(occupantVisual === 'defect' && event.kind === 'orb' && event.sourceId === 'orb-evoke'))
+            !(occupant?.character === 'defect' && event.kind === 'orb' && event.sourceId === 'orb-evoke'))
           const characterAttackMotions = occupant ? characterAttacks[occupant.id] ?? [] : []
           const characterAttack = characterAttackMotions.filter(attack => !attack.interrupted).at(-1)
           const latestCharacterAttackSeq = characterAttack?.active.event.seq
@@ -6735,7 +6777,8 @@ function CombatScreenView({
             : occupant?.character === 'guardian' && occupant.guardianMode === 'defense' ? 'guardian-defense'
             : occupantVisual
           const characterAttackAsset = assetPath(`combat/rigged/hero-${rigId}-attack.webp`)
-          const characterIdleAsset = occupantVisual === 'watcher'
+          const characterIdleAsset = isMonogatariVisual(occupantVisual)
+            ? assetPath(`combat/characters/animated/${occupantVisual}-idle.webp`) : occupantVisual === 'watcher'
             ? assetPath('combat/characters/watcher-hero.webp') : assetPath(occupantVisual === 'kratos' ? 'combat/characters/animated/kratos-idle.webp' : `combat/rigged/hero-${rigId}-idle.webp`)
           const characterArtScale = prefersReducedMotion || occupant?.dead || occupantVisual === 'watcher' ? 1
             : occupantVisual === 'kratos' ? KRATOS_DISPLAY_SCALE
@@ -6773,7 +6816,7 @@ function CombatScreenView({
                         occupant.id === viewerId ? 'seat--viewer' : '',
                         occupant.dead ? 'seat--dead' : '',
                         falling.has(occupant.id) ? 'seat--falling' : '',
-                        characterAttack ? `seat--attack-${occupantVisual}` : '',
+                        characterAttack ? `seat--attack-${occupantAttackVisual}` : '',
                         (!occupant.dead && ((pendingPotion !== null && potionDef(pendingPotion).supportTarget === 'anyPlayer') ||
                           pendingPowerNeedsAlly ||
                           pendingStartPlayer?.players?.some((player) => player.id === occupant.id) ||
@@ -6843,7 +6886,7 @@ function CombatScreenView({
                         )}
                         {characterAttackMotions.map((characterAttack) => (
                           <span
-                            className={`character-attack character-attack--${occupantVisual}`}
+                            className={`character-attack character-attack--${occupantAttackVisual}${isMonogatariVisual(occupantVisual) ? ` character-attack--${occupantVisual}` : ''}`}
                             data-attack-seq={characterAttack.active.event.seq}
                             data-attack-target-count={characterAttack.targets.length}
                             data-guardian-mode={occupantVisual === 'guardian' ? occupant.guardianMode ?? 'attack' : undefined}
@@ -6851,10 +6894,16 @@ function CombatScreenView({
                             style={{
                               '--attack-x': `${characterAttack.x}px`,
                               '--attack-y': `${characterAttack.y}px`,
+                              ...(occupantVisual === 'monogatari_defect' ? {
+                                '--monogatari-cast-x': `${monogatariPosesReady(occupantVisual, characterAttack.active.event.seq) ? 71 : 49.7}%`,
+                                '--monogatari-cast-height': `${monogatariPosesReady(occupantVisual, characterAttack.active.event.seq) ? 52.2 : 51.8}cqw`,
+                              } : {}),
                             } as React.CSSProperties}
                           >
                             {characterAttack.active.event.seq === latestCharacterAttackSeq || occupantVisual === 'hermit' ? (
-                              occupantVisual === 'ironclad' ? <>
+                              isMonogatariVisual(occupantVisual) ? <MonogatariAttackPose
+                                visual={occupantVisual!} ready={monogatariPosesReady(occupantVisual!, characterAttack.active.event.seq)}
+                              /> : occupantVisual === 'ironclad' ? <>
                                 <span className="character-attack__pose character-attack__pose--ironclad-ready">
                                   <img src={assetPath('combat/characters/ironclad-ready.webp')} alt="" />
                                 </span>
@@ -6909,12 +6958,12 @@ function CombatScreenView({
                                 ))}
                               </>
                             ) : null}
-                            {occupantVisual === 'ironclad' &&
+                            {occupantAttackVisual === 'ironclad' &&
                             characterAttack.active.event.seq === latestCharacterAttackSeq ? (
                               <span className="character-attack__swing" />
                             ) : null}
                             {occupantVisual === 'kratos' ? <KratosImpacts event={characterAttack.active.event} /> : null}
-                            {occupantVisual === 'defect' &&
+                            {occupant?.character === 'defect' &&
                             characterAttack.active.event.seq === latestCharacterAttackSeq ? (
                               <>
                                 <span className="character-attack__core">
@@ -6922,7 +6971,7 @@ function CombatScreenView({
                                 </span>
                               </>
                             ) : null}
-                            {(occupantVisual === 'silent' || occupantVisual === 'defect')
+                            {(occupantVisual === 'silent' || occupant?.character === 'defect')
                               ? characterAttack.targets.map((target, index) => (
                                 <span
                                   className={occupantVisual === 'silent'
@@ -6960,9 +7009,9 @@ function CombatScreenView({
                               : null}
                           </span>
                         ))}
-                        {!prefersReducedMotion && occupantVisual === 'defect' ? actorEvents.map(({ event }) =>
+                        {!prefersReducedMotion && occupant?.character === 'defect' ? actorEvents.map(({ event }) =>
                           event.kind === 'orb' && event.sourceId === 'orb-evoke'
-                            ? <DefectEvokeVfx key={`evoke-${event.seq}`} event={event} /> : null) : null}
+                            ? <DefectEvokeVfx key={`evoke-${event.seq}`} event={event} visual={occupantVisual} /> : null) : null}
                         {actorVfx.map((active) => (
                           <CombatVfx key={`actor-${active.event.seq}-${active.recipe.asset}`} active={active} role="actor"
                             revealDelayMs={orbEndTurnRevealDelayMs.get(active.event.seq)} />

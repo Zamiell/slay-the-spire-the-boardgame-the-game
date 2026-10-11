@@ -31,27 +31,33 @@ def load_catalogue():
 
 
 def scan_key(card, upgraded):
-    """assetKey in src/game/assets.ts: <tier>__<slug>[+], tier from pack/rarity."""
+    """assetKey in src/game/assets.ts: owner/pack tier, slug, and optional upgrade suffix."""
     name = slug(card['name']) + ('+' if upgraded else '')
     if card.get('pack'):
         return f"slayer__{card['pack'].removeprefix('slayer_')}__{name}"
     tier = {'starter': 'starter', 'rare': 'rare'}.get(card['rarity'], 'normal')
-    return f"ironclad__{tier}__{name}"
+    return f"{card.get('owner', 'ironclad')}__{tier}__{name}"
 
 
 def family(card):
+    if card.get('owner') == 'defect':
+        return 'defect'
     return 'slayer' if card.get('pack') else 'base'
 
 
 def mask_path(fam, card_type, upgraded):
-    """The pack scans share the base template's geometry (see validate.py), so they use the base masks."""
-    return MASKS / f"base-{card_type}{'-up' if upgraded else ''}.png"
+    """Pack scans share their owner's template; Defect has its own registered masks."""
+    prefix = 'defect' if fam == 'defect' else 'base'
+    return MASKS / f"{prefix}-{card_type}{'-up' if upgraded else ''}.png"
 
 
 def registration(key):
     """Affine mapping reference coordinates (744x1039) to this scan resized to 744x1039; identity for most scans."""
     path = HERE / 'registration.json'
     table = json.loads(path.read_text()) if path.exists() else {}
+    defect_path = HERE / 'defect-registration.json'
+    if key.startswith('defect__') or (key.startswith('slayer__defect__')):
+        table = json.loads(defect_path.read_text()) if defect_path.exists() else {}
     return np.array(table.get(key, [1, 0, 0, 0, 1, 0]), dtype=np.float64).reshape(2, 3)
 
 

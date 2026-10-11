@@ -1,0 +1,9 @@
+{
+ "cards": 69,
+ "faces": 276,
+ "fullFaces": 138,
+ "thumbnails": 138,
+ "preencodeOutsideMaskMaxDiff": 0,
+ "postencodeMaxProtectedRMS": 2.727584096195138,
+ "fullAndThumbnail": true
+}

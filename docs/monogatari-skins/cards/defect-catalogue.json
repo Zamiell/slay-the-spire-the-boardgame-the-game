@@ -1,0 +1,630 @@
+[
+ {
+  "id": "slayer_aggregate",
+  "name": "Aggregate",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 1,
+  "owner": "defect",
+  "pack": "slayer_defect",
+  "text": null
+ },
+ {
+  "id": "slayer_auto_shields",
+  "name": "Auto-Shields",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 0,
+  "owner": "defect",
+  "pack": "slayer_defect",
+  "text": null
+ },
+ {
+  "id": "slayer_biased_cognition",
+  "name": "Biased Cognition",
+  "type": "power",
+  "rarity": "rare",
+  "cost": 2,
+  "owner": "defect",
+  "pack": "slayer_defect",
+  "text": null
+ },
+ {
+  "id": "slayer_creative_ai",
+  "name": "Creative AI",
+  "type": "power",
+  "rarity": "uncommon",
+  "cost": 1,
+  "owner": "defect",
+  "pack": "slayer_defect",
+  "text": null
+ },
+ {
+  "id": "slayer_hello_world",
+  "name": "Hello World",
+  "type": "power",
+  "rarity": "uncommon",
+  "cost": 2,
+  "owner": "defect",
+  "pack": "slayer_defect",
+  "text": null
+ },
+ {
+  "id": "slayer_reboot",
+  "name": "Reboot",
+  "type": "skill",
+  "rarity": "rare",
+  "cost": 0,
+  "owner": "defect",
+  "pack": "slayer_defect",
+  "text": null
+ },
+ {
+  "id": "slayer_rebound",
+  "name": "Rebound",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 1,
+  "owner": "defect",
+  "pack": "slayer_defect",
+  "text": null
+ },
+ {
+  "id": "strike_defect",
+  "name": "Strike",
+  "type": "attack",
+  "rarity": "starter",
+  "cost": 1,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "defend_defect",
+  "name": "Defend",
+  "type": "skill",
+  "rarity": "starter",
+  "cost": 1,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "zap",
+  "name": "Zap",
+  "type": "skill",
+  "rarity": "starter",
+  "cost": 1,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "dual_cast",
+  "name": "Dual Cast",
+  "type": "skill",
+  "rarity": "starter",
+  "cost": 1,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "ball_lightning",
+  "name": "Ball Lightning",
+  "type": "attack",
+  "rarity": "common",
+  "cost": 1,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "cold_snap",
+  "name": "Cold Snap",
+  "type": "attack",
+  "rarity": "common",
+  "cost": 2,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "coolheaded",
+  "name": "Coolheaded",
+  "type": "skill",
+  "rarity": "common",
+  "cost": 1,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "charge_battery",
+  "name": "Charge Battery",
+  "type": "skill",
+  "rarity": "common",
+  "cost": 1,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "chaos",
+  "name": "Chaos",
+  "type": "skill",
+  "rarity": "common",
+  "cost": 1,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "recursion",
+  "name": "Recursion",
+  "type": "skill",
+  "rarity": "common",
+  "cost": 1,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "sweeping_beam",
+  "name": "Sweeping Beam",
+  "type": "attack",
+  "rarity": "common",
+  "cost": 1,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "compile_driver",
+  "name": "Compile Driver",
+  "type": "attack",
+  "rarity": "common",
+  "cost": 1,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "scrape",
+  "name": "Scrape",
+  "type": "attack",
+  "rarity": "common",
+  "cost": 1,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "turbo",
+  "name": "TURBO",
+  "type": "skill",
+  "rarity": "common",
+  "cost": 0,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "skim",
+  "name": "Skim",
+  "type": "skill",
+  "rarity": "common",
+  "cost": 1,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "claw",
+  "name": "Claw",
+  "type": "attack",
+  "rarity": "common",
+  "cost": 0,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "claw_claw_pack",
+  "name": "Claw (Claw Pack)",
+  "type": "attack",
+  "rarity": "common",
+  "cost": 0,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "steam_barrier",
+  "name": "Steam Barrier",
+  "type": "skill",
+  "rarity": "common",
+  "cost": 0,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "barrage",
+  "name": "Barrage",
+  "type": "attack",
+  "rarity": "common",
+  "cost": 1,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "go_for_the_eyes",
+  "name": "Go for the Eyes",
+  "type": "attack",
+  "rarity": "common",
+  "cost": 0,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "beam_cell",
+  "name": "Beam Cell",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 1,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "ftl",
+  "name": "FTL",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 0,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "force_field",
+  "name": "Force Field",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 3,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "tempest",
+  "name": "Tempest",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": "X",
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "reinforced_body",
+  "name": "Reinforced Body",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": "X",
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "equilibrium",
+  "name": "Equilibrium",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 2,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "loop",
+  "name": "Loop",
+  "type": "power",
+  "rarity": "uncommon",
+  "cost": 1,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "buffer",
+  "name": "Buffer",
+  "type": "power",
+  "rarity": "rare",
+  "cost": 2,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "echo_form",
+  "name": "Echo Form",
+  "type": "power",
+  "rarity": "rare",
+  "cost": 3,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "electrodynamics",
+  "name": "Electrodynamics",
+  "type": "power",
+  "rarity": "rare",
+  "cost": 2,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "fission",
+  "name": "Fission",
+  "type": "skill",
+  "rarity": "rare",
+  "cost": 0,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "multi_cast",
+  "name": "Multi-Cast",
+  "type": "skill",
+  "rarity": "rare",
+  "cost": "X",
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "seek",
+  "name": "Seek",
+  "type": "skill",
+  "rarity": "rare",
+  "cost": 0,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "blizzard",
+  "name": "Blizzard",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 1,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "hologram",
+  "name": "Hologram",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 1,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "doom_and_gloom",
+  "name": "Doom and Gloom",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 2,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "overclock",
+  "name": "Overclock",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 0,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "darkness",
+  "name": "Darkness",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 1,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "storm",
+  "name": "Storm",
+  "type": "power",
+  "rarity": "uncommon",
+  "cost": 1,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "machine_learning",
+  "name": "Machine Learning",
+  "type": "power",
+  "rarity": "uncommon",
+  "cost": 1,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "leap",
+  "name": "Leap",
+  "type": "skill",
+  "rarity": "common",
+  "cost": 1,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "glacier",
+  "name": "Glacier",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 2,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "rainbow",
+  "name": "Rainbow",
+  "type": "skill",
+  "rarity": "rare",
+  "cost": 2,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "reprogram",
+  "name": "Reprogram",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 1,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "melter",
+  "name": "Melter",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 1,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "hyperbeam",
+  "name": "Hyperbeam",
+  "type": "attack",
+  "rarity": "rare",
+  "cost": 2,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "sunder",
+  "name": "Sunder",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 3,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "fusion",
+  "name": "Fusion",
+  "type": "power",
+  "rarity": "uncommon",
+  "cost": 2,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "heatsinks",
+  "name": "Heatsinks",
+  "type": "power",
+  "rarity": "uncommon",
+  "cost": 1,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "stack",
+  "name": "Stack",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 1,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "capacitor",
+  "name": "Capacitor",
+  "type": "power",
+  "rarity": "uncommon",
+  "cost": 1,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "consume",
+  "name": "Consume",
+  "type": "power",
+  "rarity": "uncommon",
+  "cost": 2,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "defragment",
+  "name": "Defragment",
+  "type": "power",
+  "rarity": "rare",
+  "cost": 3,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "static_discharge",
+  "name": "Static Discharge",
+  "type": "power",
+  "rarity": "rare",
+  "cost": 2,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "amplify",
+  "name": "Amplify",
+  "type": "power",
+  "rarity": "rare",
+  "cost": 1,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "recycle",
+  "name": "Recycle",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 1,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "core_surge",
+  "name": "Core Surge",
+  "type": "attack",
+  "rarity": "rare",
+  "cost": 1,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "all_for_one",
+  "name": "All for One",
+  "type": "attack",
+  "rarity": "rare",
+  "cost": 2,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "thunder_strike",
+  "name": "Thunder Strike",
+  "type": "attack",
+  "rarity": "rare",
+  "cost": 3,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "double_energy",
+  "name": "Double Energy",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 1,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "streamline",
+  "name": "Streamline",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 2,
+  "owner": "defect",
+  "text": null
+ },
+ {
+  "id": "meteor_strike",
+  "name": "Meteor Strike",
+  "type": "attack",
+  "rarity": "rare",
+  "cost": 5,
+  "owner": "defect",
+  "text": null
+ }
+]

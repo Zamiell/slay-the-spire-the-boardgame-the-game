@@ -310,10 +310,10 @@ try {
     assert.equal(await skinsTab.getAttribute('aria-selected'), 'true')
     assert(await skinsTab.evaluate((tab) => tab === document.activeElement), 'arrow keys move focus with the tab')
     const skins = page.getByRole('tabpanel', { name: /Skins/ })
-    assert.equal(await skins.getByRole('listitem').count(), 4, `${screen}: Kratos and three locked racks`)
-    assert.equal(await skins.getByText('Coming soon').count(), 3)
+    assert.equal(await skins.getByRole('listitem').count(), 5, `${screen}: three skins and two locked racks`)
+    assert.equal(await skins.getByText('Coming soon').count(), 2)
     assert.deepEqual(await skins.locator('.shop-skin--locked').evaluateAll((racks) => racks.map((rack) => rack.getAttribute('aria-label'))),
-      ['Silent skin, coming soon', 'Defect skin, coming soon', 'Watcher skin, coming soon'])
+      ['Silent skin, coming soon', 'Watcher skin, coming soon'])
     assert.equal(await skins.locator('.shop-skin--locked button, .shop-skin--locked a').count(), 0, 'a locked rack must offer nothing')
     const short = skins.getByRole('button', { name: `Not enough coins for the Kratos skin, ${SKIN_PRICE.toLocaleString('en-US')} coins: need ${(SKIN_PRICE - (1000 - CARD_PACK_PRICE)).toLocaleString('en-US')} more` })
     assert(await short.isDisabled(), `${screen}: Kratos is not for sale below its price`)

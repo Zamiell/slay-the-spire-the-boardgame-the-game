@@ -378,7 +378,8 @@ export function ShopScreen({ onBack, initialTab = 'packs' }: { onBack: () => voi
         hidden={tab !== 'skins'}>
         <h2 className="shop__title">Skins</h2>
         <div className="shop-skins shop__scene">
-          <ul className="shop-skins__racks" aria-label="Skins on display">
+          <ul className="shop-skins__racks" aria-label="Skins on display"
+            style={{ '--skin-rack-count': SKIN_IDS.length + LOCKED_HEROES.length } as CSSProperties}>
             {SKIN_IDS.map((skin) => {
               const hero = characterOfSkin(skin)
               return <SkinRack key={skin} skin={skin} owned={ownsSkin(wallet, skin)} worn={wearing[hero] === skin}

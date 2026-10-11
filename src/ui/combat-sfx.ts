@@ -83,6 +83,8 @@ const CHARACTER_RATE: Readonly<Record<CharacterId | SkinId, number>> = {
   hexaghost: 1.16,
   hermit: 0.98,
   kratos: 0.9,
+  monogatari_ironclad: 0.94,
+  monogatari_defect: 1.14,
 }
 
 const POTION_IDS = Object.keys(POTIONS).sort()

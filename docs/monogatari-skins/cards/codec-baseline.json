@@ -1,0 +1,151 @@
+{
+ "quality": 90,
+ "method": 6,
+ "note": "Original scans re-encoded without any art changes, representative base attack/skill/power faces, both upgrades and sizes. Quantifies unavoidable same-codec recompression, not a claim of delivered exactness.",
+ "faces": [
+  {
+   "key": "ironclad__starter__strike",
+   "size": "full",
+   "protectedRMS": 1.1666943233856897,
+   "protectedMax": 20
+  },
+  {
+   "key": "ironclad__starter__strike",
+   "size": "sm",
+   "protectedRMS": 1.3522516987009203,
+   "protectedMax": 19
+  },
+  {
+   "key": "ironclad__starter__strike+",
+   "size": "full",
+   "protectedRMS": 1.219705199568431,
+   "protectedMax": 20
+  },
+  {
+   "key": "ironclad__starter__strike+",
+   "size": "sm",
+   "protectedRMS": 1.361312694575327,
+   "protectedMax": 21
+  },
+  {
+   "key": "ironclad__starter__defend",
+   "size": "full",
+   "protectedRMS": 1.157153868263384,
+   "protectedMax": 22
+  },
+  {
+   "key": "ironclad__starter__defend",
+   "size": "sm",
+   "protectedRMS": 1.3620326448006788,
+   "protectedMax": 18
+  },
+  {
+   "key": "ironclad__starter__defend+",
+   "size": "full",
+   "protectedRMS": 1.2612601555453187,
+   "protectedMax": 20
+  },
+  {
+   "key": "ironclad__starter__defend+",
+   "size": "sm",
+   "protectedRMS": 1.4399589363288063,
+   "protectedMax": 19
+  },
+  {
+   "key": "ironclad__rare__corruption",
+   "size": "full",
+   "protectedRMS": 1.6448078768246999,
+   "protectedMax": 32
+  },
+  {
+   "key": "ironclad__rare__corruption",
+   "size": "sm",
+   "protectedRMS": 1.776343543047077,
+   "protectedMax": 28
+  },
+  {
+   "key": "ironclad__rare__corruption+",
+   "size": "full",
+   "protectedRMS": 1.621587692475726,
+   "protectedMax": 36
+  },
+  {
+   "key": "ironclad__rare__corruption+",
+   "size": "sm",
+   "protectedRMS": 1.7947460925382273,
+   "protectedMax": 33
+  },
+  {
+   "key": "defect__starter__strike",
+   "size": "full",
+   "protectedRMS": 1.06784754555635,
+   "protectedMax": 19
+  },
+  {
+   "key": "defect__starter__strike",
+   "size": "sm",
+   "protectedRMS": 1.246894399368539,
+   "protectedMax": 20
+  },
+  {
+   "key": "defect__starter__strike+",
+   "size": "full",
+   "protectedRMS": 1.2065628453212651,
+   "protectedMax": 23
+  },
+  {
+   "key": "defect__starter__strike+",
+   "size": "sm",
+   "protectedRMS": 1.3809155264877557,
+   "protectedMax": 20
+  },
+  {
+   "key": "defect__starter__defend",
+   "size": "full",
+   "protectedRMS": 1.0635849506144497,
+   "protectedMax": 13
+  },
+  {
+   "key": "defect__starter__defend",
+   "size": "sm",
+   "protectedRMS": 1.2362200151283542,
+   "protectedMax": 14
+  },
+  {
+   "key": "defect__starter__defend+",
+   "size": "full",
+   "protectedRMS": 1.2300766068615394,
+   "protectedMax": 18
+  },
+  {
+   "key": "defect__starter__defend+",
+   "size": "sm",
+   "protectedRMS": 1.3980685447127992,
+   "protectedMax": 17
+  },
+  {
+   "key": "defect__normal__loop",
+   "size": "full",
+   "protectedRMS": 1.5538389370024173,
+   "protectedMax": 35
+  },
+  {
+   "key": "defect__normal__loop",
+   "size": "sm",
+   "protectedRMS": 1.737404552425313,
+   "protectedMax": 31
+  },
+  {
+   "key": "defect__normal__loop+",
+   "size": "full",
+   "protectedRMS": 1.6601935949064088,
+   "protectedMax": 34
+  },
+  {
+   "key": "defect__normal__loop+",
+   "size": "sm",
+   "protectedRMS": 1.8427749137660738,
+   "protectedMax": 33
+  }
+ ]
+}

@@ -25,13 +25,13 @@ suite('skins')
 const readText = (path) => readFileSync(path, 'utf8')
 
 check('Kratos is a skin of Ironclad and no character', () => {
-  assertDeepEqual(SKINS, { ironclad: ['kratos'] })
-  assertDeepEqual(SKIN_IDS, ['kratos'])
+  assertDeepEqual(SKINS, { ironclad: ['kratos', 'monogatari_ironclad'], defect: ['monogatari_defect'] })
+  assertDeepEqual(SKIN_IDS, ['kratos', 'monogatari_ironclad', 'monogatari_defect'])
   assert(!CHARACTER_IDS.includes('kratos'), 'Kratos is not a playable character')
   assertEqual(Object.values(CARDS).filter((def) => def.owner === 'kratos').length, 0, 'his cards are gone')
   assert(!('ashes_of_sparta' in RELICS), 'his relic is gone')
-  assertDeepEqual(VISUAL_IDS, [...CHARACTER_IDS, 'kratos'])
-  assertDeepEqual(skinsOf('ironclad'), ['kratos'])
+  assertDeepEqual(VISUAL_IDS, [...CHARACTER_IDS, 'kratos', 'monogatari_ironclad', 'monogatari_defect'])
+  assertDeepEqual(skinsOf('ironclad'), ['kratos', 'monogatari_ironclad'])
   assertDeepEqual(skinsOf('silent'), [])
 })
 

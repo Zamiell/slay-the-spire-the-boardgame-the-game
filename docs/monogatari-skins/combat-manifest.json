@@ -1,0 +1,49 @@
+{
+  "model": "gpt-image-2.5-sunburst",
+  "quality": "high",
+  "alpha": "native transparent; retained without chroma key or background removal",
+  "registrationSha256": "ff5537a6b72641c799a15cd8ed3f7323fe679bbf089b4e25978134335e3bf019",
+  "runtimeCanvas": 800,
+  "displayScale": 1,
+  "heroHeadRatios": {
+    "monogatari_ironclad": 0.6667,
+    "monogatari_defect": 0.666
+  },
+  "sources": {
+    "scripts/art/sources/monogatari/ironclad-idle-grip-repaired.png": "caf1f8b6b219894c403ba79c2397b0b5206c6b4ffcbd55a595b2bcfbffdeda89",
+    "scripts/animation/sources/monogatari/ironclad-ready-sword.png": "8dd7be830398e4fe74e34cab47fe4762d009eea422a7c8f4cbccc5ac4d9f0c32",
+    "scripts/animation/sources/monogatari/ironclad-impact-crossed.png": "7775ab364d94040389104692628baf9998108795021b92c680df1ed989ff5312",
+    "scripts/animation/sources/monogatari/defect-idle-matched.png": "94cbc65fbb958a9f2d61e8f27bdf83ed8f058a3acd9fcbafb086a0d505bf7702",
+    "scripts/animation/sources/monogatari/defect-charge.png": "3ca8bf30a34e439ece6c485b4499c32194eefd8d3820381acc031f629c79ddee",
+    "scripts/animation/sources/monogatari/defect-release-matched.png": "7850f024779ac40f7a1697412650e79bdc70479e1fd235a9743ed265221aade5"
+  },
+  "prompts": {
+    "docs/monogatari-skins/prompts/combat/defect-charge-planted.txt": "d69d10c1eae574fd0734884b6a07a2f59908fa254a8a71e2770ac7063fdf4328",
+    "docs/monogatari-skins/prompts/combat/defect-charge.txt": "7c773f85a9b659c42fdfa00bd16b1972c01c814419a2783427cc8d82d1c6fe26",
+    "docs/monogatari-skins/prompts/combat/defect-idle-matched.txt": "0c41413595749450ecbac50bd367d69398f6c4015b62430b33e73e8e85b6059f",
+    "docs/monogatari-skins/prompts/combat/defect-idle.txt": "3035fce4b501a03eef0b98ef0aa870d99d6847bc072b6153ff9a719bacba0abd",
+    "docs/monogatari-skins/prompts/combat/defect-release-matched.txt": "73835c23599388eead90c01146714d57524e12ca72779dc1274135a611ecfc25",
+    "docs/monogatari-skins/prompts/combat/defect-release-planted.txt": "386180db798cb32965217dae155fdfd80d13851cae1ff76d528a9391cb79b309",
+    "docs/monogatari-skins/prompts/combat/defect-release.txt": "d4265d79611db99c287ccb30e79bf8567b69b2f8cfa758ea111e7a769abba12f",
+    "docs/monogatari-skins/prompts/combat/ironclad-contact-arm-continuity.txt": "95384d81c4814deaa1b4fbf65df9fc2fb4f13aaf7523667b5c187684c3438c06",
+    "docs/monogatari-skins/prompts/combat/ironclad-contact-crossed.txt": "7c9da686503f23d0fdd2543950a9ead984dfd2c6a4a6764701d78cffe617f17c",
+    "docs/monogatari-skins/prompts/combat/ironclad-impact-long.txt": "d5788e88817696be24b85fd20ffcb72ca5ce4ffd50d68711c9d8fab47717d3df",
+    "docs/monogatari-skins/prompts/combat/ironclad-impact.txt": "b14002b0985fd4fe39cfe1665e93cbcb4e97120e744af779a0894ea45214af61",
+    "docs/monogatari-skins/prompts/combat/ironclad-ready-sword.txt": "2b51321f7c4d86b5195c6e952b3e1158aedcf2e5ec63336779b6a04c96437f6d",
+    "docs/monogatari-skins/prompts/combat/ironclad-ready.txt": "0ce33bde4df4bdb7c1ea40b55eb5819ebee813b8b0702dc9ca54eafa846dc4fc"
+  },
+  "outputs": {
+    "public/assets/combat/characters/monogatari_ironclad-ready.webp": "2bb07dbfc377e7f688c878c2a776c0b76b1d7d5831807cb331ae01bace8099dd",
+    "public/assets/combat/characters/monogatari_ironclad-impact.webp": "051eb815de704e33a8b1034d41f221a3bb38154e8d88b61522b789d1bfe004bf",
+    "public/assets/combat/characters/monogatari_ironclad-hero.webp": "1c8d3947d0f83e3e7f0830e04ebf555d8805b248118c0201e1162c06383c544b",
+    "public/assets/combat/characters/monogatari_ironclad.webp": "509297b2bb5431e35838b5b6946412a39a5a5f7e6f5e8f6528570d799aebcc4a",
+    "public/assets/combat/characters/animated/monogatari_ironclad-idle.webp": "a1eeeff801ea9ee1add3a5a098942a6d99a0fcceaa79fba4461eb16a7b1c7017",
+    "public/assets/combat/characters/animated/monogatari_ironclad-attack.webp": "deaac6cd5c717f26373a0de4e94d247519238be0f9fbc3788dc20c383acaea4c",
+    "public/assets/combat/characters/monogatari_defect-charge.webp": "52d8e14dec18fa094b6d4dbd0a9c41892bad28c24d6a2553ef17d87e7b96cb81",
+    "public/assets/combat/characters/monogatari_defect-release.webp": "7c0c5867f6c7e755b68d55ac96db15e3eda29d24ec5f083cf4fb0f3713995fc7",
+    "public/assets/combat/characters/monogatari_defect-hero.webp": "b938d639860979dcf45f0cc932fcfcbdef519edc6eb3cf6e862ef95b0f00b7cf",
+    "public/assets/combat/characters/monogatari_defect.webp": "9a7e31f2e41bd40e9305420975845ce6d4c54b96bd0c81871a1532b0a9014806",
+    "public/assets/combat/characters/animated/monogatari_defect-idle.webp": "ac60469c48760a24aabbe2eee06719575aeca9f7240225bb93352338401ed01a",
+    "public/assets/combat/characters/animated/monogatari_defect-attack.webp": "a45823e6d0d72c322e96938aaa8c27d3980ae15e55add0373dbb7e1bfe56ae3d"
+  }
+}

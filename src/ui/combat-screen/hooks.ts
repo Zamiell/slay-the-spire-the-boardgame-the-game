@@ -701,7 +701,7 @@ export function usePersonalCombatSoundEffects(
               : event.kind === 'potion' ? 'flame-burst'
               : event.kind === 'slime' ? 'slime-splat'
               : !['slash', 'blunt', 'projectile', 'shiv', 'lightning', 'dark'].some(family => element.classList.contains(`combat-vfx--${family}`)) ? undefined
-              : actor && playerVisualId(actor) === 'ironclad' || actor?.character === 'guardian' ? 'sword-clash'
+              : actor?.character === 'ironclad' && playerVisualId(actor) !== 'kratos' || actor?.character === 'guardian' ? 'sword-clash'
               : actor?.character === 'hexaghost' ? 'flame-burst'
               : actor?.character === 'slime_boss' ? 'slime-splat'
               : actor?.character === 'defect' ? 'lightning-burst'

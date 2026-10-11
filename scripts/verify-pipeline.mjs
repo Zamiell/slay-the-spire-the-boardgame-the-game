@@ -52,10 +52,11 @@ check('frontend surfaces select their cores and named focused browser checks', (
     'verify-turn-targets-browser.mjs', 'verify-wing-and-throw-browser.mjs', 'verify-elite-signatures-browser.mjs',
     'verify-die-relic-browser.mjs', 'verify-hero-potions-browser.mjs',
     'verify-end-turn-drag-browser.mjs', 'verify-card-damage-preview-browser.mjs',
-    'verify-skin-browser.mjs',
+    'verify-skin-browser.mjs', 'verify-monogatari-animation-browser.mjs',
+    'verify-monogatari-skins-browser.mjs', 'verify-monogatari-online-browser.mjs',
     'verify-start-turn-resync-browser.mjs'], 'combat screen')
   assert(!combat.includes('verify-noncombat-browser.mjs'))
-  assertEqual(combat.length, 29, 'combat screen selected an unrelated browser suite')
+  assertEqual(combat.length, 32, 'combat screen selected an unrelated browser suite')
   includesEvery(affectedBrowser('src/ui/TokenRow.tsx'), ['verify-turn-targets-browser.mjs',
     'verify-row-target-browser.mjs', 'verify-combat-target-geometry-browser.mjs'], 'Orb row')
   assert(affectedBrowser('src/ui/styles/stage-scale.css').includes('verify-combat-layout-reload-browser.mjs'))
@@ -66,10 +67,10 @@ check('frontend surfaces select their cores and named focused browser checks', (
   includesEvery(room, ['verify-browser.mjs', 'verify-noncombat-browser.mjs', 'verify-online-browser.mjs'], 'room screen')
   const online = affectedBrowser('src/ui/OnlineGame.tsx')
   includesEvery(online, ['verify-online-browser.mjs', 'verify-hosted-multiplayer-browser.mjs', 'verify-courier-browser.mjs',
-    'verify-skin-browser.mjs', 'verify-skin-cards-browser.mjs', 'verify-start-turn-resync-browser.mjs'], 'online screen')
+    'verify-skin-browser.mjs', 'verify-skin-cards-browser.mjs', 'verify-monogatari-online-browser.mjs', 'verify-start-turn-resync-browser.mjs'], 'online screen')
   assert(!online.includes('verify-browser.mjs'))
   assert(!online.includes('verify-noncombat-browser.mjs'))
-  assertEqual(online.length, 6, 'online screen selected an unrelated browser suite')
+  assertEqual(online.length, 7, 'online screen selected an unrelated browser suite')
   assertDeepEqual(affectedBrowser('src\\ui\\OnlineGame.tsx'), online)
   assertDeepEqual(affectedBrowser('src/multiplayer/useRoomSession.ts'),
     [...online.filter((script) => script !== 'verify-courier-browser.mjs'), 'verify-combat-layout-reload-browser.mjs'].sort())
@@ -155,7 +156,7 @@ check('shared frontend changes use cores plus named visual owners', () => {
       'verify-enemy-layout-browser.mjs', 'verify-hover-overflow-browser.mjs', 'verify-enemy-attack-once-browser.mjs',
       'verify-combat-stage-scan-browser.mjs', 'verify-wing-and-throw-browser.mjs', 'verify-elite-signatures-browser.mjs',
     ], sheet)
-    assertEqual(affectedBrowser(sheet).length, 21, `${sheet} selected an unrelated browser suite`)
+    assertEqual(affectedBrowser(sheet).length, 23, `${sheet} selected an unrelated browser suite`)
   }
   const hand = affectedBrowser('src/ui/styles/hand.css')
   includesEvery(hand, ['verify-browser.mjs', 'verify-noncombat-browser.mjs', 'verify-online-browser.mjs',
@@ -165,7 +166,7 @@ check('shared frontend changes use cores plus named visual owners', () => {
     'verify-combat-stage-scan-browser.mjs',
     'verify-row-target-browser.mjs', 'verify-wing-and-throw-browser.mjs', 'verify-elite-signatures-browser.mjs',
     'verify-card-damage-preview-browser.mjs'], 'hand stylesheet')
-  assertEqual(hand.length, 25, 'hand stylesheet selected an unrelated browser suite')
+  assertEqual(hand.length, 27, 'hand stylesheet selected an unrelated browser suite')
   includesEvery(affectedBrowser('src/ui/styles/presentation-overlays.css'), [
     'verify-browser.mjs', 'verify-noncombat-browser.mjs', 'verify-online-browser.mjs',
     'verify-lightning-act2-browser.mjs',
@@ -227,7 +228,7 @@ check('rename parsing keeps both ownership paths', () => {
 })
 check('changed refs compare from their merge base', () => {
   const repo = mkdtempSync(resolve(tmpdir(), 'verify-pipeline-'))
-  const git = (...args) => spawnSync('git', ['-c', 'user.name=Test', '-c', 'user.email=test@example.com', ...args], { cwd: repo, encoding: 'utf8' })
+  const git = (...args) => spawnSync('git', ['-c', 'user.name=Test', '-c', 'user.email=test@example.com', '-c', 'commit.gpgsign=false', ...args], { cwd: repo, encoding: 'utf8' })
   try {
     assertEqual(git('init', '-q').status, 0)
     writeFileSync(resolve(repo, 'file'), 'base')

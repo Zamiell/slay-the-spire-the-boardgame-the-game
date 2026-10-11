@@ -321,7 +321,7 @@ html[data-mobile-performance='true'] .sts-scope .run-summary__coins-note { font-
 .shop-skins { display: grid; grid-template-rows: minmax(0, 1fr); min-height: 0; overflow: hidden; }
 .shop-skins__racks {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 15rem));
+  grid-template-columns: repeat(var(--skin-rack-count, 4), minmax(0, 15rem));
   grid-auto-rows: minmax(0, 1fr);
   justify-content: center;
   gap: clamp(0.7rem, 2vw, 1.8rem);
@@ -522,7 +522,7 @@ html[data-mobile-performance='true'] .shop-pack__count { font-size: 1.3rem; }
 html[data-mobile-performance='true'] .shop-pack__zoom { width: 2.8rem; height: 2.8rem; opacity: 1; }
 html[data-mobile-performance='true'] .shop-button { min-height: 3.1rem; font-size: 1.15rem; }
 html[data-mobile-performance='true'] :is(.shop-pack__buy, .shop-pack__owned) { min-height: 3.3rem; font-size: 1.45rem; }
-html[data-mobile-performance='true'] .shop-skins__racks { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+html[data-mobile-performance='true'] .shop-skins__racks { grid-template-columns: repeat(var(--skin-rack-count, 4), minmax(0, 1fr)); }
 html[data-mobile-performance='true'] .shop-skin h3 { font-size: 1.7rem; }
 html[data-mobile-performance='true'] .shop-skin h3 small { font-size: 1.05rem; }
 html[data-mobile-performance='true'] :is(.shop-skin__buy, .shop-skin__wear, .shop-skin__soon) { min-height: 3.3rem; font-size: 1.45rem; }

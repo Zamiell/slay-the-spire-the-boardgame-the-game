@@ -313,12 +313,14 @@ const actorAttack: Record<CharacterId | SkinId, VfxRecipe> = {
   hexaghost: recipe('projectile', 'cast', 'hexaghost-flame-impact', 'chaos-green'),
   hermit: recipe('projectile', 'lunge', 'magic-burst', 'impact-ochre'),
   kratos: recipe('slash', 'lunge', 'kratos/impact', 'ember-orange'),
+  monogatari_ironclad: recipe('blunt', 'lunge', 'ironclad-strike', 'ember-orange'),
+  monogatari_defect: recipe('projectile', 'cast', 'magic-burst', 'voltaic-blue'),
 }
 
 const actorTone: Record<CharacterId | SkinId, string> = {
   ironclad: 'ember-orange', silent: 'venom-green', defect: 'voltaic-blue', watcher: 'astral-violet',
   slime_boss: 'chaos-green', guardian: 'guard-blue', hexaghost: 'chaos-green', hermit: 'impact-ochre',
-  kratos: 'ember-orange',
+  kratos: 'ember-orange', monogatari_ironclad: 'ember-orange', monogatari_defect: 'voltaic-blue',
 }
 
 function allEffects(def: CardDef, mode?: number): Effect[] {

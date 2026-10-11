@@ -1,0 +1,156 @@
+{
+  "model": "gpt-image-2.5-sunburst",
+  "quality": "high",
+  "alpha": "native transparent; retained without chroma key or background removal",
+  "virtualCanvas": 1536,
+  "runtimeCanvas": 800,
+  "ground": 1500,
+  "skins": {
+    "monogatari_ironclad": {
+      "rearAnchor": 325,
+      "durationMs": 1800,
+      "keys": [
+        [
+          0,
+          "ready"
+        ],
+        [
+          630,
+          "impact"
+        ],
+        [
+          1260,
+          "idle"
+        ]
+      ],
+      "contactMs": 630,
+      "poses": {
+        "idle": {
+          "source": "scripts/art/sources/monogatari/ironclad-idle-grip-repaired.png",
+          "rearSole": [
+            242,
+            1004
+          ],
+          "head": [
+            80,
+            229
+          ],
+          "blade": [
+            [
+              48,
+              339
+            ],
+            [
+              679,
+              352
+            ]
+          ]
+        },
+        "ready": {
+          "source": "scripts/animation/sources/monogatari/ironclad-ready-sword.png",
+          "rearSole": [
+            242,
+            1004
+          ],
+          "head": [
+            213,
+            360
+          ],
+          "blade": [
+            [
+              65,
+              42
+            ],
+            [
+              644,
+              141
+            ]
+          ]
+        },
+        "impact": {
+          "source": "scripts/animation/sources/monogatari/ironclad-impact-crossed.png",
+          "rearSole": [
+            244,
+            985
+          ],
+          "head": [
+            99,
+            247
+          ],
+          "blade": [
+            [
+              925,
+              593
+            ],
+            [
+              1430,
+              889
+            ]
+          ]
+        }
+      }
+    },
+    "monogatari_defect": {
+      "rearAnchor": 525,
+      "durationMs": 1650,
+      "keys": [
+        [
+          0,
+          "charge"
+        ],
+        [
+          550,
+          "release"
+        ],
+        [
+          1100,
+          "idle"
+        ]
+      ],
+      "contactMs": 1110,
+      "projectileOrigin": [
+        0.71,
+        0.522
+      ],
+      "evokeOrigin": [
+        0.497,
+        0.482
+      ],
+      "poses": {
+        "idle": {
+          "source": "scripts/animation/sources/monogatari/defect-idle-matched.png",
+          "rearSole": [
+            318,
+            1005
+          ],
+          "head": [
+            67,
+            193
+          ]
+        },
+        "charge": {
+          "source": "scripts/animation/sources/monogatari/defect-charge.png",
+          "rearSole": [
+            318,
+            1005
+          ],
+          "head": [
+            67,
+            193
+          ]
+        },
+        "release": {
+          "source": "scripts/animation/sources/monogatari/defect-release-matched.png",
+          "rearSole": [
+            318,
+            1005
+          ],
+          "head": [
+            67,
+            193
+          ]
+        }
+      }
+    }
+  }
+}

@@ -61,6 +61,9 @@ Act I-III wins at A0, 8 at A5, 4 at A8, or 2 at A10 (fewer with Act IV and A13's
 catalogue, so a future skin may cost more; `Record<SkinId, number>` makes `tsc -b` fail until a
 new skin has a price).
 
+Current skins: Kratos (Ironclad), Ironclad-chan (Ironclad), and Defect-chan (Defect), each **2,500 coins**.
+The anime skins change presentation only; their owners remain Ironclad and Defect.
+
 ## The wallet
 
 Hosted coin balances, owned packs and owned skins belong to the authenticated account and are saved

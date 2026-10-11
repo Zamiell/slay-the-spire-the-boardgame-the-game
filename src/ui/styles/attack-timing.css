@@ -720,3 +720,24 @@
   25% { opacity: 1; }
   to { opacity: 0; transform: translate(calc(-50% + var(--damage-x)), -6rem) scale(1.1); }
 }
+
+/* Separate complete cel drawings, fixed canvas/feet and the original hero clocks.
+   Stepped visibility avoids double limbs during crossfades; there is no body morph. */
+.character-attack--monogatari_ironclad .character-attack__pose { transform: none; }
+.character-attack--monogatari_ironclad .monogatari-pose--ready { animation: monogatari-sword-ready 1800ms steps(1, end) both; }
+.character-attack--monogatari_ironclad .monogatari-pose--impact { animation: monogatari-sword-contact 1800ms steps(1, end) both; }
+.character-attack--monogatari_ironclad .monogatari-pose--idle { animation: monogatari-sword-settle 1800ms steps(1, end) both; }
+@keyframes monogatari-sword-ready { 0% { opacity: 1; } 35%, 100% { opacity: 0; } }
+@keyframes monogatari-sword-contact { 0% { opacity: 0; } 35% { opacity: 1; } 70%, 100% { opacity: 0; } }
+@keyframes monogatari-sword-settle { 0% { opacity: 0; } 70%, 100% { opacity: 1; } }
+.character-attack--monogatari_defect .monogatari-pose--charge { animation: monogatari-orb-charge 1650ms steps(1, end) both; }
+.character-attack--monogatari_defect .monogatari-pose--release { animation: monogatari-orb-release 1650ms steps(1, end) both; }
+.character-attack--monogatari_defect .monogatari-pose--idle { animation: monogatari-orb-settle 1650ms steps(1, end) both; }
+@keyframes monogatari-orb-charge { 0% { opacity: 1; } 33.3333%, 100% { opacity: 0; } }
+@keyframes monogatari-orb-release { 0% { opacity: 0; } 33.3333% { opacity: 1; } 66.6667%, 100% { opacity: 0; } }
+@keyframes monogatari-orb-settle { 0% { opacity: 0; } 66.6667%, 100% { opacity: 1; } }
+/* Human Defect emits from her forward palm/chest, never from an eye. */
+.character-attack--monogatari_defect .character-attack__core { display: none; }
+.character-attack--monogatari_defect .character-attack__bolt { bottom: calc(var(--monogatari-cast-height, 52.2cqw) - 1.2rem); left: calc(var(--monogatari-cast-x, 71%) - 1.8rem); }
+
+.character-attack--monogatari_defect .character-attack__bolt > img { transform: none; }

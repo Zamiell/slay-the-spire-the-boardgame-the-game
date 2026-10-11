@@ -292,7 +292,7 @@ export function CombatVfx({
 }
 
 /** Evokes use their authoritative target list, independent of the card's normal attack. */
-export function DefectEvokeVfx({ event }: { event: Extract<CombatPresentationEvent, { kind: 'orb' }> }) {
+export function DefectEvokeVfx({ event, visual }: { event: Extract<CombatPresentationEvent, { kind: 'orb' }>; visual?: string }) {
   const anchor = useRef<HTMLSpanElement>(null)
   const [beams, setBeams] = useState<{ id: string; length: number; angle: number }[]>([])
   const targets = event.enemyIds.join('|')
@@ -314,8 +314,11 @@ export function DefectEvokeVfx({ event }: { event: Extract<CombatPresentationEve
       // overscan. The rendered image rect already includes the character scale.
       const body = combatBodyPoint(portrait)
       const sourceScale = naturalWidth / 400
-      source.style.left = `${(event.orb === 'frost' ? body.x : image.left + (image.width - naturalWidth * fit) / 2 + 222 * sourceScale * fit) - parent.left}px`
-      source.style.top = `${(event.orb === 'frost' ? body.y : image.bottom - (naturalHeight - 89 * sourceScale) * fit) - parent.top}px`
+      const chestCast = visual === 'monogatari_defect'
+      const sourceX = chestCast ? naturalWidth * .497 : 222 * sourceScale
+      const sourceY = chestCast ? naturalHeight * .482 : 89 * sourceScale
+      source.style.left = `${(event.orb === 'frost' ? body.x : image.left + (image.width - naturalWidth * fit) / 2 + sourceX * fit) - parent.left}px`
+      source.style.top = `${(event.orb === 'frost' ? body.y : image.bottom - (naturalHeight - sourceY) * fit) - parent.top}px`
       if (event.orb === 'frost') return
       const origin = source.getBoundingClientRect()
       setBeams(event.enemyIds.flatMap(id => {
@@ -338,7 +341,7 @@ export function DefectEvokeVfx({ event }: { event: Extract<CombatPresentationEve
       board.removeEventListener('load', measure, true)
       board.removeEventListener('loadeddata', measure, true)
     }
-  }, [event.seq, event.orb, targets])
+  }, [event.seq, event.orb, targets, visual])
   return <span ref={anchor} className={`defect-evoke defect-evoke--${event.orb}`}
     data-evoke-seq={event.seq} aria-hidden="true">
     {event.orb === 'frost' ? <img className="defect-evoke__frost"

@@ -74,7 +74,11 @@ export const CARD_PACK_PRICE = 2 * A10_THREE_BOSS_EXPECTATION
 
 /** Every skin costs the same; `SKIN_PRICES` is the catalogue, so one skin could cost more later. */
 export const SKIN_PRICE = 2500
-export const SKIN_PRICES: Readonly<Record<SkinId, number>> = { kratos: SKIN_PRICE }
+export const SKIN_PRICES: Readonly<Record<SkinId, number>> = {
+  kratos: SKIN_PRICE,
+  monogatari_ironclad: SKIN_PRICE,
+  monogatari_defect: SKIN_PRICE,
+}
 
 /** No run holds more boss awards than this (Acts I-IV plus A13's second Act III boss, with a Mind Bloom boss). */
 export const MAX_BOSS_AWARDS = 6

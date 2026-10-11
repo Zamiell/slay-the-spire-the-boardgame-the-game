@@ -133,7 +133,7 @@ try {
     await page.locator('#profile-panel-skins').waitFor({ state: 'visible' })
     assert.equal(await page.locator('#profile-panel-record').isVisible(), false, `${name}: Record gives way to Skins`)
     await settledImages(page)
-    assert.equal(await page.getByRole('radiogroup').count(), 1, `${name}: one row, for Ironclad, the only hero with a skin`)
+    assert.equal(await page.getByRole('radiogroup').count(), 2, `${name}: Ironclad and Defect each have a skin row`)
     assert.equal(await page.getByRole('radiogroup', { name: 'Ironclad' }).getByRole('radio').count(), 2, `${name}: Default and Kratos`)
     assert.equal(await tile(page, 'Default').getAttribute('aria-checked'), 'true', `${name}: Default is worn at first`)
     assert.match(await tile(page, 'Default').locator('img').evaluate((image) => image.currentSrc), /portrait-ironclad\.png$/)

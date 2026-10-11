@@ -1344,6 +1344,159 @@ check('invalid room upgrades cannot exhaust room rate keys', () => {
   assertEqual(restoredSocket.readyState, WebSocket.CLOSED)
 })
 
+const jsonPost = (body, token) => ({
+  method: 'POST', headers: { 'content-type': 'application/json', ...(token ? { 'x-room-token': token } : {}) }, body: JSON.stringify(body),
+})
+const closedWithin = (socket, ms) => Promise.race([once(socket, 'close'), new Promise((_, reject) => setTimeout(() => reject(new Error('socket stayed open')), ms))])
+
+// A seat the troll already holds when the restriction is applied and the service restarts.
+const seatedDirectory = mkdtempSync(join(tmpdir(), 'sts-room-restricted-'))
+const seatedStore = join(seatedDirectory, 'rooms.json')
+const seatedServices = []
+const requestId = crypto.randomUUID()
+try {
+  const beforeService = createRoomServer({ storeFile: seatedStore })
+  seatedServices.push(beforeService)
+  const beforeAddress = await beforeService.listen(0)
+  const seated = await fetch(`http://127.0.0.1:${beforeAddress.port}/api/rooms`, jsonPost({ name: 'Troll Name', character: 'ironclad', requestId })).then((response) => response.json())
+  await beforeService.close({ preserveRooms: true })
+  seatedServices.pop()
+  const afterService = createRoomServer({ storeFile: seatedStore, restrictedUsernames: 'troll name' })
+  seatedServices.push(afterService)
+  const afterAddress = await afterService.listen(0)
+  const afterOrigin = `http://127.0.0.1:${afterAddress.port}`
+  const room = `${afterOrigin}/api/rooms/${seated.snapshot.code}`
+  const seatedRead = await fetch(room, { headers: { 'x-room-token': seated.token } })
+  const seatedAct = await fetch(`${room}/character`, jsonPost({ character: 'silent' }, seated.token))
+  const seatedSocket = new WebSocket(`ws://127.0.0.1:${afterAddress.port}/ws?room=${seated.snapshot.code}`)
+  await new Promise((resolve, reject) => { seatedSocket.once('open', resolve); seatedSocket.once('error', reject) })
+  const seatedClosed = closedWithin(seatedSocket, 5000)
+  seatedSocket.send(JSON.stringify({ type: 'authenticate', token: seated.token }))
+  const [seatedCode, seatedReason] = await seatedClosed
+  const seatedVoice = await fetch(`${room}/voice-ice`, { headers: { 'x-room-token': seated.token } })
+  const seatedRejoin = await fetch(`${room}/join`, jsonPost({ name: 'Someone Else' }, seated.token))
+  const seatedRetry = await fetch(`${afterOrigin}/api/rooms`, jsonPost({ name: 'Someone Else', character: 'ironclad', requestId }))
+  const seatedLeft = await fetch(`${room}/leave`, { method: 'POST', headers: { 'x-room-token': seated.token } })
+  check('a restricted seat held before the restriction is refused on every route but leaving', () => {
+    assertEqual(seatedRead.status, 403)
+    assertEqual(seatedAct.status, 403)
+    assertEqual(seatedVoice.status, 403)
+    assertEqual(seatedRejoin.status, 403)
+    assertEqual(seatedRetry.status, 403)
+    assertEqual(seatedCode, 4003)
+    assertEqual(seatedReason.toString(), 'Spire rejects room-temperature IQ')
+    assertEqual(seatedLeft.status, 200)
+  })
+} finally {
+  for (const service of seatedServices) await service.close()
+  rmSync(seatedDirectory, { recursive: true, force: true })
+}
+
+// A restart must not keep a room waiting for a restricted seat that can never come back.
+const quorumDirectory = mkdtempSync(join(tmpdir(), 'sts-room-restricted-quorum-'))
+const quorumStore = join(quorumDirectory, 'rooms.json')
+const quorumServices = []
+const quorumSockets = []
+try {
+  const quorumBefore = createRoomServer({ storeFile: quorumStore, restartRecovery: true })
+  quorumServices.push(quorumBefore)
+  const quorumBeforeAddress = await quorumBefore.listen(0)
+  const quorumOrigin = `http://127.0.0.1:${quorumBeforeAddress.port}`
+  const quorumHost = await fetch(`${quorumOrigin}/api/rooms`, jsonPost({ name: 'Quorum Host', character: 'ironclad' })).then((response) => response.json())
+  const quorumTroll = await fetch(`${quorumOrigin}/api/rooms/${quorumHost.snapshot.code}/join`, jsonPost({ name: 'Troll Name', character: 'silent' })).then((response) => response.json())
+  quorumSockets.push((await reconnectTo(quorumBeforeAddress.port, quorumHost.snapshot.code, quorumHost.token)).socket)
+  quorumSockets.push((await reconnectTo(quorumBeforeAddress.port, quorumHost.snapshot.code, quorumTroll.token)).socket)
+  await quorumBefore.close({ preserveRooms: true })
+  quorumServices.pop()
+  const quorumAfter = createRoomServer({ storeFile: quorumStore, restartRecovery: true, restrictedUsernames: 'Troll Name' })
+  quorumServices.push(quorumAfter)
+  const quorumRoom = quorumAfter.store.rooms.get(quorumHost.snapshot.code)
+  const quorumWaiting = quorumAfter.store.reconnectQuorums.get(quorumHost.snapshot.code)
+  const quorumTrollSeat = quorumRoom.seats.find((seat) => seat.name === 'Troll Name')
+  check('a restricted seat is not waited for after a restart', () => {
+    assertEqual(quorumWaiting?.playerIds.has(quorumTrollSeat.playerId), false)
+    assertEqual(quorumWaiting?.playerIds.size, 1)
+  })
+  const quorumAfterAddress = await quorumAfter.listen(0)
+  const versionBefore = quorumRoom.version
+  quorumSockets.push((await reconnectTo(quorumAfterAddress.port, quorumHost.snapshot.code, quorumHost.token)).socket)
+  check('the room resumes once its other players are back and settles the restricted seat', () => {
+    assertEqual(quorumAfter.store.reconnectQuorums.has(quorumHost.snapshot.code), false)
+    // The host's return and the dropped seat's settlement each bump the room version.
+    assertEqual(quorumRoom.version - versionBefore, 2)
+  })
+} finally {
+  for (const socket of quorumSockets) socket.close()
+  for (const service of quorumServices) await service.close()
+  rmSync(quorumDirectory, { recursive: true, force: true })
+}
+
+const restrictedService = createRoomServer({ restrictedUsernames: ' Troll Name ,' })
+const restrictedAddress = await restrictedService.listen(0)
+const restrictedOrigin = `http://127.0.0.1:${restrictedAddress.port}`
+async function restrictedRequest(path, body, source) {
+  const response = await fetch(`${restrictedOrigin}${path}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...(source ? { 'cf-connecting-ip': source } : {}) },
+    body: JSON.stringify(body),
+  })
+  return { status: response.status, body: await response.json() }
+}
+try {
+  const trollToken = crypto.randomUUID()
+  const fineToken = crypto.randomUUID()
+  const password = 'correct horse battery'
+  await restrictedRequest('/api/profile', { username: 'Troll Name', token: trollToken, password }, '203.0.113.9')
+  await restrictedRequest('/api/profile', { username: 'Fine Player', token: fineToken, password }, '203.0.113.50')
+  const created = await restrictedRequest('/api/rooms', { name: 'TROLL name', character: 'ironclad' })
+  const open = await restrictedRequest('/api/rooms', { name: 'Fine Player', character: 'ironclad' })
+  const joined = await restrictedRequest(`/api/rooms/${open.body.snapshot.code}/join`, { name: 'Troll Name', character: 'silent' })
+  check('a restricted account is turned away from creating and joining rooms', () => {
+    assertEqual(created.status, 403)
+    assertEqual(created.body.error, 'Spire rejects room-temperature IQ')
+    assertEqual(open.status, 201)
+    assertEqual(joined.status, 403)
+  })
+  const padded = await restrictedRequest('/api/rooms', { name: `Troll Name${' '.repeat(14)}x`, character: 'ironclad' })
+  const listed = await restrictedRequest('/api/rooms', { name: ['Troll Name'], character: 'ironclad' })
+  check('a padded or non-string name cannot slip past the room check', () => {
+    assertEqual(padded.status, 403)
+    assertEqual(listed.status, 403)
+  })
+  const garbage = await restrictedRequest('/api/profile/status', { token: crypto.randomUUID() }, '192.0.2.77')
+  const wrongPassword = await restrictedRequest('/api/login', { username: 'Troll Name', password: 'not the password' }, '192.0.2.78')
+  const unmarkedByToken = await restrictedRequest('/api/profile', { username: 'Unmarked Token', token: crypto.randomUUID(), password }, '192.0.2.77')
+  const unmarkedByPassword = await restrictedRequest('/api/profile', { username: 'Unmarked Password', token: crypto.randomUUID(), password }, '192.0.2.78')
+  check('unknown tokens and wrong passwords never mark a network', () => {
+    assertEqual(garbage.body.restricted, false)
+    assertEqual(wrongPassword.status, 401)
+    assertEqual(unmarkedByToken.status, 200)
+    assertEqual(unmarkedByPassword.status, 200)
+  })
+  const standing = await restrictedRequest('/api/profile/status', { token: trollToken }, '198.51.100.7')
+  const fineStanding = await restrictedRequest('/api/profile/status', { token: fineToken }, '203.0.113.50')
+  check('only the restricted account is told it is restricted', () => {
+    assertEqual(standing.body.restricted, true)
+    assertEqual(fineStanding.body.restricted, false)
+  })
+  const login = await restrictedRequest('/api/login', { username: 'troll name', password }, '2001:db8:0:1:aaaa::1')
+  const knownClaim = await restrictedRequest('/api/profile', { username: 'Fine Player', token: fineToken, password }, '198.51.100.7')
+  const sameIpv4 = await restrictedRequest('/api/profile', { username: 'Second Try', token: crypto.randomUUID(), password }, '198.51.100.7')
+  const sameIpv6Prefix = await restrictedRequest('/api/profile', { username: 'Third Try', token: crypto.randomUUID(), password }, '2001:db8:0:1::bbbb:2')
+  const elsewhere = await restrictedRequest('/api/profile', { username: 'Fourth Try', token: crypto.randomUUID(), password }, '192.0.2.1')
+  const otherPrefix = await restrictedRequest('/api/profile', { username: 'Fifth Try', token: crypto.randomUUID(), password }, '2001:db8:0:2::1')
+  check('a restricted login reports itself and its networks cannot register', () => {
+    assertEqual(login.body.restricted, true)
+    assertEqual(knownClaim.status, 200)
+    assertEqual(sameIpv4.status, 403)
+    assertEqual(sameIpv6Prefix.status, 403)
+    assertEqual(elsewhere.status, 200)
+    assertEqual(otherPrefix.status, 200)
+  })
+} finally {
+  await restrictedService.close()
+}
+
 const pagesOrigin = 'https://hieu-lee.github.io'
 const corsService = createRoomServer({ allowedOrigin: pagesOrigin })
 const corsAddress = await corsService.listen(0)

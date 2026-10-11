@@ -20,6 +20,9 @@ const KEY = PROFILE_KEY
 const TOKEN_KEY = 'sts-profile-token'
 const CLAIM_NAME_KEY = 'sts-profile-claim-name'
 const CHANGE_EVENT = 'sts-profile-change'
+// Set when the server restricts the account; it stays on the browser after the profile is gone.
+const RESTRICTED_KEY = 'sts-restricted'
+export const SPIRE_REJECTION = 'Spire rejects room-temperature IQ'
 const REQUEST_TIMEOUT_MS = 5_000
 // Both lengths match the server's limits in scripts/lib/profiles.mjs.
 export const MIN_PASSWORD_LENGTH = 8
@@ -40,6 +43,21 @@ export type ProfileStats = {
 
 /** Usernames compare like the server compares them. */
 export const normalizeUsername = (username: string): string => username.normalize('NFKC').trim().toLowerCase()
+
+/** True where a room server holds the accounts; standalone games have none to ask. */
+export const ACCOUNT_SERVER = import.meta.env?.VITE_HOSTED_SESSION === 'true' || import.meta.env?.VITE_MAIL === 'true' ||
+  import.meta.env?.VITE_COIN_GRANTS === 'true'
+
+export function isRestricted() {
+  try { return localStorage.getItem(RESTRICTED_KEY) === '1' } catch { return false }
+}
+
+function setRestricted(restricted: boolean) {
+  if (isRestricted() === restricted) return
+  if (restricted) localStorage.setItem(RESTRICTED_KEY, '1')
+  else localStorage.removeItem(RESTRICTED_KEY)
+  window.dispatchEvent(new Event(CHANGE_EVENT))
+}
 
 export function savedProfile(): Profile | null {
   try {
@@ -68,10 +86,13 @@ function saveProfile(profile: Profile) {
   window.dispatchEvent(new Event(CHANGE_EVENT))
 }
 
-/** Calls `listener` whenever the signed-in profile changes in this tab. */
+/** Calls `listener` whenever the signed-in profile, or this browser's restricted marker, changes. */
 export function onProfileChange(listener: () => void) {
+  // Another tab marking this browser restricted is a change here too.
+  const storage = (event: StorageEvent) => { if (event.key === RESTRICTED_KEY) listener() }
   window.addEventListener(CHANGE_EVENT, listener)
-  return () => window.removeEventListener(CHANGE_EVENT, listener)
+  window.addEventListener('storage', storage)
+  return () => { window.removeEventListener(CHANGE_EVENT, listener); window.removeEventListener('storage', storage) }
 }
 
 // One retry on a network failure; a 4xx answer is final and its message is shown to the player.
@@ -109,6 +130,7 @@ async function claim(username: string, token: string, password: string): Promise
 }
 
 export function registerProfile(username: string, password: string): Promise<Profile> {
+  if (isRestricted()) return Promise.reject(new Error(SPIRE_REJECTION))
   // Persist the claim token first so retrying a lost response cannot strand a name. It is only
   // reused for the same name: another name would be refused, and the token of the profile
   // being replaced would claim the old name.
@@ -123,13 +145,26 @@ export function registerProfile(username: string, password: string): Promise<Pro
 export const secureProfile = (profile: Profile, password: string) => claim(profile.username, profile.token, password)
 
 export async function logIn(username: string, password: string): Promise<Profile> {
-  const reply = await post<{ username: string; token: string }>('/api/login', { username, password }, UNREACHABLE)
+  const reply = await post<{ username: string; token: string; restricted?: true }>('/api/login', { username, password }, UNREACHABLE)
+  setRestricted(reply.restricted === true)
   const profile: Profile = { username: reply.username, token: reply.token, secured: true }
   saveProfile(profile)
   return profile
 }
 
+/** Asks the server whether the signed-in account is restricted, and marks or clears this browser to match. */
+export async function checkStanding() {
+  const profile = savedProfile()
+  if (!profile || !ACCOUNT_SERVER) return
+  try {
+    const { restricted } = await post<{ restricted: boolean }>('/api/profile/status', { token: profile.token }, UNREACHABLE)
+    // The answer is about the account asked; a different one may have signed in meanwhile.
+    if (savedProfile()?.token === profile.token) setRestricted(restricted)
+  } catch { /* The next visit asks again. */ }
+}
+
 export function logOut() {
+  if (isRestricted()) return
   localStorage.removeItem(KEY)
   // A new account must not reuse this account's claim token.
   localStorage.removeItem(TOKEN_KEY)

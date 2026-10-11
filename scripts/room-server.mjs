@@ -59,6 +59,7 @@ const MAX_JOINS_PER_WINDOW = 30
 const MAX_LEADERBOARD_WRITES_PER_WINDOW = 6
 const MAX_DECK_READS_PER_WINDOW = 30
 const MAX_STATS_READS_PER_WINDOW = 120
+const MAX_RESTRICTED_NETWORKS = 256
 const MAX_MAIL_READS_PER_WINDOW = 60
 const MAIL_SEND_WINDOW_MS = 10 * 60_000
 const MAX_MAIL_SENDS_PER_WINDOW = 5
@@ -112,6 +113,20 @@ const sourceOf = (request) => request.headers['cf-connecting-ip']?.toString()
   ?? request.socket.remoteAddress
   ?? 'unknown'
 
+const SPIRE_REJECTION = 'Spire rejects room-temperature IQ'
+
+/** Groups an IPv6 address by its /64, which one household's rotating addresses share. */
+function networkOf(source) {
+  // A dual-stack socket reports IPv4 clients as ::ffff:a.b.c.d.
+  if (source.toLowerCase().startsWith('::ffff:')) source = source.slice(7)
+  if (!source.includes(':') || source.includes('.')) return source
+  const [head, tail] = source.split('::')
+  const before = head ? head.split(':') : []
+  const after = tail ? tail.split(':') : []
+  const groups = tail === undefined ? before : [...before, ...Array(Math.max(0, 8 - before.length - after.length)).fill('0'), ...after]
+  return groups.slice(0, 4).map((group) => Number.parseInt(group, 16).toString(16)).join(':')
+}
+
 export function createRoomServer({
   turnKeyId = process.env.CLOUDFLARE_TURN_KEY_ID,
   turnApiToken = process.env.CLOUDFLARE_TURN_API_TOKEN,
@@ -126,6 +141,7 @@ export function createRoomServer({
   deckClassifier = classifyDeckType,
   mailAdminToken = process.env.STS_MAIL_ADMIN_TOKEN,
   mailAdminOwners = process.env.STS_MAIL_ADMIN_OWNERS,
+  restrictedUsernames = process.env.STS_RESTRICTED_USERNAMES,
   maxMailCharacters = MAX_MAIL_CHARACTERS,
   onSaveError = (error) => console.error('Room store save failed:', error),
   onSlowOperation = ({ kind, roomCode, durationMs }) =>
@@ -403,11 +419,19 @@ export function createRoomServer({
   }
 
   const recoveringRestart = (room) => store.reconnectQuorums.has(room.code)
+  // Restricted seats can never reconnect, so a restart does not wait for them. Once the others are
+  // back, or time runs out, they are settled like any seat that stayed away.
+  const settleRestrictedSeats = (room) => {
+    for (const seat of room.seats) if (isRestrictedName(seat.name)) markDisconnected(room, seat.token)
+  }
   const finishRestartRecovery = (room, seat) => {
     const quorum = store.reconnectQuorums.get(room.code)
     if (!quorum) return
     quorum.playerIds.delete(seat.playerId)
-    if (quorum.playerIds.size === 0) store.reconnectQuorums.delete(room.code)
+    if (quorum.playerIds.size === 0) {
+      store.reconnectQuorums.delete(room.code)
+      settleRestrictedSeats(room)
+    }
   }
 
   function consume(map, key, windowMs, maximum, now = Date.now()) {
@@ -428,6 +452,31 @@ export function createRoomServer({
   const delegatedMailProfile = (token) => {
     const profile = typeof token === 'string' ? store.profiles.find((entry) => entry.token === token) : undefined
     return profile && delegatedMailOwners.has(ownerOf(profile.token)) ? profile : undefined
+  }
+  // STS_RESTRICTED_USERNAMES (comma separated) names accounts the Spire turns away: no room to
+  // create or join, and no new account from the network they were last seen on. The networks
+  // are remembered only while the process runs; the account's own browser reports in on load.
+  const restrictedNames = new Set((typeof restrictedUsernames === 'string' ? restrictedUsernames.split(',') : restrictedUsernames ?? [])
+    .map((value) => String(value).normalize('NFKC').trim().toLowerCase()).filter(Boolean))
+  const restrictedNetworks = new Set()
+  // Seats keep the first 24 characters of whatever name they were sent, so match on those.
+  const isRestrictedName = (name) => name !== undefined && restrictedNames.has(String(name).slice(0, 24).normalize('NFKC').trim().toLowerCase())
+  const noteRestrictedSource = (request) => {
+    const network = networkOf(sourceOf(request))
+    // Re-adding moves a known network to the back; the cap keeps probing from many addresses from growing the list without end.
+    restrictedNetworks.delete(network)
+    restrictedNetworks.add(network)
+    if (restrictedNetworks.size > MAX_RESTRICTED_NETWORKS) restrictedNetworks.delete(restrictedNetworks.values().next().value)
+  }
+  const rejectRestricted = () => { throw Object.assign(new Error(SPIRE_REJECTION), { status: 403 }) }
+  const seatRestricted = (room, token) => isRestrictedName(findSeat(room, token)?.name)
+  for (const [code, quorum] of store.reconnectQuorums) {
+    const room = store.rooms.get(code)
+    for (const seat of room?.seats ?? []) if (isRestrictedName(seat.name)) quorum.playerIds.delete(seat.playerId)
+    if (quorum.playerIds.size === 0) {
+      store.reconnectQuorums.delete(code)
+      if (room) settleRestrictedSeats(room)
+    }
   }
   // Failures are always counted: when the table is full the oldest source makes
   // room, so a flood of fresh addresses cannot switch the lockout off.
@@ -492,6 +541,7 @@ export function createRoomServer({
         const seat = room.seats.find((candidate) => candidate.playerId === playerId)
         if (seat) markDisconnected(room, seat.token)
       }
+      settleRestrictedSeats(room)
       touch(room)
       queueSave()
       publish(room)
@@ -612,7 +662,10 @@ export function createRoomServer({
         if (!consume(profileRates, sourceOf(request), CREATE_WINDOW_MS, MAX_PROFILE_CLAIMS_PER_WINDOW)) {
           return send(response, 429, { error: 'Too many name requests. Please try again shortly.' })
         }
-        const profile = await claimProfile(store.profiles, await readJson(request))
+        const body = await readJson(request)
+        // A restricted network only loses new accounts; a known token may still set or confirm its password.
+        if (restrictedNetworks.has(networkOf(sourceOf(request))) && !store.profiles.some((entry) => entry.token === body.token)) rejectRestricted()
+        const profile = await claimProfile(store.profiles, body)
         if (!attemptSave()) {
           queueSave()
           return send(response, 503, { error: 'Could not save your account. Please try again.' })
@@ -647,7 +700,19 @@ export function createRoomServer({
           throw error
         }
         loginFailures.delete(failureKey)
-        return send(response, 200, { username: profile.username, token: profile.token })
+        const restricted = isRestrictedName(profile.username)
+        if (restricted) noteRestrictedSource(request)
+        return send(response, 200, { username: profile.username, token: profile.token, ...(restricted ? { restricted } : {}) })
+      }
+      if (request.method === 'POST' && url.pathname === '/api/profile/status') {
+        if (!consume(statsRates, `status:${sourceOf(request)}`, CREATE_WINDOW_MS, MAX_STATS_READS_PER_WINDOW)) {
+          return send(response, 429, { error: 'Too many requests. Please try again shortly.' })
+        }
+        const body = await readJson(request)
+        const profile = typeof body.token === 'string' ? store.profiles.find((entry) => entry.token === body.token) : undefined
+        const restricted = Boolean(profile) && isRestrictedName(profile.username)
+        if (restricted) noteRestrictedSource(request)
+        return send(response, 200, { restricted })
       }
       if (request.method === 'POST' && url.pathname === '/api/profile/stats') {
         if (!consume(statsRates, `profile:${sourceOf(request)}`, CREATE_WINDOW_MS, MAX_STATS_READS_PER_WINDOW)) {
@@ -890,13 +955,15 @@ export function createRoomServer({
           return send(response, 429, { error: 'Too many rooms created' })
         }
         const body = await readJson(request)
+        if (isRestrictedName(body.name)) rejectRestricted()
         const requestId = requestIdOf(body.requestId)
         if (requestId) {
           for (const existingRoom of store.rooms.values()) {
             const existingSeat = existingRoom.seats.find((seat) => seat.joinRequestId === requestId)
-            if (existingSeat) return send(response, 200, {
-              token: existingSeat.token, snapshot: snapshotFor(existingRoom, existingSeat.token),
-            })
+            if (existingSeat) {
+              if (isRestrictedName(existingSeat.name)) rejectRestricted()
+              return send(response, 200, { token: existingSeat.token, snapshot: snapshotFor(existingRoom, existingSeat.token) })
+            }
           }
         }
         if (!admitted) return send(response, 429, { error: 'Too many rooms created' })
@@ -928,12 +995,14 @@ export function createRoomServer({
         const token = tokenOf(request)
         const seat = findSeat(room, token)
         if (!seat) return send(response, 401, { error: 'Unknown seat' })
+        if (isRestrictedName(seat.name)) rejectRestricted()
         if (!mayRead(room, token)) return send(response, 429, { error: 'Rate limit exceeded' })
         return send(response, 200, snapshotFor(room, token))
       }
       if (request.method === 'GET' && operation === 'voice-ice') {
         const token = tokenOf(request)
         if (!findSeat(room, token)) return send(response, 401, { error: 'Unknown seat' })
+        if (seatRestricted(room, token)) rejectRestricted()
         if (!mayRead(room, token)) return send(response, 429, { error: 'Rate limit exceeded' })
         return send(response, 200, { iceServers: await voiceIceServers() })
       }
@@ -946,11 +1015,13 @@ export function createRoomServer({
         }
         const body = await readJson(request)
         if (store.rooms.get(room.code) !== room) return send(response, 404, { error: 'Room not found' })
+        if (isRestrictedName(body.name) || seatRestricted(room, body.token ?? tokenOf(request))) rejectRestricted()
         const requestId = requestIdOf(body.requestId)
         const repeatedSeat = requestId && room.seats.find((seat) => seat.joinRequestId === requestId)
-        if (repeatedSeat) return send(response, 200, {
-          token: repeatedSeat.token, snapshot: snapshotFor(room, repeatedSeat.token),
-        })
+        if (repeatedSeat) {
+          if (isRestrictedName(repeatedSeat.name)) rejectRestricted()
+          return send(response, 200, { token: repeatedSeat.token, snapshot: snapshotFor(room, repeatedSeat.token) })
+        }
         if (!admitted) return send(response, 429, { error: 'Too many join attempts' })
         const token = body.token ?? tokenOf(request)
         if (recoveringRestart(room) && !findSeat(room, token)) {
@@ -976,6 +1047,7 @@ export function createRoomServer({
         if (operation === 'leave') return send(response, 200, { ok: true })
         return send(response, 401, { error: 'Unknown seat' })
       }
+      if (operation !== 'leave' && seatRestricted(room, token)) rejectRestricted()
       if (!mayAct(room, token)) return send(response, 429, { error: 'Rate limit exceeded' })
       if (recoveringRestart(room)) return send(response, 409, { error: 'Waiting for every player to reconnect' })
       const body = await readJson(request)
@@ -1126,6 +1198,7 @@ export function createRoomServer({
           room = roomOrThrow(context.code)
           let seat = findSeat(room, message.token)
           if (!seat) return socket.close(4003, 'Unknown seat')
+          if (isRestrictedName(seat.name)) return socket.close(4003, SPIRE_REJECTION)
           const replacedSockets = [...sockets].filter(([, other]) =>
             other.code === room.code && other.token === message.token)
           if (replacedSockets.length === 0 && sockets.size >= maxConnections) {

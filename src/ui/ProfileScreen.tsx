@@ -6,7 +6,7 @@ import type { SkinId } from '../game/skins.ts'
 import { CHARACTER_IDS } from '../game/types.ts'
 import type { CharacterId } from '../game/types.ts'
 import { onSkinPreferenceChange, savedSkinChoices, setPreferredSkin } from '../skin-preference.ts'
-import { hasAccountPlay, loadProfileStats, logOut, savedProfile, type ProfileStats } from '../profile.ts'
+import { hasAccountPlay, isRestricted, loadProfileStats, logOut, onProfileChange, savedProfile, type ProfileStats } from '../profile.ts'
 import { ownsSkin } from '../wallet.ts'
 import { CoinAmount, formatCoins } from './Coins.tsx'
 import { CHARACTER_LABEL } from './run-summary-data.ts'
@@ -87,6 +87,8 @@ export function ProfileScreen({ onBack, onShop }: { onBack: () => void; onShop: 
   const [section, setSection] = useState<Section>('record')
   const [worn, setWorn] = useState(savedSkinChoices)
   const tabs = useRef(new Map<Section, HTMLButtonElement>())
+  const [restricted, setRestricted] = useState(isRestricted)
+  useEffect(() => onProfileChange(() => setRestricted(isRestricted())), [])
   // Another tab, or this one, changed a choice.
   useEffect(() => onSkinPreferenceChange(() => setWorn(savedSkinChoices())), [])
   useEffect(() => {
@@ -123,8 +125,10 @@ export function ProfileScreen({ onBack, onShop }: { onBack: () => void; onShop: 
           <img src={assetPath(icon)} alt="" draggable={false} /><span>{label}</span>
         </button>)}
       </div>
-      {hasAccountPlay() ? <p className="profile__warning">Logging out discards your saved run or room seat.</p> : null}
-      <button type="button" className="profile__logout" onClick={logOut}>Log out</button>
+      {restricted ? null : <>
+        {hasAccountPlay() ? <p className="profile__warning">Logging out discards your saved run or room seat.</p> : null}
+        <button type="button" className="profile__logout" onClick={logOut}>Log out</button>
+      </>}
     </aside>
     <section className="profile__panel profile__record menu-board" role="tabpanel" id="profile-panel-record" aria-labelledby="profile-tab-record"
       hidden={section !== 'record'}>

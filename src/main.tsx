@@ -7,9 +7,12 @@ import './ui/styles.css'
 // ties against the board stylesheet on purpose; see the header of chrome.css.
 import './ui/chrome.css'
 import './ui/styles/welcome.css'
+import { checkStanding } from './profile.ts'
 
 const container = document.getElementById('root')
 if (!container) throw new Error('#root element is missing from index.html')
+
+void checkStanding()
 
 createRoot(container).render(
   <StrictMode>

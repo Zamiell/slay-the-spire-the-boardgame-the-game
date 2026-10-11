@@ -131,6 +131,24 @@ the server keeps it only when it is a valid skin of the seat's character. Like p
 are client-asserted: the server does not check the wallet, so a modified client could wear a
 skin it did not buy, with no effect on rules, RNG or other players. See [shop.md](shop.md).
 
+## Restricted accounts
+
+`STS_RESTRICTED_USERNAMES` lists accounts the Spire turns away. Put it in
+`~/.config/slay-the-spire-server/restricted.env`, quoted because names may contain spaces
+(`STS_RESTRICTED_USERNAMES="First Name,second_name"`, matched like login names), and restart
+the service. A listed name cannot create or join a room, and a seat it already holds is
+refused on its next request or reconnect; teammates keep playing. This is a deterrent, not
+a lock: rooms trust the name a client sends, so a modified client can get past it. In a
+browser the server has identified, the account cannot log out and every solo run is lost on the spot
+with "Spire rejects room-temperature IQ". Letters and the leaderboard are not restricted.
+
+The server remembers the network (an IPv4 address or an IPv6 /64) of that account's logins
+and status checks, and refuses new accounts from it. The list lives in memory, so every
+restart forgets it until the account's browser loads the game again. Shared networks are
+affected too, and an existing account can still set or confirm its password from them.
+A restart with recovery enabled does not wait for a restricted seat to reconnect. Remove the file's line and restart to lift everything; the browser marker clears
+on the next status check of a saved sign-in.
+
 ## Player letters
 
 The Shop announcement is prepared in `docs/announcements/shop-and-slayer-pack.txt`. After the

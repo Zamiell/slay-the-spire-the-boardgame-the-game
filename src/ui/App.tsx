@@ -119,7 +119,7 @@ import { isCardPackId } from '../game/packs.ts'
 import { enabledCardPacks, MAX_RUN_KEY_LENGTH, soloRunKey } from '../wallet.ts'
 import { ACCOUNT_WALLETS, creditRunCoins, currentWalletKey, savedWallet, syncAccountWallet } from '../wallet-storage.ts'
 import { CoinGainToast, type CoinGain } from './Coins.tsx'
-import { onProfileChange, PROFILE_KEY } from '../profile.ts'
+import { isRestricted, onProfileChange, PROFILE_KEY, SPIRE_REJECTION } from '../profile.ts'
 import {
   discardRunLog,
   downloadRunLog,
@@ -679,6 +679,13 @@ function LocalGame({ open, onOpen, onClose, onOnline, settings, onSettings, acti
   // The engine fixes a Daily Climb's seed, Ascension and setup from its day.
   const metaOptions: RunMetaOptions = mode === 'daily' ? { mode, dailyDate: today } : { mode, modifiers: customModifierIds, quickStartAct }
   const canGiveUp = canGiveUpRun(run, run.campaignProgress)
+  // The Spire turns a restricted account's runs away: each one is lost the moment it is open.
+  const [restricted, setRestricted] = useState(isRestricted)
+  useEffect(() => onProfileChange(() => setRestricted(isRestricted())), [])
+  const lostToSpire = restricted && !replayLog
+  useLayoutEffect(() => {
+    if (restricted && open && !tutorial && !replayLog && canGiveUp) setRun(giveUpRun)
+  }, [restricted, open, tutorial, replayLog, canGiveUp])
 
   /** The settings the run in progress was actually built from. */
   const [built, setBuilt] = useState<BuiltRun>({ count: 1, seed: seedText, ascension: 0, chooseYourRelic: false, lastStand: false, characters: [...DEFAULT_CHARACTERS], meta: {} })
@@ -1115,7 +1122,8 @@ function LocalGame({ open, onOpen, onClose, onOnline, settings, onSettings, acti
   const pendingOwner = run.players.find((player) => player.relics.some((relic) => relic.pending))
   const pendingRelic = pendingOwner?.relics.find((relic) => relic.pending)
   const roomKind = run.map.position ? run.map.rooms[run.map.position]?.kind : undefined
-  const allocatingCampaignMarks = run.campaign.finalized || run.campaignProgress.unspentMarks > 0
+  // A restricted account's lost run shows the Spire's notice, not marks it cannot earn.
+  const allocatingCampaignMarks = run.campaign.finalized || (run.campaignProgress.unspentMarks > 0 && !lostToSpire)
   const resultRecorded = recordRunId === run.campaign.runId
   const runLogExtracted = runLogExtractedRunId === run.campaign.runId
   useEffect(() => {
@@ -1533,11 +1541,13 @@ function LocalGame({ open, onOpen, onClose, onOnline, settings, onSettings, acti
 
       {!tutorial && !allocatingCampaignMarks && run.phase === 'defeat' && !run.campaign.finalized ? (
         <section className="room-screen">
-          <h2 className="room-screen__defeat">The party has fallen</h2>
-          <RunSummary act={run.act} roomsCleared={roomsCleared}
+          <h2 className="room-screen__defeat">{lostToSpire ? SPIRE_REJECTION : 'The party has fallen'}</h2>
+          {lostToSpire ? <div className="room-screen__actions">
+            <button type="button" onClick={() => { discardSoloRun(); onClose() }}>Return to main menu</button>
+          </div> : <RunSummary act={run.act} roomsCleared={roomsCleared}
             ascension={run.ascension} seats={run.players.map(summarySeat)} coins={coinsOwed(run.campaign.bossCoins)}
-            coinsClaimed={Boolean(replayLog) || resultRecorded} />
-          {!run.campaign.finalized && !replayLog ? <><div className="room-screen__actions">
+            coinsClaimed={Boolean(replayLog) || resultRecorded} />}
+          {!lostToSpire && !run.campaign.finalized && !replayLog ? <><div className="room-screen__actions">
             <button type="button" onClick={recordRunResult} disabled={extractingRunLog} data-run-log-control>Record campaign result</button>
             <button type="button" onClick={() => void extractRunLog()} disabled={!runLogAvailable || extractingRunLog}
               data-run-log-control>{runLogExtracted ? 'Extract run logs again' : 'Extract run logs'}</button>

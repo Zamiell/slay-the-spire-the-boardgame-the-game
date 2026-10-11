@@ -14,7 +14,7 @@
 // second account on the same browser cannot inherit the same coins and packs.
 import { MAX_BOSS_AWARDS } from './game/coins.ts'
 import type { BossCoinAward } from './game/coins.ts'
-import { normalizeUsername, savedProfile, syncProfileWallet } from './profile.ts'
+import { ACCOUNT_SERVER, normalizeUsername, savedProfile, syncProfileWallet } from './profile.ts'
 import type { WalletCredit, WalletMigration, WalletPurchase, WalletReply } from './profile.ts'
 import { buyPack, buySkin, creditBossCoins, creditOncePerBrowser, parsePaidRuns, parseWallet } from './wallet.ts'
 import type { PaidRuns, Wallet } from './wallet.ts'
@@ -37,8 +37,7 @@ export const walletKey = (username: string | null | undefined): string => {
 export const currentWalletKey = (): string => walletKey(savedProfile()?.username)
 
 /** Hosted accounts use the server wallet; standalone games keep the local wallet. */
-export const ACCOUNT_WALLETS = import.meta.env?.VITE_HOSTED_SESSION === 'true' || import.meta.env?.VITE_MAIL === 'true' ||
-  import.meta.env?.VITE_COIN_GRANTS === 'true'
+export const ACCOUNT_WALLETS = ACCOUNT_SERVER
 type SyncState = { migration?: WalletMigration; migrated: boolean; credits: WalletCredit[] }
 const syncMemory = new Map<string, SyncState>()
 const syncKey = (key: string) => `${key}:sync`

@@ -388,6 +388,36 @@ function MonogatariAttackPose({ visual, ready }: { visual: string; ready: boolea
   </>
 }
 
+function MonogatariEvokePose({ event, holdCast }: {
+  event: Extract<CombatPresentationEvent, { kind: 'orb' }>
+  holdCast: boolean
+}) {
+  const root = useRef<HTMLSpanElement>(null)
+  const [ready, setReady] = useState(false)
+  const [settled, setSettled] = useState(false)
+  const checkMountedImages = () => {
+    // These assets are already predecoded, but newly mounted DOM images can
+    // still need a load event before acquiring their intrinsic dimensions.
+    const images = root.current?.querySelectorAll('img')
+    if (images?.length && [...images].every(image => image.complete && image.naturalWidth > 0)) setReady(true)
+  }
+  useLayoutEffect(checkMountedImages, [])
+  if (settled) return null
+  return <span ref={root} onLoadCapture={checkMountedImages}
+    className={`monogatari-evoke${ready ? ' is-loaded' : ''}${holdCast ? ' monogatari-evoke--holding-cast' : ''}`}
+    data-evoke-pose-seq={event.seq} data-evoke-hold-cast={holdCast} aria-hidden="true">
+    {(['focus', 'cast', 'recover'] as const).map(phase => <span key={phase}
+      onAnimationEnd={phase === 'recover' ? () => setSettled(true) : undefined}
+      className={`character-attack__pose monogatari-evoke__pose--${phase}`} data-evoke-phase={phase}>
+      <img src={monogatariPoseAsset('monogatari_defect', phase === 'cast' || phase === 'focus' && holdCast ? 'release' : 'hero')} alt="" />
+    </span>)}
+    {(['focus', 'cast'] as const).map(phase => <img key={phase}
+      className={`monogatari-evoke__orb monogatari-evoke__orb--${phase}`}
+      data-evoke-orb={event.orb} data-evoke-orb-phase={phase}
+      src={assetPath(`combat/vfx/actions/${event.orb}-channel.webp`)} alt="" />)}
+  </span>
+}
+
 function GuardianPortrait({ mode, animate, restartKey }: {
   mode: 'attack' | 'defense'
   animate: boolean
@@ -731,12 +761,32 @@ function CombatScreenView({
     monogatariPosesReadyByAttack.current.set(key, ready)
     return ready
   }
+  const monogatariEvokesReadyByEvent = useRef(new Map<string, {
+    ready: boolean; bornAt: number; holdCast: boolean; actorId: string
+  }>())
+  const monogatariEvokeReady = (event: Extract<CombatPresentationEvent, { kind: 'orb' }>) => {
+    const key = `${state.combatId}:${event.seq}`
+    const latched = monogatariEvokesReadyByEvent.current.get(key)
+    if (latched !== undefined) return latched.ready
+    const ready = ['hero', 'release'].every(pose =>
+      characterAttackBlobs.has(monogatariPoseAsset('monogatari_defect', pose))) &&
+      characterAttackBlobs.has(assetPath(`combat/vfx/actions/${event.orb}-channel.webp`))
+    const bornAt = performance.now()
+    // A queued focus must not retract the hand beneath an older, still-live beam.
+    const holdCast = [...monogatariEvokesReadyByEvent.current].some(([olderKey, older]) =>
+      olderKey.startsWith(`${state.combatId}:`) && older.actorId === event.actorId && older.ready &&
+      bornAt - older.bornAt > 16 && bornAt - older.bornAt < 760)
+    monogatariEvokesReadyByEvent.current.set(key, { ready, bornAt, holdCast, actorId: event.actorId })
+    return ready
+  }
   const characterAttackAssets = prefersReducedMotion ? '' : [...new Set(state.players.filter((player) => !player.dead).flatMap((player) =>
     playerVisualId(player) === 'kratos'
       ? [...KRATOS_POSES.map(kratosPoseAsset), ...['light', 'impact'].map(name => assetPath(`combat/vfx/actions/kratos/${name}.webp`))]
       : isMonogatariVisual(playerVisualId(player))
-        ? ['hero', ...(player.character === 'ironclad' ? ['ready', 'impact'] : ['charge', 'release'])]
-          .map(pose => monogatariPoseAsset(playerVisualId(player), pose))
+        ? [...['hero', ...(player.character === 'ironclad' ? ['ready', 'impact'] : ['charge', 'release'])]
+          .map(pose => monogatariPoseAsset(playerVisualId(player), pose)),
+          ...(player.character === 'defect' ? ['lightning', 'dark']
+            .map(orb => assetPath(`combat/vfx/actions/${orb}-channel.webp`)) : [])]
       : player.character === 'hexaghost'
       ? [assetPath(`combat/rigged/hero-hexaghost-heat-${Math.max(0, Math.min(6, player.heat))}-attack.webp`)]
       : player.character === 'guardian'
@@ -772,7 +822,8 @@ function CombatScreenView({
       .map((src) => [src, current.get(src)!])))
     void Promise.all(assets.filter((src) => !characterAttackBlobs.has(src)).map(async (src) => {
       try {
-        if (src.includes('/characters/monogatari_') || src.includes('/characters/animated/kratos-') || src.includes('/actions/kratos/')) {
+        if (src.includes('/characters/monogatari_') || src.includes('/characters/animated/kratos-') ||
+          src.includes('/actions/kratos/') || /\/(lightning|dark)-channel\.webp$/.test(src)) {
           const image = new Image()
           image.src = src
           await image.decode()
@@ -1274,6 +1325,13 @@ function CombatScreenView({
     }
     return resolved
   }, [livePresentationEvents, state.players])
+  useEffect(() => {
+    const running = new Set(activeVfx.filter(({ event }) => event.kind === 'orb' && event.sourceId === 'orb-evoke')
+      .map(({ event }) => `${state.combatId}:${event.seq}`))
+    for (const key of monogatariEvokesReadyByEvent.current.keys()) {
+      if (prefersReducedMotion || !running.has(key)) monogatariEvokesReadyByEvent.current.delete(key)
+    }
+  }, [activeVfx, prefersReducedMotion, state.combatId])
   // A passive orb's end-of-turn effects can all land in the SAME state update
   // (the engine resolves the whole ordered list before the client ever sees
   // it), so without this every orb's burst would reveal on the same frame —
@@ -6757,6 +6815,12 @@ function CombatScreenView({
           const foes = stageEnemies.filter((enemy) => enemy.row === row)
           const emptyRowTargetable = foes.length === 0 && isRowLaneClickTargetable(row)
           const actorEvents = occupant ? actorVfxFor(occupant.id) : []
+          const monogatariEvokes = !prefersReducedMotion && !occupant?.dead && occupantVisual === 'monogatari_defect'
+            ? actorEvents.flatMap(({ event }) => event.kind === 'orb' && event.sourceId === 'orb-evoke' &&
+              event.orb !== 'frost' && event.enemyIds.length > 0 ? [event] : []) : []
+          const evokePose = monogatariEvokes.filter(monogatariEvokeReady).at(-1)
+          const evokeHoldCast = evokePose ? monogatariEvokesReadyByEvent.current
+            .get(`${state.combatId}:${evokePose.seq}`)?.holdCast ?? false : false
           const actorVfx = actorEvents.filter(({ event }) => event.enemyIds.length === 0 &&
             !(occupant?.character === 'defect' && event.kind === 'orb' && event.sourceId === 'orb-evoke'))
           const characterAttackMotions = occupant ? characterAttacks[occupant.id] ?? [] : []
@@ -7009,9 +7073,11 @@ function CombatScreenView({
                               : null}
                           </span>
                         ))}
-                        {!prefersReducedMotion && occupant?.character === 'defect' ? actorEvents.map(({ event }) =>
+                        {evokePose ? <MonogatariEvokePose key={`pose-${evokePose.seq}`} event={evokePose} holdCast={evokeHoldCast} /> : null}
+                        {!prefersReducedMotion && !occupant.dead && occupant?.character === 'defect' ? actorEvents.map(({ event }) =>
                           event.kind === 'orb' && event.sourceId === 'orb-evoke'
-                            ? <DefectEvokeVfx key={`evoke-${event.seq}`} event={event} visual={occupantVisual} /> : null) : null}
+                            ? <DefectEvokeVfx key={`evoke-${event.seq}`} event={event} visual={occupantVisual}
+                              handCast={monogatariEvokes.includes(event) && monogatariEvokeReady(event)} /> : null) : null}
                         {actorVfx.map((active) => (
                           <CombatVfx key={`actor-${active.event.seq}-${active.recipe.asset}`} active={active} role="actor"
                             revealDelayMs={orbEndTurnRevealDelayMs.get(active.event.seq)} />

@@ -662,6 +662,50 @@
   100% { opacity: 0; scale: 1.15; }
 }
 
+/* One decoded evoke owns the body; concurrent evokes keep their target beams. */
+.board .seat__portrait:has(> .monogatari-evoke.is-loaded) > :is(img, video),
+.board .seat__portrait:has(> .monogatari-evoke.is-loaded) .character-attack .character-attack__pose {
+  /* Mask an overlapping attack without cancelling its independent clock. */
+  visibility: hidden;
+}
+.monogatari-evoke {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  container-type: inline-size;
+  pointer-events: none;
+  visibility: hidden;
+}
+.monogatari-evoke.is-loaded { visibility: visible; }
+.monogatari-evoke__pose--focus { animation: monogatari-evoke-focus 900ms steps(1, end) both; }
+.monogatari-evoke__pose--cast { animation: monogatari-evoke-cast 900ms steps(1, end) both; }
+.monogatari-evoke__pose--recover { animation: monogatari-evoke-recover 900ms steps(1, end) both; }
+.monogatari-evoke__orb {
+  position: absolute;
+  z-index: 3;
+  width: 12cqw;
+  height: 12cqw;
+  max-width: none;
+  transform: translate(-50%, 50%);
+}
+.monogatari-evoke__orb--focus {
+  left: 50.7%;
+  bottom: 46.8cqw;
+  animation: monogatari-evoke-focus 900ms steps(1, end) both;
+}
+.monogatari-evoke__orb--cast {
+  left: 71%;
+  bottom: 52.2cqw;
+  animation: monogatari-evoke-cast 900ms steps(1, end) both;
+}
+.monogatari-evoke--holding-cast .monogatari-evoke__orb--focus {
+  left: 71%;
+  bottom: 52.2cqw;
+}
+@keyframes monogatari-evoke-focus { 0% { opacity: 1; } 26.6667%, 100% { opacity: 0; } }
+@keyframes monogatari-evoke-cast { 0% { opacity: 0; } 26.6667% { opacity: 1; } 84.4444%, 100% { opacity: 0; } }
+@keyframes monogatari-evoke-recover { 0% { opacity: 0; } 84.4444%, 100% { opacity: 1; } }
+
 .hermit-shots { position: absolute; inset: 0; pointer-events: none; }
 .hermit-shot { position: absolute; width: 0; height: 0; }
 .hermit-shot__flight {

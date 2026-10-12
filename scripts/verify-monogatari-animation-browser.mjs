@@ -23,7 +23,7 @@ const cases = [
 ]
 
 async function ready(page) {
-  await page.waitForFunction(() => Number(document.querySelector('.board')?.dataset.characterAttackAssetsReady) === 3)
+  await page.waitForFunction(() => Number(document.querySelector('.board')?.dataset.characterAttackAssetsReady) === (document.querySelector('.seat__interactive[data-character="monogatari_defect"]') ? 5 : 3))
   await page.locator(idle).evaluate(image => image.decode())
   await page.evaluate(() => Promise.all([...document.querySelectorAll('.enemy__portrait img')].map(image => image.decode())))
 }
@@ -166,17 +166,19 @@ try {
                   results.push({ orb, events: events.length, sources })
                 }
                 return results
-              }, { skin, origin: data.evokeOrigin })
+              }, { skin, origin: [data.projectileOrigin[0], 1 - data.projectileOrigin[1]] })
               for (const evoke of evokes) {
                 assert.equal(evoke.events, 2, 'real Dual Cast lost an evoke')
                 assert.equal(evoke.sources.length, 2, 'evoke beam layer missing')
-                assert(evoke.sources.every(source => Math.abs(source.dx) < 2 && Math.abs(source.dy) < 2), 'beam misses registered chest')
+                assert(evoke.sources.every(source => Math.abs(source.dx) < 2 && Math.abs(source.dy) < 2), 'beam misses registered casting palm')
               }
             }
             // Repeated non-staged engine attacks retain only the latest painted actor.
             const latest = await page.evaluate(card => { const f = window.kratosFixture; f.attack(card); return f.attack(card) }, cards[0])
             await page.waitForFunction(({ skin, latest }) => Boolean(document.querySelector(`.character-attack--${skin}[data-attack-seq="${latest}"] .monogatari-pose--idle`)), { skin, latest })
-            const queuedBodies = await page.locator('.character-attack__pose img').evaluateAll(images => images.filter(image => Number(getComputedStyle(image.parentElement).opacity) > .5).length)
+            const queuedBodies = await page.locator('.character-attack__pose img').evaluateAll(images => images.filter(image =>
+              getComputedStyle(image).visibility === 'visible' && Number(getComputedStyle(image.parentElement).opacity) > .5 &&
+              image.complete && image.naturalWidth > 0).length)
             assert.equal(queuedBodies, 1, 'queued base attacks duplicate the skin body')
             // Same-authority replacement and reconnect erase stale animations, never gameplay state.
             await page.evaluate(() => { const f = window.kratosFixture; f.restoration++; f.render() })

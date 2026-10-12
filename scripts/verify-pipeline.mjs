@@ -53,10 +53,10 @@ check('frontend surfaces select their cores and named focused browser checks', (
     'verify-die-relic-browser.mjs', 'verify-hero-potions-browser.mjs',
     'verify-end-turn-drag-browser.mjs', 'verify-card-damage-preview-browser.mjs',
     'verify-skin-browser.mjs', 'verify-monogatari-animation-browser.mjs',
-    'verify-monogatari-skins-browser.mjs', 'verify-monogatari-online-browser.mjs',
+    'verify-monogatari-skins-browser.mjs', 'verify-monogatari-online-browser.mjs', 'verify-defect-chan-evoke-browser.mjs',
     'verify-start-turn-resync-browser.mjs'], 'combat screen')
   assert(!combat.includes('verify-noncombat-browser.mjs'))
-  assertEqual(combat.length, 32, 'combat screen selected an unrelated browser suite')
+  assertEqual(combat.length, 33, 'combat screen selected an unrelated browser suite')
   includesEvery(affectedBrowser('src/ui/TokenRow.tsx'), ['verify-turn-targets-browser.mjs',
     'verify-row-target-browser.mjs', 'verify-combat-target-geometry-browser.mjs'], 'Orb row')
   assert(affectedBrowser('src/ui/styles/stage-scale.css').includes('verify-combat-layout-reload-browser.mjs'))
@@ -156,7 +156,7 @@ check('shared frontend changes use cores plus named visual owners', () => {
       'verify-enemy-layout-browser.mjs', 'verify-hover-overflow-browser.mjs', 'verify-enemy-attack-once-browser.mjs',
       'verify-combat-stage-scan-browser.mjs', 'verify-wing-and-throw-browser.mjs', 'verify-elite-signatures-browser.mjs',
     ], sheet)
-    assertEqual(affectedBrowser(sheet).length, 23, `${sheet} selected an unrelated browser suite`)
+    assertEqual(affectedBrowser(sheet).length, 24, `${sheet} selected an unrelated browser suite`)
   }
   const hand = affectedBrowser('src/ui/styles/hand.css')
   includesEvery(hand, ['verify-browser.mjs', 'verify-noncombat-browser.mjs', 'verify-online-browser.mjs',
@@ -166,7 +166,7 @@ check('shared frontend changes use cores plus named visual owners', () => {
     'verify-combat-stage-scan-browser.mjs',
     'verify-row-target-browser.mjs', 'verify-wing-and-throw-browser.mjs', 'verify-elite-signatures-browser.mjs',
     'verify-card-damage-preview-browser.mjs'], 'hand stylesheet')
-  assertEqual(hand.length, 27, 'hand stylesheet selected an unrelated browser suite')
+  assertEqual(hand.length, 28, 'hand stylesheet selected an unrelated browser suite')
   includesEvery(affectedBrowser('src/ui/styles/presentation-overlays.css'), [
     'verify-browser.mjs', 'verify-noncombat-browser.mjs', 'verify-online-browser.mjs',
     'verify-lightning-act2-browser.mjs',

@@ -37,8 +37,10 @@ encoding do not redraw anatomy or remove native alpha.
 The user-flagged Ironclad idle grip was repaired before pose generation. Further
 QA rejected a short sword, inconsistent stance and swapped arm-to-hand routing;
 accepted poses preserve grip identity, head/body scale, sword length and foot
-baseline. Defect's cast originates at her forward palm and evokes at her chest
-core, not her eyes. Native transparent hidden RGB is not chroma-keyed away.
+baseline. Defect's cast originates at her forward palm. Lightning/dark evokes
+focus an orb and fire connected beams from her extended palm, not her eyes.
+Cold evoke art stays on a latched chest fallback. See [evoke follow-up](evoke-audit.md).
+Native transparent hidden RGB is not chroma-keyed away.
 
 ## Rebuild
 

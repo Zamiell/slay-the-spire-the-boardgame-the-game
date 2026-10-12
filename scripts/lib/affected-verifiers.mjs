@@ -70,9 +70,10 @@ const focusedUiOwners = ownerMap([
     'verify-hermit-online-staged-trigger-browser.mjs', 'verify-combat-layout-reload-browser.mjs',
     'verify-row-target-browser.mjs', 'verify-turn-targets-browser.mjs', 'verify-elite-signatures-browser.mjs',
     'verify-hero-potions-browser.mjs', 'verify-end-turn-drag-browser.mjs', 'verify-card-damage-preview-browser.mjs',
-    'verify-skin-browser.mjs', 'verify-monogatari-online-browser.mjs',
+    'verify-skin-browser.mjs', 'verify-monogatari-online-browser.mjs', 'verify-defect-chan-evoke-browser.mjs',
   ]],
   ['src/ui/EnemyCard.tsx', ['verify-elite-signatures-browser.mjs', 'verify-elite-intent-browser.mjs']],
+  ['src/ui/styles/attack-timing.css', ['verify-defect-chan-evoke-browser.mjs']],
   ['src/ui/combat-screen/hooks.ts', ['verify-card-damage-preview-browser.mjs']],
   ['src/ui/SettingsDialog.tsx', ['verify-card-damage-preview-browser.mjs']],
   ['src/ui/game-settings.ts', ['verify-card-damage-preview-browser.mjs']],
@@ -104,7 +105,7 @@ const focusedUiOwners = ownerMap([
   ['src/ui/combat-screen/HermitTriggerChoice.tsx', [
     'verify-hermit-combo-browser.mjs', 'verify-hermit-online-staged-trigger-browser.mjs',
   ]],
-  ['src/ui/combat-screen/vfx.tsx', ['verify-lightning-act2-browser.mjs']],
+  ['src/ui/combat-screen/vfx.tsx', ['verify-lightning-act2-browser.mjs', 'verify-defect-chan-evoke-browser.mjs']],
   ['src/ui/styles/compendium.css', ['verify-compendium-browser.mjs']],
   ['src/ui/styles/prompt.css', ['verify-hermit-combo-browser.mjs']],
   ['src/ui/TokenRow.tsx', [
@@ -117,7 +118,7 @@ const focusedUiOwners = ownerMap([
 ])
 const focusedOnlyUiOwners = ownerMap([
   ['scripts/audio/generate-combat-sfx.py', ['verify-assets.mjs', 'verify-safari-sound-browser.mjs', 'verify-rig-animation-browser.mjs']],
-  ['scripts/lib/kratos-animation-fixture.mjs', ['verify-kratos-animation-browser.mjs', 'verify-monogatari-animation-browser.mjs', 'verify-monogatari-skins-browser.mjs']],
+  ['scripts/lib/kratos-animation-fixture.mjs', ['verify-kratos-animation-browser.mjs', 'verify-monogatari-animation-browser.mjs', 'verify-monogatari-skins-browser.mjs', 'verify-defect-chan-evoke-browser.mjs']],
   ['scripts/art/export-kratos-menu.py', ['verify-assets.mjs', 'verify-skin-browser.mjs']],
   ['scripts/art/export-kratos-noncombat.py', ['verify-assets.mjs', 'verify-art-scenes-browser.mjs', 'verify-merchant-overflow-browser.mjs', 'verify-treasure-animation-browser.mjs']],
   ['scripts/calibrate-hero-head.py', ['verify-hero-potions-browser.mjs', 'verify-assets.mjs']],

@@ -292,7 +292,11 @@ export function CombatVfx({
 }
 
 /** Evokes use their authoritative target list, independent of the card's normal attack. */
-export function DefectEvokeVfx({ event, visual }: { event: Extract<CombatPresentationEvent, { kind: 'orb' }>; visual?: string }) {
+export function DefectEvokeVfx({ event, visual, handCast = false }: {
+  event: Extract<CombatPresentationEvent, { kind: 'orb' }>
+  visual?: string
+  handCast?: boolean
+}) {
   const anchor = useRef<HTMLSpanElement>(null)
   const [beams, setBeams] = useState<{ id: string; length: number; angle: number }[]>([])
   const targets = event.enemyIds.join('|')
@@ -315,8 +319,8 @@ export function DefectEvokeVfx({ event, visual }: { event: Extract<CombatPresent
       const body = combatBodyPoint(portrait)
       const sourceScale = naturalWidth / 400
       const chestCast = visual === 'monogatari_defect'
-      const sourceX = chestCast ? naturalWidth * .497 : 222 * sourceScale
-      const sourceY = chestCast ? naturalHeight * .482 : 89 * sourceScale
+      const sourceX = chestCast ? naturalWidth * (handCast ? .71 : .497) : 222 * sourceScale
+      const sourceY = chestCast ? naturalHeight * (handCast ? .478 : .482) : 89 * sourceScale
       source.style.left = `${(event.orb === 'frost' ? body.x : image.left + (image.width - naturalWidth * fit) / 2 + sourceX * fit) - parent.left}px`
       source.style.top = `${(event.orb === 'frost' ? body.y : image.bottom - (naturalHeight - sourceY) * fit) - parent.top}px`
       if (event.orb === 'frost') return
@@ -341,9 +345,10 @@ export function DefectEvokeVfx({ event, visual }: { event: Extract<CombatPresent
       board.removeEventListener('load', measure, true)
       board.removeEventListener('loadeddata', measure, true)
     }
-  }, [event.seq, event.orb, targets, visual])
+  }, [event.seq, event.orb, targets, visual, handCast])
   return <span ref={anchor} className={`defect-evoke defect-evoke--${event.orb}`}
-    data-evoke-seq={event.seq} aria-hidden="true">
+    data-evoke-seq={event.seq} data-evoke-origin={visual === 'monogatari_defect' ? handCast ? 'hand' : 'chest' : 'original'}
+    aria-hidden="true">
     {event.orb === 'frost' ? <img className="defect-evoke__frost"
       src={assetPath('combat/vfx/actions/turn-frost-passive-impact.webp')} alt="" /> : beams.map(beam => (
       <span className="defect-evoke__ray" data-evoke-target={beam.id} key={beam.id}

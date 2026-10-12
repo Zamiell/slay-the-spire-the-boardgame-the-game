@@ -395,10 +395,10 @@ export function EnemyCard({
       else publishVisual()
     }
     card.addEventListener('hermit-impact', impact)
-    card.addEventListener('kratos-impact', impact)
+    card.addEventListener('staged-impact', impact)
     return () => {
       card.removeEventListener('hermit-impact', impact)
-      card.removeEventListener('kratos-impact', impact)
+      card.removeEventListener('staged-impact', impact)
     }
   }, [])
   useLayoutEffect(() => {

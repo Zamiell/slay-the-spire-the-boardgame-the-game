@@ -1,0 +1,78 @@
+{
+  "skin": "test_combo",
+  "character": "ironclad",
+  "label": "Test combo",
+  "note": "Test-only skin (never registered): a many-pose combo of three hits, drawn as solid shapes by skin-attack.py --fixture for verify-skin-attack-browser.mjs. poseShift and contactReach are measured from the drawn poses.",
+  "canvas": 192,
+  "displayScale": 2.3,
+  "ground": 184,
+  "durationMs": 2000,
+  "travel": {
+    "out": [60, 240],
+    "back": [1600, 1800]
+  },
+  "contactPoses": [
+    "left-extended",
+    "right-extended",
+    "slam"
+  ],
+  "keys": [
+    [0, "idle"],
+    [60, "anticipation"],
+    [240, "left-cast"],
+    [330, "left-extended"],
+    [420, "right-cast"],
+    [500, "right-extended"],
+    [600, "windup"],
+    [700, "windup-high"],
+    [900, "slam-descend"],
+    [1000, "slam"],
+    [1450, "recovery"],
+    [1600, "settle"],
+    [1800, "idle"]
+  ],
+  "cues": [
+    {
+      "at": "left-cast",
+      "sound": "test_combo-cue"
+    },
+    {
+      "at": "right-cast",
+      "sound": "test_combo-cue"
+    },
+    {
+      "at": "slam-descend",
+      "sound": "test_combo-cue"
+    }
+  ],
+  "hits": [
+    {
+      "at": "left-extended",
+      "weight": 0.1,
+      "style": "strike",
+      "angle": -25,
+      "vfx": "light",
+      "sound": "test_combo-light"
+    },
+    {
+      "at": "right-extended",
+      "weight": 0.1,
+      "style": "strike",
+      "angle": 25,
+      "vfx": "light",
+      "sound": "test_combo-light"
+    },
+    {
+      "at": "slam",
+      "weight": 0.8,
+      "style": "slam",
+      "vfx": "impact",
+      "sound": "test_combo-slam"
+    }
+  ],
+  "sounds": {
+    "test_combo-cue": 0.19,
+    "test_combo-light": 0.16,
+    "test_combo-slam": 0.32
+  }
+}

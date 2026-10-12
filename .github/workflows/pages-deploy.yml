@@ -72,7 +72,9 @@ jobs:
           test "$(find dist/assets/bgm -type f -print -quit)" = ''
           test "$(find dist/assets/noncombat/campfire -type f ! -name 'empty_firecamp.webp' ! -name 'rest.webp' ! -name 'smith.webp' -print -quit)" = ''
           for file in empty_firecamp.webp rest.webp smith.webp; do test -s "dist/assets/noncombat/campfire/$file"; done
-          test "$(du -sb dist | cut -f1)" -le 850000000
+          # The published site may not exceed 1 GB (GitHub Pages); this cap keeps 100 MB of margin. It was 850 MB until the
+          # fifth skin (about 18 MB each in dist; see docs/skins/README.md, "Pages package size").
+          test "$(du -sb dist | cut -f1)" -le 900000000
       - run: node scripts/check-single-player-build.mjs dist --multiplayer
       - name: Prepare the stable multiplayer client
         run: |

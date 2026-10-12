@@ -1,6 +1,7 @@
 // Pure helpers behind the UI. These looked too small to test, and a mutation
 // pass proved otherwise: forcing every die to show a 1, or filing every rare
 // card under the wrong directory, both went unnoticed.
+import { existsSync } from 'node:fs'
 import { dieIcon, iconPath, ICON_LABELS } from '../src/ui/icons.ts'
 import { cardArtPath, tierOf, cardImagePath, CARD_ART_ROOT, CARD_ASSET_ROOT } from '../src/game/assets.ts'
 import { CARDS, faceOf, releasedCardDefs } from '../src/game/cards.ts'
@@ -18,7 +19,7 @@ import {
   vfxToneColor,
 } from '../src/ui/combat-vfx.ts'
 import { CHARACTER_IDS } from '../src/game/types.ts'
-import { VISUAL_IDS } from '../src/game/skins.ts'
+import { SKIN_IDS, SKIN_TRAITS, VISUAL_IDS, characterOfSkin } from '../src/game/skins.ts'
 import { cardSfxRecipe, potionSfxRecipe } from '../src/ui/combat-sfx.ts'
 import {
   MIN_STAGE_SCALE,
@@ -144,7 +145,7 @@ check('melee bosses dash while Deca and Corrupt Heart cast from their lane', () 
 check('every reachable card resolves a stable combat VFX recipe for every character and skin', () => {
   const characters = VISUAL_IDS
   const assets = new Set(['ironclad-strike', 'ironclad-bash', 'lightning-channel', 'frost-channel', 'dark-channel', 'watcher-pray',
-    'silent-poison', 'silent-shiv', 'guard-bloom', 'hexaghost-flame-impact', 'potion-burst', 'magic-burst', 'kratos/impact'])
+    'silent-poison', 'silent-shiv', 'guard-bloom', 'hexaghost-flame-impact', 'potion-burst', 'magic-burst'])
   const cards = Object.values(CARDS)
   assert(cards.filter((card) => characters.includes(card.owner)).length >= 315,
     'the integrated base and Hexaghost card pools are covered')
@@ -155,11 +156,48 @@ check('every reachable card resolves a stable combat VFX recipe for every charac
       assertEqual(JSON.stringify(upgraded), JSON.stringify(base),
         `${character}/${card.id}+ keeps the base visual identity`)
       for (const token of [base.asset, base.tone]) {
-        assert(/^(?:[a-z0-9-]+\/)*[a-z0-9-]+$/.test(token), `${character}/${card.id} has a path-safe VFX token: ${token}`)
+        assert(/^(?:[a-z0-9_-]+\/)*[a-z0-9-]+$/.test(token), `${character}/${card.id} has a path-safe VFX token: ${token}`)
       }
-      assert(assets.has(base.asset), `${character}/${card.id} resolves to a supplied asset: ${base.asset}`)
+      // A skin may supply its own `<skin>/...` impact art; it must be a shipped file.
+      const ownAsset = SKIN_IDS.some((skin) => skin === character && base.asset.startsWith(`${skin}/`))
+      assert(assets.has(base.asset) || (ownAsset && existsSync(new URL(`../public${vfxAssetPath(base)}`, import.meta.url))),
+        `${character}/${card.id} resolves to a supplied asset: ${base.asset}`)
       assertEqual(vfxAssetPath(base), `/assets/combat/vfx/actions/${base.asset}.webp`)
     }
+  }
+})
+
+check('every staged attack skin has its own attack VFX recipe resolving to a shipped file', () => {
+  // combat-vfx.ts `skinAttack`: a skin without an entry falls back to its hero's effect on every attack card.
+  for (const skin of SKIN_IDS.filter((id) => SKIN_TRAITS[id].stagedAttack)) {
+    const hero = characterOfSkin(skin)
+    const own = Object.values(CARDS).filter((card) => card.owner === hero)
+      .map((card) => cardVfxRecipe(skin, card.id)).filter((recipe) => recipe.asset === `${skin}/impact`)
+    assert(own.length > 0, `${skin}: no ${hero} card resolves to the skin's own attack recipe`)
+    assert(existsSync(new URL(`../public${vfxAssetPath(own[0])}`, import.meta.url)), `${skin}: ${vfxAssetPath(own[0])} is not shipped`)
+  }
+})
+
+check('every hero and skin keeps its documented combat VFX tone and attack asset', () => {
+  // [Strike tone, Defend tone, Strike asset] per visual id. A skin keeps its hero's tone unless it carries its own attack
+  // recipe (combat-vfx.ts `skinAttack`); a tone swap there changes every flash and trail of the skin, so it is pinned here.
+  const expected = {
+    ironclad: ['ember-orange', 'ember-orange', 'ironclad-strike'],
+    silent: ['steel-green', 'venom-green', 'silent-shiv'],
+    defect: ['voltaic-blue', 'voltaic-blue', 'magic-burst'],
+    watcher: ['astral-violet', 'astral-violet', 'magic-burst'],
+    kratos: ['ember-orange', 'ember-orange', 'ironclad-strike'],
+    monogatari_ironclad: ['ember-orange', 'ember-orange', 'ironclad-strike'],
+    monogatari_silent: ['venom-green', 'venom-green', 'monogatari_silent/impact'],
+    monogatari_defect: ['voltaic-blue', 'voltaic-blue', 'magic-burst'],
+    monogatari_watcher: ['astral-violet', 'astral-violet', 'monogatari_watcher/impact'],
+  }
+  const ids = VISUAL_IDS.filter((id) => !['slime_boss', 'guardian', 'hexaghost', 'hermit'].includes(id))
+  assertDeepEqual(Object.keys(expected).sort(), [...ids].sort(), 'visual ids with a pinned VFX tone')
+  for (const id of ids) {
+    const hero = SKIN_IDS.includes(id) ? characterOfSkin(id) : id
+    const [strike, defend] = [`strike_${hero}`, `defend_${hero}`].map((card) => cardVfxRecipe(id, card))
+    assertDeepEqual([strike.tone, defend.tone, strike.asset], expected[id], `${id} VFX tone and attack asset`)
   }
 })
 

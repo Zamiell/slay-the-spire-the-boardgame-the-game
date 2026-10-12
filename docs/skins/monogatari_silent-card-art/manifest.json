@@ -1,0 +1,1591 @@
+{
+ "model": "gpt-image-2.5-sunburst",
+ "quality": "high",
+ "size": "1536x1024",
+ "cardSize": [
+  748,
+  420
+ ],
+ "identityReference": {
+  "description": "Approved Silent skin identity sheet: original anime heroine in a green hood, acid-green slit-pupil eyes, vial bandolier, jade snake ring, two poison daggers (generated, not committed)",
+  "sha256": "35be6266445ef66558d748566b68673bef3514158d50ee39d33d270ab50bf853"
+ },
+ "styleReferences": {
+  "poster": {
+   "description": "Monogatari series second-season key art: extreme low camera angle, cloudless cobalt sky, white geometric masts, stacked diagonal figures (copyrighted, not committed)",
+   "sha256": "0a006524048361ec815fb8d9648c269da8bf507224c0cd6b7a9b07ed8de7fa90"
+  },
+  "closeup": {
+   "description": "Monogatari series close-up frame: huge flat eyes with crisp highlights, shard-like flat hair, fine linework, painted sea and cloud backdrop (copyrighted, not committed)",
+   "sha256": "eae8b06c365b04b53a3aa6723091f172f7ae7641009a31a04ab40d7f43471762"
+  },
+  "classroom": {
+   "description": "Monogatari series group frame: hard diagonal shadow cuts, cracked grey wall with one hot flat colour panel, geometric clutter, long limbs (copyrighted, not committed)",
+   "sha256": "1e7fdbc9e0c88f3925a35d4a23b49fe2824a86c9d2bdd8d09d30d174462e05c3"
+  }
+ },
+ "cards": [
+  {
+   "id": "slayer_caltrops",
+   "scene": "She crouches low and flicks a handful of small iron caltrop stars across a stone floor toward the camera, seen from a high angle, the spikes scattering in a flat spiral, one hard diagonal shadow cut across the floor.",
+   "styleImages": [
+    "poster",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/slayer_caltrops.webp",
+    "sha256": "224a8b02fd7cd8d06123144272a6efa7654b8c4a5dbbf1d47953dd031ba22932"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/slayer_caltrops.txt",
+    "sha256": "5b9844e0a7b52be3c47dbf5758ae8696fec47436d502ee03e61b6a992e240f66"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/slayer_caltrops.webp",
+    "sha256": "a8e8b048b9cdc7cb78ff53e9cf94739ba32a73ad7f04c3ed25463cbd2023df52"
+   },
+   "webpQuality": 90
+  },
+  {
+   "id": "slayer_endless_agony",
+   "scene": "Low camera angle: she thrusts a reverse-grip dagger toward the lens again and again, three thin repeated motion arcs of the same blade stacked on a diagonal, head tilted, a flat hot panel colour behind her.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/slayer_endless_agony.webp",
+    "sha256": "38fcc224bcc69175e2fe35dc342e36ffb10ebfe8b41da97a44bfa6e45e09a9c5"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/slayer_endless_agony.txt",
+    "sha256": "3facab0fce56a3a01c24fc21b7aed8a643a9c4b0acb117ecccbf3550f0ac0515"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/slayer_endless_agony.webp",
+    "sha256": "0492131c21cabfe3e40234311a485aa6aba8bd141b0dab8d1ebe1d0a8df82583"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "slayer_eviscerate",
+   "scene": "She opens her hand and lets a fan of discarded playing cards fall away, each card leaving one thin white slash line in the air, a symmetric emblem composition with her calm face centred above.",
+   "styleImages": [
+    "poster",
+    "closeup"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/slayer_eviscerate.webp",
+    "sha256": "8d4423157073b7072ecf4bacf7b96a8aa2bf8652ca4ecb019b0413de9c77157c"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/slayer_eviscerate.txt",
+    "sha256": "a059e25f22d430b284e54a408bb92a35d091923b43f91503b68c12c8bb17cfbe"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/slayer_eviscerate.webp",
+    "sha256": "647728f1b07622d25382c0db86fe088af2846600167cc3f89e1dc5d8a650e597"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "slayer_glass_knife",
+   "scene": "Close low-angle shot of her thrusting a clear glass dagger, the blade transparent pale green with a long crack down its centre and a few shards flying off, her hooded face tilted behind it.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/slayer_glass_knife.webp",
+    "sha256": "bf8064b84abbff3d50908508b9059bf1b8bc7b309016b6a0f9dccb549e55585b"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/slayer_glass_knife.txt",
+    "sha256": "84c98b09ddc114d9bd44583fa77c2bfaa5fabcfa6926335eaf952f545dd06bc8"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/slayer_glass_knife.webp",
+    "sha256": "bc461d967ee6c4b8ba979cad98d83ef4919e0ef704bfb84c624005a566f347ae"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "slayer_heel_hook",
+   "scene": "A long leg sweeps in a low arc as she hooks an enemy silhouette's ankle with her heel, the foe toppling backwards, seen side-on from a high angle, hard diagonal shadow polygons on the floor.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/slayer_heel_hook.webp",
+    "sha256": "a18981c977d9578ba2402bfe645c059c6bbf98cc7dd4a6e2939bae6056113d98"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/slayer_heel_hook.txt",
+    "sha256": "687b759057ce843022870a6883707df9582a87a468e332c03e400e5052afe54f"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/slayer_heel_hook.webp",
+    "sha256": "6b3765b21f5285116276251c1a2eb57ee923ffb5533e90ace53ea9015cea0c48"
+   },
+   "webpQuality": 90
+  },
+  {
+   "id": "slayer_nightmare",
+   "scene": "She sits calm and cross-legged while a huge ghostly pale-green double of herself leans over her from behind like a dream, the double holding a floating card, tilted heads, shadow-cut staging.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/slayer_nightmare.webp",
+    "sha256": "0ec360ecde64f00555be442ab6984bbd39aa02c8f4020f9314f72f43578a96e0"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/slayer_nightmare.txt",
+    "sha256": "652a9b4bef5526ae1a3eebcf4daa72073755e5e01b8b4cf56e4bf220055dc0ab"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/slayer_nightmare.webp",
+    "sha256": "2be4fdabd916a9dbf62e18deb8e7c76c88119c2bb4e9b76058bc9ee2f7aad981"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "slayer_phantasmal_killer",
+   "scene": "A pale ghostly green copy of her rises behind her with both daggers lifted, she stands in the foreground deadpan, symmetric emblem composition with calm margins.",
+   "styleImages": [
+    "poster",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/slayer_phantasmal_killer.webp",
+    "sha256": "1333af097c41a86c0f4c0940bdcca149f77c53947a1c33a6293c160562212e2d"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/slayer_phantasmal_killer.txt",
+    "sha256": "832e565416c08cc1c94af4a1c79564b7f8d1a0fa6c85d861ff1c699b524b80cc"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/slayer_phantasmal_killer.webp",
+    "sha256": "1470e2a4699d4edf381e6a246a4a7e0295bc502224d72df3fff1ec63dba85bff"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "strike_silent",
+   "scene": "A clean single dagger strike: she lunges forward in profile with one poison dagger slashing a bright diagonal line across the frame, low camera angle under a cloudless saturated sky, hood tilting.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/strike_silent.webp",
+    "sha256": "f8a19899bb21433972b683a92ef78608e2ee6baf2760f9905f29062207b8689f"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/strike_silent.txt",
+    "sha256": "a660b6542101f8c5232b43139895c13048dd17ef2ca6d93543013a8c5fb93536"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/strike_silent.webp",
+    "sha256": "e8bfc034c4cabc3a0ba9f285c16d29426d9126b389fd7f15fdf3500fe0a6feb6"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "defend_silent",
+   "scene": "She crosses both poison daggers in front of her chest in a guard, head tilted, cloak flaring, hard diagonal shadow behind her and one flat panel of colour.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/defend_silent.webp",
+    "sha256": "ebd555645ac4f5573926c3a203ff2905f29e0d6338766dba5471482ee1ce83cc"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/defend_silent.txt",
+    "sha256": "a543cd510680e038d8042b4df6bcc035d4188e82f03dc9ca4f4a532064240d8d"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/defend_silent.webp",
+    "sha256": "3b54b17c816e310c234303dd11eb5f5cc1f89ae8d75decc04f7d09f5bb2685c9"
+   },
+   "webpQuality": 90
+  },
+  {
+   "id": "neutralize",
+   "scene": "She throws a dagger that pins an enemy silhouette's sleeve to a cracked wall, a small green gas wisp rising from the wound-free sleeve, she stands relaxed with a pointed finger.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/neutralize.webp",
+    "sha256": "fadd76e677afce7119d8f910888f4283f6c22ecf8e5a18321ab617df484f49cf"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/neutralize.txt",
+    "sha256": "b12fec22567184f51c52bbf6b8784d0508af569c105f345e58fa327f6b78b005"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/neutralize.webp",
+    "sha256": "889b26a40caaf5d21cc3efde3a536e53398d7e2f213e8b1e82da99de40d9adee"
+   },
+   "webpQuality": 90
+  },
+  {
+   "id": "survivor",
+   "scene": "She crouches and pulls her cloak around herself while flicking one card away with two fingers, a smoke vial dropping, low angle, deep shadow cut.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/survivor.webp",
+    "sha256": "a5151a6090f22bbecf65cb31373648e0904fbcb9a1a5173634844dfd30e66a65"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/survivor.txt",
+    "sha256": "438db9dd4cb7636a4a753bd0c09d605de59e138d9441e920343ec4642df2d822"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/survivor.webp",
+    "sha256": "386d4ceddd7cd60fa6c20bd39818c6bdf36848cb13ea29f40ef9a02211f05e2b"
+   },
+   "webpQuality": 90
+  },
+  {
+   "id": "dagger_throw",
+   "scene": "A side-on throw: her arm fully extended after releasing a dagger that streaks toward the right edge with three thin speed lines, long limbs, flat sky.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/dagger_throw.webp",
+    "sha256": "71738f4af5934ac7870969a72f13a6b889fd1fa609c7a9bb3464f4e0106a3c04"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/dagger_throw.txt",
+    "sha256": "34fbc99ff21bd69fb23c962a3b082bef41239826dd3ef9dc19148494ed49aeeb"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/dagger_throw.webp",
+    "sha256": "6ca6efca937c104ff1070545c5f29192e7cb205745958bd16dd0a9c6929f64bb"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "prepared",
+   "scene": "High angle looking straight down: she kneels over a cloth laid with daggers and glass vials in neat rows, checking one dagger, her hood and scarf making simple shapes.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/prepared.webp",
+    "sha256": "094b3972cafe3bf3c522d846e55b4066200c22373b519e532a9fc13e270c1200"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/prepared.txt",
+    "sha256": "0d0ea24574b1e11c3c0f603b9723bc823e38035529e8b8dddccc95ebd4d2a0ce"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/prepared.webp",
+    "sha256": "e7ec563e5158ae0f8bea28af4ca7d6e79267a0e75910e9ac2d31b1395b4bd7f5"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "riddle_with_holes",
+   "scene": "Five thrown daggers fan out across the frame and pin a silhouetted target, tiny bright round holes of light riddling it, she stands at the left edge with her arm still extended.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/riddle_with_holes.webp",
+    "sha256": "e3bbe2c2bcce592d1ca1ce90e328cb78366a7673083f107972f1b54fc77f70e9"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/riddle_with_holes.txt",
+    "sha256": "e6890671b5ddc3831215d68763b44592878a3ea44e019d1a7fa9037f77dc87bc"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/riddle_with_holes.webp",
+    "sha256": "ca902f9676e85134235a06b4c88baedbe3e257269b1ddaa4f4c89bce476c805f"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "dash",
+   "scene": "She dashes forward in a very low long lunge across the frame, cloak streaming behind, dagger trailing, flat horizontal speed bands, low camera angle.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/dash.webp",
+    "sha256": "ffc3bfba8dcb7e7e1a595c346b0bce4288ab13164634d681141efc43d9f10ea5"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/dash.txt",
+    "sha256": "e923bf08ea3ac8888cd7b70107a31850b820b55549ff7f12adb34f1264a9cdc7"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/dash.webp",
+    "sha256": "b491ec648f80e72888fba9effb51e8ae185653f177b09498205e22bb64bb6ae2"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "die_die_die",
+   "scene": "Seen from a high angle she spins gracefully on one foot with both arms stretched out, a ring of many small throwing knives fanning outward from her hands in a flat spiral toward the walls of an empty courtyard, bold radial composition, no people near her.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/die_die_die.webp",
+    "sha256": "226ab19381d667dbdf260e42d64ad2baed8d053da712e4fae5f0d83ce4f59d29"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/die_die_die.txt",
+    "sha256": "b8eb1c4bb3765360286b701e1a88b8c8eef3e31b15dae51cdbc8489df6ae4270"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/die_die_die.webp",
+    "sha256": "d5726181cbba568fd3a5c13515d663947922ab561575fabbfac901e5dbb862e0"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "piercing_wail",
+   "scene": "She cups one hand beside her mouth and sends out three bold concentric rings of sound, cracked grey wall behind and enemy silhouettes recoiling at the edges.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/piercing_wail.webp",
+    "sha256": "df35a94aea027295c77979e409f789bb794f6c8776a3c0ddbd1abf39b4d32aae"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/piercing_wail.txt",
+    "sha256": "2462046522f663c1eb8b20799b0bc3331bad673378b140ee0589c8f9b1b6ac7a"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/piercing_wail.webp",
+    "sha256": "ad1504cd0f203e1001e0b4b4340d11f2591b0bddd6450179fa1921177781dce2"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "crippling_cloud",
+   "scene": "She smashes a vial at an enemy silhouette's feet and a billowing flat acid-green cloud rolls up around the legs, she steps back with a covered scarf, hard shadow cut.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/crippling_cloud.webp",
+    "sha256": "d54af35f9c33e9a44689e03484fd4d7cb1d82b84a61e5c6a0ad6a4c8e441222a"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/crippling_cloud.txt",
+    "sha256": "5739699e3192ca0993fe679dfad3af59096664cd7b2ad1fbc1fdf69020bce225"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/crippling_cloud.webp",
+    "sha256": "ad49adb7618d3ab9cb73665a6bce69d326e09a34b91d1b8e66dde0b2aacabb1c"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "deadly_poison",
+   "scene": "Close-up of her long fingers (jade snake ring visible) dipping a dagger tip into a small vial, a single acid-green drop falling, her half-shadowed eyes in the corner.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/deadly_poison.webp",
+    "sha256": "bfd2954cd29a388853a0e72e06650dfabb259724eb5cf8275dbbc9b4e6bbb002"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/deadly_poison.txt",
+    "sha256": "ba340896b920b9225281fa68f7d845620a72a1506187de4221fe10d4ba2197a2"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/deadly_poison.webp",
+    "sha256": "ebbd62704618530a7284455d28ca9cc50712c8d29ee2d96714bc5e4adaf926ee"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "poisoned_stab",
+   "scene": "Low angle thrust: a dagger dripping bright acid-green poison driven forward toward the camera, her slit-pupil eyes watching over it, flat cel colour.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/poisoned_stab.webp",
+    "sha256": "d3d29e0a7a26911c09bf059253af5c3f9c89ab63f51ff4d0c06ca846fdcb3c18"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/poisoned_stab.txt",
+    "sha256": "dcca6adfb406aeff873408b156e0d464f5771b5c65b6f11885cdb10350b17d10"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/poisoned_stab.webp",
+    "sha256": "a3abd632311f309ff3124e8f34880e560958cee3dd1626e3c0124f948c3d2dda"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "dagger_spray",
+   "scene": "She sweeps both arms outward and three daggers fan out in a spray like a folding fan, wide arc, long limbs, a cobalt-teal flat sky behind.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/dagger_spray.webp",
+    "sha256": "1b1fc225f247eb220cdb80349a96dfc327568d708c9e3f1a642d03e6a4bdc63f"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/dagger_spray.txt",
+    "sha256": "cb3e318906cf4bc0c320dcef32dc85c0364b628b6d1934b7ed41484784341be2"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/dagger_spray.webp",
+    "sha256": "fac31c7703b99ce945aedfa78ceb2463a6e6a30b8b7e8c644adb7d75f8485c20"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "backflip",
+   "scene": "Low camera angle on her mid backflip, upside-down tilted head, cloak and scarf trailing in simple shapes, long legs tucked, cloudless sky.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/backflip.webp",
+    "sha256": "ebafc33756d7235314769351c9f4ad08342cc3387e9ecefc38642166b37e9ad6"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/backflip.txt",
+    "sha256": "2ae0ef4b6ab2cdb38a559f07af97f3244e4101de2114f3016ae190cf739d784a"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/backflip.webp",
+    "sha256": "622cbe202b53cad55a019d4bfa72710cfe1fc9dd6dad71e961f6f725b146a779"
+   },
+   "webpQuality": 90
+  },
+  {
+   "id": "acrobatics",
+   "scene": "She vaults over a white railing with one hand on the bar, long legs scissoring, a few drawn cards fluttering behind, white geometric architecture against the sky.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/acrobatics.webp",
+    "sha256": "31f38065311d3828af9b78543a67c30768872e5462f84340a138d1b32015b505"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/acrobatics.txt",
+    "sha256": "2110c06902bc0d4def87ae9c8102c17af5f8851c5adbe521641058fd93403692"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/acrobatics.webp",
+    "sha256": "ac4dc498a20a9155309e50bf8f0161a9ebe134bba79f76472ebb90f681d7a1e7"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "skewer",
+   "scene": "She lunges with both daggers pointing along one strong diagonal line toward a target silhouette that is impaled on the line, deadpan face, low camera.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/skewer.webp",
+    "sha256": "9745df7f7998dd934b4522f9f79cca2783eb80509ca1570b491281a79a8f0752"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/skewer.txt",
+    "sha256": "5a8387d5611f549f026fb9a6bb966969e0b200cae266dcc3fe7165438f8e69b5"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/skewer.webp",
+    "sha256": "5854152aedb8a51be56430ecf94624d39e5e5a6cafd8537660aa1ed254298bff"
+   },
+   "webpQuality": 90
+  },
+  {
+   "id": "blade_dance",
+   "scene": "She turns in a slow dance inside a circle of three floating shivs that orbit her like a mobile, arms long and elegant, high angle, one flat hot panel behind.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/blade_dance.webp",
+    "sha256": "4c412c8d0f52aea8baa6a90e4254e0ec481c74cf7ad633fdf8ea13919652e41b"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/blade_dance.txt",
+    "sha256": "4d4059712f61b9888f5a1cecc4432a4d953e28cf21ad0437f0ef7bfb772d2ea5"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/blade_dance.webp",
+    "sha256": "cb5e78362a8e74c420a6bf233873349a5352b4c17801873246cf55667d95f3cc"
+   },
+   "webpQuality": 90
+  },
+  {
+   "id": "cloak_and_dagger",
+   "scene": "She wraps her long green cloak across her body as a shield while one dagger glints out of its folds, head tilted under the hood.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/cloak_and_dagger.webp",
+    "sha256": "7e846660cedf685ad0999d9af9baa8a175fa29a9737e41fdf64235f5f82d5cf3"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/cloak_and_dagger.txt",
+    "sha256": "3e0ac346911cd74aea0fb8184e8f8c980ad857f54a7ff8e102312505f0a96755"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/cloak_and_dagger.webp",
+    "sha256": "ae410cf2847daabe1c969c18540312861c56dd308f3ed10bd1ab434534192d7b"
+   },
+   "webpQuality": 90
+  },
+  {
+   "id": "sneaky_strike",
+   "scene": "She steps out of a hard black shadow polygon behind an unsuspecting guard silhouette, dagger raised, finger to her lips, tilted head.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/sneaky_strike.webp",
+    "sha256": "0e17ad1b6bd7ce7683e912729159e4650814a8a82f03f391d76802dd82261a0d"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/sneaky_strike.txt",
+    "sha256": "c94e4856a8e9214704406d93a68d2e1cd5d032e8d3791db3b3add7dda9bb05c2"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/sneaky_strike.webp",
+    "sha256": "1929fbf78b129eb147f5dc0d0d419499c7c152c3e960cda63162e5b902e553f5"
+   },
+   "webpQuality": 90
+  },
+  {
+   "id": "terror",
+   "scene": "High camera looking down at a cowering enemy silhouette while she looms from below the frame with huge acid-green slit-pupil eyes glowing, a stark flat shadow cut.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/terror.webp",
+    "sha256": "7d5e2310008efbc99f9f2c80f681c7b7f8ce60a7371728623df753e584ab4f70"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/terror.txt",
+    "sha256": "bec36f040eec15fdc335a29ec360ee29f04873138d02c6043b0533b768ed5074"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/terror.webp",
+    "sha256": "e32b750d2ff9c1f11ad8ab2a627b9215b7967cbee44a327673a189ac75e55520"
+   },
+   "webpQuality": 90
+  },
+  {
+   "id": "backstab",
+   "scene": "She stands directly behind an enemy silhouette and drives a dagger into its back, the foe arching and its head thrown back, hard diagonal shadow cut, no gore.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/backstab.webp",
+    "sha256": "6e8c74e923324d78fbb8702c881364bbd7b8622d65cf2aaf14ef56ae67a1061f"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/backstab.txt",
+    "sha256": "a27eb2e1c986d550e76e9fee3a92b414d35227a9cf0fa8145ecb2c9322b9c22a"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/backstab.webp",
+    "sha256": "712354ad3136adde1f0767974f9a8894854a7acec39dcd4608d87e34331b3b9e"
+   },
+   "webpQuality": 90
+  },
+  {
+   "id": "predator",
+   "scene": "She prowls low along a ledge like a cat, shoulders down, eyes fixed on prey, long limbs, seen from a high angle with white geometric architecture.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/predator.webp",
+    "sha256": "e148fbccc4e0a32ed5cebae8caa826748edc9370cce9cd9a03d3f398a3f905df"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/predator.txt",
+    "sha256": "d1e6c4787080e074d44e944ee15b660ed2b5f26112a046d13cb64cd4e8eac11c"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/predator.webp",
+    "sha256": "e3747090a01fadec3227c4e8190877d20377584b3d30a3e37eb5c8e49ba6975c"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "leg_sweep",
+   "scene": "A long low leg sweep arcs across the floor in a flat circle motion line while an enemy silhouette topples backwards, she balances on one hand, seen side-on from a high camera.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/leg_sweep.webp",
+    "sha256": "90a91b92d78abdd3a968e599d1fd8acb1f44afc41824cbbadb44aaa664cc59af"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/leg_sweep.txt",
+    "sha256": "bb52da42468841a3f5ac97e70a2f9d9bb3b9ab1fc1864c1dad554f986661adbf"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/leg_sweep.webp",
+    "sha256": "51c0a50537f48d1b2b1dbbf63c40294d4fdaf40caa047bbd1de9b1c5967deba3"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "slice",
+   "scene": "One decisive diagonal dagger slice drawing a bright thin white arc across the whole frame, she is a long dark diagonal silhouette behind it.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/slice.webp",
+    "sha256": "65827ddef3f5a49267510b1595152d1a902721fd2657f6797290fdb52e0c7628"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/slice.txt",
+    "sha256": "efc74297963c58a151611170039b0bc32cf9d8f9cc625fb823bea52a7222c821"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/slice.webp",
+    "sha256": "628d2fdbb2150b317026e9fb9069afbbde0487036868336db291cb413053bef2"
+   },
+   "webpQuality": 90
+  },
+  {
+   "id": "deflect",
+   "scene": "She bats a thrown dagger aside with her own blade, small flat white stars of sparks, a close tilted face with one sharp eye in the corner.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/deflect.webp",
+    "sha256": "0453d5a4c2947911c68aaa19f22c41fcd4069ec06a297e2ca6363f961c1756df"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/deflect.txt",
+    "sha256": "ee75c19d8c591b5eeb0652e150adff0eb405eeb72bb9a06b6bcb155fd4e70699"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/deflect.webp",
+    "sha256": "05cceb4bd487a028512863e8797a7ed13998a9af6a8466af7e2ea07fd76bc52c"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "dodge_and_roll",
+   "scene": "She tumbles in a low forward roll under a swinging spear that cuts the air where she stood, motion arcs, long limbs, flat floor.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/dodge_and_roll.webp",
+    "sha256": "c503a2950f7fd76a84e6e1d6074ca6f1bdf11c6945b1d71b810dd7d66204d8c2"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/dodge_and_roll.txt",
+    "sha256": "83a0ce1dba4cc9178ca5fb0be08a242a95572aa6c003f0c2e0678917febf6db8"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/dodge_and_roll.webp",
+    "sha256": "07cd4b6f1613912ece289281367ec7df9f90628ed06bafe821760d86e7b95233"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "bane",
+   "scene": "She drives a dagger into an already poisoned enemy silhouette, thin green veins of poison spreading across it like branching lines, calm face, shadow cut.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/bane.webp",
+    "sha256": "d52a710694a6f89297cd7b389e3e06d91df2e719f02bc19364074a43baa5b4d9"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/bane.txt",
+    "sha256": "cbcd13f814bb4f9694cad4b324d22b44437bf15425ad708d8497d2c5695064f4"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/bane.webp",
+    "sha256": "c4edd3377d2297135d9f072a72bfec6fd59f79c663cae3145b5831cd5e01f966"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "catalyst",
+   "scene": "Her hands crush a vial into a flask and a small green gas puff splits into two large clouds, close shot on long fingers and the jade snake ring.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/catalyst.webp",
+    "sha256": "dba78b87975182716a6cf51c80e71587b66bad8b5fad81afcf6e3fc432fc98f5"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/catalyst.txt",
+    "sha256": "5edc637c7acc6f11239a599aee901e4a772f8a5286ccb7445734f1e60f93a086"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/catalyst.webp",
+    "sha256": "4d066b34862f1a05e2563c5c714d520cec871250537a38295e18dcbbbefd1368"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "flechettes",
+   "scene": "She flicks a fan of slim needle flechettes from her fingertips toward the camera in thin parallel lines, hand large in the foreground, low angle.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/flechettes.webp",
+    "sha256": "dc042b95be361c0512279a17e68c3a48959b9995b260d70fe9b92fe891b52aa8"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/flechettes.txt",
+    "sha256": "ead4eff85a71517625d22f5a13ce7050b22b2375559ca7f2e14f50cdbaefdb62"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/flechettes.webp",
+    "sha256": "04b60cd72ec3cff75579c19aae55f6924ad53f7be8861d3d29f0810a2c099f42"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "adrenaline",
+   "scene": "She tilts a small vial to her lips, a bright burst of acid-green light flashes behind her and flat speed lines radiate, her eyes wide with slit pupils.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/adrenaline.webp",
+    "sha256": "7ec5b9704a0809b636282d01ccaaee0abce13ccef6a675b0bb04701a77311b56"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/adrenaline.txt",
+    "sha256": "07ffcfac257c25e9449071d02d4181c00e77f451fa7f461ef935931dc555806a"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/adrenaline.webp",
+    "sha256": "7f04f5fa421cf1315690effe78c88da65f32ba6bf69ea2815f0aef03dbcad0f6"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "grand_finale",
+   "scene": "High angle: she stands calm at the centre of a hall of scattered daggers all pointing at one point, the last dagger flying in, many thin white slashes forming a star across the frame.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/grand_finale.webp",
+    "sha256": "19b6f06a670d81d154eebcb07ce98c66a0d3e92dccc84ec12ce782102a7a347f"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/grand_finale.txt",
+    "sha256": "f0b94f70fc26147c1e5358c124daf3d3d565ff87148a8a091f1ef61603ced71a"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/grand_finale.webp",
+    "sha256": "9ec8242b2871169043dbff97758aefe947a9948b8c5a7aaf975dcd70704b6f93"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "a_thousand_cuts",
+   "scene": "She stands deadpan at the centre of a flat circular field of countless thin white slash lines converging around her, emblem composition with calm margins.",
+   "styleImages": [
+    "poster",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/a_thousand_cuts.webp",
+    "sha256": "f29365d7eae6ad6d84b4257e10d2d9ea8d4c1cf48f539713fcfbc779206ddb94"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/a_thousand_cuts.txt",
+    "sha256": "d74bb5ba4d35b44a762b9ffed8ba1dd02cc4326ac4879912a357df1f4a1505be"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/a_thousand_cuts.webp",
+    "sha256": "affb30274c764fe2ab0e9bf7a6b9a635074d60b645f647aa313970a1c2960365"
+   },
+   "webpQuality": 75
+  },
+  {
+   "id": "malaise",
+   "scene": "She exhales a sickly green mist over an enemy silhouette that wilts and sags, drooping posture, she holds her scarf over her mouth, hard shadow cut.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/malaise.webp",
+    "sha256": "49c893a96c8ce2fde8e821ec215893479563d36acaedb8cf14a80a42fa1b70fe"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/malaise.txt",
+    "sha256": "fd0e005c7731fa3023eefdec60f996cbae7987600dd4aabbdca7df6df06819b6"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/malaise.webp",
+    "sha256": "fce3b4e7dcb820a423272a1bb86df086644f6526eebe2cc3d2252ae2fcee230a"
+   },
+   "webpQuality": 90
+  },
+  {
+   "id": "burst",
+   "scene": "Two overlapping poses of her casting the same move, an echo twin offset by a few degrees, flat graphic doubling, a snap of her fingers in the centre.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/burst.webp",
+    "sha256": "07be183266c08635d5e59b4795c03f05fba20f116eef2bf9b79a1163368d696e"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/burst.txt",
+    "sha256": "9bac5225290f31b84ab663abf08f917d5b0843f555f8b70ec053d142f4f379b7"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/burst.webp",
+    "sha256": "078b20c8020fd9574f93e2a25affb357344b47cb1aee056eadd25703ff68e85f"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "bullet_time",
+   "scene": "She stands calm and tilted while a ring of thrown daggers hangs frozen in the air around her at slow spaced intervals, an enemy silhouette far away, cloudless sky.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/bullet_time.webp",
+    "sha256": "f8e09d2dd9c6cca76e00fb21cbe3188634e129236fe2fa70bdcbfbf3a9ebadfc"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/bullet_time.txt",
+    "sha256": "9a20ae73aefe63fb952368c6b651e8ee1ba31ac388285b05ee886284d46c2276"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/bullet_time.webp",
+    "sha256": "1e29d2532fd372791b59128d130f54913101c1890d439637d6b3b40f4d143b8c"
+   },
+   "webpQuality": 90
+  },
+  {
+   "id": "corpse_explosion",
+   "scene": "A slain enemy silhouette bursts into a flat white-and-green blast of shards behind her as she walks away without looking back, low angle.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/corpse_explosion.webp",
+    "sha256": "655881be8c1fda4c40be37780d26d1f22112aff3af2eaacfdd4b85fb11fa10d3"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/corpse_explosion.txt",
+    "sha256": "a04d1b1b3834af884f80a044311ca39e3d54dafda4f1d9d848d6c473df0203eb"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/corpse_explosion.webp",
+    "sha256": "24666769e1534755af0e68b49732477350fe19036c63d3d41ddc1e8eb4e5af6a"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "doppelganger",
+   "scene": "She faces her own mirror twin, one in dark green and one inverted in bone white, mirrored composition, hands almost touching, a hot flat panel between them.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/doppelganger.webp",
+    "sha256": "0de6c7b07b2fc8b0d1370d84dd8b6ca0c20fa31052ebeb8a5611eed5bf04d53c"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/doppelganger.txt",
+    "sha256": "1687a7efbeb3bf5e5cc8b8ff0ca34fc2f64dc0393744b2b0fd1794a85897ab09"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/doppelganger.webp",
+    "sha256": "385deac1f05f7ccbc2109a85d6f6aafdf915a37681d6e1006ff5249c2d66a4d4"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "blur",
+   "scene": "She dissolves into three horizontal-slice motion copies of herself sliding sideways, each slightly offset, flat speed stripes, dagger in hand.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/blur.webp",
+    "sha256": "45d27ba2b0c276dfd60bd496a25942afb005d1d16c8fc7d8fe2c1bcae212f857"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/blur.txt",
+    "sha256": "78531e0230cb86013b296692717e960d43a9f5fbd0e3872c6c2c5c340df0b6f0"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/blur.webp",
+    "sha256": "4b875f7618461b0d8cb66cf19f8f93c73a1b67fb7c0863935084820668fbcb12"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "setup",
+   "scene": "High angle: she tucks a dagger into her boot top while planning, a single card tucked in her cloak, a tilted pensive head, bright floor geometry.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/setup.webp",
+    "sha256": "7f6ed21fbf75ca36629da424fc76a898af3966c114c30a0aa71bbb5d4e2ab9c1"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/setup.txt",
+    "sha256": "145566736ae2eb7eb72a53f5f7b53d5a99ac1944f235f38bcb6b3834b2eec029"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/setup.webp",
+    "sha256": "9e9dd8aaa72eb1bf1711f4590ccff5f9fb0fe28b722eb4660a1ee1474a620861"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "all_out_attack",
+   "scene": "She flings a huge spray of daggers outward in a low wide sweep covering the whole frame, cloak flaring, low camera, dynamic diagonals.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/all_out_attack.webp",
+    "sha256": "937473e4481efa253903f47c5fc7520d9f7206e832da08779d52de0893d49263"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/all_out_attack.txt",
+    "sha256": "7096b0e4c51c54ec4d549646766f74e3f877e469e8f0fc382fdc25977f6adbb7"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/all_out_attack.webp",
+    "sha256": "3536e7cf1c04f15760cd5d1d2e163f0d3ae1094e2bdbe255c83c279cc62efe3f"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "expertise",
+   "scene": "Close shot on her long fingers handling five daggers and a vial with practiced ease, a half-smile hint, the jade snake ring prominent.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/expertise.webp",
+    "sha256": "5b6ea68a12d07df8cc38a8c5ff58ac9658123450a9bd8938cbcea4af593b1452"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/expertise.txt",
+    "sha256": "57c9e27e96bfa6e142e12f7bbea238c75797185eb0510b1c938e81935e72e38d"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/expertise.webp",
+    "sha256": "0ea05b338926604dbfe8e31997e3c1d438f24109a95e95dd97b5bda27011b91b"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "calculated_gamble",
+   "scene": "She tosses a small die high into the air with a deadpan tilted face, the die at the top of its arc, cloudless sky and white geometry.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/calculated_gamble.webp",
+    "sha256": "e12a399e3eba9c2a472de1ccfe3db725e2517c21f1e2c8e386c3467d12cd1e76"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/calculated_gamble.txt",
+    "sha256": "cd6b3155709be71f3c56e92a9e69fd381224e74465f6239aebf7af61caefa975"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/calculated_gamble.webp",
+    "sha256": "2673b313c52391b73619e0198d26a70d95c2a8d36efc27bbded60fddc4557247"
+   },
+   "webpQuality": 90
+  },
+  {
+   "id": "reflex",
+   "scene": "She catches a thrown dagger by its handle an inch from her face, one wide acid-green eye in the frame, tight close-up.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/reflex.webp",
+    "sha256": "d39344a463a0647bba099830bd3a1792333aa6bfdd10d8c13dc4f0015838f3ce"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/reflex.txt",
+    "sha256": "54745f469c64c8ea5d52c2782e9cc9ba7227d293f312d944df1fafbbe5ab4437"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/reflex.webp",
+    "sha256": "67e0f67c47156e39cd10c375100dd6825abdd7818de5d9ec9b100d57ef988885"
+   },
+   "webpQuality": 90
+  },
+  {
+   "id": "tactician",
+   "scene": "She studies a small tabletop of tiny carved pieces from above with a sidelong glance and a card held in her fingers, pointed chin, classroom-style shadow cut.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/tactician.webp",
+    "sha256": "5992bf2ef5acd1d87147f85544829e94148f7daf6dfbaa862d6dea997180152b"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/tactician.txt",
+    "sha256": "35b0b7fc2ce04d6cc3a50206684527f2b322f43339d919faa9751a758935649d"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/tactician.webp",
+    "sha256": "2f2106b34061fce0907bc587232b8b45fe47fa45c98c41641ac5dbef186b329e"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "after_image",
+   "scene": "Emblem composition: three flat ghostly copies of her stepping in the same stance in a staggered row behind the solid heroine, fading in tone, calm margins.",
+   "styleImages": [
+    "poster",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/after_image.webp",
+    "sha256": "0d0d510c83d4c6156e2fb1fbce2ea8bc45f4514d84b97476c353f89dddf4c9c8"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/after_image.txt",
+    "sha256": "72ce84262101e90e1fcbe68fd0bf9e374ece2eb50d1838a2a929604637fd95c1"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/after_image.webp",
+    "sha256": "b8e82edc1deca23caef63d7319f41ea9346de7e25fd03602166fa170ce66777b"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "escape_plan",
+   "scene": "She runs along a rooftop edge, a smoke vial dropping and bursting behind her, a long diagonal composition against a cloudless sky.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/escape_plan.webp",
+    "sha256": "1fa940512b4739d7f7af918732c004d6d7ede8f8c2ab6ded92d04a0777edbff7"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/escape_plan.txt",
+    "sha256": "b9ddd0aec597e63204e5acb8e6dcb10264c24549443f256ee323fdf7892c70b4"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/escape_plan.webp",
+    "sha256": "37f29f68e8d3baeec2d7425653296609f53ff1939fb05d80b6cc9062f31fbf44"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "finisher",
+   "scene": "She delivers a final stab as the enemy silhouette crumples, a row of tiny slash marks on the wall behind showing the earlier hits, low camera.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/finisher.webp",
+    "sha256": "79ec2269781adabc75eb2becc6a21ed09bd04b46efbb65428444f291994c63f6"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/finisher.txt",
+    "sha256": "7faf27ba3672a635c062d9f847d4b71d81860e3830d11428ee39221cd25ea8e2"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/finisher.webp",
+    "sha256": "ed33b01c2bcaae608c0fe1305b4bf59978514437fffd8d28b5fa9b0c69c6f8a4"
+   },
+   "webpQuality": 90
+  },
+  {
+   "id": "masterful_stab",
+   "scene": "Close-up of a dagger point touching one glowing weak spot on a silhouette, her long fingers precise, her slit eyes reflected in the blade.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/masterful_stab.webp",
+    "sha256": "8223cfcf341e6e19cbd47e7e1a1404e7ce85ec88d1485b888c6630b8ac2ca520"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/masterful_stab.txt",
+    "sha256": "bd353f86006a43355f8d810de3e882012584fcf1ab350b34c9ca6d6cebaaadf3"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/masterful_stab.webp",
+    "sha256": "ae669e9ddcd7570eba60ae835c2b3ccbfd08969633cee4f67d403424f013998f"
+   },
+   "webpQuality": 90
+  },
+  {
+   "id": "outmaneuver",
+   "scene": "She slips neatly aside past a charging heavy silhouette in a graceful step, hood tilted, flat floor and diagonal shadows.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/outmaneuver.webp",
+    "sha256": "50361c15025be9d2b223a7a552712f77397ab8acd9a2520c3d9fab4054e18bef"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/outmaneuver.txt",
+    "sha256": "2967007e15b55451bf9ffbb1984f535aafb23434c791176ce01fc60326346541"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/outmaneuver.webp",
+    "sha256": "65b7d0c4b6d7c139cc87217666f225ff920edce35111e403add240f0a3dba257"
+   },
+   "webpQuality": 90
+  },
+  {
+   "id": "accuracy",
+   "scene": "Emblem composition: she aims a thin dagger, concentric target rings and thin sight lines converging precisely on its tip, calm centred pose.",
+   "styleImages": [
+    "poster",
+    "closeup"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/accuracy.webp",
+    "sha256": "4ce78fb2cc46c58509af89f2e0bacac40ef747a6e162d53591585601648bf669"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/accuracy.txt",
+    "sha256": "dc65ccb081c03aa1a4e3c20a1487d5593cd41822ae75dd96e23385fa74134d98"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/accuracy.webp",
+    "sha256": "22055277b31f7f5f928b3a9ce80d9e15db94588592ec7af67115df681af501e9"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "choke",
+   "scene": "A taut thin wire stretched between her gloved hands behind a struggling enemy silhouette, non-graphic, her face calm over the shoulder, shadow cut.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/choke.webp",
+    "sha256": "ed9497891fe8bfb662352dacbe92c96cf958f4d09b2be9c352bf7436aa5065db"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/choke.txt",
+    "sha256": "31507ab0dac7367d6bb68236fa0c792aebf4c33259806ffe0851b6b45e48ea58"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/choke.webp",
+    "sha256": "6f46c8c5900dbb7e42fce85519519bbe3220c9cbe8a07a392dc4273f16c1c2ad"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "footwork",
+   "scene": "Low angle close-up of her wrapped boot stepping lightly on a stone ledge, other leg long behind, dust puff as flat shapes, cloudless sky.",
+   "styleImages": [
+    "poster",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/footwork.webp",
+    "sha256": "dc50bc70c753f09d62ab665a2bb8de716760e86fa047cdb196ff5e330e83d49a"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/footwork.txt",
+    "sha256": "c7485f9cf9da4d8f7cc596c24d8d1034cf66995125ca4b6f3182b2b37b3e1c91"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/footwork.webp",
+    "sha256": "eaeeebb0f66a480944ddc461d04d170da69173da2dcf27d1018a45674e19b84c"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "well_laid_plans",
+   "scene": "Emblem composition: she sits calmly at a table laid out with daggers and vials in a perfect row, one card tucked away in her cloak.",
+   "styleImages": [
+    "poster",
+    "closeup"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/well_laid_plans.webp",
+    "sha256": "82dd8aa9b620aa3dffaa593f0eb4d387b77f35cb7f712e7bf2d61190f17b832b"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/well_laid_plans.txt",
+    "sha256": "5b3f667571494787d4fd65d907b9d89dc7ff643ba97c4415a67fc9557bc66de6"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/well_laid_plans.webp",
+    "sha256": "66fd3b0a7d3b14ac6caf9c39f7d72e889d5bb310000d1bd27be72149eb5267fa"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "infinite_blades",
+   "scene": "A spiral of floating daggers emerging one after another from her open palm into an endless coil, centred emblem, calm margins.",
+   "styleImages": [
+    "poster",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/infinite_blades.webp",
+    "sha256": "d54e7ee3e5fff2e34a710f86a6d034ecc6cfe5dab2c712980c0920a39aa76c4e"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/infinite_blades.txt",
+    "sha256": "6737089e353da8d886635e535760048998a10524fda30db8f808ddf24f8b11ec"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/infinite_blades.webp",
+    "sha256": "7ab8a6dfe8258b19f56f1bc6c0ba70312fa2e070c2a7c1ab4f5b0002d312ac82"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "noxious_fumes",
+   "scene": "She stands poised as green fumes curl up from the vials on her bandolier around her, flat spiral shapes, symmetric emblem composition.",
+   "styleImages": [
+    "poster",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/noxious_fumes.webp",
+    "sha256": "eacc16b461c949527c8987a1b1b9a721cd4f0786ff73991dcf5475eaac6cccec"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/noxious_fumes.txt",
+    "sha256": "2d95c0c4f356c700bc1432faf0758365750459ae1da62d5fc182c4cf7d10aae2"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/noxious_fumes.webp",
+    "sha256": "d65c7c4d2575ca94830f2b4de4eacdc671b48000f4ba7fcac0c7f94d33184762"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "envenom",
+   "scene": "Symmetric emblem composition: one dagger with a bead of acid-green poison hanging from its tip, a row of vials above it, her eyes in the corner.",
+   "styleImages": [
+    "poster",
+    "closeup"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/envenom.webp",
+    "sha256": "bb2e44dfd93879f37a4e74fb201be86392ea8ad01054ce020a769e8c71dc4393"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/envenom.txt",
+    "sha256": "4f89d451bf7f275ab64cb7cf29507497414cabd1ac90cb1cacb4867b01389d76"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/envenom.webp",
+    "sha256": "ed811c1b48191dfb8453e2d64518d1c4ee69f8c97c15a53dcf41c976f624eee8"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "wraith_form",
+   "scene": "She turns translucent, a ghostly pale green outline floating just above the floor, her cloak dissolving into mist, calm face, high contrast, emblem composition.",
+   "styleImages": [
+    "poster",
+    "closeup"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/wraith_form.webp",
+    "sha256": "fa7916ff050725b3021f54a1340b8dfd18ea3d292a2762bf63d0f200f38f0cdf"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/wraith_form.txt",
+    "sha256": "53736cf750197eed0b552927f7e94a3bffe0c8daa9793f608ab5ca08a43a8903"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/wraith_form.webp",
+    "sha256": "749c181dc53e7f453f247c34d0556ce45c4782326e9fd55d106ee9ff840b4287"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "tools_of_the_trade",
+   "scene": "A rolled-out leather kit holding daggers, vials and the jade snake ring, her long fingers drawing one tool, high angle, emblem composition.",
+   "styleImages": [
+    "poster",
+    "closeup"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/tools_of_the_trade.webp",
+    "sha256": "fc573807bab69adeb27b29e20e23bb3d081c4ce6ca50bab11cc30cda6bc7f2b3"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/tools_of_the_trade.txt",
+    "sha256": "34e6a895bd74fb3e5ce24fc002c3209458950b78acf17ded28c0b41b80f67c97"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/tools_of_the_trade.webp",
+    "sha256": "01063bbfd7f18f26342e11abdfa412d960c1bc466d9f517e65586fefce2fadad"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "bouncing_flask",
+   "scene": "A poison flask bounces between two walls along a dotted path, three flat green splashes, she stands at the corner with her arm extended.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/bouncing_flask.webp",
+    "sha256": "ae39904f9fee902ad574e0f1b3b230cfb09f60a18bb4a648cefab646efced1e0"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/bouncing_flask.txt",
+    "sha256": "949ee24d9c76e3371d43ecd700c44ef7b9edfdb01b6938f025b5e71686885502"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/bouncing_flask.webp",
+    "sha256": "0217e87bcb2c737f422b7863899d7e3e59ccae5d84cb9dbe507fb9f392dd3bc4"
+   },
+   "webpQuality": 90
+  },
+  {
+   "id": "concentrate",
+   "scene": "She stands with eyes narrowed and one vial held under her nose, quiet breathing, discarded cards falling from her other hand, shadow cut.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/concentrate.webp",
+    "sha256": "c29f54a10c7b7feff47d7eeac6918e360dac206653e406df7298b1ab6973e1f8"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/concentrate.txt",
+    "sha256": "7ddd898800a353de40b6e29a1c07beed714dc1eaadd2893d0695470d8882ebe1"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/concentrate.webp",
+    "sha256": "2e1c335d3c5498d34c655ddb0b9bf70a33ffe834941d1675d3bc26f8a5352062"
+   },
+   "webpQuality": 90
+  },
+  {
+   "id": "distraction",
+   "scene": "Emblem composition: she flicks a coin aside while an enemy silhouette turns its head, and slides out of the opposite side of the frame.",
+   "styleImages": [
+    "poster",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/distraction.webp",
+    "sha256": "55f33229aa0f1caa3c8b321344c1b23d8b3d999098da32dd88a53e4c62e2092b"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/distraction.txt",
+    "sha256": "a604b23d9e49995696b1635d9267f1c2a17c771c28a686f1bfec4b869180bf56"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/distraction.webp",
+    "sha256": "fa5c6b9cf7c42d593d065f0dd7d49bcb3e663f7a5b13f32707bbdc80e1193a0b"
+   },
+   "webpQuality": 90
+  },
+  {
+   "id": "storm_of_steel",
+   "scene": "A storm of thrown blades radiates from her as she crouches low with arms wide, low camera, radial diagonal composition.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/storm_of_steel.webp",
+    "sha256": "5063ba09d1c20ca82505562cc03d361dba6376bae63e5b8430dd5e400fded96f"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/storm_of_steel.txt",
+    "sha256": "f760d301d82d4d95205aefd8ae56d18ba216ef2cd624c0dab064be411c01382e"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/storm_of_steel.webp",
+    "sha256": "c50c4c80317ed52e83d515ac32302044a5d85c18e074ca6033be5098816ecf46"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "unload",
+   "scene": "She empties her whole bandolier in a rapid line of thrown knives across the frame on one tight diagonal, her arm sweeping, a hot flat panel behind.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_silent-skin-cards/unload.webp",
+    "sha256": "7aae64c6f785db1b6bd29367397f25367b5ea529d1589f4b4ec460201eb00b40"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_silent-card-art/prompts/unload.txt",
+    "sha256": "0064dba98272fdf6d98bcb9a92789005d05da358a8b48a8264f9a4cd3ef30fea"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_silent/silent/unload.webp",
+    "sha256": "535e9953102abd8266f0bf1023196d897ed4bd05fea2dfff182b0e4d5010d65c"
+   },
+   "webpQuality": 80
+  }
+ ]
+}

@@ -1,0 +1,677 @@
+{
+ "model": "gpt-image-2.5-sunburst",
+ "quality": "high",
+ "size": "1536x1024",
+ "recipe": "monogatari",
+ "hero": "Silent",
+ "identityReference": "@work/identity/silent-idle.png",
+ "identityDescription": "Approved Silent skin identity sheet: original anime heroine in a green hood, acid-green slit-pupil eyes, vial bandolier, jade snake ring, two poison daggers (generated, not committed)",
+ "identityCues": "a tall slender original anime heroine with a deep green hood and long cloak, narrow face with a small pointed chin, large flat acid-green slit-pupil eyes with one crisp white highlight, cream scarf, black bodysuit, wrapped boots, a bandolier of tiny poison vials with glass stoppers, a jade snake ring on one finger, and two poison daggers (one reverse grip).",
+ "palette": "deep jade and forest greens, black and bone white, acid-green accents; saturated cloudless sky or one flat hot colour panel behind her; no red, no bronze.",
+ "styleReferences": [
+  {
+   "tag": "poster",
+   "path": "@work/monogatari-refs/poster-second-season.jpg",
+   "description": "Monogatari series second-season key art: extreme low camera angle, cloudless cobalt sky, white geometric masts, stacked diagonal figures (copyrighted, not committed)"
+  },
+  {
+   "tag": "closeup",
+   "path": "@work/monogatari-refs/yotsugi-closeup.jpg",
+   "description": "Monogatari series close-up frame: huge flat eyes with crisp highlights, shard-like flat hair, fine linework, painted sea and cloud backdrop (copyrighted, not committed)"
+  },
+  {
+   "tag": "classroom",
+   "path": "@work/monogatari-refs/classroom-group.webp",
+   "description": "Monogatari series group frame: hard diagonal shadow cuts, cracked grey wall with one hot flat colour panel, geometric clutter, long limbs (copyrighted, not committed)"
+  }
+ ],
+ "prototype": [
+  "strike_silent",
+  "defend_silent",
+  "survivor",
+  "after_image",
+  "wraith_form",
+  "slayer_glass_knife"
+ ],
+ "cards": {
+  "slayer_caltrops": {
+   "name": "Caltrops",
+   "type": "power",
+   "scene": "She crouches low and flicks a handful of small iron caltrop stars across a stone floor toward the camera, seen from a high angle, the spikes scattering in a flat spiral, one hard diagonal shadow cut across the floor.",
+   "styles": [
+    "poster",
+    "closeup"
+   ]
+  },
+  "slayer_endless_agony": {
+   "name": "Endless Agony",
+   "type": "attack",
+   "scene": "Low camera angle: she thrusts a reverse-grip dagger toward the lens again and again, three thin repeated motion arcs of the same blade stacked on a diagonal, head tilted, a flat hot panel colour behind her.",
+   "styles": [
+    "poster",
+    "classroom"
+   ]
+  },
+  "slayer_eviscerate": {
+   "name": "Eviscerate",
+   "type": "power",
+   "scene": "She opens her hand and lets a fan of discarded playing cards fall away, each card leaving one thin white slash line in the air, a symmetric emblem composition with her calm face centred above.",
+   "styles": [
+    "poster",
+    "closeup"
+   ]
+  },
+  "slayer_glass_knife": {
+   "name": "Glass Knife",
+   "type": "attack",
+   "scene": "Close low-angle shot of her thrusting a clear glass dagger, the blade transparent pale green with a long crack down its centre and a few shards flying off, her hooded face tilted behind it.",
+   "styles": [
+    "poster",
+    "classroom"
+   ]
+  },
+  "slayer_heel_hook": {
+   "name": "Heel Hook",
+   "type": "attack",
+   "scene": "A long leg sweeps in a low arc as she hooks an enemy silhouette's ankle with her heel, the foe toppling backwards, seen side-on from a high angle, hard diagonal shadow polygons on the floor.",
+   "styles": [
+    "poster",
+    "classroom"
+   ]
+  },
+  "slayer_nightmare": {
+   "name": "Nightmare",
+   "type": "skill",
+   "scene": "She sits calm and cross-legged while a huge ghostly pale-green double of herself leans over her from behind like a dream, the double holding a floating card, tilted heads, shadow-cut staging.",
+   "styles": [
+    "classroom",
+    "closeup"
+   ]
+  },
+  "slayer_phantasmal_killer": {
+   "name": "Phantasmal Killer",
+   "type": "power",
+   "scene": "A pale ghostly green copy of her rises behind her with both daggers lifted, she stands in the foreground deadpan, symmetric emblem composition with calm margins.",
+   "styles": [
+    "poster",
+    "closeup"
+   ]
+  },
+  "strike_silent": {
+   "name": "Strike",
+   "type": "attack",
+   "scene": "A clean single dagger strike: she lunges forward in profile with one poison dagger slashing a bright diagonal line across the frame, low camera angle under a cloudless saturated sky, hood tilting.",
+   "styles": [
+    "poster",
+    "classroom"
+   ]
+  },
+  "defend_silent": {
+   "name": "Defend",
+   "type": "skill",
+   "scene": "She crosses both poison daggers in front of her chest in a guard, head tilted, cloak flaring, hard diagonal shadow behind her and one flat panel of colour.",
+   "styles": [
+    "classroom",
+    "closeup"
+   ]
+  },
+  "neutralize": {
+   "name": "Neutralize",
+   "type": "attack",
+   "scene": "She throws a dagger that pins an enemy silhouette's sleeve to a cracked wall, a small green gas wisp rising from the wound-free sleeve, she stands relaxed with a pointed finger.",
+   "styles": [
+    "poster",
+    "classroom"
+   ]
+  },
+  "survivor": {
+   "name": "Survivor",
+   "type": "skill",
+   "scene": "She crouches and pulls her cloak around herself while flicking one card away with two fingers, a smoke vial dropping, low angle, deep shadow cut.",
+   "styles": [
+    "classroom",
+    "closeup"
+   ]
+  },
+  "dagger_throw": {
+   "name": "Dagger Throw",
+   "type": "attack",
+   "scene": "A side-on throw: her arm fully extended after releasing a dagger that streaks toward the right edge with three thin speed lines, long limbs, flat sky.",
+   "styles": [
+    "poster",
+    "classroom"
+   ]
+  },
+  "prepared": {
+   "name": "Prepared",
+   "type": "skill",
+   "scene": "High angle looking straight down: she kneels over a cloth laid with daggers and glass vials in neat rows, checking one dagger, her hood and scarf making simple shapes.",
+   "styles": [
+    "classroom",
+    "closeup"
+   ]
+  },
+  "riddle_with_holes": {
+   "name": "Riddle with Holes",
+   "type": "skill",
+   "scene": "Five thrown daggers fan out across the frame and pin a silhouetted target, tiny bright round holes of light riddling it, she stands at the left edge with her arm still extended.",
+   "styles": [
+    "classroom",
+    "closeup"
+   ]
+  },
+  "dash": {
+   "name": "Dash",
+   "type": "attack",
+   "scene": "She dashes forward in a very low long lunge across the frame, cloak streaming behind, dagger trailing, flat horizontal speed bands, low camera angle.",
+   "styles": [
+    "poster",
+    "classroom"
+   ]
+  },
+  "die_die_die": {
+   "name": "Die Die Die",
+   "type": "attack",
+   "scene": "Seen from a high angle she spins gracefully on one foot with both arms stretched out, a ring of many small throwing knives fanning outward from her hands in a flat spiral toward the walls of an empty courtyard, bold radial composition, no people near her.",
+   "styles": [
+    "poster",
+    "classroom"
+   ]
+  },
+  "piercing_wail": {
+   "name": "Piercing Wail",
+   "type": "skill",
+   "scene": "She cups one hand beside her mouth and sends out three bold concentric rings of sound, cracked grey wall behind and enemy silhouettes recoiling at the edges.",
+   "styles": [
+    "classroom",
+    "closeup"
+   ]
+  },
+  "crippling_cloud": {
+   "name": "Crippling Cloud",
+   "type": "skill",
+   "scene": "She smashes a vial at an enemy silhouette's feet and a billowing flat acid-green cloud rolls up around the legs, she steps back with a covered scarf, hard shadow cut.",
+   "styles": [
+    "classroom",
+    "closeup"
+   ]
+  },
+  "deadly_poison": {
+   "name": "Deadly Poison",
+   "type": "skill",
+   "scene": "Close-up of her long fingers (jade snake ring visible) dipping a dagger tip into a small vial, a single acid-green drop falling, her half-shadowed eyes in the corner.",
+   "styles": [
+    "classroom",
+    "closeup"
+   ]
+  },
+  "poisoned_stab": {
+   "name": "Poisoned Stab",
+   "type": "attack",
+   "scene": "Low angle thrust: a dagger dripping bright acid-green poison driven forward toward the camera, her slit-pupil eyes watching over it, flat cel colour.",
+   "styles": [
+    "poster",
+    "classroom"
+   ]
+  },
+  "dagger_spray": {
+   "name": "Dagger Spray",
+   "type": "attack",
+   "scene": "She sweeps both arms outward and three daggers fan out in a spray like a folding fan, wide arc, long limbs, a cobalt-teal flat sky behind.",
+   "styles": [
+    "poster",
+    "classroom"
+   ]
+  },
+  "backflip": {
+   "name": "Backflip",
+   "type": "skill",
+   "scene": "Low camera angle on her mid backflip, upside-down tilted head, cloak and scarf trailing in simple shapes, long legs tucked, cloudless sky.",
+   "styles": [
+    "classroom",
+    "closeup"
+   ]
+  },
+  "acrobatics": {
+   "name": "Acrobatics",
+   "type": "skill",
+   "scene": "She vaults over a white railing with one hand on the bar, long legs scissoring, a few drawn cards fluttering behind, white geometric architecture against the sky.",
+   "styles": [
+    "classroom",
+    "closeup"
+   ]
+  },
+  "skewer": {
+   "name": "Skewer",
+   "type": "attack",
+   "scene": "She lunges with both daggers pointing along one strong diagonal line toward a target silhouette that is impaled on the line, deadpan face, low camera.",
+   "styles": [
+    "poster",
+    "classroom"
+   ]
+  },
+  "blade_dance": {
+   "name": "Blade Dance",
+   "type": "skill",
+   "scene": "She turns in a slow dance inside a circle of three floating shivs that orbit her like a mobile, arms long and elegant, high angle, one flat hot panel behind.",
+   "styles": [
+    "classroom",
+    "closeup"
+   ]
+  },
+  "cloak_and_dagger": {
+   "name": "Cloak and Dagger",
+   "type": "skill",
+   "scene": "She wraps her long green cloak across her body as a shield while one dagger glints out of its folds, head tilted under the hood.",
+   "styles": [
+    "classroom",
+    "closeup"
+   ]
+  },
+  "sneaky_strike": {
+   "name": "Sneaky Strike",
+   "type": "attack",
+   "scene": "She steps out of a hard black shadow polygon behind an unsuspecting guard silhouette, dagger raised, finger to her lips, tilted head.",
+   "styles": [
+    "poster",
+    "classroom"
+   ]
+  },
+  "terror": {
+   "name": "Terror",
+   "type": "skill",
+   "scene": "High camera looking down at a cowering enemy silhouette while she looms from below the frame with huge acid-green slit-pupil eyes glowing, a stark flat shadow cut.",
+   "styles": [
+    "classroom",
+    "closeup"
+   ]
+  },
+  "backstab": {
+   "name": "Backstab",
+   "type": "attack",
+   "scene": "She stands directly behind an enemy silhouette and drives a dagger into its back, the foe arching and its head thrown back, hard diagonal shadow cut, no gore.",
+   "styles": [
+    "poster",
+    "classroom"
+   ]
+  },
+  "predator": {
+   "name": "Predator",
+   "type": "attack",
+   "scene": "She prowls low along a ledge like a cat, shoulders down, eyes fixed on prey, long limbs, seen from a high angle with white geometric architecture.",
+   "styles": [
+    "poster",
+    "classroom"
+   ]
+  },
+  "leg_sweep": {
+   "name": "Leg Sweep",
+   "type": "skill",
+   "scene": "A long low leg sweep arcs across the floor in a flat circle motion line while an enemy silhouette topples backwards, she balances on one hand, seen side-on from a high camera.",
+   "styles": [
+    "classroom",
+    "closeup"
+   ]
+  },
+  "slice": {
+   "name": "Slice",
+   "type": "attack",
+   "scene": "One decisive diagonal dagger slice drawing a bright thin white arc across the whole frame, she is a long dark diagonal silhouette behind it.",
+   "styles": [
+    "poster",
+    "classroom"
+   ]
+  },
+  "deflect": {
+   "name": "Deflect",
+   "type": "skill",
+   "scene": "She bats a thrown dagger aside with her own blade, small flat white stars of sparks, a close tilted face with one sharp eye in the corner.",
+   "styles": [
+    "classroom",
+    "closeup"
+   ]
+  },
+  "dodge_and_roll": {
+   "name": "Dodge and Roll",
+   "type": "skill",
+   "scene": "She tumbles in a low forward roll under a swinging spear that cuts the air where she stood, motion arcs, long limbs, flat floor.",
+   "styles": [
+    "classroom",
+    "closeup"
+   ]
+  },
+  "bane": {
+   "name": "Bane",
+   "type": "attack",
+   "scene": "She drives a dagger into an already poisoned enemy silhouette, thin green veins of poison spreading across it like branching lines, calm face, shadow cut.",
+   "styles": [
+    "poster",
+    "classroom"
+   ]
+  },
+  "catalyst": {
+   "name": "Catalyst",
+   "type": "skill",
+   "scene": "Her hands crush a vial into a flask and a small green gas puff splits into two large clouds, close shot on long fingers and the jade snake ring.",
+   "styles": [
+    "classroom",
+    "closeup"
+   ]
+  },
+  "flechettes": {
+   "name": "Flechettes",
+   "type": "attack",
+   "scene": "She flicks a fan of slim needle flechettes from her fingertips toward the camera in thin parallel lines, hand large in the foreground, low angle.",
+   "styles": [
+    "poster",
+    "classroom"
+   ]
+  },
+  "adrenaline": {
+   "name": "Adrenaline",
+   "type": "skill",
+   "scene": "She tilts a small vial to her lips, a bright burst of acid-green light flashes behind her and flat speed lines radiate, her eyes wide with slit pupils.",
+   "styles": [
+    "classroom",
+    "closeup"
+   ]
+  },
+  "grand_finale": {
+   "name": "Grand Finale",
+   "type": "attack",
+   "scene": "High angle: she stands calm at the centre of a hall of scattered daggers all pointing at one point, the last dagger flying in, many thin white slashes forming a star across the frame.",
+   "styles": [
+    "poster",
+    "classroom"
+   ]
+  },
+  "a_thousand_cuts": {
+   "name": "A Thousand Cuts",
+   "type": "power",
+   "scene": "She stands deadpan at the centre of a flat circular field of countless thin white slash lines converging around her, emblem composition with calm margins.",
+   "styles": [
+    "poster",
+    "closeup"
+   ]
+  },
+  "malaise": {
+   "name": "Malaise",
+   "type": "skill",
+   "scene": "She exhales a sickly green mist over an enemy silhouette that wilts and sags, drooping posture, she holds her scarf over her mouth, hard shadow cut.",
+   "styles": [
+    "classroom",
+    "closeup"
+   ]
+  },
+  "burst": {
+   "name": "Burst",
+   "type": "skill",
+   "scene": "Two overlapping poses of her casting the same move, an echo twin offset by a few degrees, flat graphic doubling, a snap of her fingers in the centre.",
+   "styles": [
+    "classroom",
+    "closeup"
+   ]
+  },
+  "bullet_time": {
+   "name": "Bullet Time",
+   "type": "skill",
+   "scene": "She stands calm and tilted while a ring of thrown daggers hangs frozen in the air around her at slow spaced intervals, an enemy silhouette far away, cloudless sky.",
+   "styles": [
+    "classroom",
+    "closeup"
+   ]
+  },
+  "corpse_explosion": {
+   "name": "Corpse Explosion",
+   "type": "skill",
+   "scene": "A slain enemy silhouette bursts into a flat white-and-green blast of shards behind her as she walks away without looking back, low angle.",
+   "styles": [
+    "classroom",
+    "closeup"
+   ]
+  },
+  "doppelganger": {
+   "name": "Doppelganger",
+   "type": "skill",
+   "scene": "She faces her own mirror twin, one in dark green and one inverted in bone white, mirrored composition, hands almost touching, a hot flat panel between them.",
+   "styles": [
+    "classroom",
+    "closeup"
+   ]
+  },
+  "blur": {
+   "name": "Blur",
+   "type": "skill",
+   "scene": "She dissolves into three horizontal-slice motion copies of herself sliding sideways, each slightly offset, flat speed stripes, dagger in hand.",
+   "styles": [
+    "classroom",
+    "closeup"
+   ]
+  },
+  "setup": {
+   "name": "Setup",
+   "type": "skill",
+   "scene": "High angle: she tucks a dagger into her boot top while planning, a single card tucked in her cloak, a tilted pensive head, bright floor geometry.",
+   "styles": [
+    "classroom",
+    "closeup"
+   ]
+  },
+  "all_out_attack": {
+   "name": "All-Out Attack",
+   "type": "attack",
+   "scene": "She flings a huge spray of daggers outward in a low wide sweep covering the whole frame, cloak flaring, low camera, dynamic diagonals.",
+   "styles": [
+    "poster",
+    "classroom"
+   ]
+  },
+  "expertise": {
+   "name": "Expertise",
+   "type": "skill",
+   "scene": "Close shot on her long fingers handling five daggers and a vial with practiced ease, a half-smile hint, the jade snake ring prominent.",
+   "styles": [
+    "classroom",
+    "closeup"
+   ]
+  },
+  "calculated_gamble": {
+   "name": "Calculated Gamble",
+   "type": "skill",
+   "scene": "She tosses a small die high into the air with a deadpan tilted face, the die at the top of its arc, cloudless sky and white geometry.",
+   "styles": [
+    "classroom",
+    "closeup"
+   ]
+  },
+  "reflex": {
+   "name": "Reflex",
+   "type": "skill",
+   "scene": "She catches a thrown dagger by its handle an inch from her face, one wide acid-green eye in the frame, tight close-up.",
+   "styles": [
+    "classroom",
+    "closeup"
+   ]
+  },
+  "tactician": {
+   "name": "Tactician",
+   "type": "skill",
+   "scene": "She studies a small tabletop of tiny carved pieces from above with a sidelong glance and a card held in her fingers, pointed chin, classroom-style shadow cut.",
+   "styles": [
+    "classroom",
+    "closeup"
+   ]
+  },
+  "after_image": {
+   "name": "After Image",
+   "type": "power",
+   "scene": "Emblem composition: three flat ghostly copies of her stepping in the same stance in a staggered row behind the solid heroine, fading in tone, calm margins.",
+   "styles": [
+    "poster",
+    "closeup"
+   ]
+  },
+  "escape_plan": {
+   "name": "Escape Plan",
+   "type": "skill",
+   "scene": "She runs along a rooftop edge, a smoke vial dropping and bursting behind her, a long diagonal composition against a cloudless sky.",
+   "styles": [
+    "classroom",
+    "closeup"
+   ]
+  },
+  "finisher": {
+   "name": "Finisher",
+   "type": "attack",
+   "scene": "She delivers a final stab as the enemy silhouette crumples, a row of tiny slash marks on the wall behind showing the earlier hits, low camera.",
+   "styles": [
+    "poster",
+    "classroom"
+   ]
+  },
+  "masterful_stab": {
+   "name": "Masterful Stab",
+   "type": "attack",
+   "scene": "Close-up of a dagger point touching one glowing weak spot on a silhouette, her long fingers precise, her slit eyes reflected in the blade.",
+   "styles": [
+    "poster",
+    "classroom"
+   ]
+  },
+  "outmaneuver": {
+   "name": "Outmaneuver",
+   "type": "skill",
+   "scene": "She slips neatly aside past a charging heavy silhouette in a graceful step, hood tilted, flat floor and diagonal shadows.",
+   "styles": [
+    "classroom",
+    "closeup"
+   ]
+  },
+  "accuracy": {
+   "name": "Accuracy",
+   "type": "power",
+   "scene": "Emblem composition: she aims a thin dagger, concentric target rings and thin sight lines converging precisely on its tip, calm centred pose.",
+   "styles": [
+    "poster",
+    "closeup"
+   ]
+  },
+  "choke": {
+   "name": "Choke",
+   "type": "attack",
+   "scene": "A taut thin wire stretched between her gloved hands behind a struggling enemy silhouette, non-graphic, her face calm over the shoulder, shadow cut.",
+   "styles": [
+    "poster",
+    "classroom"
+   ]
+  },
+  "footwork": {
+   "name": "Footwork",
+   "type": "power",
+   "scene": "Low angle close-up of her wrapped boot stepping lightly on a stone ledge, other leg long behind, dust puff as flat shapes, cloudless sky.",
+   "styles": [
+    "poster",
+    "closeup"
+   ]
+  },
+  "well_laid_plans": {
+   "name": "Well-Laid Plans",
+   "type": "power",
+   "scene": "Emblem composition: she sits calmly at a table laid out with daggers and vials in a perfect row, one card tucked away in her cloak.",
+   "styles": [
+    "poster",
+    "closeup"
+   ]
+  },
+  "infinite_blades": {
+   "name": "Infinite Blades",
+   "type": "power",
+   "scene": "A spiral of floating daggers emerging one after another from her open palm into an endless coil, centred emblem, calm margins.",
+   "styles": [
+    "poster",
+    "closeup"
+   ]
+  },
+  "noxious_fumes": {
+   "name": "Noxious Fumes",
+   "type": "power",
+   "scene": "She stands poised as green fumes curl up from the vials on her bandolier around her, flat spiral shapes, symmetric emblem composition.",
+   "styles": [
+    "poster",
+    "closeup"
+   ]
+  },
+  "envenom": {
+   "name": "Envenom",
+   "type": "power",
+   "scene": "Symmetric emblem composition: one dagger with a bead of acid-green poison hanging from its tip, a row of vials above it, her eyes in the corner.",
+   "styles": [
+    "poster",
+    "closeup"
+   ]
+  },
+  "wraith_form": {
+   "name": "Wraith Form",
+   "type": "power",
+   "scene": "She turns translucent, a ghostly pale green outline floating just above the floor, her cloak dissolving into mist, calm face, high contrast, emblem composition.",
+   "styles": [
+    "poster",
+    "closeup"
+   ]
+  },
+  "tools_of_the_trade": {
+   "name": "Tools of the Trade",
+   "type": "power",
+   "scene": "A rolled-out leather kit holding daggers, vials and the jade snake ring, her long fingers drawing one tool, high angle, emblem composition.",
+   "styles": [
+    "poster",
+    "closeup"
+   ]
+  },
+  "bouncing_flask": {
+   "name": "Bouncing Flask",
+   "type": "skill",
+   "scene": "A poison flask bounces between two walls along a dotted path, three flat green splashes, she stands at the corner with her arm extended.",
+   "styles": [
+    "classroom",
+    "closeup"
+   ]
+  },
+  "concentrate": {
+   "name": "Concentrate",
+   "type": "skill",
+   "scene": "She stands with eyes narrowed and one vial held under her nose, quiet breathing, discarded cards falling from her other hand, shadow cut.",
+   "styles": [
+    "classroom",
+    "closeup"
+   ]
+  },
+  "distraction": {
+   "name": "Distraction",
+   "type": "power",
+   "scene": "Emblem composition: she flicks a coin aside while an enemy silhouette turns its head, and slides out of the opposite side of the frame.",
+   "styles": [
+    "poster",
+    "closeup"
+   ]
+  },
+  "storm_of_steel": {
+   "name": "Storm of Steel",
+   "type": "skill",
+   "scene": "A storm of thrown blades radiates from her as she crouches low with arms wide, low camera, radial diagonal composition.",
+   "styles": [
+    "classroom",
+    "closeup"
+   ]
+  },
+  "unload": {
+   "name": "Unload",
+   "type": "attack",
+   "scene": "She empties her whole bandolier in a rapid line of thrown knives across the frame on one tight diagonal, her arm sweeping, a hot flat panel behind.",
+   "styles": [
+    "poster",
+    "classroom"
+   ]
+  }
+ }
+}

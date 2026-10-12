@@ -1,0 +1,577 @@
+[
+ {
+  "id": "slayer_caltrops",
+  "name": "Caltrops",
+  "type": "power",
+  "rarity": "uncommon",
+  "cost": 1,
+  "pack": "slayer_silent",
+  "text": "End of turn: Deal 1 damage to every enemy that intends to attack you for each hit in their attack."
+ },
+ {
+  "id": "slayer_endless_agony",
+  "name": "Endless Agony",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 1,
+  "pack": "slayer_silent",
+  "text": null
+ },
+ {
+  "id": "slayer_eviscerate",
+  "name": "Eviscerate",
+  "type": "power",
+  "rarity": "uncommon",
+  "cost": 1,
+  "pack": "slayer_silent",
+  "text": "Whenever a card's effect makes you discard cards, deal 1 damage for each discarded card."
+ },
+ {
+  "id": "slayer_glass_knife",
+  "name": "Glass Knife",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 2,
+  "pack": "slayer_silent",
+  "text": null
+ },
+ {
+  "id": "slayer_heel_hook",
+  "name": "Heel Hook",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 1,
+  "pack": "slayer_silent",
+  "text": null
+ },
+ {
+  "id": "slayer_nightmare",
+  "name": "Nightmare",
+  "type": "skill",
+  "rarity": "rare",
+  "cost": 1,
+  "pack": "slayer_silent",
+  "text": null
+ },
+ {
+  "id": "slayer_phantasmal_killer",
+  "name": "Phantasmal Killer",
+  "type": "power",
+  "rarity": "rare",
+  "cost": 1,
+  "pack": "slayer_silent",
+  "text": "When played: gain 1 Shiv. Whenever you play a Shiv, deal 1 damage to the target's row."
+ },
+ {
+  "id": "strike_silent",
+  "name": "Strike",
+  "type": "attack",
+  "rarity": "starter",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "defend_silent",
+  "name": "Defend",
+  "type": "skill",
+  "rarity": "starter",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "neutralize",
+  "name": "Neutralize",
+  "type": "attack",
+  "rarity": "starter",
+  "cost": 0,
+  "text": null
+ },
+ {
+  "id": "survivor",
+  "name": "Survivor",
+  "type": "skill",
+  "rarity": "starter",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "dagger_throw",
+  "name": "Dagger Throw",
+  "type": "attack",
+  "rarity": "common",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "prepared",
+  "name": "Prepared",
+  "type": "skill",
+  "rarity": "common",
+  "cost": 0,
+  "text": null
+ },
+ {
+  "id": "riddle_with_holes",
+  "name": "Riddle with Holes",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 2,
+  "text": null
+ },
+ {
+  "id": "dash",
+  "name": "Dash",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 2,
+  "text": null
+ },
+ {
+  "id": "die_die_die",
+  "name": "Die Die Die",
+  "type": "attack",
+  "rarity": "rare",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "piercing_wail",
+  "name": "Piercing Wail",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "crippling_cloud",
+  "name": "Crippling Cloud",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 2,
+  "text": null
+ },
+ {
+  "id": "deadly_poison",
+  "name": "Deadly Poison",
+  "type": "skill",
+  "rarity": "common",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "poisoned_stab",
+  "name": "Poisoned Stab",
+  "type": "attack",
+  "rarity": "common",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "dagger_spray",
+  "name": "Dagger Spray",
+  "type": "attack",
+  "rarity": "common",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "backflip",
+  "name": "Backflip",
+  "type": "skill",
+  "rarity": "common",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "acrobatics",
+  "name": "Acrobatics",
+  "type": "skill",
+  "rarity": "common",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "skewer",
+  "name": "Skewer",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": "X",
+  "text": null
+ },
+ {
+  "id": "blade_dance",
+  "name": "Blade Dance",
+  "type": "skill",
+  "rarity": "common",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "cloak_and_dagger",
+  "name": "Cloak and Dagger",
+  "type": "skill",
+  "rarity": "common",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "sneaky_strike",
+  "name": "Sneaky Strike",
+  "type": "attack",
+  "rarity": "common",
+  "cost": 2,
+  "text": null
+ },
+ {
+  "id": "terror",
+  "name": "Terror",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "backstab",
+  "name": "Backstab",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 0,
+  "text": null
+ },
+ {
+  "id": "predator",
+  "name": "Predator",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 2,
+  "text": null
+ },
+ {
+  "id": "leg_sweep",
+  "name": "Leg Sweep",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 2,
+  "text": null
+ },
+ {
+  "id": "slice",
+  "name": "Slice",
+  "type": "attack",
+  "rarity": "common",
+  "cost": 0,
+  "text": null
+ },
+ {
+  "id": "deflect",
+  "name": "Deflect",
+  "type": "skill",
+  "rarity": "common",
+  "cost": 0,
+  "text": null
+ },
+ {
+  "id": "dodge_and_roll",
+  "name": "Dodge and Roll",
+  "type": "skill",
+  "rarity": "common",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "bane",
+  "name": "Bane",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "catalyst",
+  "name": "Catalyst",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "flechettes",
+  "name": "Flechettes",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "adrenaline",
+  "name": "Adrenaline",
+  "type": "skill",
+  "rarity": "rare",
+  "cost": 0,
+  "text": null
+ },
+ {
+  "id": "grand_finale",
+  "name": "Grand Finale",
+  "type": "attack",
+  "rarity": "rare",
+  "cost": 0,
+  "text": null
+ },
+ {
+  "id": "a_thousand_cuts",
+  "name": "A Thousand Cuts",
+  "type": "power",
+  "rarity": "rare",
+  "cost": 2,
+  "text": null
+ },
+ {
+  "id": "malaise",
+  "name": "Malaise",
+  "type": "skill",
+  "rarity": "rare",
+  "cost": "X",
+  "text": null
+ },
+ {
+  "id": "burst",
+  "name": "Burst",
+  "type": "skill",
+  "rarity": "rare",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "bullet_time",
+  "name": "Bullet Time",
+  "type": "skill",
+  "rarity": "rare",
+  "cost": 3,
+  "text": null
+ },
+ {
+  "id": "corpse_explosion",
+  "name": "Corpse Explosion",
+  "type": "skill",
+  "rarity": "rare",
+  "cost": 2,
+  "text": null
+ },
+ {
+  "id": "doppelganger",
+  "name": "Doppelganger",
+  "type": "skill",
+  "rarity": "rare",
+  "cost": "X",
+  "text": null
+ },
+ {
+  "id": "blur",
+  "name": "Blur",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "setup",
+  "name": "Setup",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 0,
+  "text": null
+ },
+ {
+  "id": "all_out_attack",
+  "name": "All-Out Attack",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "expertise",
+  "name": "Expertise",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "calculated_gamble",
+  "name": "Calculated Gamble",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 0,
+  "text": null
+ },
+ {
+  "id": "reflex",
+  "name": "Reflex",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 0,
+  "text": null
+ },
+ {
+  "id": "tactician",
+  "name": "Tactician",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 0,
+  "text": null
+ },
+ {
+  "id": "after_image",
+  "name": "After Image",
+  "type": "power",
+  "rarity": "rare",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "escape_plan",
+  "name": "Escape Plan",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 0,
+  "text": null
+ },
+ {
+  "id": "finisher",
+  "name": "Finisher",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "masterful_stab",
+  "name": "Masterful Stab",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 0,
+  "text": null
+ },
+ {
+  "id": "outmaneuver",
+  "name": "Outmaneuver",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 0,
+  "text": null
+ },
+ {
+  "id": "accuracy",
+  "name": "Accuracy",
+  "type": "power",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "choke",
+  "name": "Choke",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 2,
+  "text": null
+ },
+ {
+  "id": "footwork",
+  "name": "Footwork",
+  "type": "power",
+  "rarity": "uncommon",
+  "cost": 2,
+  "text": null
+ },
+ {
+  "id": "well_laid_plans",
+  "name": "Well-Laid Plans",
+  "type": "power",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "infinite_blades",
+  "name": "Infinite Blades",
+  "type": "power",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "noxious_fumes",
+  "name": "Noxious Fumes",
+  "type": "power",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "envenom",
+  "name": "Envenom",
+  "type": "power",
+  "rarity": "rare",
+  "cost": 3,
+  "text": null
+ },
+ {
+  "id": "wraith_form",
+  "name": "Wraith Form",
+  "type": "power",
+  "rarity": "rare",
+  "cost": 3,
+  "text": null
+ },
+ {
+  "id": "tools_of_the_trade",
+  "name": "Tools of the Trade",
+  "type": "power",
+  "rarity": "rare",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "bouncing_flask",
+  "name": "Bouncing Flask",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 2,
+  "text": null
+ },
+ {
+  "id": "concentrate",
+  "name": "Concentrate",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 0,
+  "text": null
+ },
+ {
+  "id": "distraction",
+  "name": "Distraction",
+  "type": "power",
+  "rarity": "uncommon",
+  "cost": 2,
+  "text": null
+ },
+ {
+  "id": "storm_of_steel",
+  "name": "Storm of Steel",
+  "type": "skill",
+  "rarity": "rare",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "unload",
+  "name": "Unload",
+  "type": "attack",
+  "rarity": "rare",
+  "cost": 1,
+  "text": null
+ }
+]

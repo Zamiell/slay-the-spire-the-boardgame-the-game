@@ -1,0 +1,56 @@
+{
+  "note": "monogatari_silent idle registered on the 1152x1152 hero canvas (x right, y down, canvas pixels). hoodTop is the highest painted row (the hood tip); crown is the top of the hair mass under the hood and chin the tip of the chin, so headPixels is crown to chin and hoodPixels hood top to chin. nearSole is the lowest painted row of the lower (camera-side) boot and is planted on groundY; farSole is the lowest row of the other boot, which stands higher because of the low camera angle. The cutout source (idle-cutout.webp, 1024x1536) is scaled by `scale`, crown to near sole is 830px and the stance centre (midpoint of the two sole centres) is on stanceCenterX. Landmarks marked source are mapped from hand-measured source rows through the same scale and offset.",
+  "canvas": [
+    1152,
+    1152
+  ],
+  "scale": 0.583275,
+  "offset": [
+    229,
+    234
+  ],
+  "sourceLandmarks": {
+    "hoodTopY": 12,
+    "crownY": 87,
+    "chinY": 253,
+    "nearSoleY": 1510,
+    "nearSoleX": 370,
+    "farSoleX": 820
+  },
+  "groundY": 1115,
+  "stanceCenterX": 576,
+  "headPixels": 96.8,
+  "hoodPixels": 140.6,
+  "heightPixels": 830,
+  "poses": {
+    "idle": {
+      "source": "scripts/art/sources/monogatari_silent-char/idle-cutout.webp",
+      "hoodTop": [
+        581,
+        241
+      ],
+      "crown": [
+        590.6,
+        284.7
+      ],
+      "chin": [
+        561.5,
+        381.6
+      ],
+      "nearSole": [
+        414,
+        1115
+      ],
+      "farSole": [
+        708,
+        1003
+      ],
+      "bodyBox": [
+        259,
+        241,
+        811,
+        1115
+      ]
+    }
+  }
+}

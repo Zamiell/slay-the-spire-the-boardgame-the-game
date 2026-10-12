@@ -1,13 +1,14 @@
 import { ALL_CHARACTER_IDS, PLAYTEST_CHARACTER_IDS } from '../game/types.ts'
 import type { CardType, CharacterId } from '../game/types.ts'
-import { visualId } from '../game/skins.ts'
+import { characterOfSkin, isSkinId, visualId } from '../game/skins.ts'
 import type { SkinId } from '../game/skins.ts'
 import { CARDS } from '../game/cards.ts'
 import { POTIONS } from '../game/relics.ts'
+import { STAGED_SOUND_VOLUMES } from './combat-screen/staged-attacks.ts'
 import { cardVfxRecipe, potionVfxRecipe, type VfxFamily, type VfxRecipe } from './combat-vfx.ts'
 
 export const ANIMATION_SOUND_VOLUMES = {
-  'kratos-chain': .19, 'kratos-light': .16, 'kratos-slam': .32,
+  ...STAGED_SOUND_VOLUMES,
   gunshot: .24, 'bullet-impact': .10, 'meteor-fall': .22, 'meteor-impact': .28,
   'sword-swing': .18, 'sword-clash': .20, 'lightning-burst': .22, 'dark-beam': .24,
   'frost-bloom': .20, 'flame-burst': .22, 'slime-splat': .20, 'poison-hiss': .16,
@@ -72,8 +73,7 @@ const ASSET_LAYERS: Readonly<Record<string, readonly LayerTemplate[]>> = {
   'hexaghost-flame-impact': FAMILY_LAYERS.projectile,
 }
 
-/** Keyed by visual id: a skin sounds like its own hero, not the character under it. */
-const CHARACTER_RATE: Readonly<Record<CharacterId | SkinId, number>> = {
+const CHARACTER_RATE: Readonly<Record<CharacterId, number>> = {
   ironclad: 0.94,
   silent: 1.08,
   defect: 1.14,
@@ -82,10 +82,13 @@ const CHARACTER_RATE: Readonly<Record<CharacterId | SkinId, number>> = {
   guardian: 0.92,
   hexaghost: 1.16,
   hermit: 0.98,
-  kratos: 0.9,
-  monogatari_ironclad: 0.94,
-  monogatari_defect: 1.14,
 }
+
+/** A skin may pitch its sounds apart from its hero; without an entry it sounds like the hero. */
+const SKIN_RATE: Partial<Record<SkinId, number>> = { kratos: 0.9 }
+
+const rateOf = (visual: CharacterId | SkinId): number =>
+  SKIN_RATE[visual as SkinId] ?? CHARACTER_RATE[isSkinId(visual) ? characterOfSkin(visual) : visual]
 
 const POTION_IDS = Object.keys(POTIONS).sort()
 // Preserve the original heroes' accents when a playtest character is released.
@@ -168,7 +171,7 @@ export function cardSfxRecipe(
       // Animation cues supply the weapon/element detail; keep the original bed quieter.
       volume: layer.volume * (visual.actorMotion === 'none' ? 1 : .55),
     })), identityLayer(slot)],
-    CHARACTER_RATE[look],
+    rateOf(look),
   )
 }
 

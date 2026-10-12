@@ -6,18 +6,30 @@
 // derived state the screen renders from or plays the sound the change calls for.
 // What they watch arrives as arguments or from the browser; none of them reaches
 // into the component that calls it.
-import { characterAttackContactMs, isHermitAttack, isKratosAttack, splitAttackWeights, splitAttackAnimationPending, HERMIT_VOLLEYS, HERMIT_ATTACK_MS, KRATOS_ATTACK_MS, KRATOS_HITS, ORB_END_TURN_STAGGER_MS,
+import { characterAttackContactMs, isHermitAttack, stagedAttackOfEvent, splitAttackWeights, splitAttackAnimationPending, HERMIT_VOLLEYS, HERMIT_ATTACK_MS, ORB_END_TURN_STAGGER_MS,
   SLIME_COMMAND_ANIMATION_MS, SLIME_COMMAND_CONTACT_MS,
   SLIME_SPAWN_ANIMATION_MS, SLIME_SPAWN_CONTACT_MS } from './vfx.tsx'
 import { cardDef } from '../../game/cards.ts'
 import { playerVisualId } from '../../game/skins.ts'
 import type { CombatPresentationEvent, CombatState } from '../../game/combat.ts'
 import { drawnCardUids } from '../board-signals.ts'
-import { animationSfxRecipe, type AnimationSound, cardSfxRecipe, potionSfxRecipe, shivSfxRecipe } from '../combat-sfx.ts'
+import { ANIMATION_SOUND_VOLUMES, animationSfxRecipe, type AnimationSound, cardSfxRecipe, potionSfxRecipe, shivSfxRecipe } from '../combat-sfx.ts'
 import { playCombatSound, playSoundEffect } from '../sfx.ts'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 export const ACTOR_DEFEAT_MS = 1_800
+
+/** The sound a staged attack's cue or hit element names (`data-sound`, from the generated table). */
+const stagedSound = (element: HTMLElement | SVGElement): AnimationSound | undefined => {
+  const sound = element.dataset.sound
+  return sound !== undefined && Object.hasOwn(ANIMATION_SOUND_VOLUMES, sound) ? sound as AnimationSound : undefined
+}
+
+/** How long a staged attack keeps hitting after its first hit; the last target falls after it. */
+const stagedAttackSpanMs = (state: CombatState, event: CombatPresentationEvent): number | undefined => {
+  const hits = stagedAttackOfEvent(state, event)?.hits
+  return hits && hits.at(-1)!.ms - hits[0]!.ms
+}
 
 export type TargetContactDeadline = { at: number; throughSeq: number }
 
@@ -37,14 +49,14 @@ function slimeAnimationDelays(
       continue
     }
     const hermit = isHermitAttack(state, event)
-    const kratos = isKratosAttack(state, event)
-    const key = hermit || kratos ? `weapon:${event.actorId}` : event.kind === 'card' && cardDef(event.sourceId).cardKind === 'slime'
+    const staged = stagedAttackOfEvent(state, event)
+    const key = hermit || staged ? `weapon:${event.actorId}` : event.kind === 'card' && cardDef(event.sourceId).cardKind === 'slime'
       ? `spawn:${event.actorId}`
       : undefined
     if (!key) continue
     const start = Math.max(now, queueEnd.get(key) ?? now)
     delays.set(event.seq, start - now)
-    queueEnd.set(key, start + (hermit ? HERMIT_ATTACK_MS : kratos ? KRATOS_ATTACK_MS : SLIME_SPAWN_ANIMATION_MS))
+    queueEnd.set(key, start + (hermit ? HERMIT_ATTACK_MS : staged ? staged.durationMs : SLIME_SPAWN_ANIMATION_MS))
   }
   return delays
 }
@@ -346,8 +358,8 @@ export function useFalling(
       if (refreshed || reducedEffects) continue
       if (previous.current.get(id) !== false || !entity.dead) continue
       const tail = Math.max(0, ...newPresentations.filter(event => event.enemyIds.includes(id)).map(event =>
-        isKratosAttack(state, event) ? KRATOS_HITS.at(-1)!.ms - KRATOS_HITS[0].ms :
-          isHermitAttack(state, event) ? HERMIT_VOLLEYS.at(-1)!.ms - HERMIT_VOLLEYS[0].ms : 0))
+        stagedAttackSpanMs(state, event) ??
+          (isHermitAttack(state, event) ? HERMIT_VOLLEYS.at(-1)!.ms - HERMIT_VOLLEYS[0].ms : 0)))
       const delay = remainingTargetContactMs(contactDeadlines.current, id) + tail
       setFalling((current) => new Set(current).add(id))
       const prior = timers.current.get(id)
@@ -492,6 +504,7 @@ export function usePresentationEvents(
         // unmount the last pose before it paints.
         ? characterAttackContactMs(state, lastTarget, event)
         : 0
+      const staged = stagedAttackOfEvent(state, event)
       const slimeAnimation = event.kind === 'card' && cardDef(event.sourceId).cardKind === 'slime'
       const delay = delays.get(event.seq) ?? 0
       const localAttackContact = splitAttackWeights(state, event) ? attackContact : Math.max(0, attackContact - delay)
@@ -499,7 +512,7 @@ export function usePresentationEvents(
         player.id === event.actorId && player.character === 'slime_boss') && attackContact > 0
       const lifetime = (localAttackContact > 0
         ? slimeBossAttack ? SLIME_COMMAND_ANIMATION_MS + 100
-          : Math.max(isKratosAttack(state, event) ? KRATOS_ATTACK_MS + 100 : 1_800, localAttackContact + 1_200)
+          : Math.max(staged ? staged.durationMs + 100 : 1_800, localAttackContact + 1_200)
         : slimeAnimation ? SLIME_SPAWN_ANIMATION_MS + 100 : 900) +
         staggerIndex * ORB_END_TURN_STAGGER_MS
       const remove = () => timers.current.set(event.seq, setTimeout(() => {
@@ -652,8 +665,8 @@ export function usePersonalCombatSoundEffects(
     const onAnimation = (animation: AnimationEvent) => {
       if (!(animation.target instanceof HTMLElement || animation.target instanceof SVGElement)) return
       const element = animation.target
-      const source = element.closest<HTMLElement>('[data-kratos-impact-seq], [data-hermit-impact-seq], [data-hermit-seq], [data-attack-seq], [data-evoke-seq], [data-vfx-seq]')
-      const seq = Number(source?.dataset.kratosImpactSeq ?? source?.dataset.hermitImpactSeq ?? source?.dataset.hermitSeq ?? source?.dataset.attackSeq ?? source?.dataset.evokeSeq ?? source?.dataset.vfxSeq)
+      const source = element.closest<HTMLElement>('[data-staged-impact-seq], [data-hermit-impact-seq], [data-hermit-seq], [data-attack-seq], [data-evoke-seq], [data-vfx-seq]')
+      const seq = Number(source?.dataset.stagedImpactSeq ?? source?.dataset.hermitImpactSeq ?? source?.dataset.hermitSeq ?? source?.dataset.attackSeq ?? source?.dataset.evokeSeq ?? source?.dataset.vfxSeq)
       const event = events.find(event => event.seq === seq)
       if (!event || !played.current.has(seq)) return
       const actor = state.players.find(player => player.id === event.actorId)
@@ -661,14 +674,14 @@ export function usePersonalCombatSoundEffects(
       let beat = ''
       let voices = 1
       switch (animation.animationName) {
-        case 'kratos-chain-swing':
-          sound = 'kratos-chain'
-          beat = (element as HTMLElement).dataset.comboBeat ?? ''
+        case 'staged-cue':
+          sound = stagedSound(element)
+          beat = element.dataset.comboBeat ?? ''
           break
-        case 'kratos-light-hit':
-        case 'kratos-slam-hit':
-          sound = animation.animationName === 'kratos-slam-hit' ? 'kratos-slam' : 'kratos-light'
-          beat = (element as HTMLElement).dataset.comboBeat ?? ''
+        case 'staged-strike-hit':
+        case 'staged-slam-hit':
+          sound = stagedSound(element)
+          beat = element.dataset.comboBeat ?? ''
           voices = event.enemyIds.length
           break
         case 'hermit-bullet-flight':

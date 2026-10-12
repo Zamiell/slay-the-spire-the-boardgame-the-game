@@ -227,8 +227,11 @@
   box-shadow: none;
   clip-path: none;
   overflow: visible;
-  --energy-orb-glow: rgb(255 25 45 / 0.4);
 }
+
+.pip--energy[data-skin-orb][data-character='kratos'] { --energy-orb-glow: rgb(220 22 24 / 0.45); }
+.pip--energy[data-skin-orb][data-character='monogatari_silent'] { --energy-orb-glow: rgb(166 248 62 / 0.45); }
+.pip--energy[data-skin-orb][data-character='monogatari_watcher'] { --energy-orb-glow: rgb(150 70 240 / 0.5); }
 
 .pip--energy[data-skin-orb]::before,
 .pip--energy[data-skin-orb]::after { content: none; }

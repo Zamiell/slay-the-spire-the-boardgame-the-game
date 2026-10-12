@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url'
 import { createServer } from 'vite'
 import { chromium } from './lib/profile-browser.mjs'
 import { postNeowRun } from './lib/post-neow-run.mjs'
+import { SKIN_IDS, skinsOf } from '../src/game/skins.ts'
+import { CHARACTER_LABEL } from '../src/ui/run-summary-data.ts'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
 const output = `${root}artifacts/merchant-overflow-browser`
@@ -12,6 +14,37 @@ const server = await createServer({ root, logLevel: 'silent', server: { port: 0 
 await server.listen()
 const browser = await chromium.launch()
 const errors = []
+// A hero with several skins needs several rounds: round N seats every hero in its Nth skin (a hero with fewer
+// skins keeps its last look), so the arrival party stands as every registered skin in some round.
+const rounds = Array.from({ length: Math.max(...['silent', 'ironclad', 'watcher', 'defect'].map((character) => skinsOf(character).length)) }, (_, round) =>
+  ['silent', 'ironclad', 'watcher', 'defect'].map((character, index) => {
+    const skins = skinsOf(character)
+    const skin = skins[Math.min(round, skins.length - 1)]
+    return { id: `p${index + 1}`, name: CHARACTER_LABEL[character], character, ...(skin ? { skin } : {}) }
+  }))
+const [seats] = rounds
+const visualOf = (seat) => seat.skin ?? seat.character
+assert.deepEqual(SKIN_IDS.filter((skin) => !rounds.flat().some((seat) => seat.skin === skin)), [],
+  'every registered skin needs a seat in some round')
+/** Where every standing figure's painted feet are, against the party's floor line, in CSS pixels. */
+const feetAgainstFloor = (page) => page.locator('.merchant-arrival__party').evaluate(async (party) => {
+  const floor = party.getBoundingClientRect().bottom
+  return Promise.all([...party.querySelectorAll('[data-character] img')].map(async (image) => {
+    await image.decode()
+    const canvas = document.createElement('canvas')
+    canvas.width = image.naturalWidth; canvas.height = image.naturalHeight
+    const context = canvas.getContext('2d')
+    context.drawImage(image, 0, 0)
+    const data = context.getImageData(0, 0, canvas.width, canvas.height).data
+    let bottom = 0
+    for (let y = canvas.height - 1; y >= 0 && !bottom; y--) {
+      for (let x = 0; x < canvas.width; x++) if (data[(y * canvas.width + x) * 4 + 3] > 32) { bottom = y + 1; break }
+    }
+    const rect = image.getBoundingClientRect()
+    const feet = rect.bottom - (canvas.height - bottom) * (rect.height / canvas.height)
+    return [image.closest('[data-character]').getAttribute('data-character'), Math.round((feet - floor) * 10) / 10]
+  }))
+})
 try {
   for (const [name, viewport] of [
     ['desktop', { width: 1440, height: 900 }],
@@ -26,36 +59,48 @@ try {
     await page.getByRole('button', { name: 'Embark', exact: true }).click()
     await page.getByRole('button', { name: 'Start standard campaign', exact: true }).click()
     await page.waitForFunction(() => window.__STS_DEBUG__?.getRun().phase === 'neow')
-    const fixture = postNeowRun('merchant-overflow', [
-      { id: 'p1', name: 'Silent', character: 'silent' },
-      { id: 'p2', name: 'Kratos', character: 'ironclad', skin: 'kratos' },
-      { id: 'p3', name: 'Watcher', character: 'watcher' },
-      { id: 'p4', name: 'Defect', character: 'defect' },
-    ])
-    fixture.players.forEach((player) => { player.gold = 30 })
-    Object.assign(fixture.players[0], { hp: 6, maxHp: 9 })
-    fixture.players[0].deck[0] = { ...fixture.players[0].deck[0], defId: 'parasite' }
-    fixture.phase = 'room'
-    fixture.roomState = {
-      kind: 'merchant', relics: ['wing_boots', 'toxic_egg', 'anchor'],
-      potions: ['weak_potion', 'fire_potion', 'swift_potion'],
-      colorless: ['trip', 'hand_of_greed', 'mayhem'],
-      cards: Object.fromEntries(fixture.players.map((player) => [player.id, {
-        choices: player.cardRewards.slice(0, 3), cardsDrawn: player.cardRewards.slice(0, 3), raresDrawn: [],
-      }])), removalUsed: [], purchasedCards: {},
+    const arrivalChecks = async (partySeats, label) => {
+      await page.evaluate((run) => window.__STS_DEBUG__.setRun(run), merchantRun(partySeats))
+      await page.locator('.merchant-arrival__party [data-character] img').first().waitFor()
+      // A skinned seat stands as its skin; every other seat keeps its own hero's figure.
+      for (const seat of partySeats.filter((candidate) => candidate.skin)) {
+        const skinned = page.locator(`.merchant-arrival__party [data-character="${seat.skin}"] img`)
+        await skinned.evaluate(async (image) => { await image.decode() })
+        assert(await skinned.isVisible(), `${label}: the ${seat.skin} skin must appear in the merchant arrival party`)
+        assert.match(await skinned.getAttribute('src'), new RegExp(`/noncombat/merchant/characters/${seat.skin}-standing\\.webp$`),
+          `${label}: the skinned ${seat.character} uses the ${seat.skin} standing figure`)
+      }
+      assert.deepEqual(await page.locator('.merchant-arrival__party [data-character] img').evaluateAll((images) => images.map((image) =>
+        [image.closest('[data-character]').getAttribute('data-character'), image.getAttribute('src').split('/').pop()])),
+      partySeats.map((seat) => [visualOf(seat), `${visualOf(seat)}-standing.webp`]),
+      `${label}: every merchant arrival seat stands as its own visual id`)
+      const feet = await feetAgainstFloor(page)
+      assert.deepEqual(feet.filter(([, offset]) => Math.abs(offset) > 2), [], `${label}: every figure's feet sit within 2px of the party's floor line`)
+      return feet
     }
-    await page.evaluate((run) => window.__STS_DEBUG__.setRun(run), fixture)
-    const kratos = page.locator('.merchant-arrival__party [data-character="kratos"] img')
-    await kratos.evaluate(async (image) => { await image.decode() })
-    assert(await kratos.isVisible(), 'the Kratos skin must appear in the merchant arrival party')
-    // The skinned Ironclad stands as Kratos; every other seat keeps its own hero's figure.
-    assert.match(await kratos.getAttribute('src'), /\/noncombat\/merchant\/characters\/kratos-standing\.webp$/,
-      'the skinned Ironclad uses the Kratos standing figure')
-    assert.deepEqual(await page.locator('.merchant-arrival__party [data-character] img').evaluateAll((images) => images.map((image) =>
-      [image.closest('[data-character]').getAttribute('data-character'), image.getAttribute('src').split('/').pop()])),
-    [['silent', 'silent-standing.webp'], ['kratos', 'kratos-standing.webp'], ['watcher', 'watcher-standing.webp'], ['defect', 'defect-standing.webp']],
-    'every merchant arrival seat stands as its own visual id')
-    await page.screenshot({ path: `${output}/${name}-kratos-arrival.png` })
+    const merchantRun = (partySeats) => {
+      const fixture = postNeowRun('merchant-overflow', partySeats)
+      fixture.players.forEach((player) => { player.gold = 30 })
+      Object.assign(fixture.players[0], { hp: 6, maxHp: 9 })
+      fixture.players[0].deck[0] = { ...fixture.players[0].deck[0], defId: 'parasite' }
+      fixture.phase = 'room'
+      fixture.roomState = {
+        kind: 'merchant', relics: ['wing_boots', 'toxic_egg', 'anchor'],
+        potions: ['weak_potion', 'fire_potion', 'swift_potion'],
+        colorless: ['trip', 'hand_of_greed', 'mayhem'],
+        cards: Object.fromEntries(fixture.players.map((player) => [player.id, {
+          choices: player.cardRewards.slice(0, 3), cardsDrawn: player.cardRewards.slice(0, 3), raresDrawn: [],
+        }])), removalUsed: [], purchasedCards: {},
+      }
+      return fixture
+    }
+    for (const [round, partySeats] of rounds.entries()) {
+      const feet = await arrivalChecks(partySeats, `${name} round ${round + 1}`)
+      console.log(`${name} round ${round + 1} feet vs floor px:`, JSON.stringify(feet))
+      if (round > 0) await page.screenshot({ path: `${output}/${name}-skins-arrival-${round + 1}.png` })
+    }
+    await arrivalChecks(seats, `${name} round 1 again`)
+    await page.screenshot({ path: `${output}/${name}-skins-arrival.png` })
     await page.getByRole('button', { name: 'Enter merchant shop' }).click()
     const stage = page.locator('.merchant-shop-stage')
     await stage.waitFor()
@@ -65,7 +110,7 @@ try {
       clientWidth: element.clientWidth, clientHeight: element.clientHeight,
     }))
     const before = await dimensions()
-    const deckSize = fixture.players[0].deck.length
+    const deckSize = merchantRun(seats).players[0].deck.length
     await page.getByRole('button', { name: /Card Removal Service/ }).click()
     await page.getByRole('group', { name: 'Card to remove' }).getByRole('button', { name: /Parasite/ }).click()
     await page.getByRole('button', { name: /Remove selected card/ }).click()

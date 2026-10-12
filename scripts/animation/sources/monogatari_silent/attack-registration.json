@@ -1,0 +1,508 @@
+{
+  "note": "Attack drawings: the model draws each pose on a 1536x1024 layout canvas (layout-idle.webp, the registered idle at 1.6x runtime scale, rear sole on x=493.5, y=960). Per pose, hoodTop/chin (hood tip to chin tip, hand-inspected on the source drawing) and dagger (tip and base of the longest acid-green blade, measured by colour) are source-pixel landmarks; monogatari_silent.py scales each drawing uniformly by idleHead/head (and, where soleMean is true because the rear boot is planted flat, by the geometric mean with the rear-sole width scale), plants the rear sole on the idle rear sole and the lowest row on the ground, and writes the runtime drawings, the baked landmarks (poses.<pose>.baked) and audit.landmarks of skins/monogatari_silent.json.",
+  "layout": {
+    "canvas": [
+      1536,
+      1024
+    ],
+    "scale": 1.6,
+    "rearSoleX": 493.5,
+    "ground": 960,
+    "idleHeadPixels": 97.81,
+    "idleSolePixels": 34
+  },
+  "poses": {
+    "coil": {
+      "source": "scripts/animation/sources/monogatari_silent/combo/coil.webp",
+      "hoodTop": [
+        748,
+        259
+      ],
+      "chin": [
+        727,
+        405
+      ],
+      "dagger": [
+        [
+          290.0,
+          700.0
+        ],
+        [
+          366.0,
+          650.0
+        ]
+      ],
+      "soleMean": false
+    },
+    "crouch": {
+      "source": "scripts/animation/sources/monogatari_silent/combo/crouch.webp",
+      "hoodTop": [
+        722,
+        375
+      ],
+      "chin": [
+        738,
+        528
+      ],
+      "dagger": [
+        [
+          281.0,
+          721.0
+        ],
+        [
+          360.0,
+          690.0
+        ]
+      ],
+      "soleMean": true
+    },
+    "dash1": {
+      "source": "scripts/animation/sources/monogatari_silent/combo/dash1.webp",
+      "hoodTop": [
+        862,
+        366
+      ],
+      "chin": [
+        933,
+        516
+      ],
+      "dagger": [
+        [
+          448.0,
+          607.0
+        ],
+        [
+          544.0,
+          592.0
+        ]
+      ],
+      "soleMean": false
+    },
+    "dash1b": {
+      "source": "scripts/animation/sources/monogatari_silent/combo/dash1b.webp",
+      "hoodTop": [
+        905,
+        333
+      ],
+      "chin": [
+        915,
+        484
+      ],
+      "dagger": [
+        [
+          465.0,
+          593.0
+        ],
+        [
+          551.0,
+          580.0
+        ]
+      ],
+      "soleMean": false,
+      "lift": 10
+    },
+    "dash2": {
+      "source": "scripts/animation/sources/monogatari_silent/combo/dash2.webp",
+      "hoodTop": [
+        962,
+        263
+      ],
+      "chin": [
+        977,
+        425
+      ],
+      "dagger": [
+        [
+          462.0,
+          598.0
+        ],
+        [
+          555.0,
+          570.0
+        ]
+      ],
+      "soleMean": false,
+      "lift": 24
+    },
+    "air": {
+      "source": "scripts/animation/sources/monogatari_silent/combo/air.webp",
+      "hoodTop": [
+        981,
+        329
+      ],
+      "chin": [
+        962,
+        480
+      ],
+      "dagger": [
+        [
+          724.0,
+          747.0
+        ],
+        [
+          737.0,
+          663.0
+        ]
+      ],
+      "soleMean": false,
+      "lift": 16,
+      "shift": 193
+    },
+    "air2": {
+      "source": "scripts/animation/sources/monogatari_silent/combo/air2.webp",
+      "hoodTop": [
+        866,
+        371
+      ],
+      "chin": [
+        875,
+        514
+      ],
+      "dagger": [
+        [
+          848.0,
+          775.0
+        ],
+        [
+          791.0,
+          723.0
+        ]
+      ],
+      "soleMean": false,
+      "lift": 10,
+      "shift": 286
+    },
+    "dash3": {
+      "source": "scripts/animation/sources/monogatari_silent/combo/dash3.webp",
+      "hoodTop": [
+        783,
+        422
+      ],
+      "chin": [
+        783,
+        562
+      ],
+      "dagger": [
+        [
+          908.0,
+          768.0
+        ],
+        [
+          824.0,
+          733.0
+        ]
+      ],
+      "soleMean": false
+    },
+    "lunge": {
+      "source": "scripts/animation/sources/monogatari_silent/combo/lunge.webp",
+      "hoodTop": [
+        1040,
+        238
+      ],
+      "chin": [
+        1055,
+        432
+      ],
+      "dagger": [
+        [
+          923.0,
+          554.0
+        ],
+        [
+          777.0,
+          536.0
+        ]
+      ],
+      "soleMean": false
+    },
+    "thrust": {
+      "source": "scripts/animation/sources/monogatari_silent/combo/thrust.webp",
+      "hoodTop": [
+        857,
+        333
+      ],
+      "chin": [
+        849,
+        495
+      ],
+      "dagger": [
+        [
+          1095.0,
+          570.0
+        ],
+        [
+          1006.0,
+          549.0
+        ]
+      ],
+      "soleMean": false
+    },
+    "stab": {
+      "source": "scripts/animation/sources/monogatari_silent/combo/stab.webp",
+      "hoodTop": [
+        852,
+        362
+      ],
+      "chin": [
+        840,
+        540
+      ],
+      "dagger": [
+        [
+          1328.0,
+          528.0
+        ],
+        [
+          1202.0,
+          533.0
+        ]
+      ],
+      "soleMean": false
+    },
+    "slash": {
+      "source": "scripts/animation/sources/monogatari_silent/combo/slash.webp",
+      "hoodTop": [
+        880,
+        398
+      ],
+      "chin": [
+        885,
+        566
+      ],
+      "dagger": [
+        [
+          1328.0,
+          351.0
+        ],
+        [
+          1219.0,
+          403.0
+        ]
+      ],
+      "soleMean": false
+    },
+    "swing1": {
+      "source": "scripts/animation/sources/monogatari_silent/combo/swing1.webp",
+      "hoodTop": [
+        816,
+        349
+      ],
+      "chin": [
+        812,
+        495
+      ],
+      "dagger": [
+        [
+          1064.0,
+          526.0
+        ],
+        [
+          964.0,
+          527.0
+        ]
+      ],
+      "soleMean": false
+    },
+    "swing2": {
+      "source": "scripts/animation/sources/monogatari_silent/combo/swing2.webp",
+      "hoodTop": [
+        938,
+        205
+      ],
+      "chin": [
+        930,
+        378
+      ],
+      "dagger": [
+        [
+          1033.0,
+          616.0
+        ],
+        [
+          934.0,
+          565.0
+        ]
+      ],
+      "soleMean": false
+    },
+    "swing3": {
+      "source": "scripts/animation/sources/monogatari_silent/combo/swing3.webp",
+      "hoodTop": [
+        888,
+        300
+      ],
+      "chin": [
+        858,
+        432
+      ],
+      "dagger": [
+        [
+          708.0,
+          763.0
+        ],
+        [
+          712.0,
+          656.0
+        ]
+      ],
+      "soleMean": false
+    },
+    "follow": {
+      "source": "scripts/animation/sources/monogatari_silent/combo/follow.webp",
+      "hoodTop": [
+        860,
+        313
+      ],
+      "chin": [
+        822,
+        448
+      ],
+      "dagger": [
+        [
+          416.0,
+          688.0
+        ],
+        [
+          494.0,
+          618.0
+        ]
+      ],
+      "soleMean": false
+    },
+    "rise0": {
+      "source": "scripts/animation/sources/monogatari_silent/combo/rise0.webp",
+      "hoodTop": [
+        750,
+        320
+      ],
+      "chin": [
+        746,
+        474
+      ],
+      "dagger": [
+        [
+          317.0,
+          742.0
+        ],
+        [
+          392.0,
+          682.0
+        ]
+      ],
+      "soleMean": false
+    },
+    "rise": {
+      "source": "scripts/animation/sources/monogatari_silent/combo/rise.webp",
+      "hoodTop": [
+        685,
+        268
+      ],
+      "chin": [
+        682,
+        407
+      ],
+      "dagger": [
+        [
+          335.0,
+          703.0
+        ],
+        [
+          402.0,
+          661.0
+        ]
+      ],
+      "soleMean": false
+    },
+    "skip": {
+      "source": "scripts/animation/sources/monogatari_silent/combo/skip.webp",
+      "hoodTop": [
+        660,
+        102
+      ],
+      "chin": [
+        648,
+        255
+      ],
+      "dagger": [
+        [
+          400.0,
+          659.0
+        ],
+        [
+          466.0,
+          588.0
+        ]
+      ],
+      "soleMean": false,
+      "lift": 24
+    },
+    "skipb": {
+      "source": "scripts/animation/sources/monogatari_silent/combo/skipb.webp",
+      "hoodTop": [
+        630,
+        201
+      ],
+      "chin": [
+        620,
+        325
+      ],
+      "dagger": [
+        [
+          395.0,
+          658.0
+        ],
+        [
+          461.0,
+          600.0
+        ]
+      ],
+      "soleMean": false,
+      "lift": 12
+    },
+    "land": {
+      "source": "scripts/animation/sources/monogatari_silent/combo/land.webp",
+      "hoodTop": [
+        532,
+        331
+      ],
+      "chin": [
+        524,
+        468
+      ],
+      "dagger": [
+        [
+          241.0,
+          804.0
+        ],
+        [
+          317.0,
+          741.0
+        ]
+      ],
+      "soleMean": false
+    },
+    "recover": {
+      "source": "scripts/animation/sources/monogatari_silent/combo/recover.webp",
+      "hoodTop": [
+        592,
+        199
+      ],
+      "chin": [
+        602,
+        336
+      ],
+      "dagger": [
+        [
+          414.0,
+          705.0
+        ],
+        [
+          472.0,
+          636.0
+        ]
+      ],
+      "soleMean": true
+    }
+  }
+}

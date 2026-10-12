@@ -1,0 +1,428 @@
+{
+ "a_thousand_cuts": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/a_thousand_cuts.webp",
+  "webpQuality": 84,
+  "bytes": 149246
+ },
+ "accuracy": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/accuracy.webp",
+  "webpQuality": 90,
+  "bytes": 132068
+ },
+ "acrobatics": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/acrobatics.webp",
+  "webpQuality": 90,
+  "bytes": 122750
+ },
+ "adrenaline": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/adrenaline.webp",
+  "webpQuality": 90,
+  "bytes": 128654
+ },
+ "after_image": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/after_image.webp",
+  "webpQuality": 90,
+  "bytes": 128516
+ },
+ "all_out_attack": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/all_out_attack.webp",
+  "webpQuality": 88,
+  "bytes": 145092
+ },
+ "backflip": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/backflip.webp",
+  "webpQuality": 90,
+  "bytes": 101658
+ },
+ "backstab": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/backstab.webp",
+  "webpQuality": 90,
+  "bytes": 96918
+ },
+ "bane": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/bane.webp",
+  "webpQuality": 90,
+  "bytes": 147982
+ },
+ "blade_dance": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/blade_dance.webp",
+  "webpQuality": 90,
+  "bytes": 108216
+ },
+ "blur": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/blur.webp",
+  "webpQuality": 90,
+  "bytes": 116344
+ },
+ "bouncing_flask": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/bouncing_flask.webp",
+  "webpQuality": 90,
+  "bytes": 103598
+ },
+ "bullet_time": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/bullet_time.webp",
+  "webpQuality": 90,
+  "bytes": 108246
+ },
+ "burst": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/burst.webp",
+  "webpQuality": 90,
+  "bytes": 136258
+ },
+ "calculated_gamble": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/calculated_gamble.webp",
+  "webpQuality": 90,
+  "bytes": 100668
+ },
+ "catalyst": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/catalyst.webp",
+  "webpQuality": 90,
+  "bytes": 124914
+ },
+ "choke": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/choke.webp",
+  "webpQuality": 90,
+  "bytes": 119772
+ },
+ "cloak_and_dagger": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/cloak_and_dagger.webp",
+  "webpQuality": 90,
+  "bytes": 78204
+ },
+ "concentrate": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/concentrate.webp",
+  "webpQuality": 90,
+  "bytes": 97506
+ },
+ "corpse_explosion": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/corpse_explosion.webp",
+  "webpQuality": 90,
+  "bytes": 143746
+ },
+ "crippling_cloud": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/crippling_cloud.webp",
+  "webpQuality": 90,
+  "bytes": 120010
+ },
+ "dagger_spray": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/dagger_spray.webp",
+  "webpQuality": 90,
+  "bytes": 113396
+ },
+ "dagger_throw": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/dagger_throw.webp",
+  "webpQuality": 90,
+  "bytes": 119832
+ },
+ "dash": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/dash.webp",
+  "webpQuality": 90,
+  "bytes": 150428
+ },
+ "deadly_poison": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/deadly_poison.webp",
+  "webpQuality": 90,
+  "bytes": 114328
+ },
+ "defend_silent": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/defend_silent.webp",
+  "webpQuality": 90,
+  "bytes": 106988
+ },
+ "deflect": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/deflect.webp",
+  "webpQuality": 90,
+  "bytes": 113322
+ },
+ "die_die_die": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/die_die_die.webp",
+  "webpQuality": 90,
+  "bytes": 143338
+ },
+ "distraction": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/distraction.webp",
+  "webpQuality": 90,
+  "bytes": 103450
+ },
+ "dodge_and_roll": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/dodge_and_roll.webp",
+  "webpQuality": 90,
+  "bytes": 133662
+ },
+ "doppelganger": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/doppelganger.webp",
+  "webpQuality": 90,
+  "bytes": 120574
+ },
+ "envenom": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/envenom.webp",
+  "webpQuality": 90,
+  "bytes": 127158
+ },
+ "escape_plan": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/escape_plan.webp",
+  "webpQuality": 90,
+  "bytes": 120640
+ },
+ "expertise": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/expertise.webp",
+  "webpQuality": 90,
+  "bytes": 122038
+ },
+ "finisher": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/finisher.webp",
+  "webpQuality": 90,
+  "bytes": 97162
+ },
+ "flechettes": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/flechettes.webp",
+  "webpQuality": 90,
+  "bytes": 124348
+ },
+ "footwork": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/footwork.webp",
+  "webpQuality": 90,
+  "bytes": 130876
+ },
+ "grand_finale": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/grand_finale.webp",
+  "webpQuality": 90,
+  "bytes": 136668
+ },
+ "infinite_blades": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/infinite_blades.webp",
+  "webpQuality": 90,
+  "bytes": 145330
+ },
+ "leg_sweep": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/leg_sweep.webp",
+  "webpQuality": 90,
+  "bytes": 107516
+ },
+ "malaise": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/malaise.webp",
+  "webpQuality": 90,
+  "bytes": 105350
+ },
+ "masterful_stab": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/masterful_stab.webp",
+  "webpQuality": 90,
+  "bytes": 96564
+ },
+ "neutralize": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/neutralize.webp",
+  "webpQuality": 90,
+  "bytes": 108910
+ },
+ "noxious_fumes": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/noxious_fumes.webp",
+  "webpQuality": 90,
+  "bytes": 136872
+ },
+ "outmaneuver": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/outmaneuver.webp",
+  "webpQuality": 90,
+  "bytes": 102106
+ },
+ "piercing_wail": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/piercing_wail.webp",
+  "webpQuality": 90,
+  "bytes": 119194
+ },
+ "poisoned_stab": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/poisoned_stab.webp",
+  "webpQuality": 90,
+  "bytes": 123794
+ },
+ "predator": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/predator.webp",
+  "webpQuality": 90,
+  "bytes": 121412
+ },
+ "prepared": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/prepared.webp",
+  "webpQuality": 90,
+  "bytes": 129602
+ },
+ "reflex": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/reflex.webp",
+  "webpQuality": 90,
+  "bytes": 86982
+ },
+ "riddle_with_holes": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/riddle_with_holes.webp",
+  "webpQuality": 90,
+  "bytes": 113014
+ },
+ "setup": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/setup.webp",
+  "webpQuality": 90,
+  "bytes": 112018
+ },
+ "skewer": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/skewer.webp",
+  "webpQuality": 90,
+  "bytes": 101112
+ },
+ "slayer_caltrops": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/slayer_caltrops.webp",
+  "webpQuality": 90,
+  "bytes": 108928
+ },
+ "slayer_endless_agony": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/slayer_endless_agony.webp",
+  "webpQuality": 90,
+  "bytes": 125520
+ },
+ "slayer_eviscerate": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/slayer_eviscerate.webp",
+  "webpQuality": 90,
+  "bytes": 129070
+ },
+ "slayer_glass_knife": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/slayer_glass_knife.webp",
+  "webpQuality": 90,
+  "bytes": 124018
+ },
+ "slayer_heel_hook": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/slayer_heel_hook.webp",
+  "webpQuality": 90,
+  "bytes": 104082
+ },
+ "slayer_nightmare": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/slayer_nightmare.webp",
+  "webpQuality": 90,
+  "bytes": 122706
+ },
+ "slayer_phantasmal_killer": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/slayer_phantasmal_killer.webp",
+  "webpQuality": 90,
+  "bytes": 129372
+ },
+ "slice": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/slice.webp",
+  "webpQuality": 90,
+  "bytes": 100380
+ },
+ "sneaky_strike": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/sneaky_strike.webp",
+  "webpQuality": 90,
+  "bytes": 83388
+ },
+ "storm_of_steel": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/storm_of_steel.webp",
+  "webpQuality": 90,
+  "bytes": 141880
+ },
+ "strike_silent": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/strike_silent.webp",
+  "webpQuality": 90,
+  "bytes": 142440
+ },
+ "survivor": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/survivor.webp",
+  "webpQuality": 90,
+  "bytes": 96552
+ },
+ "tactician": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/tactician.webp",
+  "webpQuality": 90,
+  "bytes": 134058
+ },
+ "terror": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/terror.webp",
+  "webpQuality": 90,
+  "bytes": 93590
+ },
+ "tools_of_the_trade": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/tools_of_the_trade.webp",
+  "webpQuality": 90,
+  "bytes": 134728
+ },
+ "unload": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/unload.webp",
+  "webpQuality": 90,
+  "bytes": 143510
+ },
+ "well_laid_plans": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/well_laid_plans.webp",
+  "webpQuality": 90,
+  "bytes": 119288
+ },
+ "wraith_form": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_silent-skin-cards/wraith_form.webp",
+  "webpQuality": 90,
+  "bytes": 138282
+ }
+}

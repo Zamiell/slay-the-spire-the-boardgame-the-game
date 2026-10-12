@@ -5,7 +5,9 @@ import type { CharacterId } from './types.ts'
 
 export const SKINS = {
   ironclad: ['kratos', 'monogatari_ironclad'],
+  silent: ['monogatari_silent'],
   defect: ['monogatari_defect'],
+  watcher: ['monogatari_watcher'],
 } as const satisfies Partial<Record<CharacterId, readonly string[]>>
 
 export type SkinId = (typeof SKINS)[keyof typeof SKINS][number]
@@ -18,7 +20,9 @@ export const VISUAL_IDS: readonly VisualId[] = [...CHARACTER_IDS, ...SKIN_IDS]
 export const SKIN_LABELS: Record<SkinId, string> = {
   kratos: 'Kratos',
   monogatari_ironclad: 'Ironclad-chan',
+  monogatari_silent: 'Silent-chan',
   monogatari_defect: 'Defect-chan',
+  monogatari_watcher: 'Watcher-chan',
 }
 
 /** Presentation facts of a skin. Code reads them by visual id instead of testing for a literal skin id. */
@@ -32,7 +36,9 @@ export interface SkinTraits {
 export const SKIN_TRAITS = {
   kratos: { energyOrb: true, stagedAttack: true },
   monogatari_ironclad: { energyOrb: false, stagedAttack: false },
+  monogatari_silent: { energyOrb: true, stagedAttack: true },
   monogatari_defect: { energyOrb: false, stagedAttack: false },
+  monogatari_watcher: { energyOrb: true, stagedAttack: true },
 } as const satisfies Record<SkinId, SkinTraits>
 
 /** The traits of a skin's visual id; a character's own visual id has none. */

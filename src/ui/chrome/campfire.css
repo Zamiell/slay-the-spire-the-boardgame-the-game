@@ -205,12 +205,44 @@
 @media (max-height: 520px) {
   .sts-scope .campfire:not(:has(.campfire__deck)) .campfire__prompt {
     top: 0.25rem;
-    padding-block: 0.35rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: calc(100% - 1rem);
+    padding: 0.25rem 0.5rem;
   }
-  .sts-scope .campfire:not(:has(.campfire__deck)) .campfire__prompt h2 { font-size: 1.1rem; }
-  .sts-scope .campfire:not(:has(.campfire__deck)) .campfire__choices button {
+  .sts-scope .campfire:not(:has(.campfire__deck)) .campfire__prompt h2 {
+    font-size: 1rem;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  .sts-scope .campfire:not(:has(.campfire__deck)) .campfire__prompt h2 small { display: none; }
+  .sts-scope .campfire:not(:has(.campfire__deck)) .campfire__player {
+    flex: 1;
     flex-direction: row;
+    justify-content: space-evenly;
+    gap: 0.5rem;
+    min-width: 0;
+  }
+  .sts-scope .campfire:not(:has(.campfire__deck)) .campfire__name-row { flex-wrap: nowrap; }
+  .sts-scope .campfire:not(:has(.campfire__deck)) .campfire__name {
+    max-width: 8rem;
+    overflow-wrap: anywhere;
+    font-size: 0.8rem;
+    letter-spacing: 0.02em;
+  }
+  .sts-scope .campfire:not(:has(.campfire__deck)) .campfire__choices { flex-wrap: nowrap; }
+  .sts-scope .campfire:not(:has(.campfire__deck)) .campfire__choices button {
+    flex-direction: column;
+    gap: 0;
+    min-width: 5.5rem;
     min-height: 2.75rem;
+    padding: 0.25rem;
   }
   .sts-scope .campfire:not(:has(.campfire__deck)) .campfire__choices button > img { display: none; }
+  .sts-scope .campfire:not(:has(.campfire__deck)) .campfire__choice-status {
+    min-height: 2.75rem;
+    padding: 0.25rem;
+    font-size: 0.8rem;
+  }
 }

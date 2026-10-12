@@ -16,31 +16,31 @@
  },
  "registration": {
   "path": "scripts/art/skin-cards/registration.json",
-  "sha256": "d7495b6c594320a2db1e40cba6e5e058758cabc6868cf9e966339fab0e3070de"
+  "sha256": "2edb5bf95927a953ca227294b0d9c83c4d132ad290055f264f1e92d0664bdf2c"
  },
  "masks": [
   {
-   "path": "scripts/art/skin-cards/masks/base-attack.png",
+   "path": "scripts/art/skin-cards/masks/ironclad/base-attack.png",
    "sha256": "1186d8069839dd7ffb4e4ea0441477edea457b502d4efd6b66e30101d7f4a41e"
   },
   {
-   "path": "scripts/art/skin-cards/masks/base-attack-up.png",
+   "path": "scripts/art/skin-cards/masks/ironclad/base-attack-up.png",
    "sha256": "24e59f0b5ba83d687fa6d5085be733ca2c573b293e91e13ce5427045d5109a3a"
   },
   {
-   "path": "scripts/art/skin-cards/masks/base-skill.png",
+   "path": "scripts/art/skin-cards/masks/ironclad/base-skill.png",
    "sha256": "bcdc77ab05baf774917fe2706f534130a27ecb633d8a4f171136275c84784164"
   },
   {
-   "path": "scripts/art/skin-cards/masks/base-skill-up.png",
+   "path": "scripts/art/skin-cards/masks/ironclad/base-skill-up.png",
    "sha256": "48d5565cfe3eb47e4a45f9c3e22a412ee902b8fc38bc08b1ad8962e024498433"
   },
   {
-   "path": "scripts/art/skin-cards/masks/base-power.png",
+   "path": "scripts/art/skin-cards/masks/ironclad/base-power.png",
    "sha256": "c51ec5a98f223177b5f38ee516b8accd1b1860e0c578cab65a1052129cbeb4b9"
   },
   {
-   "path": "scripts/art/skin-cards/masks/base-power-up.png",
+   "path": "scripts/art/skin-cards/masks/ironclad/base-power-up.png",
    "sha256": "375b2dc329c7abbeb893f8067400692d5a29f89d6dc1dd672c57321a2bafa364"
   }
  ],

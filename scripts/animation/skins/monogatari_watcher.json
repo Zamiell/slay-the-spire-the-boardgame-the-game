@@ -1,0 +1,359 @@
+{
+  "skin": "monogatari_watcher",
+  "note": "Hand-authored clock and presentation of the Monogatari Watcher attack: a short staff combo. monogatari_watcher.py (the bake) registers the drawings and rewrites audit.landmarks; skin-attack.py --measure --write stores poseShift and contactReach; everything else is edited here. Format: docs/skins/attack-animation.md.",
+  "canvas": 1152,
+  "displayScale": 2.3,
+  "ground": 1136,
+  "durationMs": 1540,
+  "travel": {
+    "out": [220, 465],
+    "back": [1080, 1290],
+    "path": {
+      "out": [
+        [220, 0],
+        [250, 0.008],
+        [300, 0.34],
+        [355, 0.78],
+        [405, 0.975],
+        [435, 0.995],
+        [465, 1]
+      ],
+      "back": [
+        [1080, 1],
+        [1150, 0.45],
+        [1220, 0.02],
+        [1290, 0]
+      ]
+    }
+  },
+  "timingNote": "Draw the staff down and sink 0-200ms in four 45ms steps (ready0-ready3, each held at least minHoldMs so a device under 50fps never skips one: the staff swings from the idle vertical to a low guard, no staff end moving more than 173 canvas px between drawings), low guard 200-250ms (anticipation, the box starts to move at 220ms); a flying dash 250-405ms (leap, glide, descend are airborne drawings lifted by audit.airborne; the box travels fast only here, along travel.path); landing slide 405-465ms (brake, planted, travel at most groundSpeedPxPerMs); coil and draw the staff back 465-540ms (windup); thrust and its held impact 540-810ms; the staff driven down 810-860ms (swing) into the downward sweep 860-960ms; back up through sweepmid and rise 960-1080ms; a backwards hop 1080-1220ms (hop1, hop2 airborne, the box travels back along travel.path) landing in land 1220-1290ms (planted, near-zero travel); the staff swings back to vertical through recovery, guard2 and settle 1290-1470ms, then the exact idle drawing. Drawings with a planted foot never travel faster than groundSpeedPxPerMs (checked by verify-skin-attack-browser.mjs on the real engine's stepped clock). The thrust is the contact drawing: the leaf head is the farthest point of the attack.",
+  "contactReach": 1.0342,
+  "contactPoses": [
+    "thrust"
+  ],
+  "keys": [
+    [0, "idle"],
+    [20, "ready0"],
+    [65, "ready1"],
+    [110, "ready2"],
+    [155, "ready3"],
+    [200, "anticipation"],
+    [250, "leap"],
+    [300, "glide"],
+    [355, "descend"],
+    [405, "brake"],
+    [465, "windup"],
+    [540, "thrust"],
+    [810, "swing"],
+    [860, "sweep"],
+    [960, "sweepmid"],
+    [1010, "rise"],
+    [1080, "hop1"],
+    [1150, "hop2"],
+    [1220, "land"],
+    [1290, "recovery"],
+    [1360, "guard2"],
+    [1410, "settle"],
+    [1470, "idle"]
+  ],
+  "cues": [
+    {
+      "at": "anticipation",
+      "sound": "monogatari_watcher-whoosh"
+    },
+    {
+      "at": 500,
+      "sound": "monogatari_watcher-whoosh"
+    },
+    {
+      "at": 825,
+      "sound": "monogatari_watcher-whoosh"
+    }
+  ],
+  "hits": [
+    {
+      "at": "thrust",
+      "weight": 0.6,
+      "style": "strike",
+      "angle": -8,
+      "vfx": "impact",
+      "sound": "monogatari_watcher-thrust"
+    },
+    {
+      "at": "sweep",
+      "weight": 0.4,
+      "style": "strike",
+      "angle": -15,
+      "vfx": "light",
+      "sound": "monogatari_watcher-chime",
+      "pin": {
+        "dx": -0.136,
+        "up": 0.0427,
+        "pivot": [4, 90]
+      }
+    }
+  ],
+  "sounds": {
+    "monogatari_watcher-whoosh": 0.14,
+    "monogatari_watcher-thrust": 0.3,
+    "monogatari_watcher-chime": 0.2
+  },
+  "audit": {
+    "landmarks": {
+      "idle": {
+        "head": [773.8, 820.1],
+        "headX": 559.8,
+        "props": {
+          "staff": [
+            [504.7, 767.7],
+            [549.0, 1126.8]
+          ]
+        }
+      },
+      "anticipation": {
+        "head": [819.0, 866.0],
+        "headX": 681.5,
+        "props": {
+          "staff": [
+            [840.0, 1044.7],
+            [509.8, 907.2]
+          ]
+        }
+      },
+      "brake": {
+        "head": [855.8, 900.2],
+        "headX": 687.7,
+        "props": {
+          "staff": [
+            [973.2, 1023.0],
+            [597.1, 981.7]
+          ]
+        }
+      },
+      "descend": {
+        "head": [819.1, 863.6],
+        "headX": 739.8,
+        "props": {
+          "staff": [
+            [985.6, 1013.6],
+            [617.3, 930.1]
+          ]
+        }
+      },
+      "glide": {
+        "head": [806.9, 851.9],
+        "headX": 720.2,
+        "props": {
+          "staff": [
+            [910.2, 981.2],
+            [544.7, 906.8]
+          ]
+        }
+      },
+      "guard2": {
+        "head": [772.0, 817.9],
+        "headX": 566.9,
+        "props": {
+          "staff": [
+            [655.6, 700.4],
+            [541.0, 1048.1]
+          ]
+        }
+      },
+      "hop1": {
+        "head": [799.1, 844.2],
+        "headX": 619.5,
+        "props": {
+          "staff": [
+            [883.4, 828.7],
+            [540.9, 975.8]
+          ]
+        }
+      },
+      "hop2": {
+        "head": [733.7, 778.6],
+        "headX": 599.9,
+        "props": {
+          "staff": [
+            [785.8, 686.3],
+            [540.7, 968.4]
+          ]
+        }
+      },
+      "land": {
+        "head": [785.4, 830.5],
+        "headX": 586.5,
+        "props": {
+          "staff": [
+            [756.7, 727.6],
+            [526.4, 1020.0]
+          ]
+        }
+      },
+      "leap": {
+        "head": [819.4, 864.7],
+        "headX": 700.2,
+        "props": {
+          "staff": [
+            [860.9, 1035.2],
+            [513.0, 907.2]
+          ]
+        }
+      },
+      "ready0": {
+        "head": [775.4, 822.8],
+        "headX": 573.4,
+        "props": {
+          "staff": [
+            [636.6, 724.7],
+            [569.7, 1072.6]
+          ]
+        }
+      },
+      "ready1": {
+        "head": [774.4, 819.4],
+        "headX": 570.3,
+        "props": {
+          "staff": [
+            [716.2, 723.3],
+            [515.9, 1038.5]
+          ]
+        }
+      },
+      "ready2": {
+        "head": [836.5, 882.6],
+        "headX": 617.7,
+        "props": {
+          "staff": [
+            [825.3, 857.1],
+            [505.3, 1030.5]
+          ]
+        }
+      },
+      "ready3": {
+        "head": [861.3, 906.5],
+        "headX": 659.4,
+        "props": {
+          "staff": [
+            [889.7, 958.6],
+            [521.0, 1007.2]
+          ]
+        }
+      },
+      "recovery": {
+        "head": [772.4, 817.8],
+        "headX": 578.7,
+        "props": {
+          "staff": [
+            [740.9, 717.9],
+            [521.3, 1015.2]
+          ]
+        }
+      },
+      "rise": {
+        "head": [828.4, 872.5],
+        "headX": 698.0,
+        "props": {
+          "staff": [
+            [1017.1, 899.2],
+            [638.0, 933.0]
+          ]
+        }
+      },
+      "settle": {
+        "head": [789.6, 836.6],
+        "headX": 573.9,
+        "props": {
+          "staff": [
+            [543.5, 775.9],
+            [572.3, 1132.4]
+          ]
+        }
+      },
+      "sweep": {
+        "head": [880.8, 928.0],
+        "headX": 759.1,
+        "props": {
+          "staff": [
+            [1025.6, 1130.6],
+            [731.3, 930.6]
+          ]
+        }
+      },
+      "sweepmid": {
+        "head": [825.4, 870.7],
+        "headX": 698.6,
+        "props": {
+          "staff": [
+            [1005.7, 987.7],
+            [639.6, 927.0]
+          ]
+        }
+      },
+      "swing": {
+        "head": [885.1, 932.9],
+        "headX": 771.6,
+        "props": {
+          "staff": [
+            [1052.9, 1102.8],
+            [735.2, 952.8]
+          ]
+        }
+      },
+      "thrust": {
+        "head": [883.7, 931.2],
+        "headX": 756.5,
+        "props": {
+          "staff": [
+            [1093.7, 954.3],
+            [740.3, 962.9]
+          ]
+        }
+      },
+      "windup": {
+        "head": [873.5, 919.9],
+        "headX": 694.3,
+        "props": {
+          "staff": [
+            [946.2, 1013.0],
+            [585.8, 982.4]
+          ]
+        }
+      }
+    },
+    "tolerances": {
+      "fringeShare": 0.12,
+      "propStepPx": 173,
+      "headStepPx": 84,
+      "groundSpeedPxPerMs": 0.44,
+      "soleRatio": 0.41,
+      "headRatio": 0.05,
+      "propRatio": 0.055
+    },
+    "skip": {
+      "soleRatio": [
+        "recovery"
+      ]
+    },
+    "airborne": {
+      "leap": 24,
+      "glide": 70,
+      "descend": 40,
+      "hop1": 44,
+      "hop2": 30
+    }
+  },
+  "poseShift": {},
+  "measure": {
+    "idleRows": 8,
+    "poseRows": 24,
+    "unplanted": [
+      "leap",
+      "glide",
+      "descend",
+      "hop1",
+      "hop2"
+    ]
+  },
+  "minHoldMs": 45
+}

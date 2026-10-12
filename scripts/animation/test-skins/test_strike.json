@@ -1,0 +1,38 @@
+{
+  "skin": "test_strike",
+  "character": "ironclad",
+  "label": "Test strike",
+  "note": "Test-only skin (never registered): the short five-pose strike the real skins use (anticipation, lunge, strike, recovery) with one hit; see test_combo.json.",
+  "canvas": 192,
+  "displayScale": 2.3,
+  "ground": 184,
+  "durationMs": 1200,
+  "travel": {
+    "out": [80, 260],
+    "back": [800, 1000]
+  },
+  "contactPoses": [
+    "strike"
+  ],
+  "keys": [
+    [0, "idle"],
+    [80, "anticipation"],
+    [260, "lunge"],
+    [380, "strike"],
+    [700, "recovery"],
+    [1000, "idle"]
+  ],
+  "hits": [
+    {
+      "at": "strike",
+      "weight": 1,
+      "style": "strike",
+      "angle": -20,
+      "vfx": "slash",
+      "sound": "test_strike-hit"
+    }
+  ],
+  "sounds": {
+    "test_strike-hit": 0.2
+  }
+}

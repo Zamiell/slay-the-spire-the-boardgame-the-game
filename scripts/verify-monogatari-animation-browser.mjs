@@ -6,7 +6,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { createServer } from 'vite'
 import { chromium, webkit } from './lib/profile-browser.mjs'
-import { installKratosFixture, paintedKratosBounds } from './lib/kratos-animation-fixture.mjs'
+import { installAttackFixture, paintedBounds } from './lib/skin-attack-fixture.mjs'
 
 const root = resolve(import.meta.dirname, '..')
 const output = resolve(root, 'artifacts/monogatari-combat/browser')
@@ -31,9 +31,9 @@ async function ready(page) {
 // Sample in the browser, not browser round trips: a short pose cannot disappear between calls.
 async function play(page, skin, card) {
   return page.evaluate(({ skin, card }) => new Promise((resolve, reject) => {
-    window.kratosFixture.attack(card)
+    window.attackFixture.attack(card)
     // Channeling attacks append an Orb event after their offensive Card event.
-    const event = window.kratosFixture.state.presentationEvents.findLast(event => event.kind === 'card' && event.sourceId === card)
+    const event = window.attackFixture.state.presentationEvents.findLast(event => event.kind === 'card' && event.sourceId === card)
     const seq = event.seq
     const started = performance.now()
     const sample = { seq, maxBodies: 0, poses: [], targets: event.enemyIds,
@@ -66,7 +66,7 @@ async function play(page, skin, card) {
         }
         sample.firstVisible ??= { path, at: performance.now() - started }
       }
-      if (performance.now() - started > 6000) reject(new Error(`${skin}/${card}: attack never returned ${JSON.stringify({ sample, events: window.kratosFixture.state.presentationEvents })}`))
+      if (performance.now() - started > 6000) reject(new Error(`${skin}/${card}: attack never returned ${JSON.stringify({ sample, events: window.attackFixture.state.presentationEvents })}`))
       else setTimeout(tick, 16)
     }
     // Production effects become active on the next animation frame.
@@ -99,8 +99,8 @@ try {
             const delayed = character === 'ironclad' ? 'impact' : 'release'
             await page.route(`**/${skin}-${delayed}.webp`, async route => { await gate; await route.continue() })
             await page.goto(origin)
-            await page.evaluate(installKratosFixture)
-            await page.evaluate(([character, skin]) => window.kratosFixture.reset(character, skin), [character, skin])
+            await page.evaluate(installAttackFixture, { character, skin })
+            await page.evaluate(([character, skin]) => window.attackFixture.reset(character, skin), [character, skin])
             await page.locator(idle).evaluate(image => image.decode())
             const cold = await play(page, skin, cards[0])
             assert.equal(cold.maxBodies, 1)
@@ -114,10 +114,10 @@ try {
             releaseCold()
             await page.unrouteAll({ behavior: 'wait' })
             await ready(page)
-            const rest = await page.evaluate(paintedKratosBounds, idle)
+            const rest = await page.evaluate(paintedBounds, idle)
             const warm = []
             for (const card of cards) {
-              await page.evaluate(([character, skin]) => window.kratosFixture.reset(character, skin), [character, skin])
+              await page.evaluate(([character, skin]) => window.attackFixture.reset(character, skin), [character, skin])
               await ready(page)
               const played = await play(page, skin, card)
               assert.equal(played.maxBodies, 1)
@@ -141,7 +141,7 @@ try {
             if (character === 'defect') {
               evokes = await page.evaluate(async ({ skin, origin }) => {
                 const { playCard } = await import('/src/game/combat.ts')
-                const f = window.kratosFixture
+                const f = window.attackFixture
                 const results = []
                 for (const orb of ['lightning', 'dark']) {
                   f.reset('defect', skin)
@@ -174,28 +174,28 @@ try {
               }
             }
             // Repeated non-staged engine attacks retain only the latest painted actor.
-            const latest = await page.evaluate(card => { const f = window.kratosFixture; f.attack(card); return f.attack(card) }, cards[0])
+            const latest = await page.evaluate(card => { const f = window.attackFixture; f.attack(card); return f.attack(card) }, cards[0])
             await page.waitForFunction(({ skin, latest }) => Boolean(document.querySelector(`.character-attack--${skin}[data-attack-seq="${latest}"] .monogatari-pose--idle`)), { skin, latest })
             const queuedBodies = await page.locator('.character-attack__pose img').evaluateAll(images => images.filter(image =>
               getComputedStyle(image).visibility === 'visible' && Number(getComputedStyle(image.parentElement).opacity) > .5 &&
               image.complete && image.naturalWidth > 0).length)
             assert.equal(queuedBodies, 1, 'queued base attacks duplicate the skin body')
             // Same-authority replacement and reconnect erase stale animations, never gameplay state.
-            await page.evaluate(() => { const f = window.kratosFixture; f.restoration++; f.render() })
+            await page.evaluate(() => { const f = window.attackFixture; f.restoration++; f.render() })
             await page.waitForFunction(() => !document.querySelector('.character-attack'))
-            await page.evaluate(card => { const f = window.kratosFixture; f.attack(card); f.connected = false; f.render() }, cards[0])
+            await page.evaluate(card => { const f = window.attackFixture; f.attack(card); f.connected = false; f.render() }, cards[0])
             await page.waitForFunction(() => !document.querySelector('.character-attack'))
             await page.evaluate(([character, skin]) => {
-              const f = window.kratosFixture; f.reset(character, skin); f.state.players[0].dead = true; f.state.players[0].hp = 0; f.render()
+              const f = window.attackFixture; f.reset(character, skin); f.state.players[0].dead = true; f.state.players[0].hp = 0; f.render()
             }, [character, skin])
             await page.locator(idle).evaluate(image => image.decode())
             assert((await page.locator(idle).getAttribute('src')).endsWith(`${skin}-hero.webp`), 'dead hero missing static skin')
-            await page.evaluate(([character, skin]) => { document.documentElement.dataset.reducedMotion = 'true'; window.kratosFixture.reset(character, skin) }, [character, skin])
+            await page.evaluate(([character, skin]) => { document.documentElement.dataset.reducedMotion = 'true'; window.attackFixture.reset(character, skin) }, [character, skin])
             await page.waitForFunction(skin => document.querySelector('.seat__portrait > img')?.src.endsWith(`${skin}-hero.webp`), skin)
             await page.locator(idle).evaluate(image => image.decode())
-            const reduced = await page.evaluate(paintedKratosBounds, idle)
+            const reduced = await page.evaluate(paintedBounds, idle)
             for (const value of ['height', 'width', 'ground']) assert(Math.abs(reduced[value] - rest[value]) < 2, `reduced motion changed ${value}`)
-            await page.evaluate(card => window.kratosFixture.attack(card), cards[0])
+            await page.evaluate(card => window.attackFixture.attack(card), cards[0])
             assert.equal(await page.locator('.character-attack').count(), 0, 'reduced motion plays attack')
             await page.locator('.board').screenshot({ path: resolve(output, `${engine}-${screen}-${skin}-reduced.png`) })
             await page.close()

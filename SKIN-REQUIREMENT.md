@@ -1,8 +1,12 @@
 # Skin requirements
 
 A skin changes how one hero looks and sounds, never how it plays. Rules, RNG, saves and
-hashes never read a skin. Kratos (Ironclad's skin, id `kratos`) is the reference
-implementation: copy its file names and checks when you add the next one.
+hashes never read a skin. Five skins ship, one or more for every base hero: Kratos (Ironclad's, id `kratos`),
+Ironclad-chan (`monogatari_ironclad`), Silent-chan (`monogatari_silent`), Defect-chan (`monogatari_defect`) and
+Watcher-chan (`monogatari_watcher`), the last four drawn in the style of the Monogatari anime series. Kratos, Silent-chan
+and Watcher-chan are the references for a skin with a staged attack (below); Ironclad-chan and Defect-chan
+(`docs/monogatari-skins/`) are the references for a pose-pair attack. Copy their file names and checks when you add the next one.
+Every skin's provenance and pipeline docs are indexed in `docs/skins/README.md`.
 
 Naming rule: a skin's assets live in the same folders and filename patterns as a
 character's, with the **skin id** in place of the character id (`kratos-hero.webp`,
@@ -19,25 +23,53 @@ A new skin needs exactly these edits; nothing else enumerates skins by hand.
   Traits are what code reads by visual id instead of testing a literal skin id:
   `energyOrb` (the skin paints `combat/energy-orbs/<skin>.webp` and the HUD swaps the orb) and
   `stagedAttack` (its attack animation damages enemies hit by hit, so the HP drop waits for it).
-- [ ] `src/ui/combat-vfx.ts` (`actorAttack`, `actorTone`) and `src/ui/combat-sfx.ts` (`CHARACTER_RATE`):
-  one entry each, `Record<CharacterId | SkinId, ...>`, so `tsc -b` enforces them. Use the hero's
-  values when the skin does not change the feel.
+- [ ] `src/ui/combat-vfx.ts` (`skinAttack`) and `src/ui/combat-sfx.ts` (`SKIN_RATE`): optional per-skin
+  overrides; a skin without an entry looks and sounds like the hero it dresses.
 - [ ] `src/ui/hero-art-head.json` and `scripts/calibrate-hero-head.py`: the hero-head point of the
   new idle art (hero potions and heads are positioned from it; `verify-assets.mjs` fails without it).
 - [ ] `node scripts/sync-skin-card-faces.mjs` after the card art exists: regenerates
   `src/game/skin-card-faces.ts`, which lists the cards the skin has faces for.
   `verify-assets.mjs` runs the same comparison (`--check` mode), so a stale module fails it.
-- [ ] `scripts/check-single-player-build.mjs`: assert one of the skin's card faces reaches the Pages output.
-- [ ] Only if the skin has its own attack animation: the generated timing in
-  `src/ui/styles/attack-timing.css` and `src/ui/combat-screen/vfx.tsx` (see
-  `scripts/animation/kratos.py`) plus the animation code in `CombatScreen.tsx`. That code is the
-  Kratos skin's animation, named and keyed by its id; a second animated skin adds its own and
-  must not reuse the `kratos-*` classes.
+- [ ] `node scripts/sync-campfire-scenes.mjs` after the campfire scenes exist: regenerates
+  `src/game/campfire-scenes.ts`, the manifest `campfireScenePath` resolves against (rule in
+  `docs/skins/campfire-scenes.md`). `verify-assets.mjs` derives every legal party from the live registry and
+  requires complete coverage, including parties wearing several skins. The current catalogue has 777 party scenes.
+- [ ] `scripts/verify-assets.mjs`: `MENU_ART_MANIFESTS` (the skin's menu-art provenance manifest). It is asserted
+  complete, so registration fails until the entry exists. Merchant figures need a floor offset line in
+  `src/ui/chrome/merchant-arrival.css` (checked against the image's bottom margin). A staged skin's bake and its
+  attack manifest (`generated` entries: prompt, source and output hashes) are checked there too; the bake scripts
+  (`monogatari*.py --check`) must pass.
+- [ ] Attack animation, one of two kinds. **Staged** (Kratos, Silent-chan, Watcher-chan): set the `stagedAttack` trait,
+  write `scripts/animation/skins/<skin>.json` and run `python3 scripts/animation/skin-attack.py`. One generic
+  implementation plays it (`docs/skins/attack-animation.md`); no code or class names the skin, and
+  `scripts/animation/audit-poses.py` (run by `verify-assets.mjs`) holds every drawing of Silent-chan and Watcher-chan to the idle's head and prop scale
+  (Kratos is excluded: it has no `audit` landmarks, and `kratos.py --check` measures its pose shifts and reach instead).
+  **Pose pair** (Ironclad-chan, Defect-chan): no `stagedAttack` trait; the hero's own attack clock, travel and hit logic
+  play, and `CombatScreen.tsx` (`isMonogatariVisual`, `MonogatariAttackPose`) steps two complete drawings
+  (`<skin>-ready/impact` or `-charge/release`) over the hero's rig. A skin with neither keeps the hero's own attack.
+  Code that depends on the hero (the Wrath/Calm aura, the energy pip's colours, the Defect's orb VFX) must test the
+  *character*, never the visual id; the visual id only chooses art.
 
-Picked up automatically from `SKINS`/`VISUAL_IDS`: campfire scene names (`src/game/assets.ts`),
-the Profile picker, and the inventories in `verify-assets.mjs`, `verify-ui-helpers.mjs` and
-`verify-skins.mjs`. Those three are the only verifiers that iterate the registry; every browser
-verifier names `kratos` explicitly, so a new skin must add its own cases (section 4).
+Picked up automatically from `SKINS`/`VISUAL_IDS`: campfire scene names and the manifest fallback
+(`src/game/assets.ts`), the Shop's offer tiles and the locked racks for heroes without a skin (none today), Profile's rows,
+the staged attack's CSS and table, the energy orb, and the inventories and cases of `verify-assets.mjs`,
+`verify-ui-helpers.mjs`, `verify-skins.mjs`, `verify-skin-browser.mjs`, `verify-skin-cards-browser.mjs`,
+`verify-treasure-animation-browser.mjs`, `verify-merchant-overflow-browser.mjs`, `verify-skin-attack-browser.mjs`
+and `check-single-player-build.mjs`. Registering a skin extends all of them; each fails loudly until the
+skin's art exists.
+
+## The final registration step (art exists first)
+
+1. Art in place per section 2 (including `animated/<skin>-*.webp`, `sfx/*.mp3`, hit VFX, scenes).
+2. `src/game/skins.ts`: `SKINS`, `SKIN_LABELS`, `SKIN_TRAITS`; `src/game/coins.ts`: `SKIN_PRICES`.
+3. `skin-attack.py --measure <skin> --write` (Silent-chan's and Watcher-chan's bake scripts, `monogatari_silent.py` and
+   `monogatari_watcher.py`, plant the drawings themselves, so their `poseShift` stays empty and `--measure` is read-only
+   for them), then `skin-attack.py` (CSS and table); `sync-skin-card-faces.mjs`;
+   `sync-campfire-scenes.mjs`; `hero-art-head.json`; `MENU_ART_MANIFESTS`.
+4. `ATTACK_CARDS` in `verify-skin-attack-browser.mjs` names each character's attack cards (Ironclad, Silent and
+   Watcher exist); a hero with a second skin (Ironclad) is seated in a second round of the treasure and merchant verifiers.
+5. `npx tsc -b`, `verify-architecture`, `verify-assets`, `verify-skins`, `verify-ui-helpers`, then the browser
+   verifiers of section 4. Docs: `docs/skins/<skin>-*`, `ATTRIBUTION.md`.
 
 ## 2. Art every skin must ship
 
@@ -45,13 +77,13 @@ verifier names `kratos` explicitly, so a new skin must add its own cases (sectio
 |---|------|--------------|---------------|
 | 1 | Card art for every card the hero can own: starter deck, every reward-pool card, and every purchasable pack card of that hero (Slayer Pack) | `skin-card-art/<skin>/<owner>/<cardId>.webp` (text-free art), `skin-cards/<skin>/<assetKey>.webp` (full face), `skin-cards-sm/<skin>/<assetKey>.webp` (448 px face), base **and** upgraded (`+`) | art 748×420 ≤ 40 KiB; faces keep the hero's own scan size; WebP |
 | 2 | Combat idle sprite | `combat/characters/<skin>-hero.webp`, `combat/characters/<skin>.webp` (list/summary icon) | 1152×1152 and 512×512, native alpha |
-| 3 | Attack animation (timed poses, hit logic stays the hero's) | `combat/characters/animated/<skin>-<pose>.webp` plus generated timing in `src/ui/styles/attack-timing.css`, `combat-screen/vfx.tsx` | one drawing per pose, fixed canvas, ground anchor |
+| 3 | Attack animation (timed poses, hit logic stays the hero's) | `combat/characters/animated/<skin>-<pose>.webp` (`-ready` is the rest drawing), `animated/<skin>-idle.webp` (idle loop), `scripts/animation/skins/<skin>.json`; timing is generated into `staged-attacks.css` and `staged-attacks.ts` | one drawing per pose, one square canvas, ground anchor; 4-6 poses for a short strike (`docs/skins/attack-animation.md`) |
 | 4 | Attack VFX | `combat/vfx/actions/<skin>/{light,impact}.webp` | 512×512, native alpha |
-| 5 | Attack sounds | `sfx/<skin>-*.mp3` (cues synchronised to the animation beats) | decodable mp3, volumes in `combat-sfx.ts` |
+| 5 | Attack sounds | `sfx/<name>.mp3` for every sound in the config (cues synchronised to the animation beats) | decodable mp3, volumes in the config's `sounds` |
 | 6 | Energy orb (enable the `energyOrb` trait) | `combat/energy-orbs/<skin>.webp` | 256×256, native alpha |
 | 7 | Treasure hand model (open hand and gripping hand) | `noncombat/treasure/hand-<skin>.webp`, `noncombat/treasure/grip-<skin>.webp` | 384×1024, native alpha |
 | 8 | Merchant standing figure | `noncombat/merchant/characters/<skin>-standing.webp` | 400×576, native alpha |
-| 9 | Campfire scenes: one per party that can contain the skin. The party is named by visual ids in `VISUAL_IDS` order; the skin replaces its hero, so it needs every combination of the other heroes (0 to 3 of them) | `noncombat/campfire/<party>_firecamp.webp` (the solo scene is `<skin>_firecamp.webp`) | 3840×2161 WebP (64 scenes for a hero with seven companions) |
+| 9 | Campfire scenes: every legal party of one to four visual ids containing the skin, including parties wearing several skins. Name members in `VISUAL_IDS` order. A character beside its own skin is excluded; two different skins of the same base hero may represent different players. Generate every attempt from the original empty campfire plus original character assets for all party members; never feed a generated party scene back into the model. See `docs/skins/campfire-scenes.md`. | `noncombat/campfire/<party>_firecamp.webp` (solo: `<skin>_firecamp.webp`) | 3840×2161 WebP; fresh native 3840×2160 source with one duplicated bottom row, no upscale |
 | 10 | Character-select portrait and wallpaper | `menu/character-select/portrait-<skin>.png`, `menu/character-select/character-<skin>-wallpaper.webp` | 256×384 and 1536×864 |
 | 11 | Profile tile | uses the portrait (10); no extra file | |
 
@@ -69,25 +101,31 @@ cursed/status art, enemy art.
   face and art exist (or the card is explicitly listed as pending).
 - Both screen classes: desktop and horizontal phone. Check the idle, attack, hand, treasure,
   merchant, campfire, select screen and Profile tile on both.
-- Pages size budget: `dist` must stay under the Pages cap (`scripts/check-single-player-build.mjs`);
+- Pages size budget: `dist` must stay under the Pages cap (the `du -sb dist` test in `.github/workflows/pages-deploy.yml`,
+  asserted by `scripts/verify-pages-deploy.mjs`; `scripts/check-single-player-build.mjs` only checks the build's contents);
   campfire scenes and large attack art are served through the CDN rules in `src/game/assets.ts`.
 - Provenance: record model, references, prompts and SHA-256 under `docs/skins/<skin>-*/`
   (see `docs/skins/kratos-card-art/README.md`) and add third-party reference credits to
   `ATTRIBUTION.md`.
 - Availability: skins are bought, then worn from Profile or the Shop. See section 5.
 
-## 4. Tests to extend
+## 4. Tests
 
-- `scripts/verify-skins.mjs` (registry, pairs, `visualId`, runs/rooms carry a valid skin only).
-- `scripts/verify-assets.mjs` (inventories for every path above, dimensions, alpha, hashes).
+Most of these iterate `SKINS` already, so registering a skin extends them; they fail loudly until the art exists.
+
+- `scripts/verify-skins.mjs` (registry, pairs, `visualId`, runs/rooms carry a valid skin only, campfire fallback).
+- `scripts/verify-assets.mjs` (inventories for every path above, dimensions, alpha, hashes, generated tables).
 - `scripts/verify-skin-browser.mjs`, `verify-skin-cards-browser.mjs`, `verify-skin-profile-browser.mjs`
   (what a skinned hero shows in solo and in an online room; the Profile picker).
-- `scripts/verify-<skin>-animation-browser.mjs` (timing, contact line, planted feet, reduced
-  motion) for skins that have their own attack animation.
+- `scripts/verify-skin-attack-browser.mjs` (timing, contact line, planted feet, reduced motion) for every skin with
+  a staged attack, plus two synthetic test skins (`scripts/animation/test-skins/`) that cover the generic path on
+  desktop and horizontal phone in Chromium and WebKit.
 - Treasure, merchant, campfire and art-scene browser verifiers (`verify-treasure-animation-browser.mjs`,
-  `verify-merchant-overflow-browser.mjs`, `verify-art-scenes-browser.mjs`): each lists `kratos` by hand,
-  so add the new skin's expected asset paths there.
-- `scripts/verify-pipeline.mjs` and `scripts/lib/affected-verifiers.mjs`: list the new verifiers under
+  `verify-merchant-overflow-browser.mjs`, `verify-art-scenes-browser.mjs`).
+- `scripts/lib/test-skins.mjs`: a Vite plugin that registers synthetic skins into the real app for a verifier
+  (more skins than the catalogue has, such as a second Silent skin; `verify-test-skins-browser.mjs`), so layouts can be
+  checked before art exists. Shop and Profile verifiers run against the real skins.
+- `scripts/verify-pipeline.mjs` and `scripts/lib/affected-verifiers.mjs`: list new verifiers under
   the files that own the behavior (a duplicate owner entry throws).
 
 ## 5. Purchase and ownership (every skin is for sale)
@@ -95,7 +133,7 @@ cursed/status art, enemy art.
 Every skin costs coins from the account's wallet (docs/shop.md). Adding a skin needs:
 
 - [ ] `src/game/coins.ts`: a price in `SKIN_PRICES` (`Record<SkinId, number>`, so `tsc -b` fails
-  until it exists; 2,500 = `SKIN_PRICE` for every skin so far).
+  until it exists; 2,500 = `SKIN_PRICE` for all five skins).
 - [ ] Nothing else lists it: the Shop's Skins tab (`ShopScreen.tsx`), Profile's locked and owned
   tiles, the wallet (`skins`, `buySkin`), and the server (`syncAccountWallet`) all derive from
   `SKINS` and `SKIN_PRICES`.

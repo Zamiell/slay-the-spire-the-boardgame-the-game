@@ -1,0 +1,391 @@
+{
+  "model": "gpt-image-2.5-sunburst",
+  "quality": "high",
+  "noteOnReferences": "Copyrighted style references are never committed; each is recorded by description and SHA-256 of the resized copy supplied to the model.",
+  "idleIdentity": {
+    "prompt": {
+      "path": "docs/skins/monogatari_watcher-art/prompts/idle.txt",
+      "sha256": "00414b599f67ad63ef81ea09c49a2c923f77e648943c220999c292af96074b2f"
+    },
+    "references": [
+      {
+        "description": "Monogatari Second Season key art (low-angle cobalt sky poster); style only, not committed (resized copy used)",
+        "sha256": "93d9c77c86a4783cc9c8c2d6a46a3b3739351d04fac6965dedb31298d9a1a589"
+      },
+      {
+        "description": "Monogatari close-up of a young girl with huge flat eyes; style only, not committed (resized copy used)",
+        "sha256": "a8eb7bb82c08207148394bc22a818a48fb5b1f7ccbc1f7212a80e86b58e4017e"
+      },
+      {
+        "description": "Monogatari classroom group key art; style only, not committed (resized copy used)",
+        "sha256": "2ce7fe64eff0846b28fa17010e17534585c869b48ac2a22b7e3d6c109075a771"
+      },
+      {
+        "description": "Default Watcher sprite (public/assets/combat/characters/watcher-hero.webp)",
+        "sha256": "de8ed4660c3bc70ed5a6bca46530ec8d0e386b270a0c87f9f1df3682ad52b067"
+      },
+      {
+        "description": "Kratos format sprite",
+        "sha256": "bc57f52a6b60ed8f98e8a5d0877e9d7e0490274007367178ed6495e294420c2a"
+      }
+    ],
+    "size": "1024x1536",
+    "n": 4,
+    "selected": 4,
+    "note": "Opaque #f2f2f2 background; the cutout is made deterministically, not by a second API call."
+  },
+  "assets": [
+    {
+      "name": "idle hero cutout",
+      "source": {
+        "path": "scripts/art/sources/monogatari_watcher-char/idle-cutout.webp",
+        "sha256": "f97e43c906c42f13a0cfeb18c3476cdcae0b6e827ff959f3bda2c156a6303ca4"
+      },
+      "output": {
+        "path": "public/assets/combat/characters/monogatari_watcher-hero.webp",
+        "sha256": "34abfabd1c91cae0b33de090b642633a45043c786b2c4f6ab440bb2076f99472"
+      },
+      "outputSize": [
+        1152,
+        1152
+      ],
+      "background": "transparent",
+      "references": [
+        {
+          "description": "Approved identity: Watcher idle pick (generated, prompts/idle.txt, candidate 4 of 4); committed as idle-identity.webp (lossy copy)",
+          "sha256": "bdb07ae01eb9225ad6609fc5641afbc7136cbf4d9ce2b3e75d83dfacd3ba7e83"
+        }
+      ],
+      "method": "No API call. scripts/art/cutout-monogatari_watcher-idle.py flood-fills the flat #f0f1f1 background of the approved idle, drops enclosed background pockets and the bright halo ring, feathers 0.8px and takes edge colour from 2px inside the figure. export-monogatari_watcher-char.py scales it 0.5728 so the hair crown to front sole is 830px and plants the front sole on y=1115 (Kratos hero line) at stance centre x=576."
+    },
+    {
+      "name": "list icon",
+      "source": {
+        "path": "scripts/art/sources/monogatari_watcher-char/idle-cutout.webp",
+        "sha256": "f97e43c906c42f13a0cfeb18c3476cdcae0b6e827ff959f3bda2c156a6303ca4"
+      },
+      "output": {
+        "path": "public/assets/combat/characters/monogatari_watcher.webp",
+        "sha256": "f897d54c7cf7406d64054383ff2693c38e0c6d4045acd43bbfbe14e59f1ee3f6"
+      },
+      "outputSize": [
+        512,
+        512
+      ],
+      "background": "transparent",
+      "references": [
+        {
+          "description": "Approved identity: Watcher idle pick (generated, prompts/idle.txt, candidate 4 of 4); committed as idle-identity.webp (lossy copy)",
+          "sha256": "bdb07ae01eb9225ad6609fc5641afbc7136cbf4d9ce2b3e75d83dfacd3ba7e83"
+        }
+      ],
+      "method": "No API call. The hero cutout cropped to its painted box, 500px tall, bottom aligned 6px above the edge."
+    },
+    {
+      "name": "energy orb",
+      "source": {
+        "path": "scripts/art/sources/monogatari_watcher-char/energy-orb.webp",
+        "sha256": "da0104cf4bc257dfc2fb20393f945a4e15074b5b763fb7b08106484125fb43c5"
+      },
+      "output": {
+        "path": "public/assets/combat/energy-orbs/monogatari_watcher.webp",
+        "sha256": "b6c46bb633c3a65b673a8bceaee10a54e8f9bfeea89f8d9bf4e9ea921b3ac699"
+      },
+      "outputSize": [
+        256,
+        256
+      ],
+      "background": "transparent",
+      "references": [
+        {
+          "description": "Approved identity: Watcher idle pick (generated, prompts/idle.txt, candidate 4 of 4); committed as idle-identity.webp (lossy copy)",
+          "sha256": "bdb07ae01eb9225ad6609fc5641afbc7136cbf4d9ce2b3e75d83dfacd3ba7e83"
+        },
+        {
+          "description": "Kratos energy orb (public/assets/combat/energy-orbs/kratos.webp), format only",
+          "sha256": "3d2f732f81b779654415b80b11dbb5c09b072640913c908b22a15ce8f29aca68"
+        },
+        {
+          "description": "Monogatari Second Season key art (low-angle cobalt sky poster); style only, not committed (resized copy used)",
+          "sha256": "93d9c77c86a4783cc9c8c2d6a46a3b3739351d04fac6965dedb31298d9a1a589"
+        }
+      ],
+      "prompt": {
+        "path": "docs/skins/monogatari_watcher-art/prompts/hud-energy-orb.txt",
+        "sha256": "b2bb61bd22e6381c5f9653d7812e8feb6a4ca88186f93c64237784c21bd6e54b"
+      },
+      "generation": {
+        "call": "edit",
+        "size": "1024x1024",
+        "n": 2,
+        "selected": 2,
+        "outputFormat": "png",
+        "background": "transparent"
+      }
+    },
+    {
+      "name": "attack VFX light",
+      "source": {
+        "path": "scripts/art/sources/monogatari_watcher-char/vfx-light.webp",
+        "sha256": "c621a6e3f1c5d326c1632d1dcdec4fc6fa9bb99ec5038e4db9a16e7b52f43d91"
+      },
+      "output": {
+        "path": "public/assets/combat/vfx/actions/monogatari_watcher/light.webp",
+        "sha256": "852385399b76ddb57db17fd7b5d3873bb90df0ea0008f2980f5b7b42b833a851"
+      },
+      "outputSize": [
+        512,
+        512
+      ],
+      "background": "transparent",
+      "references": [
+        {
+          "description": "Approved identity: Watcher idle pick (generated, prompts/idle.txt, candidate 4 of 4); committed as idle-identity.webp (lossy copy)",
+          "sha256": "bdb07ae01eb9225ad6609fc5641afbc7136cbf4d9ce2b3e75d83dfacd3ba7e83"
+        },
+        {
+          "description": "Monogatari close-up of a young girl with huge flat eyes; style only, not committed (resized copy used)",
+          "sha256": "a8eb7bb82c08207148394bc22a818a48fb5b1f7ccbc1f7212a80e86b58e4017e"
+        },
+        {
+          "description": "Kratos light strike VFX on a dark background (public/assets/combat/vfx/actions/kratos/light.webp), format only",
+          "sha256": "b236a4ad44fbd9acd696ef859d21a051afc1582402ece78a11f82659448e3c7e"
+        }
+      ],
+      "prompt": {
+        "path": "docs/skins/monogatari_watcher-art/prompts/vfx-light.txt",
+        "sha256": "719dece3b33196d022d0b27c11eb59388ff0043a9116c82fc7c00c7c32904939"
+      },
+      "generation": {
+        "call": "edit",
+        "size": "1024x1024",
+        "n": 2,
+        "selected": 1,
+        "outputFormat": "png",
+        "background": "transparent"
+      }
+    },
+    {
+      "name": "attack VFX impact",
+      "source": {
+        "path": "scripts/art/sources/monogatari_watcher-char/vfx-impact.webp",
+        "sha256": "70784ed1325b565c39af29f6f43ba8f7b83efc3066ab71af6aedcaa9e3e7d202"
+      },
+      "output": {
+        "path": "public/assets/combat/vfx/actions/monogatari_watcher/impact.webp",
+        "sha256": "07b394e2a67242410711119a16303e8a0db0fc3c82b5e77ca6d7a11f5f6980b8"
+      },
+      "outputSize": [
+        512,
+        512
+      ],
+      "background": "transparent",
+      "references": [
+        {
+          "description": "Approved identity: Watcher idle pick (generated, prompts/idle.txt, candidate 4 of 4); committed as idle-identity.webp (lossy copy)",
+          "sha256": "bdb07ae01eb9225ad6609fc5641afbc7136cbf4d9ce2b3e75d83dfacd3ba7e83"
+        },
+        {
+          "description": "Monogatari close-up of a young girl with huge flat eyes; style only, not committed (resized copy used)",
+          "sha256": "a8eb7bb82c08207148394bc22a818a48fb5b1f7ccbc1f7212a80e86b58e4017e"
+        },
+        {
+          "description": "Kratos impact VFX on a dark background (public/assets/combat/vfx/actions/kratos/impact.webp), format only",
+          "sha256": "a583c5e287821ee16e5d2bc3304e3913fe4c2081f05daa0dc0d7f2d49a66d3dc"
+        }
+      ],
+      "prompt": {
+        "path": "docs/skins/monogatari_watcher-art/prompts/vfx-impact.txt",
+        "sha256": "ef6ca1daf1eccf4b2257a34a937a8b7c88d935e06fa8933f4f716662ed6216c6"
+      },
+      "generation": {
+        "call": "edit",
+        "size": "1024x1024",
+        "n": 2,
+        "selected": 1,
+        "outputFormat": "png",
+        "background": "transparent"
+      }
+    },
+    {
+      "name": "character-select portrait",
+      "source": {
+        "path": "scripts/art/sources/monogatari_watcher-char/portrait.webp",
+        "sha256": "be0be2420288cc465575301e33e1161c106573a4e4c6c21baa3c6350ca87ae20"
+      },
+      "output": {
+        "path": "public/assets/menu/character-select/portrait-monogatari_watcher.png",
+        "sha256": "ddcb8fe1eccb9836fc4fd6bd57a8a1b1911c84b1c3f957d5e5fec055344d1355"
+      },
+      "outputSize": [
+        256,
+        384
+      ],
+      "background": "opaque",
+      "references": [
+        {
+          "description": "Monogatari Second Season key art (low-angle cobalt sky poster); style only, not committed (resized copy used)",
+          "sha256": "93d9c77c86a4783cc9c8c2d6a46a3b3739351d04fac6965dedb31298d9a1a589"
+        },
+        {
+          "description": "Monogatari close-up of a young girl with huge flat eyes; style only, not committed (resized copy used)",
+          "sha256": "a8eb7bb82c08207148394bc22a818a48fb5b1f7ccbc1f7212a80e86b58e4017e"
+        },
+        {
+          "description": "Monogatari classroom group key art; style only, not committed (resized copy used)",
+          "sha256": "2ce7fe64eff0846b28fa17010e17534585c869b48ac2a22b7e3d6c109075a771"
+        },
+        {
+          "description": "Approved identity: Watcher idle pick (generated, prompts/idle.txt, candidate 4 of 4); committed as idle-identity.webp (lossy copy)",
+          "sha256": "bdb07ae01eb9225ad6609fc5641afbc7136cbf4d9ce2b3e75d83dfacd3ba7e83"
+        },
+        {
+          "description": "Default Watcher portrait (resized copy supplied to the model)",
+          "sha256": "4091991f6fc3f29e83e9a879d557de09ab9b85c7623bfa7abc4c5814ee41f3c6"
+        },
+        {
+          "description": "Kratos portrait, format only (resized copy supplied to the model)",
+          "sha256": "b2db14e9f1b9d6059d8a39dac5a7567b12857c66edd9f5dacc48151f6d74a96a"
+        }
+      ],
+      "prompt": {
+        "path": "docs/skins/monogatari_watcher-art/prompts/select-portrait.txt",
+        "sha256": "1cb8055546b49432f22b438f8fc671116eadd5e2df9876c4e921ecb4e46eb709"
+      },
+      "sourceSize": [
+        1024,
+        1536
+      ],
+      "generation": {
+        "call": "edit",
+        "size": "1024x1536",
+        "n": 2,
+        "selected": 1,
+        "outputFormat": "png"
+      }
+    },
+    {
+      "name": "character-select wallpaper",
+      "source": {
+        "path": "scripts/art/sources/monogatari_watcher-char/wallpaper.webp",
+        "sha256": "91b46c8a21ab8139a6d49035495afd64c8d483501d132a6e58694bbac84aa06e"
+      },
+      "output": {
+        "path": "public/assets/menu/character-select/character-monogatari_watcher-wallpaper.webp",
+        "sha256": "a161e3ba96617922ec208853283eae09649f42dd2a014c8521950dc3434e6a8b"
+      },
+      "outputSize": [
+        1536,
+        864
+      ],
+      "background": "opaque",
+      "references": [
+        {
+          "description": "Monogatari Second Season key art (low-angle cobalt sky poster); style only, not committed (resized copy used)",
+          "sha256": "93d9c77c86a4783cc9c8c2d6a46a3b3739351d04fac6965dedb31298d9a1a589"
+        },
+        {
+          "description": "Monogatari close-up of a young girl with huge flat eyes; style only, not committed (resized copy used)",
+          "sha256": "a8eb7bb82c08207148394bc22a818a48fb5b1f7ccbc1f7212a80e86b58e4017e"
+        },
+        {
+          "description": "Monogatari classroom group key art; style only, not committed (resized copy used)",
+          "sha256": "2ce7fe64eff0846b28fa17010e17534585c869b48ac2a22b7e3d6c109075a771"
+        },
+        {
+          "description": "Approved identity: Watcher idle pick (generated, prompts/idle.txt, candidate 4 of 4); committed as idle-identity.webp (lossy copy)",
+          "sha256": "bdb07ae01eb9225ad6609fc5641afbc7136cbf4d9ce2b3e75d83dfacd3ba7e83"
+        },
+        {
+          "description": "Default Watcher wallpaper (downscaled copy)",
+          "sha256": "c4b035bc72446aa5b2c6b72abbc0969471a394a54c00f6fb43d3098f7f3c294a"
+        },
+        {
+          "description": "Kratos wallpaper, format only (resized copy supplied to the model)",
+          "sha256": "828e7df4e4fb8b1698639bc14fba9092ac233c819c54566e3e6f68829dd6e2e6"
+        }
+      ],
+      "prompt": {
+        "path": "docs/skins/monogatari_watcher-art/prompts/select-wallpaper.txt",
+        "sha256": "2df24b6cf112287c02c21abf16d0e125ce3de8fe3e47830948b8e64b7ae54ab5"
+      },
+      "sourceSize": [
+        1536,
+        1024
+      ],
+      "note": "Top-aligned 1536x864 crop of the model output, like the Kratos export.",
+      "generation": {
+        "call": "edit",
+        "size": "1536x1024",
+        "n": 2,
+        "selected": 1,
+        "outputFormat": "png"
+      }
+    }
+  ],
+  "noncombatPoseReferences": {
+    "note": "Transparent identity references for later noncombat and animation art, kept outside the repo in $STS_SKIN_WORK/watcher-assets/. Each call: edit, 1536x1024 or 1024x1536, native transparent PNG, references identity + Monogatari close-up + poster.",
+    "poses": [
+      {
+        "name": "seated by a campfire, facing left",
+        "file": "$STS_SKIN_WORK/watcher-assets/watcher-seated-campfire-left.png",
+        "size": [
+          1536,
+          1024
+        ],
+        "prompt": {
+          "path": "docs/skins/monogatari_watcher-art/prompts/pose-seated.txt",
+          "sha256": "148764337c5465910d16c0035bcfce05f9cd163bd66167a9e266f6729e45825d"
+        },
+        "selected": 1,
+        "n": 2,
+        "outputSha256": "ad636414fc2111a8b3f9c1ff00ef71def9cab2aaa8cb3a4a8b7abca72e366d2d"
+      },
+      {
+        "name": "reaching",
+        "file": "$STS_SKIN_WORK/watcher-assets/watcher-reaching.png",
+        "size": [
+          1024,
+          1536
+        ],
+        "prompt": {
+          "path": "docs/skins/monogatari_watcher-art/prompts/pose-reaching.txt",
+          "sha256": "15be39b61d779049d81e5546d2adf499b3f28736eb25d5286281177a46e2a9d3"
+        },
+        "selected": 2,
+        "n": 2,
+        "outputSha256": "730edacc6ea4ab02bd5184376e550f46a89e5da8e3c75e6a9e6eb5c81d502fb3"
+      },
+      {
+        "name": "standing merchant",
+        "file": "$STS_SKIN_WORK/watcher-assets/watcher-merchant-standing.png",
+        "size": [
+          1024,
+          1536
+        ],
+        "prompt": {
+          "path": "docs/skins/monogatari_watcher-art/prompts/pose-merchant.txt",
+          "sha256": "cacf571575b0e2fe354c061e0a6f3340b805378376dc5a360fb59c01c405e4c6"
+        },
+        "selected": 1,
+        "n": 2,
+        "outputSha256": "4418484a978b2f9c326c080508931160baeb4c12f784000c6882ed7b7ae3a459"
+      }
+    ],
+    "references": [
+      {
+        "description": "Approved identity: Watcher idle pick (generated, prompts/idle.txt, candidate 4 of 4); committed as idle-identity.webp (lossy copy)",
+        "sha256": "bdb07ae01eb9225ad6609fc5641afbc7136cbf4d9ce2b3e75d83dfacd3ba7e83"
+      },
+      {
+        "description": "Monogatari close-up of a young girl with huge flat eyes; style only, not committed (resized copy used)",
+        "sha256": "a8eb7bb82c08207148394bc22a818a48fb5b1f7ccbc1f7212a80e86b58e4017e"
+      },
+      {
+        "description": "Monogatari Second Season key art (low-angle cobalt sky poster); style only, not committed (resized copy used)",
+        "sha256": "93d9c77c86a4783cc9c8c2d6a46a3b3739351d04fac6965dedb31298d9a1a589"
+      }
+    ]
+  },
+  "registration": "scripts/animation/sources/monogatari_watcher/registration.json"
+}

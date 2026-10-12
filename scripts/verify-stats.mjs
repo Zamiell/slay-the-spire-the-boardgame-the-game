@@ -708,6 +708,7 @@ try {
     assertEqual(calls[1].resumeId, threadId)
     assertEqual(calls[1].threadOptions.modelReasoningEffort, 'medium')
     assertEqual(calls[0].options.env.OPENAI_API_KEY, 'sk-test-not-for-codex')
+    assertEqual(calls[0].options.env.TMPDIR, tmpdir())
     assert(!Object.keys(calls[0].options.env).some((key) => key !== 'OPENAI_API_KEY' && /KEY|TOKEN|SECRET/.test(key)))
     assert(readFileSync(new URL('../infra/systemd/sts-room-server.service', import.meta.url), 'utf8')
       .includes('EnvironmentFile=-%h/.config/slay-the-spire-server/codex.env'))
@@ -816,7 +817,7 @@ try {
   writeFileSync(join(fakeBwrapDir, 'bwrap'), '#!/bin/sh\nprintf "%s\\n" "$@" > "$HOME/bwrap-args"\nprintf "%s\\n" "$*" >> "$HOME/bwrap-calls"\nprintf called > "$HOME/bwrap-invoked"\n', { mode: 0o755 })
   const fakeEnvironment = (executable = fakeCodex) => ({
     HOME: isolatedHome, USER: process.env.USER, PATH: `${fakeBwrapDir}:${process.env.PATH}`,
-    NODE_BINARY: process.execPath, STS_CODEX_BIN: executable,
+    NODE_BINARY: process.execPath, STS_CODEX_BIN: executable, TMPDIR: tmpdir(),
   })
   const fakeLogin = (executable = fakeCodex) => spawnSync('bash', [calls[0].options.codexPathOverride, 'login', 'status'], {
     cwd: process.cwd(), stdio: 'ignore', env: {
@@ -854,6 +855,7 @@ try {
     assert(mounts.includes(join(isolatedHome, '.codex')))
     assert(mounts.includes('/codex-home'))
     assert(mounts.includes(schemaFile))
+    assert(mounts.some((value, index) => value === 'TMPDIR' && mounts[index + 1] === '/tmp'))
     assert(mounts.includes('--ignore-user-config'))
     assert(mounts.includes('--strict-config'))
     assert(mounts.includes('--unsetenv'))

@@ -545,9 +545,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/guardian_monogatari_ironclad_firecamp.webp",
-        "sha256": "ed50dd40893b60a0d406a2122e59344ff96bd795d8ca03b70e2e0983c1cff974",
-        "bytes": 249444
-      }
+        "sha256": "30c0cc539ca2ffeed1966f1344520bbfd64a2bb14c6b2083be579bf7d52e3196",
+        "bytes": 294570
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -556,9 +557,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/guardian_monogatari_defect_firecamp.webp",
-        "sha256": "d5250379f110e912a618ff26e9e459df15ca36b210f71f27c1a33c677e8d2893",
-        "bytes": 249496
-      }
+        "sha256": "828664ec2010cd3afff8c2ddba0ea48821849c8ebdae38bcb65e83a039b42127",
+        "bytes": 319318
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -681,9 +683,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/ironclad_guardian_monogatari_defect_firecamp.webp",
-        "sha256": "14d8d1929de37a7cf6159d601ad9efcb02907eac4998793aeb606a0c5f1f1da7",
-        "bytes": 258492
-      }
+        "sha256": "2bf4d754eadf732d2bad295a704a89d759c351030aae71df8e96a1d6f72eab5c",
+        "bytes": 433210
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -777,9 +780,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/silent_guardian_monogatari_ironclad_firecamp.webp",
-        "sha256": "329552107f1f1de8b0d39b37b3e93f700c8f2af18d91c7d38ab3046b29fa5d14",
-        "bytes": 257054
-      }
+        "sha256": "9adf608d4d00e485eae307a342a4a54b2c61c656c6bdc44a5b7d3730ddd17873",
+        "bytes": 310920
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -789,9 +793,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/silent_guardian_monogatari_defect_firecamp.webp",
-        "sha256": "d3dd4bbd043fb5fd84f19edaa96f5514da5446a4ea15bb0706ae4ca8e74d8361",
-        "bytes": 257654
-      }
+        "sha256": "90a0af5a2f6f05cf5824f66d87bbf91312fce41bc312672ce46bac44de671a9b",
+        "bytes": 402432
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -909,9 +914,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/defect_guardian_monogatari_ironclad_firecamp.webp",
-        "sha256": "78d8875295ce21f22519b4f155fb325b8bd405bd283d60781770adb3b1ee9c1d",
-        "bytes": 259892
-      }
+        "sha256": "f14afbb69efec319cf552937e50d60af5d19a9cdc3088ae21d4ee4b1068dbbdc",
+        "bytes": 299926
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -981,9 +987,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/watcher_guardian_monogatari_ironclad_firecamp.webp",
-        "sha256": "79e43173e6ed7acb6c6217d9f8ffb4443e51c9a4f1f9753cbcb3b636fbe5b1a3",
-        "bytes": 256024
-      }
+        "sha256": "20f684cf9f2a7fe6d24a9d16c71ab69f7afb76d7aea5e5cba2d90afa29f334df",
+        "bytes": 326618
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -993,9 +1000,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/watcher_guardian_monogatari_defect_firecamp.webp",
-        "sha256": "3c078a4dcfc839ad493256c25dcf32b69bec8f97a9b952da11f9fe75f81d5c10",
-        "bytes": 257236
-      }
+        "sha256": "fbf991512105461e1b0e5a6d6c24fdb9bc94d16bf3e939ac6fb62c1867fa3524",
+        "bytes": 308012
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -1089,9 +1097,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/slime_boss_guardian_monogatari_ironclad_firecamp.webp",
-        "sha256": "251fdff98445ede40665a8b0b3eb1dbb03e7fe48a5374bc4e58c3e9e2d4c57cb",
-        "bytes": 255836
-      }
+        "sha256": "b71ec2bf4d46e15e9d3597760aab92a15a57e2c7b42ae056b522aac06af557b8",
+        "bytes": 426340
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -1101,9 +1110,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/slime_boss_guardian_monogatari_defect_firecamp.webp",
-        "sha256": "2e18ab2fab77cbbdd03d30c73bdd19d4c7d616e5327a846b3283e12cf72f7b36",
-        "bytes": 256144
-      }
+        "sha256": "1dfdc9d18b52b706010fcc06c1be612e44a554c492b37060a8cce962ebf0c170",
+        "bytes": 287528
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -1197,9 +1207,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/guardian_hexaghost_monogatari_ironclad_firecamp.webp",
-        "sha256": "7b5e9b0965e5060a7599889cc9bb1c704034310ca30a57eaab04597b97ffa281",
-        "bytes": 258634
-      }
+        "sha256": "eeec5e63f061e31d980bebfeb05dea1dedb7b4e5274e44120a489fb8c97d81e7",
+        "bytes": 288488
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -1209,9 +1220,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/guardian_hexaghost_monogatari_defect_firecamp.webp",
-        "sha256": "8e2bf9fa200cc7b78b7314a92d71d028a9ba9049a139f59cdd38d9c9bc430832",
-        "bytes": 258566
-      }
+        "sha256": "401f56bd46cb2756e2133841f50409da15d1e64874b2b71b14a5e4afb251bea7",
+        "bytes": 302616
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -1221,9 +1233,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/guardian_hermit_monogatari_ironclad_firecamp.webp",
-        "sha256": "2de31dc3257a039a270d4b8b34ddc67c84c46cf8860e5a7b870102cb3656f69f",
-        "bytes": 259896
-      }
+        "sha256": "ce22df8f570fc3101dc1339e819b0da85fc13a37b5bd8997e6a9a6fbf0da296c",
+        "bytes": 285776
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -1233,9 +1246,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/guardian_hermit_monogatari_defect_firecamp.webp",
-        "sha256": "6efa41fe0ec763d28d235742356e01d8005baf6f8b96a7ede50a05d3310740d5",
-        "bytes": 260038
-      }
+        "sha256": "05c3674d677eba97938d8b22b660620fa84ddf4127f0b7a27d31c42f4d507ef5",
+        "bytes": 320760
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -1245,9 +1259,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/guardian_kratos_monogatari_ironclad_firecamp.webp",
-        "sha256": "16e93784329b749f56d727a64dab307891fbb22095eb4e4134c8eaa104b09e4a",
-        "bytes": 266002
-      }
+        "sha256": "47f7d1d121773efc7b4d45bd26ea587fd983d591ef6fd667788df8f7b827c9de",
+        "bytes": 303436
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -1257,9 +1272,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/guardian_kratos_monogatari_defect_firecamp.webp",
-        "sha256": "9d0a1dde6aed4552cf5307e51733c027b0d64f9b91ada53498afd3361c54706b",
-        "bytes": 266084
-      }
+        "sha256": "abaed44ca57e2186b52c9a0233fc49c3668c34e7747e1d7cb9e3cb2f488a158e",
+        "bytes": 446344
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -1269,9 +1285,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/guardian_monogatari_ironclad_monogatari_defect_firecamp.webp",
-        "sha256": "12ff77ef2b1cdb08faba6cb9d6171b4802d8d10053f9cd17fc1ded566a9a8e44",
-        "bytes": 259468
-      }
+        "sha256": "cbde4123d5c67b22b40b0bec20ab2afb808996510362361046788da0814d2aa0",
+        "bytes": 321348
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -1416,9 +1433,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/ironclad_silent_guardian_monogatari_defect_firecamp.webp",
-        "sha256": "9aeddc09fa23848a29cf3bf6dad81d658eeeca7c7c81167ef0bc36b69f28655c",
-        "bytes": 262406
-      }
+        "sha256": "2244b569a19306b2f917ff7e8b906437f33a0dec861968853bbac01e905bc49f",
+        "bytes": 316138
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -1468,9 +1486,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/ironclad_watcher_guardian_monogatari_defect_firecamp.webp",
-        "sha256": "a84920ad0327ed554f07ff40da538a0ae0476cfe4370862707335a071be750d5",
-        "bytes": 264094
-      }
+        "sha256": "bd69258b0298adc3c1783bdeea1cf9d9cbf2ca39c8b2cb54bb3b293d7501eb6a",
+        "bytes": 421212
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -1507,9 +1526,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/ironclad_slime_boss_guardian_monogatari_defect_firecamp.webp",
-        "sha256": "30507347b1c38ec00e1cd0aa313fbe636e226e89cb5f82e143872e143c7fd370",
-        "bytes": 260812
-      }
+        "sha256": "8f37b4d5d2c65dd72fec3f9cb92475217f1415554b839b7c8e2a2a34366d98ad",
+        "bytes": 454826
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -1546,9 +1566,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/ironclad_guardian_hexaghost_monogatari_defect_firecamp.webp",
-        "sha256": "f9b5a92cb8190f0aa4def8c3804851a9593e982b6eecef52444a8ba8f5a1aa01",
-        "bytes": 263294
-      }
+        "sha256": "098e6ae0bb6a36387d021c0680a427694483c26d95ecd886ccaff4bf20117b1e",
+        "bytes": 304634
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -1559,9 +1580,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/ironclad_guardian_hermit_monogatari_defect_firecamp.webp",
-        "sha256": "18b2f194eb155338bc50c213adb03504a06b6911411b131829f16f7929ef179b",
-        "bytes": 264822
-      }
+        "sha256": "a05f1e2e2f455b1304a9404fc3972fbb2f211caa86c080a039188d97ce576083",
+        "bytes": 327060
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -1611,9 +1633,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/silent_defect_guardian_monogatari_ironclad_firecamp.webp",
-        "sha256": "7dfb12c23b038b6e7a7b743c07b99ed375e7665c6893d6fcf54383d6a6c0b119",
-        "bytes": 263908
-      }
+        "sha256": "6b26fce1acbdb69dbc16bd5aaec1f9438d2309c6999b393b74d3f5abe8e984b3",
+        "bytes": 300788
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -1689,9 +1712,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/silent_watcher_guardian_monogatari_ironclad_firecamp.webp",
-        "sha256": "45f65372275313dad93ab919667c84f2f5b90f76a70ee9df98f5f62c846541f5",
-        "bytes": 260778
-      }
+        "sha256": "13087a74a6e363244827afff4c5853871045be519e6c95525ecd89272e8cea49",
+        "bytes": 315556
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -1702,9 +1726,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/silent_watcher_guardian_monogatari_defect_firecamp.webp",
-        "sha256": "df9e57fac560d22097a2246a15e9b2b105a46f464439323a3deeb26de40e4e8e",
-        "bytes": 261472
-      }
+        "sha256": "9c90ec52505b95d3649e2ecd2fd7d6eb055a71d162bf2b35882ab6c57bda38de",
+        "bytes": 362564
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -1806,9 +1831,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/silent_slime_boss_guardian_monogatari_ironclad_firecamp.webp",
-        "sha256": "bf6516a0eb58fbc75d47daad9c14b691cd196d5317b3e3972d6794894c279e11",
-        "bytes": 258746
-      }
+        "sha256": "a1ce47d85f86cef73f783f143cd8e10ec22eafbf027915d5084dd7bb622a510f",
+        "bytes": 277656
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -1819,9 +1845,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/silent_slime_boss_guardian_monogatari_defect_firecamp.webp",
-        "sha256": "2ad8aea35d4e59bd0609889d94f25f72fa33e2ab9effef7360d5f3ad351b6df5",
-        "bytes": 259614
-      }
+        "sha256": "f2ff2f2475c5990ade0191b6eb105ac8691d578d2fe16e417269f44fb2322809",
+        "bytes": 302380
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -1923,9 +1950,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/silent_guardian_hexaghost_monogatari_ironclad_firecamp.webp",
-        "sha256": "5a6a846b6bf3e4a729849fdf783f8265d545aad9888e980c921f0bf869402510",
-        "bytes": 262540
-      }
+        "sha256": "fe20fa73747e473056caea4111af2650a20c6fc2006754653860d76be1f9a9b8",
+        "bytes": 300422
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -1936,9 +1964,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/silent_guardian_hexaghost_monogatari_defect_firecamp.webp",
-        "sha256": "9c8fc0972403b674db3dff3d65c345ceee6e73fcd5fb665c19129f234d2cfd7d",
-        "bytes": 262292
-      }
+        "sha256": "a9b35ffa1f16260f9bdea736ce4693c0feb08c615fc9dcabd42493993ef5957e",
+        "bytes": 444406
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -1949,9 +1978,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/silent_guardian_hermit_monogatari_ironclad_firecamp.webp",
-        "sha256": "fe7f1155270cb4472a3ffd2c6fda6bae4a4df6ffba766d4ca501fdacf4a6414e",
-        "bytes": 263538
-      }
+        "sha256": "0e4a200a50d29f91079bffe9cf6af58c763948ad0928746fd4bfcfc5c4e69c0c",
+        "bytes": 310030
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -1962,9 +1992,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/silent_guardian_hermit_monogatari_defect_firecamp.webp",
-        "sha256": "d33e58a02d6fc436670568e5890054704403f91a309e01e04648cbf99d7462bf",
-        "bytes": 263472
-      }
+        "sha256": "896b63506edc60f7ec6aad9948bfc69d09ef59ea3f9a60f656b45772030c6b6d",
+        "bytes": 293754
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -1975,9 +2006,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/silent_guardian_kratos_monogatari_ironclad_firecamp.webp",
-        "sha256": "116f9246b923603882c63c981ba4ba1d854b384af21d206ab624e61bbd2fe8c4",
-        "bytes": 269046
-      }
+        "sha256": "1d48a9ae3526dad465f4e67279811a0cdde936a8c3ec52975256e61ab0f2799b",
+        "bytes": 414340
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -1988,9 +2020,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/silent_guardian_kratos_monogatari_defect_firecamp.webp",
-        "sha256": "d37574ea8a9684f7662cf17e7c9a0fd6408a0431a03535ece528c79bcbe9b5e1",
-        "bytes": 269744
-      }
+        "sha256": "e60c3c138fed301c5cf77bc2e844d7ce5ac4cb13425ce2280aa274184a7bfef0",
+        "bytes": 407524
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -2001,9 +2034,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/silent_guardian_monogatari_ironclad_monogatari_defect_firecamp.webp",
-        "sha256": "0d579dff68b35c48e11473d61a85af84f07e5a63e7a048bbab7c6bf39c304f52",
-        "bytes": 262934
-      }
+        "sha256": "8ce8be0908ff0e4494853d19c5781a56d19f0ceab64a9a46c7d3832a3464f758",
+        "bytes": 439072
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -2144,9 +2178,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/defect_watcher_guardian_monogatari_ironclad_firecamp.webp",
-        "sha256": "5b50cabff672c366bbcc5c7b696e814a31ad8818eba5e3b884f5cc211eaa5f9b",
-        "bytes": 265158
-      }
+        "sha256": "c3e3cbfd97b57f1746546031ae2b4bda806af64b6b6ee9ea1f3513098a182395",
+        "bytes": 405426
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -2196,9 +2231,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/defect_slime_boss_guardian_monogatari_ironclad_firecamp.webp",
-        "sha256": "ab1d33643cdc1b313981ef7a11f0056b229c042540f73651a92fd5439fc3d0d0",
-        "bytes": 263490
-      }
+        "sha256": "dbc06f5c401e90056e944e041d13652e5f8bf7bc3854cccd74d4afd56ace09cc",
+        "bytes": 307852
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -2248,9 +2284,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/defect_guardian_hexaghost_monogatari_ironclad_firecamp.webp",
-        "sha256": "9394fb381f81dd5fdf25f4593d68fc0590bd6ebfdfd214819a2772ec94214f89",
-        "bytes": 264490
-      }
+        "sha256": "13a77e1772cbcbb579325e5e1f8905b9d98d504030906c5eccb7fe30be0a2167",
+        "bytes": 308656
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -2261,9 +2298,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/defect_guardian_hermit_monogatari_ironclad_firecamp.webp",
-        "sha256": "d22c5dd6bc88cf294bdd0defb93d6ce6965d6539fa6327c5b5a56599c3e98d51",
-        "bytes": 266568
-      }
+        "sha256": "2aaf1bd9700ffa6806b3821be5b9fd7a84483dbd572fe75bfb107d1bb99d67f6",
+        "bytes": 298490
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -2274,9 +2312,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/defect_guardian_kratos_monogatari_ironclad_firecamp.webp",
-        "sha256": "e7749af19d991a19e770477eae29c5e8f592bbb746498351c4d524ef169a88e3",
-        "bytes": 271884
-      }
+        "sha256": "da1e6111b230313b3e7f640f8473971f02288547dbd07ad6813bac4d7613b3a8",
+        "bytes": 325046
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -2326,9 +2365,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/watcher_slime_boss_guardian_monogatari_ironclad_firecamp.webp",
-        "sha256": "3924ffaf9235ad66add03b6604cbf3824c1185f7a18f0d15da82478058562cf0",
-        "bytes": 258662
-      }
+        "sha256": "aac3cb98f4a6536a811fdb1fa21d5b38af3708423a3870197af486aeda217846",
+        "bytes": 328132
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -2339,9 +2379,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/watcher_slime_boss_guardian_monogatari_defect_firecamp.webp",
-        "sha256": "4e1c3b0dbeee87277a828c615988ccdfe134ea8bcb9db32ff0d77a94bad84ff8",
-        "bytes": 259584
-      }
+        "sha256": "fa7de88f0b1732b82aebdfb46e67cb520274d016f0604459466b603413a17bd6",
+        "bytes": 303262
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -2443,9 +2484,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/watcher_guardian_hexaghost_monogatari_ironclad_firecamp.webp",
-        "sha256": "2020bc12239dbd7ee7e27c649f5e8fb7b21b59ee6ba77eeef91b5e082ec91c35",
-        "bytes": 261954
-      }
+        "sha256": "211eecdca6e0fa782bda70d20f9e390b3ce437cac61bcff38c6b64fafdc6e5ad",
+        "bytes": 416440
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -2456,9 +2498,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/watcher_guardian_hexaghost_monogatari_defect_firecamp.webp",
-        "sha256": "5ccdd9f965b29adc8aa24f499b7df1361380ca1908be1db29719ffdfecdd8177",
-        "bytes": 261966
-      }
+        "sha256": "18f696ada4e512ec9443bfdce30550863e0e7d76606e4776b882130108f5d260",
+        "bytes": 289378
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -2469,9 +2512,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/watcher_guardian_hermit_monogatari_ironclad_firecamp.webp",
-        "sha256": "2907c0103b9d769af74180bedebff92394a941aa31a702c5ca4584a43f57077e",
-        "bytes": 263066
-      }
+        "sha256": "28b0fcc1cdec1622ca7f16e4e511727e800221b3c841a6df7425fd75430734af",
+        "bytes": 289218
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -2482,9 +2526,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/watcher_guardian_hermit_monogatari_defect_firecamp.webp",
-        "sha256": "3582bd507fd9f2a33a63a2934e06aede3f3fb6bf4dcc86ce7469affd9cf163fb",
-        "bytes": 263510
-      }
+        "sha256": "6ca40c314af8bd13eab24e4e4159a88d85924acd74c1747154a1ee66f0dfb50b",
+        "bytes": 338420
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -2495,9 +2540,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/watcher_guardian_kratos_monogatari_ironclad_firecamp.webp",
-        "sha256": "b624af0aa07bbf223d74c59de772b3615c4a489b8ac803e536f97184bcbac72b",
-        "bytes": 269028
-      }
+        "sha256": "08a8e20b6b034d4dc0527d53ec212082601fa59ee7fd05a0a2040fe7c12500b9",
+        "bytes": 313126
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -2508,9 +2554,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/watcher_guardian_kratos_monogatari_defect_firecamp.webp",
-        "sha256": "7875987ef707d4ee9766d714c1984e1c7e8cf920d4c97b7f817025ffa4536e0c",
-        "bytes": 269688
-      }
+        "sha256": "2833699c7f8794c15b836026fafb040dbec8d3ff7d92e6984864f8ae5f98e727",
+        "bytes": 300740
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -2521,9 +2568,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/watcher_guardian_monogatari_ironclad_monogatari_defect_firecamp.webp",
-        "sha256": "030887dcfdf6b1ce878984fe80e8c2d036de1ae3adb3cdd985be995bd2dfcb6d",
-        "bytes": 263042
-      }
+        "sha256": "cc10b3c5d03d6d8857c839d2bfe7ede75b083ef097d5060bf21e54d90b70fdc5",
+        "bytes": 322492
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -2651,9 +2699,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/slime_boss_guardian_hexaghost_monogatari_ironclad_firecamp.webp",
-        "sha256": "9ebbde5049eb8ac88e0a40d1a85a4a0053ae523d0e61b42fb2b1d5e8dfdba04e",
-        "bytes": 260750
-      }
+        "sha256": "1f4e6c3a4896b379b01901e69c405a843c42c8d8e0d1adfa3409deb80ebbe528",
+        "bytes": 271754
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -2664,9 +2713,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/slime_boss_guardian_hexaghost_monogatari_defect_firecamp.webp",
-        "sha256": "72c55a36cb21a0764278fb5c7a98bcb0995ebf0bcaba5d1c5d59173a782a2c9e",
-        "bytes": 261728
-      }
+        "sha256": "74ab8860f0c5327594e21bb8788054f0a7c779eaef799a14773b55e1739b5582",
+        "bytes": 385152
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -2677,9 +2727,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/slime_boss_guardian_hermit_monogatari_ironclad_firecamp.webp",
-        "sha256": "cd839200b7b9fe6d75892a31acbc07756a5d95dde8c8d1ab2c860312a717a529",
-        "bytes": 261940
-      }
+        "sha256": "12956d2a3436d695b2b93ded7468c4b12fdaf1bfa02a4fb43dc3daaacc8c86f4",
+        "bytes": 319262
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -2690,9 +2741,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/slime_boss_guardian_hermit_monogatari_defect_firecamp.webp",
-        "sha256": "aed48becf11a97a2b26d12af2b3322e096c59812afe4224b25c8680db85b33ff",
-        "bytes": 262980
-      }
+        "sha256": "59532617a0027972750cb06d0c62a89d48e8144442c7907f0e94222e495468b3",
+        "bytes": 290780
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -2703,9 +2755,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/slime_boss_guardian_kratos_monogatari_ironclad_firecamp.webp",
-        "sha256": "05885651f65eaa329b40af37c74d42676392d6d5eb415f90d30c58b4c2fa337d",
-        "bytes": 268542
-      }
+        "sha256": "d187fb002a5acc3dea71e958a19664b2f3f18c24b02063f0ddfa6dccfb9260da",
+        "bytes": 315668
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -2716,9 +2769,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/slime_boss_guardian_kratos_monogatari_defect_firecamp.webp",
-        "sha256": "ffee3059d3962e502048ab3202d01209be17b956bc26e966d7f9404c7a711bfc",
-        "bytes": 269124
-      }
+        "sha256": "be30bf10a91370e8a26ee2c198e82b7f936c2544013dc7cd036644de546ac881",
+        "bytes": 465676
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -2729,9 +2783,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/slime_boss_guardian_monogatari_ironclad_monogatari_defect_firecamp.webp",
-        "sha256": "5bba5a00198736bcea0cfb35285e06c5f33a03c78bc465d5fa062529e459006c",
-        "bytes": 262908
-      }
+        "sha256": "0c8171aa7e976bc272cf9fd0a75aad023f88c1a14ffa686e03ddaf27c39cbe26",
+        "bytes": 313100
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -2859,9 +2914,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/guardian_hexaghost_hermit_monogatari_ironclad_firecamp.webp",
-        "sha256": "562ef5a01a029fc7d1727273797bf47572cad27b0fbef8112ab3432817154664",
-        "bytes": 264498
-      }
+        "sha256": "321153eedf0f48c13da12648ea614b5800342883f7b1941354dbb4a70ee969e0",
+        "bytes": 288856
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -2872,9 +2928,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/guardian_hexaghost_hermit_monogatari_defect_firecamp.webp",
-        "sha256": "2b6ca3a0f40591b777e6a135982deade0a8d6a424c689a1917dd43754e650af7",
-        "bytes": 264870
-      }
+        "sha256": "bab56cdbaae10b797a6847d463052a0bcdc9e7d15b66490e2f6364849b560e28",
+        "bytes": 425252
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -2885,9 +2942,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/guardian_hexaghost_kratos_monogatari_ironclad_firecamp.webp",
-        "sha256": "02b8ea8bb80174409403cd5c0457b793243548d5091af39e23e38a02a6f3d121",
-        "bytes": 270456
-      }
+        "sha256": "b28acda2e13745a2e656fad4a32dca46e0261555c37e8111accc3842459973e1",
+        "bytes": 301298
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -2898,9 +2956,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/guardian_hexaghost_kratos_monogatari_defect_firecamp.webp",
-        "sha256": "84141fac3902cfbbb454ab7d0671bf66f391a695dc4d10fd6056f0aca288bd0d",
-        "bytes": 272236
-      }
+        "sha256": "1cf5e30f9ea53910e5cb12913fdf27f15ffef326a1c1e40acbed392da97b2871",
+        "bytes": 335960
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -2911,9 +2970,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/guardian_hexaghost_monogatari_ironclad_monogatari_defect_firecamp.webp",
-        "sha256": "0fcb4a9340ee144c3dcc641543f83734ecb4f542672f3898c6526aac772c0975",
-        "bytes": 265272
-      }
+        "sha256": "b27a995660893bcbd0e7cd30716a7904e17b3f380001b1b003b33dda6bb9e9c4",
+        "bytes": 349976
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -2924,9 +2984,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/guardian_hermit_kratos_monogatari_ironclad_firecamp.webp",
-        "sha256": "00f5a425e93dcbb956652184fcdee2ddd508c30f1f0fe47a44e53f53a4289952",
-        "bytes": 271504
-      }
+        "sha256": "14a5523d283b3124a5e84eb48be4971918897fdfa455c1a85a17882c148639c3",
+        "bytes": 316950
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -2937,9 +2998,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/guardian_hermit_kratos_monogatari_defect_firecamp.webp",
-        "sha256": "bd58bc9e5662884cfa675a901ac8a4457dc6acc79bfddbbe09e09cf90e5f9e05",
-        "bytes": 272224
-      }
+        "sha256": "f0933f74541b5d57c03c542163a08d1a750d4a1794bf1d3443f29a1651965dc2",
+        "bytes": 316812
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -2950,9 +3012,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/guardian_hermit_monogatari_ironclad_monogatari_defect_firecamp.webp",
-        "sha256": "28cb13cd0edd239088a2f51469866987fc106f1431a23bc7795fddcd0baf899a",
-        "bytes": 266284
-      }
+        "sha256": "d88b0587f40d2a3b6c37950774dcbc0dcbe8723366cc118cb08d644511cd35cb",
+        "bytes": 435766
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -2963,9 +3026,10 @@
       ],
       "output": {
         "path": "public/assets/noncombat/campfire/guardian_kratos_monogatari_ironclad_monogatari_defect_firecamp.webp",
-        "sha256": "8789f2df6a4fed57424402dec48d940d8ab63866d3b301e97456ea6146e89926",
-        "bytes": 271920
-      }
+        "sha256": "f8d6cc90da8eeb0068ff12469860271a92caf877c6858482375c762f3e89cfb3",
+        "bytes": 415834
+      },
+      "generationManifest": "docs/skins/fresh-campfires/manifest.json"
     },
     {
       "party": [
@@ -3035,7 +3099,13 @@
   ],
   "visualAudit": {
     "path": "docs/monogatari-skins/noncombat-contact-sheet.jpg",
-    "sha256": "aeef0d05855807a29cba927962431f73d28150e7bd6aedc3823cb89f59a44070",
-    "bytes": 780311
+    "sha256": "dec90700fd58a5ed139706818d62d1fedf1b5e2a8b5952b8c4e1bfccbd52b192",
+    "bytes": 761886
+  },
+  "guardianCampfireRepairs": {
+    "count": 64,
+    "manifest": "docs/skins/fresh-campfires/manifest.json",
+    "generation": "Original empty campfire and original character identities only; no seated references",
+    "rebuild": "python3 scripts/art/export-fresh-campfires.py"
   }
 }

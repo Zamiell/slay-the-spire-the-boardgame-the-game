@@ -16,7 +16,7 @@ assert.match(workflow, /for file in empty_firecamp\.webp rest\.webp smith\.webp;
 assert.match(workflow, /hero-defect-idle\.mov[\s\S]*content-type: video\/quicktime/)
 assert.match(workflow, /exordium\.mp3[\s\S]*content-type: audio\/mpeg/)
 assert.match(workflow, /raw\.githubusercontent\.com[\s\S]*ironclad_silent_firecamp\.webp[\s\S]*content-type: image\/webp'/)
-assert.match(workflow, /du -sb dist[\s\S]*-le 850000000/)
+assert.match(workflow, /du -sb dist[\s\S]*-le 900000000/)
 assert.match(workflow, /MULTIPLAYER_SERVER_ORIGIN\/api\/health/)
 assert.match(workflow, /\.webSocketActionAcks == true/)
 assert.match(workflow, /\.releaseSha == \$sha/)

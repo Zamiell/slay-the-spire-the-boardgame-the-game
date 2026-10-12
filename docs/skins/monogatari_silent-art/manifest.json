@@ -1,0 +1,1093 @@
+{
+  "model": "gpt-image-2.5-sunburst",
+  "quality": "high",
+  "noteOnReferences": "Copyrighted style references are never committed; each is recorded by description and SHA-256 of the resized copy supplied to the model.",
+  "idleIdentity": {
+    "prompt": {
+      "path": "docs/skins/monogatari_silent-art/prompts/idle.txt",
+      "sha256": "7347b272e6c3b882a50e259070ac5b0f56256b1f2b7a35fc67a53d2646f11e1e"
+    },
+    "references": [
+      {
+        "description": "Monogatari Second Season key art (low-angle cobalt sky poster); style only, not committed (resized copy used)",
+        "sha256": "93d9c77c86a4783cc9c8c2d6a46a3b3739351d04fac6965dedb31298d9a1a589"
+      },
+      {
+        "description": "Monogatari close-up of a young girl with huge flat eyes; style only, not committed (resized copy used)",
+        "sha256": "a8eb7bb82c08207148394bc22a818a48fb5b1f7ccbc1f7212a80e86b58e4017e"
+      },
+      {
+        "description": "Monogatari classroom group key art; style only, not committed (resized copy used)",
+        "sha256": "2ce7fe64eff0846b28fa17010e17534585c869b48ac2a22b7e3d6c109075a771"
+      },
+      {
+        "description": "Default Silent sprite (public/assets/combat/characters/silent-hero.webp), resized copy",
+        "sha256": "a0c868a2b79840f61fd1de6b13b5eff3a6dd5b789849d0c31b09a4e3eb7451de"
+      },
+      {
+        "description": "Kratos format sprite",
+        "sha256": "bc57f52a6b60ed8f98e8a5d0877e9d7e0490274007367178ed6495e294420c2a"
+      }
+    ],
+    "size": "1024x1536",
+    "n": 4,
+    "selected": 2,
+    "note": "Opaque flat #f0f0f0 background (identity sheet, scripts/art/sources/monogatari_silent-char/idle-identity.webp)."
+  },
+  "idleCutout": {
+    "prompt": {
+      "path": "docs/skins/monogatari_silent-art/prompts/idle-cutout.txt",
+      "sha256": "be14991219514b65f2deb02ec1b03d0576357d78362ed08cb205aa98db9a24c9"
+    },
+    "references": [
+      {
+        "description": "Approved identity: Silent idle pick (generated, prompts/idle.txt, candidate 2 of 4); committed as idle-identity.webp (lossy copy)",
+        "sha256": "35be6266445ef66558d748566b68673bef3514158d50ee39d33d270ab50bf853"
+      }
+    ],
+    "size": "1024x1536",
+    "n": 2,
+    "selected": 2,
+    "note": "edit with --background transparent: the approved idle redrawn pose-for-pose on native alpha. A deterministic flood-fill matte of the approved idle was tried first and rejected for pale speckle fringe on the scarf and braid; candidate 1 was rejected for a cloak edge touching the canvas."
+  },
+  "assets": [
+    {
+      "name": "idle hero cutout",
+      "source": {
+        "path": "scripts/art/sources/monogatari_silent-char/idle-cutout.webp",
+        "sha256": "fb5dab2993b3c16c731139896822d2fa651c1e5826a6078783f1252eebedb7f3"
+      },
+      "output": {
+        "path": "public/assets/combat/characters/monogatari_silent-hero.webp",
+        "sha256": "669fafec4a977e4346047aad528c9f902a07ca5e108c68fe533763c79eae644b"
+      },
+      "outputSize": [
+        1152,
+        1152
+      ],
+      "background": "transparent",
+      "references": [
+        {
+          "description": "Approved identity: Silent idle pick (generated, prompts/idle.txt, candidate 2 of 4); committed as idle-identity.webp (lossy copy)",
+          "sha256": "35be6266445ef66558d748566b68673bef3514158d50ee39d33d270ab50bf853"
+        }
+      ],
+      "method": "No second pass: idle-cutout.webp is the transparent redraw (alpha noise <=8 zeroed). export-monogatari_silent-char.py scales it so the hair crown to near sole is 830px, plants the near sole on y=1115 (Kratos hero line) at stance centre x=576."
+    },
+    {
+      "name": "list icon",
+      "source": {
+        "path": "scripts/art/sources/monogatari_silent-char/idle-cutout.webp",
+        "sha256": "fb5dab2993b3c16c731139896822d2fa651c1e5826a6078783f1252eebedb7f3"
+      },
+      "output": {
+        "path": "public/assets/combat/characters/monogatari_silent.webp",
+        "sha256": "afc7619561a379f000f3863a85f65fb642a33650300a348afe0a35ba5cacfcde"
+      },
+      "outputSize": [
+        512,
+        512
+      ],
+      "background": "transparent",
+      "references": [
+        {
+          "description": "Approved identity: Silent idle pick (generated, prompts/idle.txt, candidate 2 of 4); committed as idle-identity.webp (lossy copy)",
+          "sha256": "35be6266445ef66558d748566b68673bef3514158d50ee39d33d270ab50bf853"
+        }
+      ],
+      "method": "The painted figure of the hero cutout scaled to 500px tall, bottom aligned on a 512 canvas."
+    },
+    {
+      "name": "energy orb",
+      "source": {
+        "path": "scripts/art/sources/monogatari_silent-char/energy-orb.webp",
+        "sha256": "0a1bdda2b1481938007ef0e5e592537a687522aa88a2b32aa78148a54066a8ce"
+      },
+      "output": {
+        "path": "public/assets/combat/energy-orbs/monogatari_silent.webp",
+        "sha256": "0659a35aadb038c0e699ad211f53da6c52f2240ec8ba1619b0721f8254c2257f"
+      },
+      "outputSize": [
+        256,
+        256
+      ],
+      "background": "transparent",
+      "references": [
+        {
+          "description": "Kratos Energy orb (public/assets/combat/energy-orbs/kratos.webp) as format only",
+          "sha256": "ab1383518d4b8414d85323915079523c0795b3952553dede721bbcc9d9090f30"
+        },
+        {
+          "description": "Silent identity cutout (resized)",
+          "sha256": "fd4d1a9245c7d6ae20cffd611eaba7aad107e323e27e20e1adbdae60f42987c5"
+        },
+        {
+          "description": "Monogatari Second Season key art (low-angle cobalt sky poster); style only, not committed (resized copy used)",
+          "sha256": "93d9c77c86a4783cc9c8c2d6a46a3b3739351d04fac6965dedb31298d9a1a589"
+        },
+        {
+          "description": "Monogatari close-up of a young girl with huge flat eyes; style only, not committed (resized copy used)",
+          "sha256": "a8eb7bb82c08207148394bc22a818a48fb5b1f7ccbc1f7212a80e86b58e4017e"
+        }
+      ],
+      "method": "Window of 1040px around the jade core resized to 256 (no upscale).",
+      "prompt": {
+        "path": "docs/skins/monogatari_silent-art/prompts/hud-energy-orb.txt",
+        "sha256": "dedee59314c25faf3ecbe5c06779cd4bd82c5a2e4b509bdea157ea375a47e9f9"
+      }
+    },
+    {
+      "name": "vfx light",
+      "source": {
+        "path": "scripts/art/sources/monogatari_silent-char/vfx-light.webp",
+        "sha256": "85b9138d8a35e3337de9b6740e46485bf84ffef8b7e58505412ab63cb9ae2911"
+      },
+      "output": {
+        "path": "public/assets/combat/vfx/actions/monogatari_silent/light.webp",
+        "sha256": "3447e4f3395a1f1914d29553070ed798c40ffa9ccd99a57783d04c63e3791188"
+      },
+      "outputSize": [
+        512,
+        512
+      ],
+      "background": "transparent",
+      "references": [
+        {
+          "description": "Kratos light VFX (format and role only)",
+          "sha256": "9fc0baed3542f524bf184fc31ff88f0e4251a1603ee8620d74006ee5fab295c4"
+        },
+        {
+          "description": "Existing silent-poison VFX (colour idea only)",
+          "sha256": "e8bdc71feaa09e6178532b7019672ef401172ac72e221d67490e84a404b2132a"
+        },
+        {
+          "description": "Silent identity cutout (resized)",
+          "sha256": "fd4d1a9245c7d6ae20cffd611eaba7aad107e323e27e20e1adbdae60f42987c5"
+        },
+        {
+          "description": "Monogatari Second Season key art (low-angle cobalt sky poster); style only, not committed (resized copy used)",
+          "sha256": "93d9c77c86a4783cc9c8c2d6a46a3b3739351d04fac6965dedb31298d9a1a589"
+        },
+        {
+          "description": "Monogatari close-up of a young girl with huge flat eyes; style only, not committed (resized copy used)",
+          "sha256": "a8eb7bb82c08207148394bc22a818a48fb5b1f7ccbc1f7212a80e86b58e4017e"
+        }
+      ],
+      "method": "Whole 1024 canvas resized to 512.",
+      "prompt": {
+        "path": "docs/skins/monogatari_silent-art/prompts/vfx-light.txt",
+        "sha256": "8cbb3bb872b9d0cefa1af65a9b71a8c87abb66c536cf454898826bbbfb82988c"
+      }
+    },
+    {
+      "name": "vfx impact",
+      "source": {
+        "path": "scripts/art/sources/monogatari_silent-char/vfx-impact.webp",
+        "sha256": "6f9ecbbc88ad15e168a42ed41f9907758bedb7943dd48ad8c286a65a346df07f"
+      },
+      "output": {
+        "path": "public/assets/combat/vfx/actions/monogatari_silent/impact.webp",
+        "sha256": "80e8c289aae094e005186d047bfa0f611050fd7415d510e50381e575ec8c93f6"
+      },
+      "outputSize": [
+        512,
+        512
+      ],
+      "background": "transparent",
+      "references": [
+        {
+          "description": "Kratos impact VFX (format and role only)",
+          "sha256": "b984708a12b7e9e5e0f96bc10970d0254abfd76bb08e71de47f073573d3677c1"
+        },
+        {
+          "description": "Existing silent-poison VFX (colour idea only)",
+          "sha256": "e8bdc71feaa09e6178532b7019672ef401172ac72e221d67490e84a404b2132a"
+        },
+        {
+          "description": "Silent identity cutout (resized)",
+          "sha256": "fd4d1a9245c7d6ae20cffd611eaba7aad107e323e27e20e1adbdae60f42987c5"
+        },
+        {
+          "description": "Monogatari Second Season key art (low-angle cobalt sky poster); style only, not committed (resized copy used)",
+          "sha256": "93d9c77c86a4783cc9c8c2d6a46a3b3739351d04fac6965dedb31298d9a1a589"
+        },
+        {
+          "description": "Monogatari close-up of a young girl with huge flat eyes; style only, not committed (resized copy used)",
+          "sha256": "a8eb7bb82c08207148394bc22a818a48fb5b1f7ccbc1f7212a80e86b58e4017e"
+        }
+      ],
+      "method": "Source stored at 768px (the 1024 model output exceeded 150 KiB); resized to 512.",
+      "prompt": {
+        "path": "docs/skins/monogatari_silent-art/prompts/vfx-impact.txt",
+        "sha256": "2e2f91b16238a57db2bea7325e475e41a657f97d0dbe0ba929a1caaa536c82dc"
+      }
+    },
+    {
+      "name": "character-select portrait",
+      "source": {
+        "path": "scripts/art/sources/monogatari_silent-char/portrait.webp",
+        "sha256": "5d5bf90090856935db3d2203d0eb896dfb1ae07a00a6680c390e82aca6dd539e"
+      },
+      "output": {
+        "path": "public/assets/menu/character-select/portrait-monogatari_silent.png",
+        "sha256": "1f66debeeee98438f8b7c1ac4208c9fae7b4da029e251f760a2f5cabf4d2fa5e"
+      },
+      "outputSize": [
+        256,
+        384
+      ],
+      "background": "opaque",
+      "references": [
+        {
+          "description": "Monogatari Second Season key art (low-angle cobalt sky poster); style only, not committed (resized copy used)",
+          "sha256": "93d9c77c86a4783cc9c8c2d6a46a3b3739351d04fac6965dedb31298d9a1a589"
+        },
+        {
+          "description": "Monogatari close-up of a young girl with huge flat eyes; style only, not committed (resized copy used)",
+          "sha256": "a8eb7bb82c08207148394bc22a818a48fb5b1f7ccbc1f7212a80e86b58e4017e"
+        },
+        {
+          "description": "Monogatari classroom group key art; style only, not committed (resized copy used)",
+          "sha256": "2ce7fe64eff0846b28fa17010e17534585c869b48ac2a22b7e3d6c109075a771"
+        },
+        {
+          "description": "Approved identity: Silent idle pick (generated, prompts/idle.txt, candidate 2 of 4); committed as idle-identity.webp (lossy copy)",
+          "sha256": "35be6266445ef66558d748566b68673bef3514158d50ee39d33d270ab50bf853"
+        },
+        {
+          "description": "Default Silent portrait (resized copy)",
+          "sha256": "df7932ca3a886716508aaef87ca387c8299512ffb809bf7ebe48c50a9878d319"
+        },
+        {
+          "description": "Kratos portrait (format only)",
+          "sha256": "b2db14e9f1b9d6059d8a39dac5a7567b12857c66edd9f5dacc48151f6d74a96a"
+        }
+      ],
+      "method": "1024x1536 model output (candidate 1 of 2) downscaled to 256x384.",
+      "prompt": {
+        "path": "docs/skins/monogatari_silent-art/prompts/select-portrait.txt",
+        "sha256": "cee83f0966f78b6e5016aa80436c78ba164a09d3298887a963d19b0c36b81f8a"
+      }
+    },
+    {
+      "name": "character-select wallpaper",
+      "source": {
+        "path": "scripts/art/sources/monogatari_silent-char/wallpaper.webp",
+        "sha256": "75cfc2bab4f9d39403f333e467b43eb63a2940ae0e5fc1ddc4bcc45d65e28eed"
+      },
+      "output": {
+        "path": "public/assets/menu/character-select/character-monogatari_silent-wallpaper.webp",
+        "sha256": "92abab3e33603e1a57deac73cda11d47a71702fe7ff457534640359d229f3938"
+      },
+      "outputSize": [
+        1536,
+        864
+      ],
+      "background": "opaque",
+      "references": [
+        {
+          "description": "Monogatari Second Season key art (low-angle cobalt sky poster); style only, not committed (resized copy used)",
+          "sha256": "93d9c77c86a4783cc9c8c2d6a46a3b3739351d04fac6965dedb31298d9a1a589"
+        },
+        {
+          "description": "Monogatari close-up of a young girl with huge flat eyes; style only, not committed (resized copy used)",
+          "sha256": "a8eb7bb82c08207148394bc22a818a48fb5b1f7ccbc1f7212a80e86b58e4017e"
+        },
+        {
+          "description": "Monogatari classroom group key art; style only, not committed (resized copy used)",
+          "sha256": "2ce7fe64eff0846b28fa17010e17534585c869b48ac2a22b7e3d6c109075a771"
+        },
+        {
+          "description": "Approved identity: Silent idle pick (generated, prompts/idle.txt, candidate 2 of 4); committed as idle-identity.webp (lossy copy)",
+          "sha256": "35be6266445ef66558d748566b68673bef3514158d50ee39d33d270ab50bf853"
+        },
+        {
+          "description": "Default Silent wallpaper (resized copy)",
+          "sha256": "521f1f4e6d807c4fdd6e83b80c419704de48803d51f46eadcd698a87c3c491e1"
+        },
+        {
+          "description": "Kratos wallpaper (format only)",
+          "sha256": "828e7df4e4fb8b1698639bc14fba9092ac233c819c54566e3e6f68829dd6e2e6"
+        }
+      ],
+      "method": "1536x1024 model output (candidate 2 of 2), mirrored horizontally so the heroine sits on the right (the start menu dims the left side for copy) and cropped to the top 864px.",
+      "prompt": {
+        "path": "docs/skins/monogatari_silent-art/prompts/select-wallpaper.txt",
+        "sha256": "724b1b3fbe45befa841b45073830cb856b25c54687b46ed85e7244fdc1c19658"
+      }
+    }
+  ],
+  "poseReferences": {
+    "note": "Seated, merchant and reaching-hand references for later noncombat art; kept outside the repo in $STS_SKIN_WORK/silent-assets/ (not committed).",
+    "prompts": [
+      {
+        "path": "docs/skins/monogatari_silent-art/prompts/pose-seated.txt",
+        "sha256": "4e28162aa5ade4b3fa82c2c57793620d992a6c05a0efa7ee5e6c330601d9c732"
+      },
+      {
+        "path": "docs/skins/monogatari_silent-art/prompts/pose-merchant.txt",
+        "sha256": "ea89ac2837f217670c2055c5e3f03fff0467a406de27c4544944887fe76b16d0"
+      },
+      {
+        "path": "docs/skins/monogatari_silent-art/prompts/pose-reaching.txt",
+        "sha256": "f47e16d004e2b7afe9f5dc7bdede2a6ca5a41e6ccf4a17ba91560fac9fd5f57b"
+      }
+    ]
+  },
+  "attack": {
+    "note": "Twenty-two attack drawings generated with gpt-image-2.5-sunburst (imagegen CLI edit, quality high, native alpha, 1536x1024, --no-augment): the original six (crouch, lunge, stab, slash, follow, recover), eight added so that no cut jumps the head more than about a head and a half and the feet step instead of skating (coil, dash1-dash3, rise0, rise, skip, land), and eight more so that no cut moves the head or the near-hand dagger more than about two and a half head lengths and the dash is carried by flight drawings (dash1b take-off, air and air2 the near arm swinging forward before touchdown, thrust the half-extended arm between lunge and stab, swing1 to swing3 the arm coming down out of the rising cut, skipb the descent of the retreat hop). Sources are the exact lossless model outputs; scripts/animation/monogatari_silent.py bakes them (registration: scripts/animation/sources/monogatari_silent/attack-registration.json; `lift` raises the airborne drawings, `shift` places a drawing with no sole to plant). The registration tracks the NEAR (ring-hand) dagger in every drawing, tip first. The ready drawing and idle loop derive from monogatari_silent-hero.webp.",
+    "registration": {
+      "path": "scripts/animation/sources/monogatari_silent/attack-registration.json",
+      "sha256": "0640735155f17bacca3d4d7a715d9d9e7ad1492251034d8167151d8575969c66"
+    },
+    "config": "scripts/animation/skins/monogatari_silent.json",
+    "generated": [
+      {
+        "name": "coil",
+        "prompt": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/coil-prompt.txt",
+          "sha256": "951bf187d5868ab585e9c89d68f8b222f99333d1c86687c3edf87551aa326346"
+        },
+        "candidate": "coilb-4.png (of 4, second round after a first round came out as deep as the crouch)",
+        "inputs": [
+          {
+            "description": "layout canvas 1536x1024 holding the registered idle at 1.6x runtime scale (committed)",
+            "path": "scripts/animation/sources/monogatari_silent/combo/layout-idle.webp",
+            "sha256": "805ca5c28c991eea237d8b08cdff6be91cfc1abaa3c4b6c2335c7b3e238e01d6"
+          },
+          {
+            "description": "idle-cutout.webp shrunk by 0.405 (same scale as the layout idle); not committed, derived from scripts/art/sources/monogatari_silent-char/idle-cutout.webp",
+            "sha256": "92c019bd9b598dfb8ed9a330643637a951b004c8144aadeaf81dfc2e99127cb4"
+          },
+          {
+            "description": "approved \"crouch\" drawing normalised onto the layout (uniform bake scale, planted on the layout ground point); derived from scripts/animation/sources/monogatari_silent/combo/crouch.webp, not committed",
+            "sha256": "1ab8a96573e0f7ef9027d1d1a94d655550353dca1e40753c221a2b8c875cd652"
+          }
+        ],
+        "source": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/coil.webp",
+          "sha256": "c6d0b3a97cbe275f35641daaafc93fa8570e50286850b5e33cff22d318553091"
+        },
+        "output": {
+          "path": "public/assets/combat/characters/animated/monogatari_silent-coil.webp",
+          "sha256": "67362d78df463cb0c41c49d506dbac9b767a7d2e73ad0d4c89f8b80c9e595ba2"
+        }
+      },
+      {
+        "name": "crouch",
+        "prompt": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/crouch-prompt.txt",
+          "sha256": "bc47bafc0925dbb269bf56a2a9873deee642034926b84a8255adeac78aaef5d1"
+        },
+        "candidate": "crouch-b-1.png (of 3-4 per prompt)",
+        "inputs": [
+          {
+            "description": "layout canvas 1536x1024 holding the registered idle at 1.6x runtime scale (committed)",
+            "path": "scripts/animation/sources/monogatari_silent/combo/layout-idle.webp",
+            "sha256": "805ca5c28c991eea237d8b08cdff6be91cfc1abaa3c4b6c2335c7b3e238e01d6"
+          },
+          {
+            "description": "idle-cutout.webp shrunk by 0.405 (same scale as the layout idle); not committed, derived from scripts/art/sources/monogatari_silent-char/idle-cutout.webp",
+            "sha256": "92c019bd9b598dfb8ed9a330643637a951b004c8144aadeaf81dfc2e99127cb4"
+          }
+        ],
+        "source": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/crouch.webp",
+          "sha256": "c4c272bcbdd3ee39a3591821b213f634be10f0926dfe892d37ed1f892318a78d"
+        },
+        "output": {
+          "path": "public/assets/combat/characters/animated/monogatari_silent-crouch.webp",
+          "sha256": "bffb7117b3437806b1ef07ee7aae6587719b26cefdc28f3a1a5e8f2ec7ae759c"
+        }
+      },
+      {
+        "name": "dash1",
+        "prompt": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/dash1-prompt.txt",
+          "sha256": "a6df8263c211cbdd57ac8ffde9f5af06772ae854aa07da849f3d660076ff7403"
+        },
+        "candidate": "dash1-2.png (of 4)",
+        "inputs": [
+          {
+            "description": "layout canvas 1536x1024 holding the registered idle at 1.6x runtime scale (committed)",
+            "path": "scripts/animation/sources/monogatari_silent/combo/layout-idle.webp",
+            "sha256": "805ca5c28c991eea237d8b08cdff6be91cfc1abaa3c4b6c2335c7b3e238e01d6"
+          },
+          {
+            "description": "idle-cutout.webp shrunk by 0.405 (same scale as the layout idle); not committed, derived from scripts/art/sources/monogatari_silent-char/idle-cutout.webp",
+            "sha256": "92c019bd9b598dfb8ed9a330643637a951b004c8144aadeaf81dfc2e99127cb4"
+          },
+          {
+            "description": "approved \"crouch\" drawing normalised onto the layout (uniform bake scale, planted on the layout ground point); derived from scripts/animation/sources/monogatari_silent/combo/crouch.webp, not committed",
+            "sha256": "1ab8a96573e0f7ef9027d1d1a94d655550353dca1e40753c221a2b8c875cd652"
+          },
+          {
+            "description": "approved \"lunge\" drawing normalised onto the layout (uniform bake scale, planted on the layout ground point); derived from scripts/animation/sources/monogatari_silent/combo/lunge.webp, not committed",
+            "sha256": "eaa96dee541adf961394a9bebfcbc3332fc06ffb282cbeac83176d0f37ff61fe"
+          }
+        ],
+        "source": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/dash1.webp",
+          "sha256": "4b80db74173da9f64ea360dea6a3997018c62f618906de0a15b83545415bbe0a"
+        },
+        "output": {
+          "path": "public/assets/combat/characters/animated/monogatari_silent-dash1.webp",
+          "sha256": "364bef09b6b8d5888792c65c7123100d4564b58a003f405a133d1c831f14238b"
+        }
+      },
+      {
+        "name": "dash1b",
+        "prompt": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/dash1b-prompt.txt",
+          "sha256": "d97bee758de134c227edd905fe42e260074105a953fb6155ba1705eb650bf949"
+        },
+        "candidate": "dash1b-3.png (of 4): take-off, halfway between dash1 and dash2",
+        "inputs": [
+          {
+            "description": "layout canvas 1536x1024 holding the registered idle at 1.6x runtime scale (committed)",
+            "path": "scripts/animation/sources/monogatari_silent/combo/layout-idle.webp",
+            "sha256": "805ca5c28c991eea237d8b08cdff6be91cfc1abaa3c4b6c2335c7b3e238e01d6"
+          },
+          {
+            "description": "idle-cutout.webp shrunk by 0.405 (same scale as the layout idle); not committed, derived from scripts/art/sources/monogatari_silent-char/idle-cutout.webp",
+            "sha256": "92c019bd9b598dfb8ed9a330643637a951b004c8144aadeaf81dfc2e99127cb4"
+          },
+          {
+            "description": "approved \"dash1\" drawing normalised onto the layout (uniform bake scale, planted on the layout ground point); derived from scripts/animation/sources/monogatari_silent/combo/dash1.webp, not committed",
+            "sha256": "9e1b333a73c5affe263bf4a439087c821c87c76f0baf70256546264e8838d94d"
+          },
+          {
+            "description": "approved \"dash2\" drawing normalised onto the layout (uniform bake scale, planted on the layout ground point); derived from scripts/animation/sources/monogatari_silent/combo/dash2.webp, not committed",
+            "sha256": "86e76d192b3d37fbc24429ac8f69eb96ca423e0b125febad80a4b4c9b888b242"
+          }
+        ],
+        "source": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/dash1b.webp",
+          "sha256": "d37ab8b85aff8d2c2f8a8633bf150fdf8afe66e806f8cf9a466e99a01674af7b"
+        },
+        "output": {
+          "path": "public/assets/combat/characters/animated/monogatari_silent-dash1b.webp",
+          "sha256": "9653e2bcbba37cf832c7303560b5e1376c6fcaa507a09e2b7ac117c37618ffa2"
+        }
+      },
+      {
+        "name": "dash2",
+        "prompt": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/dash2-prompt.txt",
+          "sha256": "0205f2dc5d5258fb8084682ca896c8bca9436074e451c6644d22ffff00060c5d"
+        },
+        "candidate": "dash2-2.png (of 4)",
+        "inputs": [
+          {
+            "description": "layout canvas 1536x1024 holding the registered idle at 1.6x runtime scale (committed)",
+            "path": "scripts/animation/sources/monogatari_silent/combo/layout-idle.webp",
+            "sha256": "805ca5c28c991eea237d8b08cdff6be91cfc1abaa3c4b6c2335c7b3e238e01d6"
+          },
+          {
+            "description": "idle-cutout.webp shrunk by 0.405 (same scale as the layout idle); not committed, derived from scripts/art/sources/monogatari_silent-char/idle-cutout.webp",
+            "sha256": "92c019bd9b598dfb8ed9a330643637a951b004c8144aadeaf81dfc2e99127cb4"
+          },
+          {
+            "description": "approved \"crouch\" drawing normalised onto the layout (uniform bake scale, planted on the layout ground point); derived from scripts/animation/sources/monogatari_silent/combo/crouch.webp, not committed",
+            "sha256": "1ab8a96573e0f7ef9027d1d1a94d655550353dca1e40753c221a2b8c875cd652"
+          },
+          {
+            "description": "approved \"lunge\" drawing normalised onto the layout (uniform bake scale, planted on the layout ground point); derived from scripts/animation/sources/monogatari_silent/combo/lunge.webp, not committed",
+            "sha256": "eaa96dee541adf961394a9bebfcbc3332fc06ffb282cbeac83176d0f37ff61fe"
+          }
+        ],
+        "source": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/dash2.webp",
+          "sha256": "f2fe0e543c82ba7288861a2853e356368b3f70741025b15527d36115c3aeee27"
+        },
+        "output": {
+          "path": "public/assets/combat/characters/animated/monogatari_silent-dash2.webp",
+          "sha256": "dff57083cb65d1877523d7c93a2f85f37ce151f81f7022640fa655728cfdbd79"
+        }
+      },
+      {
+        "name": "air",
+        "prompt": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/air-prompt.txt",
+          "sha256": "26cb49f580975b28ad2d68f15a57e9c2123f9eff64308c135cc76103910cdf0d"
+        },
+        "candidate": "air3-3.png (of 4; the first two rounds came out with the ring on both hands or with the near arm still trailing back, so the prompt was tightened twice): the near arm hanging down, dagger straight down; baked with a +193px placement shift (airborne, no sole to plant)",
+        "inputs": [
+          {
+            "description": "layout canvas 1536x1024 holding the registered idle at 1.6x runtime scale (committed)",
+            "path": "scripts/animation/sources/monogatari_silent/combo/layout-idle.webp",
+            "sha256": "805ca5c28c991eea237d8b08cdff6be91cfc1abaa3c4b6c2335c7b3e238e01d6"
+          },
+          {
+            "description": "idle-cutout.webp shrunk by 0.405 (same scale as the layout idle); not committed, derived from scripts/art/sources/monogatari_silent-char/idle-cutout.webp",
+            "sha256": "92c019bd9b598dfb8ed9a330643637a951b004c8144aadeaf81dfc2e99127cb4"
+          },
+          {
+            "description": "approved \"dash2\" drawing normalised onto the layout (uniform bake scale, planted on the layout ground point); derived from scripts/animation/sources/monogatari_silent/combo/dash2.webp, not committed",
+            "sha256": "86e76d192b3d37fbc24429ac8f69eb96ca423e0b125febad80a4b4c9b888b242"
+          },
+          {
+            "description": "approved \"dash3\" drawing normalised onto the layout (uniform bake scale, planted on the layout ground point); derived from scripts/animation/sources/monogatari_silent/combo/dash3.webp, not committed",
+            "sha256": "389c261b88a9359cc71dda24a2d4005822fabdae0934aff309eb66fc237b79a5"
+          }
+        ],
+        "source": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/air.webp",
+          "sha256": "b5787ee72f6c7c9a4ccadb0d5544d11e00eed708c2af7d2dd1865edca9807e28"
+        },
+        "output": {
+          "path": "public/assets/combat/characters/animated/monogatari_silent-air.webp",
+          "sha256": "88c075b5a6f387893824f1c79b811056ceaf6be0f3adb263494633cd592112c4"
+        }
+      },
+      {
+        "name": "air2",
+        "prompt": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/air2-prompt.txt",
+          "sha256": "644ab53239360e763ab948a73f679eb38f9ca0026d5a29e18f350aad642cdecb"
+        },
+        "candidate": "air4-1.png (of 4): the near arm swinging forward, dagger down and forward; baked with a +286px placement shift (airborne)",
+        "inputs": [
+          {
+            "description": "layout canvas 1536x1024 holding the registered idle at 1.6x runtime scale (committed)",
+            "path": "scripts/animation/sources/monogatari_silent/combo/layout-idle.webp",
+            "sha256": "805ca5c28c991eea237d8b08cdff6be91cfc1abaa3c4b6c2335c7b3e238e01d6"
+          },
+          {
+            "description": "idle-cutout.webp shrunk by 0.405 (same scale as the layout idle); not committed, derived from scripts/art/sources/monogatari_silent-char/idle-cutout.webp",
+            "sha256": "92c019bd9b598dfb8ed9a330643637a951b004c8144aadeaf81dfc2e99127cb4"
+          },
+          {
+            "description": "approved \"dash2\" drawing normalised onto the layout (uniform bake scale, planted on the layout ground point); derived from scripts/animation/sources/monogatari_silent/combo/dash2.webp, not committed",
+            "sha256": "86e76d192b3d37fbc24429ac8f69eb96ca423e0b125febad80a4b4c9b888b242"
+          },
+          {
+            "description": "approved \"dash3\" drawing normalised onto the layout (uniform bake scale, planted on the layout ground point); derived from scripts/animation/sources/monogatari_silent/combo/dash3.webp, not committed",
+            "sha256": "389c261b88a9359cc71dda24a2d4005822fabdae0934aff309eb66fc237b79a5"
+          }
+        ],
+        "source": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/air2.webp",
+          "sha256": "c9bc8e776fd06b5804ff533fcd77e4fcf8af60bb03975e1c26544248c48b4c02"
+        },
+        "output": {
+          "path": "public/assets/combat/characters/animated/monogatari_silent-air2.webp",
+          "sha256": "c499fbcc448bc03b2ac4dc483c4487ac50a9895acaa8c127bb0772058b338bae"
+        }
+      },
+      {
+        "name": "dash3",
+        "prompt": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/dash3-prompt.txt",
+          "sha256": "74f5dac152d312bf7c6baece0601df39861ea3ed701eee3a8025b6f0ca340e2c"
+        },
+        "candidate": "dash3-3.png (of 4)",
+        "inputs": [
+          {
+            "description": "layout canvas 1536x1024 holding the registered idle at 1.6x runtime scale (committed)",
+            "path": "scripts/animation/sources/monogatari_silent/combo/layout-idle.webp",
+            "sha256": "805ca5c28c991eea237d8b08cdff6be91cfc1abaa3c4b6c2335c7b3e238e01d6"
+          },
+          {
+            "description": "idle-cutout.webp shrunk by 0.405 (same scale as the layout idle); not committed, derived from scripts/art/sources/monogatari_silent-char/idle-cutout.webp",
+            "sha256": "92c019bd9b598dfb8ed9a330643637a951b004c8144aadeaf81dfc2e99127cb4"
+          },
+          {
+            "description": "approved \"crouch\" drawing normalised onto the layout (uniform bake scale, planted on the layout ground point); derived from scripts/animation/sources/monogatari_silent/combo/crouch.webp, not committed",
+            "sha256": "1ab8a96573e0f7ef9027d1d1a94d655550353dca1e40753c221a2b8c875cd652"
+          },
+          {
+            "description": "approved \"lunge\" drawing normalised onto the layout (uniform bake scale, planted on the layout ground point); derived from scripts/animation/sources/monogatari_silent/combo/lunge.webp, not committed",
+            "sha256": "eaa96dee541adf961394a9bebfcbc3332fc06ffb282cbeac83176d0f37ff61fe"
+          }
+        ],
+        "source": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/dash3.webp",
+          "sha256": "72438a44671095209146240cd326e7363b4fa958a032ad6191c17bd9928b046f"
+        },
+        "output": {
+          "path": "public/assets/combat/characters/animated/monogatari_silent-dash3.webp",
+          "sha256": "bb9500a026c3a05a6ff6c801befea27be2e367acc74882ebcbf1e733b74edade"
+        }
+      },
+      {
+        "name": "lunge",
+        "prompt": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/lunge-prompt.txt",
+          "sha256": "8375932b5efcac783909e93ac6646c636fcad8edb755d5993d700b2d909f49af"
+        },
+        "candidate": "lunge-2.png (of 3-4 per prompt)",
+        "inputs": [
+          {
+            "description": "layout canvas 1536x1024 holding the registered idle at 1.6x runtime scale (committed)",
+            "path": "scripts/animation/sources/monogatari_silent/combo/layout-idle.webp",
+            "sha256": "805ca5c28c991eea237d8b08cdff6be91cfc1abaa3c4b6c2335c7b3e238e01d6"
+          },
+          {
+            "description": "idle-cutout.webp shrunk by 0.405 (same scale as the layout idle); not committed, derived from scripts/art/sources/monogatari_silent-char/idle-cutout.webp",
+            "sha256": "92c019bd9b598dfb8ed9a330643637a951b004c8144aadeaf81dfc2e99127cb4"
+          },
+          {
+            "description": "approved \"crouch\" drawing normalised onto the layout (uniform bake scale, planted on the layout ground point); derived from scripts/animation/sources/monogatari_silent/combo/crouch.webp, not committed",
+            "sha256": "1ab8a96573e0f7ef9027d1d1a94d655550353dca1e40753c221a2b8c875cd652"
+          }
+        ],
+        "source": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/lunge.webp",
+          "sha256": "39cc568d4ee948094540722efb2ce5609f1e502cfd0e7e813ba0f66012156985"
+        },
+        "output": {
+          "path": "public/assets/combat/characters/animated/monogatari_silent-lunge.webp",
+          "sha256": "d5513fcf75a8b30d7a60eb78e17a095a7143d205cb067181be6c6b0ca206bf22"
+        }
+      },
+      {
+        "name": "thrust",
+        "prompt": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/thrust-prompt.txt",
+          "sha256": "51ffaafb805e07928f23817bbe104634cf25480779c719dea106faf89b7fb0bd"
+        },
+        "candidate": "thrust2-4.png (of 4; the first round came out with a straight arm, so the prompt names the bent elbow): the thrust half way, elbow bent",
+        "inputs": [
+          {
+            "description": "layout canvas 1536x1024 holding the registered idle at 1.6x runtime scale (committed)",
+            "path": "scripts/animation/sources/monogatari_silent/combo/layout-idle.webp",
+            "sha256": "805ca5c28c991eea237d8b08cdff6be91cfc1abaa3c4b6c2335c7b3e238e01d6"
+          },
+          {
+            "description": "idle-cutout.webp shrunk by 0.405 (same scale as the layout idle); not committed, derived from scripts/art/sources/monogatari_silent-char/idle-cutout.webp",
+            "sha256": "92c019bd9b598dfb8ed9a330643637a951b004c8144aadeaf81dfc2e99127cb4"
+          },
+          {
+            "description": "approved \"lunge\" drawing normalised onto the layout (uniform bake scale, planted on the layout ground point); derived from scripts/animation/sources/monogatari_silent/combo/lunge.webp, not committed",
+            "sha256": "eaa96dee541adf961394a9bebfcbc3332fc06ffb282cbeac83176d0f37ff61fe"
+          },
+          {
+            "description": "approved \"stab\" drawing normalised onto the layout (uniform bake scale, planted on the layout ground point); derived from scripts/animation/sources/monogatari_silent/combo/stab.webp, not committed",
+            "sha256": "12d5d23f6f03cdc24b5c9f32333b1d8fa017b113e79a79060e77f81c4d5d6bc4"
+          }
+        ],
+        "source": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/thrust.webp",
+          "sha256": "af19015e7d0315c79d390efd70cfe99f5239c93f3f384a0ccad385a70a477d0b"
+        },
+        "output": {
+          "path": "public/assets/combat/characters/animated/monogatari_silent-thrust.webp",
+          "sha256": "23db11b3930ac829adcf8842d5553ba5da5b5f3516ed33b581017d3d5f9a2548"
+        }
+      },
+      {
+        "name": "stab",
+        "prompt": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/stab-prompt.txt",
+          "sha256": "4584fa64014625c818b54365a772f842d83e77cb6a78cfb66bece56576736800"
+        },
+        "candidate": "stab-3.png (of 3-4 per prompt)",
+        "inputs": [
+          {
+            "description": "layout canvas 1536x1024 holding the registered idle at 1.6x runtime scale (committed)",
+            "path": "scripts/animation/sources/monogatari_silent/combo/layout-idle.webp",
+            "sha256": "805ca5c28c991eea237d8b08cdff6be91cfc1abaa3c4b6c2335c7b3e238e01d6"
+          },
+          {
+            "description": "idle-cutout.webp shrunk by 0.405 (same scale as the layout idle); not committed, derived from scripts/art/sources/monogatari_silent-char/idle-cutout.webp",
+            "sha256": "92c019bd9b598dfb8ed9a330643637a951b004c8144aadeaf81dfc2e99127cb4"
+          },
+          {
+            "description": "approved \"crouch\" drawing normalised onto the layout (uniform bake scale, planted on the layout ground point); derived from scripts/animation/sources/monogatari_silent/combo/crouch.webp, not committed",
+            "sha256": "1ab8a96573e0f7ef9027d1d1a94d655550353dca1e40753c221a2b8c875cd652"
+          }
+        ],
+        "source": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/stab.webp",
+          "sha256": "0adfa0ead8aa6f0fefa24029ece9ed328a49ad2f628492e35107b36b5ec96a54"
+        },
+        "output": {
+          "path": "public/assets/combat/characters/animated/monogatari_silent-stab.webp",
+          "sha256": "227f54f3f7cb8a8d69becd45047fae1a1fb4d4728bae5f1a89550ae276780fea"
+        }
+      },
+      {
+        "name": "slash",
+        "prompt": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/slash-prompt.txt",
+          "sha256": "8b28f2933d76e414c15d1a3620b3d9fa6e6d75da61886f935301d31b98b93e97"
+        },
+        "candidate": "slashb-2.png (of 3-4 per prompt)",
+        "inputs": [
+          {
+            "description": "layout canvas 1536x1024 holding the registered idle at 1.6x runtime scale (committed)",
+            "path": "scripts/animation/sources/monogatari_silent/combo/layout-idle.webp",
+            "sha256": "805ca5c28c991eea237d8b08cdff6be91cfc1abaa3c4b6c2335c7b3e238e01d6"
+          },
+          {
+            "description": "idle-cutout.webp shrunk by 0.405 (same scale as the layout idle); not committed, derived from scripts/art/sources/monogatari_silent-char/idle-cutout.webp",
+            "sha256": "92c019bd9b598dfb8ed9a330643637a951b004c8144aadeaf81dfc2e99127cb4"
+          },
+          {
+            "description": "approved \"stab\" drawing normalised onto the layout (uniform bake scale, planted on the layout ground point); derived from scripts/animation/sources/monogatari_silent/combo/stab.webp, not committed",
+            "sha256": "12d5d23f6f03cdc24b5c9f32333b1d8fa017b113e79a79060e77f81c4d5d6bc4"
+          }
+        ],
+        "source": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/slash.webp",
+          "sha256": "658f67639de3f4506291a76795961204e6d1a991db7e8e1fe0c7646bf0cb4ab1"
+        },
+        "output": {
+          "path": "public/assets/combat/characters/animated/monogatari_silent-slash.webp",
+          "sha256": "0e2b3440a09868d1de6bd29c74e9be2b2647a9800fba08a0171ef9b61259cca6"
+        }
+      },
+      {
+        "name": "swing1",
+        "prompt": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/swing1-prompt.txt",
+          "sha256": "df2b9464f4ebb93f509814b5168e0f32015cc34f92dce32f334b29c7c1805199"
+        },
+        "candidate": "sw1n-2.png (of 4; a first round kept the arm too high): the arm coming down out of the cut, no trail",
+        "inputs": [
+          {
+            "description": "layout canvas 1536x1024 holding the registered idle at 1.6x runtime scale (committed)",
+            "path": "scripts/animation/sources/monogatari_silent/combo/layout-idle.webp",
+            "sha256": "805ca5c28c991eea237d8b08cdff6be91cfc1abaa3c4b6c2335c7b3e238e01d6"
+          },
+          {
+            "description": "idle-cutout.webp shrunk by 0.405 (same scale as the layout idle); not committed, derived from scripts/art/sources/monogatari_silent-char/idle-cutout.webp",
+            "sha256": "92c019bd9b598dfb8ed9a330643637a951b004c8144aadeaf81dfc2e99127cb4"
+          },
+          {
+            "description": "approved \"slash\" drawing normalised onto the layout (uniform bake scale, planted on the layout ground point); derived from scripts/animation/sources/monogatari_silent/combo/slash.webp, not committed",
+            "sha256": "1b0864bbaea3b806c208f3a321854565437936bed5e3ea1bb795c683801c00d6"
+          },
+          {
+            "description": "approved \"swing2\" drawing normalised onto the layout (uniform bake scale, planted on the layout ground point); derived from scripts/animation/sources/monogatari_silent/combo/swing2.webp, not committed",
+            "sha256": "712c17a87d05627d02cb0b9f3042930f78977d714f9ae3dd960e3df3f4c23665"
+          }
+        ],
+        "source": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/swing1.webp",
+          "sha256": "68f194f5169e4fe3be520d43967b5a0e0075021718cb3dbfaf5eb5b3eab71e85"
+        },
+        "output": {
+          "path": "public/assets/combat/characters/animated/monogatari_silent-swing1.webp",
+          "sha256": "6df156de634d925c27d7d1ec663d0d9ce67e85a15a5c5479a31b98500220699e"
+        }
+      },
+      {
+        "name": "swing2",
+        "prompt": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/swing2-prompt.txt",
+          "sha256": "4153d39dc5160679f8f40000cad7b4c9170205f306d4f1d6d17d4b75cfedc6a3"
+        },
+        "candidate": "swing2-3.png (of 4): fist in front of the waist, dagger pointing forward and down",
+        "inputs": [
+          {
+            "description": "layout canvas 1536x1024 holding the registered idle at 1.6x runtime scale (committed)",
+            "path": "scripts/animation/sources/monogatari_silent/combo/layout-idle.webp",
+            "sha256": "805ca5c28c991eea237d8b08cdff6be91cfc1abaa3c4b6c2335c7b3e238e01d6"
+          },
+          {
+            "description": "idle-cutout.webp shrunk by 0.405 (same scale as the layout idle); not committed, derived from scripts/art/sources/monogatari_silent-char/idle-cutout.webp",
+            "sha256": "92c019bd9b598dfb8ed9a330643637a951b004c8144aadeaf81dfc2e99127cb4"
+          },
+          {
+            "description": "approved \"slash\" drawing normalised onto the layout (uniform bake scale, planted on the layout ground point); derived from scripts/animation/sources/monogatari_silent/combo/slash.webp, not committed",
+            "sha256": "1b0864bbaea3b806c208f3a321854565437936bed5e3ea1bb795c683801c00d6"
+          },
+          {
+            "description": "approved \"follow\" drawing normalised onto the layout (uniform bake scale, planted on the layout ground point); derived from scripts/animation/sources/monogatari_silent/combo/follow.webp, not committed",
+            "sha256": "6eb85ad7daef340de620d9524afbc24a897b214c3253737dc837b8e65088702a"
+          }
+        ],
+        "source": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/swing2.webp",
+          "sha256": "e3fe365ce148c2a82852747845bc2a221e7171418d7d5b805e2634c7af8d52e4"
+        },
+        "output": {
+          "path": "public/assets/combat/characters/animated/monogatari_silent-swing2.webp",
+          "sha256": "668ece852271b4c4180212a891345d8f3b501c3bde32ebfc8d9c9b635d851c84"
+        }
+      },
+      {
+        "name": "swing3",
+        "prompt": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/swing3-prompt.txt",
+          "sha256": "656b9c0098446e6c68a397ac9d9614ff08e0e154d63647ef465b55e694281a12"
+        },
+        "candidate": "sw3-2.png (of 4): the dagger flipping to the reverse grip, pointing straight down",
+        "inputs": [
+          {
+            "description": "layout canvas 1536x1024 holding the registered idle at 1.6x runtime scale (committed)",
+            "path": "scripts/animation/sources/monogatari_silent/combo/layout-idle.webp",
+            "sha256": "805ca5c28c991eea237d8b08cdff6be91cfc1abaa3c4b6c2335c7b3e238e01d6"
+          },
+          {
+            "description": "idle-cutout.webp shrunk by 0.405 (same scale as the layout idle); not committed, derived from scripts/art/sources/monogatari_silent-char/idle-cutout.webp",
+            "sha256": "92c019bd9b598dfb8ed9a330643637a951b004c8144aadeaf81dfc2e99127cb4"
+          },
+          {
+            "description": "approved \"swing2\" drawing normalised onto the layout (uniform bake scale, planted on the layout ground point); derived from scripts/animation/sources/monogatari_silent/combo/swing2.webp, not committed",
+            "sha256": "712c17a87d05627d02cb0b9f3042930f78977d714f9ae3dd960e3df3f4c23665"
+          },
+          {
+            "description": "approved \"follow\" drawing normalised onto the layout (uniform bake scale, planted on the layout ground point); derived from scripts/animation/sources/monogatari_silent/combo/follow.webp, not committed",
+            "sha256": "6eb85ad7daef340de620d9524afbc24a897b214c3253737dc837b8e65088702a"
+          }
+        ],
+        "source": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/swing3.webp",
+          "sha256": "c9013892c7665085aa8f0e7d655808f1f5cf3519c37642a7d1b7fbedd31f8379"
+        },
+        "output": {
+          "path": "public/assets/combat/characters/animated/monogatari_silent-swing3.webp",
+          "sha256": "66f9647ba488417dc02c377e8db64158d3d377f5db57ce0b73163cf9bd9de7d4"
+        }
+      },
+      {
+        "name": "follow",
+        "prompt": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/follow-prompt.txt",
+          "sha256": "ad63ec97218f76723f51c5d0ff8feac6ae26fe434c974efb0fc87f62329c1f97"
+        },
+        "candidate": "follow-3.png (of 3-4 per prompt)",
+        "inputs": [
+          {
+            "description": "layout canvas 1536x1024 holding the registered idle at 1.6x runtime scale (committed)",
+            "path": "scripts/animation/sources/monogatari_silent/combo/layout-idle.webp",
+            "sha256": "805ca5c28c991eea237d8b08cdff6be91cfc1abaa3c4b6c2335c7b3e238e01d6"
+          },
+          {
+            "description": "idle-cutout.webp shrunk by 0.405 (same scale as the layout idle); not committed, derived from scripts/art/sources/monogatari_silent-char/idle-cutout.webp",
+            "sha256": "92c019bd9b598dfb8ed9a330643637a951b004c8144aadeaf81dfc2e99127cb4"
+          },
+          {
+            "description": "approved \"slash\" drawing normalised onto the layout (uniform bake scale, planted on the layout ground point); derived from scripts/animation/sources/monogatari_silent/combo/slash.webp, not committed",
+            "sha256": "1b0864bbaea3b806c208f3a321854565437936bed5e3ea1bb795c683801c00d6"
+          }
+        ],
+        "source": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/follow.webp",
+          "sha256": "dbb796cab699c1f55d6e3b778c2648aefe0d0def4ed4539e66ef9d3cc9b8151c"
+        },
+        "output": {
+          "path": "public/assets/combat/characters/animated/monogatari_silent-follow.webp",
+          "sha256": "4ffa16c910177f1c8ea157237c02a306351a385b30caed949922fea1cc787d65"
+        }
+      },
+      {
+        "name": "rise0",
+        "prompt": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/rise0-prompt.txt",
+          "sha256": "847f58cc1f2434451b1777440ca1d4d40b87fd240c9ba541ce1cda06c9629973"
+        },
+        "candidate": "rise0-4.png (of 4)",
+        "inputs": [
+          {
+            "description": "layout canvas 1536x1024 holding the registered idle at 1.6x runtime scale (committed)",
+            "path": "scripts/animation/sources/monogatari_silent/combo/layout-idle.webp",
+            "sha256": "805ca5c28c991eea237d8b08cdff6be91cfc1abaa3c4b6c2335c7b3e238e01d6"
+          },
+          {
+            "description": "idle-cutout.webp shrunk by 0.405 (same scale as the layout idle); not committed, derived from scripts/art/sources/monogatari_silent-char/idle-cutout.webp",
+            "sha256": "92c019bd9b598dfb8ed9a330643637a951b004c8144aadeaf81dfc2e99127cb4"
+          },
+          {
+            "description": "approved \"follow\" drawing normalised onto the layout (uniform bake scale, planted on the layout ground point); derived from scripts/animation/sources/monogatari_silent/combo/follow.webp, not committed",
+            "sha256": "6eb85ad7daef340de620d9524afbc24a897b214c3253737dc837b8e65088702a"
+          },
+          {
+            "description": "approved \"rise\" drawing normalised onto the layout (uniform bake scale, planted on the layout ground point); derived from scripts/animation/sources/monogatari_silent/combo/rise.webp, not committed",
+            "sha256": "c0209dea03195439ef661e7418806fc48883679d72c3643e970db7945fa6e5a1"
+          }
+        ],
+        "source": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/rise0.webp",
+          "sha256": "acf44a37e47e7648e4af3c77073d75542479dcdbff6c4337d5a50802e207f2c7"
+        },
+        "output": {
+          "path": "public/assets/combat/characters/animated/monogatari_silent-rise0.webp",
+          "sha256": "29a3f09a3e2dcb823ac11c28f3ec2d3e1a19a0f0ed8fe5e83b4c7cdc932e2bd1"
+        }
+      },
+      {
+        "name": "rise",
+        "prompt": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/rise-prompt.txt",
+          "sha256": "0ce60013e3441e92c5ebb52d48895dff17bad13e0d3e01849257ee69760f4165"
+        },
+        "candidate": "rise-2.png (of 4, second round after a first round stood nearly upright)",
+        "inputs": [
+          {
+            "description": "layout canvas 1536x1024 holding the registered idle at 1.6x runtime scale (committed)",
+            "path": "scripts/animation/sources/monogatari_silent/combo/layout-idle.webp",
+            "sha256": "805ca5c28c991eea237d8b08cdff6be91cfc1abaa3c4b6c2335c7b3e238e01d6"
+          },
+          {
+            "description": "idle-cutout.webp shrunk by 0.405 (same scale as the layout idle); not committed, derived from scripts/art/sources/monogatari_silent-char/idle-cutout.webp",
+            "sha256": "92c019bd9b598dfb8ed9a330643637a951b004c8144aadeaf81dfc2e99127cb4"
+          },
+          {
+            "description": "approved \"follow\" drawing normalised onto the layout (uniform bake scale, planted on the layout ground point); derived from scripts/animation/sources/monogatari_silent/combo/follow.webp, not committed",
+            "sha256": "6eb85ad7daef340de620d9524afbc24a897b214c3253737dc837b8e65088702a"
+          },
+          {
+            "description": "approved \"skip\" drawing normalised onto the layout (uniform bake scale, planted on the layout ground point); derived from scripts/animation/sources/monogatari_silent/combo/skip.webp, not committed",
+            "sha256": "f8de3308fdda6314ca12a849d33e155ca8d50444557ca6974db6ee7b3412c854"
+          }
+        ],
+        "source": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/rise.webp",
+          "sha256": "3d8b1678317e359326dedd3e4cb56455fc93116f1ca0ab0541e428245bc8527f"
+        },
+        "output": {
+          "path": "public/assets/combat/characters/animated/monogatari_silent-rise.webp",
+          "sha256": "7a52a69f7f0f6d86d88c67eebddd02c188db99648722ab429a89380fe61d6ec8"
+        }
+      },
+      {
+        "name": "skip",
+        "prompt": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/skip-prompt.txt",
+          "sha256": "ae47fb82effce138fef802f1a081e021403c0f036961ad6bdac1aee6e0db6efc"
+        },
+        "candidate": "skip-4.png (of 4)",
+        "inputs": [
+          {
+            "description": "layout canvas 1536x1024 holding the registered idle at 1.6x runtime scale (committed)",
+            "path": "scripts/animation/sources/monogatari_silent/combo/layout-idle.webp",
+            "sha256": "805ca5c28c991eea237d8b08cdff6be91cfc1abaa3c4b6c2335c7b3e238e01d6"
+          },
+          {
+            "description": "idle-cutout.webp shrunk by 0.405 (same scale as the layout idle); not committed, derived from scripts/art/sources/monogatari_silent-char/idle-cutout.webp",
+            "sha256": "92c019bd9b598dfb8ed9a330643637a951b004c8144aadeaf81dfc2e99127cb4"
+          },
+          {
+            "description": "approved \"follow\" drawing normalised onto the layout (uniform bake scale, planted on the layout ground point); derived from scripts/animation/sources/monogatari_silent/combo/follow.webp, not committed",
+            "sha256": "6eb85ad7daef340de620d9524afbc24a897b214c3253737dc837b8e65088702a"
+          },
+          {
+            "description": "approved \"recover\" drawing normalised onto the layout (uniform bake scale, planted on the layout ground point); derived from scripts/animation/sources/monogatari_silent/combo/recover.webp, not committed",
+            "sha256": "a88f250c2a8aaebf44b70a7217a49dccdd69fabf060a9c8eb1b0d4a54b5e3f17"
+          }
+        ],
+        "source": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/skip.webp",
+          "sha256": "c91960cb0041265a927e92568467349ca7e67823bfdd7d5925bf6f327ee45754"
+        },
+        "output": {
+          "path": "public/assets/combat/characters/animated/monogatari_silent-skip.webp",
+          "sha256": "3ff9d614b1f4333f8e7bc16d2c7cb509f591b9f661c12b97663b58c20f0a8e65"
+        }
+      },
+      {
+        "name": "skipb",
+        "prompt": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/skipb-prompt.txt",
+          "sha256": "4e7d930a788942ef8c3d19695d9174533467d8eaa5a8c8f6a450984c4d6fe148"
+        },
+        "candidate": "skipb-2.png (of 4): the descent, a moment before touchdown",
+        "inputs": [
+          {
+            "description": "layout canvas 1536x1024 holding the registered idle at 1.6x runtime scale (committed)",
+            "path": "scripts/animation/sources/monogatari_silent/combo/layout-idle.webp",
+            "sha256": "805ca5c28c991eea237d8b08cdff6be91cfc1abaa3c4b6c2335c7b3e238e01d6"
+          },
+          {
+            "description": "idle-cutout.webp shrunk by 0.405 (same scale as the layout idle); not committed, derived from scripts/art/sources/monogatari_silent-char/idle-cutout.webp",
+            "sha256": "92c019bd9b598dfb8ed9a330643637a951b004c8144aadeaf81dfc2e99127cb4"
+          },
+          {
+            "description": "approved \"skip\" drawing normalised onto the layout (uniform bake scale, planted on the layout ground point); derived from scripts/animation/sources/monogatari_silent/combo/skip.webp, not committed",
+            "sha256": "f8de3308fdda6314ca12a849d33e155ca8d50444557ca6974db6ee7b3412c854"
+          },
+          {
+            "description": "approved \"land\" drawing normalised onto the layout (uniform bake scale, planted on the layout ground point); derived from scripts/animation/sources/monogatari_silent/combo/land.webp, not committed",
+            "sha256": "baa741e03436874d22bcb257abc87b32164d9a5404ab403b8a0c0bb77ea075b4"
+          }
+        ],
+        "source": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/skipb.webp",
+          "sha256": "bbeabda1bc4966ef240e15a04d3feac058f722b5da057aaca76294b014dc64be"
+        },
+        "output": {
+          "path": "public/assets/combat/characters/animated/monogatari_silent-skipb.webp",
+          "sha256": "4f830e00edabb1e6a6e2c6600b27d6aa3cd279fcc887931d3cf53863962dd694"
+        }
+      },
+      {
+        "name": "land",
+        "prompt": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/land-prompt.txt",
+          "sha256": "c725ce3977a11070fb89cc66ad9f8282e66dbb8d3d744387f609f558caa90fc8"
+        },
+        "candidate": "land-1.png (of 4)",
+        "inputs": [
+          {
+            "description": "layout canvas 1536x1024 holding the registered idle at 1.6x runtime scale (committed)",
+            "path": "scripts/animation/sources/monogatari_silent/combo/layout-idle.webp",
+            "sha256": "805ca5c28c991eea237d8b08cdff6be91cfc1abaa3c4b6c2335c7b3e238e01d6"
+          },
+          {
+            "description": "idle-cutout.webp shrunk by 0.405 (same scale as the layout idle); not committed, derived from scripts/art/sources/monogatari_silent-char/idle-cutout.webp",
+            "sha256": "92c019bd9b598dfb8ed9a330643637a951b004c8144aadeaf81dfc2e99127cb4"
+          },
+          {
+            "description": "approved \"follow\" drawing normalised onto the layout (uniform bake scale, planted on the layout ground point); derived from scripts/animation/sources/monogatari_silent/combo/follow.webp, not committed",
+            "sha256": "6eb85ad7daef340de620d9524afbc24a897b214c3253737dc837b8e65088702a"
+          },
+          {
+            "description": "approved \"recover\" drawing normalised onto the layout (uniform bake scale, planted on the layout ground point); derived from scripts/animation/sources/monogatari_silent/combo/recover.webp, not committed",
+            "sha256": "a88f250c2a8aaebf44b70a7217a49dccdd69fabf060a9c8eb1b0d4a54b5e3f17"
+          }
+        ],
+        "source": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/land.webp",
+          "sha256": "fe1009ddeca4a98ae221081f962468554b1bd084135eb8c24b8b5f8cc8a9dbe7"
+        },
+        "output": {
+          "path": "public/assets/combat/characters/animated/monogatari_silent-land.webp",
+          "sha256": "c1e77578c93f5ed8e4581233aa20de84d863a96e45c2d84a245584a022cd80b6"
+        }
+      },
+      {
+        "name": "recover",
+        "prompt": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/recover-prompt.txt",
+          "sha256": "ff074d800f21c1baf8b99c00de3bdf2d706c9b89a73d1b1d83cda3151f013c47"
+        },
+        "candidate": "recover-3.png (of 3-4 per prompt)",
+        "inputs": [
+          {
+            "description": "layout canvas 1536x1024 holding the registered idle at 1.6x runtime scale (committed)",
+            "path": "scripts/animation/sources/monogatari_silent/combo/layout-idle.webp",
+            "sha256": "805ca5c28c991eea237d8b08cdff6be91cfc1abaa3c4b6c2335c7b3e238e01d6"
+          },
+          {
+            "description": "idle-cutout.webp shrunk by 0.405 (same scale as the layout idle); not committed, derived from scripts/art/sources/monogatari_silent-char/idle-cutout.webp",
+            "sha256": "92c019bd9b598dfb8ed9a330643637a951b004c8144aadeaf81dfc2e99127cb4"
+          },
+          {
+            "description": "approved \"follow\" drawing normalised onto the layout (uniform bake scale, planted on the layout ground point); derived from scripts/animation/sources/monogatari_silent/combo/follow.webp, not committed",
+            "sha256": "6eb85ad7daef340de620d9524afbc24a897b214c3253737dc837b8e65088702a"
+          }
+        ],
+        "source": {
+          "path": "scripts/animation/sources/monogatari_silent/combo/recover.webp",
+          "sha256": "4204469b7465735045a385e2df60825fa878ffa84ebbbda228cf73e788abb2b2"
+        },
+        "output": {
+          "path": "public/assets/combat/characters/animated/monogatari_silent-recover.webp",
+          "sha256": "9950abe517b3724a57de7785a954b4b6a2ef503f3f58378bd3bf0df4461d16c0"
+        }
+      }
+    ],
+    "ready": {
+      "path": "public/assets/combat/characters/animated/monogatari_silent-ready.webp",
+      "sha256": "c76ede51ab565ae5c42579a044293ea25212825b2305084a5b4955120e68ccf7"
+    },
+    "idleLoop": {
+      "path": "public/assets/combat/characters/animated/monogatari_silent-idle.webp",
+      "sha256": "7615e7727db29524154887b9d254d3897f1f65bc10724939003ace995a11862f"
+    }
+  }
+}

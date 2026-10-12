@@ -6,8 +6,10 @@
 import type { CardDef } from './cards.ts'
 import type { EnemyDef } from './enemies.ts'
 import type { PotionDef, RelicDef } from './relics.ts'
+import { campfireParty } from './campfire-scene.ts'
+import { CAMPFIRE_SCENES } from './campfire-scenes.ts'
 import { SKIN_CARD_FACES } from './skin-card-faces.ts'
-import { VISUAL_IDS, type SkinId, type VisualId } from './skins.ts'
+import type { SkinId, VisualId } from './skins.ts'
 
 const assetCdnOrigin = import.meta.env?.VITE_ASSET_CDN_ORIGIN?.replace(/\/$/, '')
 const assetBackupOrigin = import.meta.env?.VITE_CAMPFIRE_BACKUP_ORIGIN?.replace(/\/$/, '')
@@ -155,10 +157,12 @@ export function potionCardImagePath(def: PotionDef): string {
 export const relicIconPath = (id: string) => assetPath(`relic-icons/${id.replace(/^downfall_/, '')}.png`)
 export const potionIconPath = (id: string) => assetPath(`potion-icons/${id}.png`)
 
-/** `characters` are the party's visual ids: a hero in a skin is lit by the skin's scene. */
+/**
+ * `characters` are the party's visual ids: a hero in a skin is lit by the skin's scene.
+ * A party without a painted scene falls back to a listed one (see campfireParty).
+ */
 export function campfireScenePath(characters: readonly VisualId[], backup = false): string {
-  const party = VISUAL_IDS
-    .filter((character) => characters.includes(character)).join('_')
+  const party = campfireParty(characters, CAMPFIRE_SCENES)
   const path = `noncombat/campfire/${party ? `${party}_` : 'empty_'}firecamp.webp`
   return backup && assetBackupOrigin ? `${assetBackupOrigin}/${path}` : assetPath(path)
 }

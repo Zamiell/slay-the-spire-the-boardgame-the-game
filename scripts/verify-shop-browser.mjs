@@ -8,11 +8,13 @@ import { mkdirSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createServer } from 'vite'
-import { chromium } from './lib/profile-browser.mjs'
+import { chromium, webkit } from './lib/profile-browser.mjs'
 import { createRoomServer } from './room-server.mjs'
 import { joinRoom } from './lib/rooms.mjs'
 import { CARD_PACK_PRICE, SKIN_PRICE } from '../src/game/coins.ts'
 import { CARD_PACK_IDS, CARD_PACKS } from '../src/game/packs.ts'
+import { SKIN_IDS, skinsOf } from '../src/game/skins.ts'
+import { BASE_CHARACTER_IDS } from '../src/game/types.ts'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const output = join(root, 'artifacts/shop')
@@ -26,8 +28,14 @@ const vite = await createServer({ root, logLevel: 'silent', server: {
 await vite.listen()
 const address = vite.httpServer?.address()
 if (!address || typeof address === 'string') throw new Error('vite did not report a port')
-const url = `http://127.0.0.1:${address.port}`
+// `--skins=all` runs only the three-skin pass at the end (the normal run does both).
+const multiSkinsOnly = process.argv.includes('--skins=all')
+let url = `http://127.0.0.1:${address.port}`
 const browser = await chromium.launch()
+// What the registry holds: the skin offers and the locked racks of heroes without a skin.
+const HERO_NAME = { ironclad: 'Ironclad', silent: 'Silent', defect: 'Defect', watcher: 'Watcher' }
+const offeredSkins = [...SKIN_IDS]
+const lockedHeroes = BASE_CHARACTER_IDS.filter((hero) => skinsOf(hero).length === 0)
 const price = CARD_PACK_PRICE.toLocaleString('en-US')
 
 const wallet = (coins, packs = [], extra = {}) => ({ version: 1, coins, packs, skins: [], addPacksToRuns: true, credited: {}, ...extra })
@@ -39,8 +47,8 @@ const storedWallet = (page) => page.evaluate(async () => {
   return JSON.parse(localStorage.getItem(currentWalletKey()) ?? 'null')
 })
 
-async function open(viewport, phone, seed) {
-  const context = await browser.newContext({ viewport, isMobile: phone, hasTouch: phone })
+async function open(viewport, phone, seed, { engine = browser, base = url } = {}) {
+  const context = await engine.newContext({ viewport, isMobile: phone, hasTouch: phone })
   if (seed) await context.addInitScript((value) => {
     // Seeded once per browser, not per tab: a second tab must not reset the wallet.
     if (!localStorage.getItem('seeded-wallet')) {
@@ -53,7 +61,7 @@ async function open(viewport, phone, seed) {
   page.setDefaultNavigationTimeout(90_000)
   const errors = []
   page.on('pageerror', (error) => errors.push(error.message))
-  await page.goto(url)
+  await page.goto(base)
   await page.locator('.start-menu__nav').waitFor()
   return { context, page, errors }
 }
@@ -166,6 +174,7 @@ async function assertTilesHoldTheirButtons(page, label) {
 }
 
 try {
+  if (!multiSkinsOnly) {
   // Short desktop windows (a laptop with browser chrome): nothing is cut off, and the shelf and rail do not scroll.
   for (const viewport of [{ width: 1366, height: 650 }, { width: 1280, height: 643 }]) {
     const screen = `desktop-${viewport.width}x${viewport.height}`
@@ -310,12 +319,12 @@ try {
     assert.equal(await skinsTab.getAttribute('aria-selected'), 'true')
     assert(await skinsTab.evaluate((tab) => tab === document.activeElement), 'arrow keys move focus with the tab')
     const skins = page.getByRole('tabpanel', { name: /Skins/ })
-    assert.equal(await skins.getByRole('listitem').count(), 5, `${screen}: three skins and two locked racks`)
-    assert.equal(await skins.getByText('Coming soon').count(), 2)
+    assert.equal(await skins.getByRole('listitem').count(), offeredSkins.length + lockedHeroes.length, `${screen}: every skin and a locked rack for each hero without one`)
+    assert.equal(await skins.getByText('Coming soon').count(), lockedHeroes.length)
     assert.deepEqual(await skins.locator('.shop-skin--locked').evaluateAll((racks) => racks.map((rack) => rack.getAttribute('aria-label'))),
-      ['Silent skin, coming soon', 'Watcher skin, coming soon'])
+      lockedHeroes.map((hero) => `${HERO_NAME[hero]} skin, coming soon`))
     assert.equal(await skins.locator('.shop-skin--locked button, .shop-skin--locked a').count(), 0, 'a locked rack must offer nothing')
-    const short = skins.getByRole('button', { name: `Not enough coins for the Kratos skin, ${SKIN_PRICE.toLocaleString('en-US')} coins: need ${(SKIN_PRICE - (1000 - CARD_PACK_PRICE)).toLocaleString('en-US')} more` })
+    const short = skins.getByRole('button', { name: `Not enough coins for the Kratos skin for Ironclad, ${SKIN_PRICE.toLocaleString('en-US')} coins: need ${(SKIN_PRICE - (1000 - CARD_PACK_PRICE)).toLocaleString('en-US')} more` })
     assert(await short.isDisabled(), `${screen}: Kratos is not for sale below its price`)
     assert.match(await short.innerText(), /2,500/)
     await settledImages(page, '.shop-skin__portrait')
@@ -349,12 +358,12 @@ try {
     assert.match(await rack.locator('.shop-skin__portrait').evaluate((image) => image.currentSrc), /portrait-kratos\.png$/)
     assert.equal(await rack.locator('h3').innerText().then((text) => text.replace(/\s+/g, ' ')), 'Kratos Ironclad')
     assert.equal(await rack.getAttribute('data-owned'), null)
-    const buy = rack.getByRole('button', { name: `Buy the Kratos skin, ${SKIN_PRICE.toLocaleString('en-US')} coins` })
+    const buy = rack.getByRole('button', { name: `Buy the Kratos skin for Ironclad, ${SKIN_PRICE.toLocaleString('en-US')} coins` })
     assert(await buy.isEnabled(), `${screen}: the price is covered`)
     await assertUnclipped(page, '.shop-skin, .shop-skin h3, .shop-button', `${screen} skins`)
     await paintedShot(page, `${screen}-skins-offer.png`)
     await press(buy)
-    const dialog = page.getByRole('dialog', { name: 'Buy the Kratos skin?' })
+    const dialog = page.getByRole('dialog', { name: 'Buy the Kratos skin for Ironclad?' })
     await dialog.waitFor()
     await settledImages(page, '.shop-confirm__portrait')
     assert.match(await dialog.innerText(), /2,800[\s\S]*after buying[\s\S]*300/, `${screen}: the dialog shows the balance before and after`)
@@ -369,7 +378,7 @@ try {
     await press(buy)
     await dialog.waitFor()
     await press(dialog.locator('.shop-button--buy'))
-    const unlocked = page.getByRole('dialog', { name: 'Kratos skin unlocked' })
+    const unlocked = page.getByRole('dialog', { name: 'Kratos skin for Ironclad unlocked' })
     await unlocked.waitFor()
     await settledAnimations(unlocked)
     await assertUnclipped(page, '.shop-confirm__panel, .shop-confirm .shop-button', `${screen} skin unlocked`)
@@ -425,7 +434,7 @@ try {
     const { context, page } = await open({ width: 1440, height: 900 }, false, wallet(SKIN_PRICE - 1))
     await page.getByRole('button', { name: 'Shop', exact: true }).click()
     await page.getByRole('tab', { name: /^Skins/ }).click()
-    const buy = page.getByRole('button', { name: /^Not enough coins for the Kratos skin/ })
+    const buy = page.getByRole('button', { name: /^Not enough coins for the Kratos skin for Ironclad/ })
     assert(await buy.isDisabled(), 'one coin short must not sell')
     await buy.click({ force: true }).catch(() => {})
     assert.equal(await page.locator('.shop-confirm').count(), 0, 'a disabled Buy opened the dialog')
@@ -434,7 +443,7 @@ try {
       localStorage.setItem(key, JSON.stringify({ ...JSON.parse(localStorage.getItem(key)), coins: 2500 }))
       window.dispatchEvent(new Event('sts-wallet-change'))
     })
-    await page.getByRole('button', { name: `Buy the Kratos skin, ${SKIN_PRICE.toLocaleString('en-US')} coins` }).click()
+    await page.getByRole('button', { name: `Buy the Kratos skin for Ironclad, ${SKIN_PRICE.toLocaleString('en-US')} coins` }).click()
     await page.evaluate(() => {
       const key = Object.keys(localStorage).find((name) => name.startsWith('sts-wallet:'))
       localStorage.setItem(key, JSON.stringify({ ...JSON.parse(localStorage.getItem(key)), coins: 10 }))
@@ -956,6 +965,168 @@ try {
     await paintedShot(page, 'desktop-1280-menu-resume.png')
     await context.close()
     console.log('1280x720 menu with Resume and Shop fits')
+  }
+  }
+
+  // Several skins across heroes: the five real skins of the registry (two for Ironclad), so the offers, the owned/short
+  // states and the per-hero Wear toggles run against them directly. Every base hero has a skin, so no rack is locked.
+  const cost = SKIN_PRICE.toLocaleString('en-US')
+  const OFFERS = [
+    ['kratos', 'Kratos', 'Ironclad'], ['monogatari_ironclad', 'Ironclad-chan', 'Ironclad'], ['monogatari_silent', 'Silent-chan', 'Silent'],
+    ['monogatari_defect', 'Defect-chan', 'Defect'], ['monogatari_watcher', 'Watcher-chan', 'Watcher'],
+  ]
+  assert.deepEqual(OFFERS.map(([id]) => id), offeredSkins, 'the Shop test lists every registered skin in catalogue order')
+  const webkitBrowser = await webkit.launch()
+  try {
+    for (const [engineName, engine] of [['chromium', browser], ['webkit', webkitBrowser]]) {
+      for (const [screen, viewport, phone] of [
+        ['desktop-1366x650', { width: 1366, height: 650 }, false],
+        ['desktop-1280x643', { width: 1280, height: 643 }, false],
+        ['desktop-1280x720', { width: 1280, height: 720 }, false],
+        ['desktop-1920x1080', { width: 1920, height: 1080 }, false],
+        ['phone-844x390', { width: 844, height: 390 }, true],
+        ['phone-932x430', { width: 932, height: 430 }, true],
+      ]) {
+        const label = `${engineName} ${screen}`
+        // Five offers (one owned, so Wear shows beside four prices) and no locked rack.
+        const { context, page, errors } = await open(viewport, phone, wallet(3000, [], { skins: ['kratos'] }), { engine })
+        // WebKit's phone emulation never reports the lazily loaded Shop's controls as stable, so it clicks through the DOM.
+        const press = (locator) => phone && engineName === 'webkit' ? locator.dispatchEvent('click') : phone ? locator.tap() : locator.click()
+        await page.getByRole('button', { name: 'Shop', exact: true }).click()
+        // The Shop is a lazy chunk: on a busy machine WebKit paints "Loading" for a while before the tabs settle.
+        await page.locator('.shop').waitFor({ timeout: 60_000 })
+        await press(page.getByRole('tab', { name: /^Skins/ }))
+        const racks = page.locator('.shop-skin')
+        await racks.first().waitFor()
+        await settledImages(page, '.shop-skin__portrait')
+        assert.deepEqual(await racks.evaluateAll((items) => items.map((item) => item.dataset.skin ?? 'locked')),
+          [...OFFERS.map(([id]) => id), ...lockedHeroes.map(() => 'locked')], `${label}: one rack per skin, then a locked rack for a hero without one`)
+        assert.deepEqual(await page.locator('.shop-skin--locked').evaluateAll((items) => items.map((item) => item.getAttribute('aria-label'))),
+          lockedHeroes.map((hero) => `${HERO_NAME[hero]} skin, coming soon`), label)
+        for (const [id, name, hero] of OFFERS) {
+          const rack = page.locator(`.shop-skin[data-skin="${id}"]`)
+          assert.equal(await rack.locator('h3').innerText().then((text) => text.replace(/\s+/g, ' ')), `${name} ${hero}`, `${label}: ${id} heading`)
+          assert.equal(await rack.getByRole('heading', { name: `${name} ${hero}` }).count(), 1, `${label}: ${id} heading name`)
+          assert.match(await rack.locator('.shop-skin__portrait').evaluate((image) => image.currentSrc), new RegExp(`portrait-${id}\\.png$`))
+          if (id === 'kratos') {
+            assert.equal(await rack.getAttribute('data-owned'), 'true')
+            assert.equal(await page.getByRole('button', { name: `Wear: Kratos, Ironclad skin` }).count(), 1, `${label}: Kratos is owned, so Wear`)
+          } else {
+            const buy = page.getByRole('button', { name: `Buy the ${name} skin for ${hero}, ${cost} coins`, exact: true })
+            assert.equal(await buy.count(), 1, `${label}: ${id} has one Buy button named for its hero`)
+            assert(await buy.isEnabled(), `${label}: ${id} is affordable`)
+            assert.match(await buy.innerText(), /2,500/)
+          }
+        }
+        assert.equal(await page.getByRole('button', { name: /^Buy the (Ironclad|Silent|Defect|Watcher)-chan skin/ }).count(), 4, `${label}: all four -chan offers`)
+        await assertUnclipped(page, '.shop-skin, .shop-skin h3, .shop-button', `${label} skins`)
+        const reach = await page.evaluate(() => {
+          const scroll = (selector) => { const element = document.querySelector(selector); return element.scrollHeight - element.clientHeight }
+          const faults = []
+          for (const rack of document.querySelectorAll('.shop-skin')) {
+            if (rack.scrollHeight > rack.clientHeight + 1) faults.push(`${rack.dataset.skin ?? 'locked'} clips ${rack.scrollHeight - rack.clientHeight}px`)
+            const box = rack.getBoundingClientRect()
+            for (const button of rack.querySelectorAll('.shop-button')) {
+              const own = button.getBoundingClientRect()
+              if (own.top < box.top || own.bottom > box.bottom - 1 || own.right > box.right) faults.push(`${rack.dataset.skin}: button leaves its rack`)
+            }
+          }
+          return { faults, racks: scroll('.shop-skins__racks'), rail: scroll('.shop__rail'), stock: scroll('#shop-panel-skins'), page: document.documentElement.scrollHeight - innerHeight }
+        })
+        assert.deepEqual(reach.faults, [], `${label}: ${reach.faults.join('; ')}`)
+        assert(reach.racks <= 1 && reach.rail <= 1 && reach.stock <= 1 && reach.page <= 1, `${label}: the skins shelf scrolls: ${JSON.stringify(reach)}`)
+        if (phone) {
+          const scale = viewport.width / await page.evaluate(() => innerWidth)
+          assert.deepEqual(await page.locator('.shop-skin .shop-button').evaluateAll((controls, factor) =>
+            controls.filter((control) => control.getBoundingClientRect().height * factor < 22).map((control) => control.textContent), scale), [],
+          `${label}: skin controls too short to tap`)
+        }
+        await page.screenshot({ path: join(output, `multi-${engineName}-${screen}-skins.png`), timeout: 90_000 })
+        assert.deepEqual(errors, [], `${label}: page errors`)
+        await context.close()
+        console.log(`${label}: five skin offers fit`)
+      }
+    }
+  } finally { await webkitBrowser.close() }
+
+  for (const [screen, viewport, phone] of [
+    ['desktop-1280x720', { width: 1280, height: 720 }, false],
+    ['phone-844x390', { width: 844, height: 390 }, true],
+  ]) {
+    // 2,500 + 3,000: one -chan skin fits the purse, and the second is short until the purse is refilled.
+    const { context, page, errors } = await open(viewport, phone, wallet(SKIN_PRICE + 3000))
+    const press = (locator) => phone ? locator.tap() : locator.click()
+    await page.getByRole('button', { name: 'Shop', exact: true }).click()
+    await press(page.getByRole('tab', { name: /^Skins/ }))
+    const silent = page.locator('.shop-skin[data-skin="monogatari_silent"]')
+    const watcher = page.locator('.shop-skin[data-skin="monogatari_watcher"]')
+    await silent.waitFor()
+    await settledImages(page, '.shop-skin__portrait')
+    await press(silent.getByRole('button', { name: `Buy the Silent-chan skin for Silent, ${cost} coins`, exact: true }))
+    const confirm = page.getByRole('dialog', { name: 'Buy the Silent-chan skin for Silent?' })
+    await confirm.waitFor()
+    await settledImages(page, '.shop-confirm__portrait')
+    assert.match(await confirm.locator('h2').innerText(), /Silent-chan skin/)
+    assert.match(await confirm.innerText(), /Silent skin/, `${screen}: the dialog names the hero`)
+    assert.match(await confirm.locator('.shop-confirm__portrait').evaluate((image) => image.currentSrc), /portrait-monogatari_silent\.png$/)
+    await assertUnclipped(page, '.shop-confirm__panel, .shop-confirm .shop-button', `${screen} -chan confirm`)
+    await page.screenshot({ path: join(output, `multi-${screen}-confirm.png`), timeout: 90_000 })
+    await press(confirm.locator('.shop-button--buy'))
+    const unlocked = page.getByRole('dialog', { name: 'Silent-chan skin for Silent unlocked' })
+    await unlocked.waitFor()
+    await press(unlocked.getByRole('button', { name: 'Done' }))
+    await unlocked.waitFor({ state: 'detached' })
+    let saved = await storedWallet(page)
+    assert.deepEqual(saved.skins, ['monogatari_silent'], `${screen}: only the Silent skin was bought`)
+    assert.equal(saved.coins, 3000, `${screen}: exactly one price was spent`)
+    assert.deepEqual(await storedSkins(page), { silent: 'monogatari_silent' }, `${screen}: the bought skin is worn on its own hero only`)
+    assert.equal(await silent.getAttribute('data-worn'), 'true')
+    assert.equal(await watcher.getAttribute('data-owned'), null, `${screen}: the Watcher skin is still for sale`)
+    assert.equal(await silent.getByRole('button', { name: 'Worn: Silent-chan, Silent skin' }).getAttribute('aria-pressed'), 'true')
+    // The purse still covers one more; drain it to prove the short state names the right skin.
+    await page.evaluate(() => {
+      const key = Object.keys(localStorage).find((name) => name.startsWith('sts-wallet:'))
+      localStorage.setItem(key, JSON.stringify({ ...JSON.parse(localStorage.getItem(key)), coins: 2499 }))
+      window.dispatchEvent(new Event('sts-wallet-change'))
+    })
+    const short = page.getByRole('button', { name: `Not enough coins for the Watcher-chan skin for Watcher, ${cost} coins: need 1 more`, exact: true })
+    assert(await short.isDisabled(), `${screen}: the Watcher skin is one coin short`)
+    await page.evaluate(() => {
+      const key = Object.keys(localStorage).find((name) => name.startsWith('sts-wallet:'))
+      localStorage.setItem(key, JSON.stringify({ ...JSON.parse(localStorage.getItem(key)), coins: 2500 }))
+      window.dispatchEvent(new Event('sts-wallet-change'))
+    })
+    await press(watcher.getByRole('button', { name: `Buy the Watcher-chan skin for Watcher, ${cost} coins`, exact: true }))
+    const second = page.getByRole('dialog', { name: 'Buy the Watcher-chan skin for Watcher?' })
+    await second.waitFor()
+    await press(second.locator('.shop-button--buy'))
+    await page.getByRole('dialog', { name: 'Watcher-chan skin for Watcher unlocked' }).waitFor()
+    await press(page.getByRole('dialog', { name: 'Watcher-chan skin for Watcher unlocked' }).getByRole('button', { name: 'Done' }))
+    saved = await storedWallet(page)
+    assert.deepEqual(saved.skins, ['monogatari_silent', 'monogatari_watcher'])
+    assert.equal(saved.coins, 0)
+    assert.deepEqual(await storedSkins(page), { silent: 'monogatari_silent', watcher: 'monogatari_watcher' },
+      `${screen}: one skin worn per hero`)
+    await settledImages(page, '.shop-skin__portrait')
+    await assertUnclipped(page, '.shop-skin, .shop-skin h3, .shop-button', `${screen} -chan owned`)
+    await page.screenshot({ path: join(output, `multi-${screen}-owned.png`), timeout: 90_000 })
+    // Wear toggles are per hero: taking one off leaves the other worn, and Kratos (unowned) stays on sale.
+    await press(silent.getByRole('button', { name: 'Worn: Silent-chan, Silent skin' }))
+    assert.deepEqual(await storedSkins(page), { watcher: 'monogatari_watcher' })
+    assert.equal(await watcher.getAttribute('data-worn'), 'true')
+    assert.equal(await silent.getAttribute('data-worn'), null)
+    await press(silent.getByRole('button', { name: 'Wear: Silent-chan, Silent skin' }))
+    assert.deepEqual(await storedSkins(page), { silent: 'monogatari_silent', watcher: 'monogatari_watcher' })
+    assert.equal(await page.locator('.shop-skin[data-skin="kratos"]').getAttribute('data-owned'), null)
+    await page.reload()
+    await page.locator('.start-menu__nav').waitFor()
+    await page.getByRole('button', { name: 'Shop', exact: true }).click()
+    await press(page.getByRole('tab', { name: /^Skins/ }))
+    await page.locator('.shop-skin[data-skin="monogatari_silent"][data-worn="true"]').waitFor()
+    await page.locator('.shop-skin[data-skin="monogatari_watcher"][data-worn="true"]').waitFor()
+    assert.deepEqual(errors, [], `${screen}: page errors`)
+    await context.close()
+    console.log(`${screen}: both -chan skins are bought and worn per hero`)
   }
 } finally {
   await browser.close()

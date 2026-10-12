@@ -57,19 +57,20 @@ and their exports are byte-for-byte unchanged.
 
 A 1152px canvas with 2.3x display overscan keeps the on-screen body scale. Each attack
 drawing is centred in its own canvas so the long chains fit. `kratos.py` generates the
-whole Kratos clock in `attack-timing.css`: the travel, every pose's opacity keyframes
-and a per-pose shift that plants every drawing's rear sole on the idle rear sole, so
+whole Kratos clock: `skins/kratos.json` is its config (keys, travel, hits, cues, sounds; see
+`docs/skins/attack-animation.md`) and `skin-attack.py` generates the travel, every pose's opacity keyframes
+and a per-pose shift that plants every drawing's rear sole on the idle rear sole (in `staged-attacks.css`), so
 his planted foot never slides while he is out (the front foot steps as his stance
 changes). The two light hits use `chainTrim` to remove whole
 links from their straight thrown chains, so their blade tips meet the slam's on one
-line (the bake fails if the three tips differ by more than 12 canvas px). It also
-generates `vfx.tsx`'s pose list, attack length, hit and chain-cue times, display scale and
-`KRATOS_CONTACT_REACH`; the travel parks that blade line on the target's body point,
+line (the bake fails if the three tips differ by more than 12 canvas px). `kratos.py` writes the
+measured shifts and the blade-tip reach into the config; `skin-attack.py` generates the pose list, attack
+length, hit and chain-cue times, display scale and contact reach into `staged-attacks.ts`; the travel parks that blade line on the target's body point,
 and while he is out he draws in front of every enemy, bosses included, so his blades
 stay visible on the target and he covers the enemy he stands over (and its intent) for
 that moment rather than vanishing behind it. A cold play
 keeps the idle fallback and its box-edge travel. `python3 scripts/animation/kratos.py
---check`, run by `verify-assets.mjs`, fails when any generated value is stale. The
+--check` and `python3 scripts/animation/skin-attack.py --check`, run by `verify-assets.mjs`, fail when any generated value is stale. The
 ground anchor is 1136px; reduced-motion static art reverses the overscan.
 
 Light hits use two painted flame crescents; the slam uses a larger twin flame / rock
@@ -101,7 +102,7 @@ Original `sources/kratos/idle.webp` remains the recorded identity reference for 
 Rebuild with `python3 scripts/animation/kratos.py` and
 `python3 scripts/calibrate-hero-head.py`. Review outputs are under
 `artifacts/kratos-art/` and `artifacts/kratos-revision/`.
-`verify-kratos-animation-browser.mjs` owns Chromium/WebKit on desktop and horizontal
+`verify-skin-attack-browser.mjs` (Kratos is its first profile, next to two synthetic test skins) owns Chromium/WebKit on desktop and horizontal
 phone: real engine single/row plays, weighted HP/numbers, queued lethal cards/Shivs,
 sound cues, cold art, all seventeen pose beats on the registered clock, a planted rear
 sole while he is out, one blade line for the three hits that lands inside the target,

@@ -114,11 +114,17 @@
 
 .sts-scope .merchant-arrival__party img { display: block; width: 100%; }
 /* Each standing asset leaves a different transparent gap under its feet; pushing
-   every sprite down by its own gap lands the whole party on one floor line. */
+   every sprite down by its own gap lands the whole party on one floor line. A hero or skin has a line here
+   (verify-assets.mjs measures the gap of every standing file and fails on a missing or stale offset). */
 .sts-scope .merchant-arrival__party figure[data-character='ironclad'] img { transform: translateY(1.39%); }
 .sts-scope .merchant-arrival__party figure[data-character='silent'] img { transform: translateY(4.86%); }
 .sts-scope .merchant-arrival__party figure[data-character='defect'] img { transform: translateY(2.6%); }
 .sts-scope .merchant-arrival__party figure[data-character='watcher'] img { transform: translateY(2.26%); }
+.sts-scope .merchant-arrival__party figure[data-character='kratos'] img { transform: translateY(3.12%); }
+.sts-scope .merchant-arrival__party figure[data-character='monogatari_ironclad'] img { transform: translateY(0.17%); }
+.sts-scope .merchant-arrival__party figure[data-character='monogatari_silent'] img { transform: translateY(3.12%); }
+.sts-scope .merchant-arrival__party figure[data-character='monogatari_defect'] img { transform: translateY(0.17%); }
+.sts-scope .merchant-arrival__party figure[data-character='monogatari_watcher'] img { transform: translateY(0.35%); }
 .sts-scope .merchant-arrival__merchant {
   position: absolute;
   z-index: 3;

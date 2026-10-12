@@ -6,6 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from itertools import combinations
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageOps
+from campfire_export import export_campfire
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / 'scripts/art/sources/monogatari/noncombat'
@@ -113,7 +114,7 @@ def seated_sources():
     for char, box in [('ironclad', (0, 0, 550, 1024)), ('silent', (550, 0, 1030, 1024)),
                       ('defect', (1030, 0, 1536, 1024))]:
         result[char] = tight(first.crop(box))
-    for char in ['watcher', 'guardian']:
+    for char in ['watcher']:
         result[char] = tight(native(SOURCE / f'original-{char}-seated.png'))
     slime = native(SOURCE / 'original-watcher-slime_boss-guardian-seated-v2.png')
     result['slime_boss'] = tight(slime.crop((512, 280, 1035, 780)))
@@ -139,6 +140,9 @@ SLOTS = {
 
 
 def compose(party, sources, background):
+    if 'guardian' in party:
+        return Image.open(ROOT / 'scripts/art/sources/guardian-campfire-repairs' /
+                          f'{"_".join(party)}_firecamp.webp').convert('RGB')
     canvas = background.copy()
     for visual, (cx, pelvis, height, left) in sorted(zip(party, SLOTS[len(party)]), key=lambda entry: entry[1][1]):
         if left and visual in NEW:
@@ -171,8 +175,13 @@ def main():
     assert len(selected) == 208 and all(1 <= len(p) <= 4 for p in selected)
 
     def export(party):
-        scene = compose(party, sources, background).resize((3840, 2161), RESAMPLE)
         path = PUBLIC / 'noncombat/campfire' / f'{"_".join(party)}_firecamp.webp'
+        if 'guardian' in party:
+            export_campfire(ROOT / 'scripts/art/sources/guardian-campfire-repairs' /
+                           path.name, path)
+            return {'party': list(party), 'output': record(path),
+                    'generationManifest': 'docs/skins/fresh-campfires/manifest.json'}
+        scene = compose(party, sources, background).resize((3840, 2161), RESAMPLE)
         return {'party': list(party), 'output': save(scene, path, 50)}
 
     with ThreadPoolExecutor(max_workers=4) as pool:
@@ -210,7 +219,11 @@ def main():
                 'background': record(background_path), 'seating': SLOTS,
                 'treasureGripCrop': {'sourceStripExcluded': [0, 0, 32, 1536],
                                     'mainSilhouettePreserved': True, 'nativeAlphaPreserved': True},
-                'otherAssets': other, 'campfireScenes': scenes, 'visualAudit': record(audit)}
+                'otherAssets': other, 'campfireScenes': scenes, 'visualAudit': record(audit),
+                'guardianCampfireRepairs': {
+                    'count': 64, 'manifest': 'docs/skins/fresh-campfires/manifest.json',
+                    'generation': 'Original empty campfire and original character identities only; no seated references',
+                    'rebuild': 'python3 scripts/art/export-fresh-campfires.py'}}
     (DOCS / 'noncombat-manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
     sizes = [s['output']['bytes'] for s in scenes]
     print(f'Exported {len(other)} other assets and {len(scenes)} campfire scenes; mean={sum(sizes)//len(sizes)}, max={max(sizes)}, total={sum(sizes)} bytes')

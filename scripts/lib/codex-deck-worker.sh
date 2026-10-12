@@ -21,13 +21,15 @@ case "$node_binary" in
 esac
 codex_package=$(dirname "$(dirname "$codex_script")")
 if [ "$codex_script" != "$codex_package/bin/codex.js" ]; then exit 66; fi
+schema_root=${TMPDIR:-/tmp}
+schema_root=${schema_root%/}
 schema_mount=()
 args=("$@")
 for ((index=0; index<${#args[@]}; index++)); do
   if [ "${args[index]}" != --output-schema ]; then continue; fi
   schema_file=${args[index+1]:-}
   case "$schema_file" in
-    /tmp/codex-output-schema-*/schema.json) [ -f "$schema_file" ] || exit 66 ;;
+    "$schema_root"/codex-output-schema-*/schema.json) [ -f "$schema_file" ] || exit 66 ;;
     *) exit 66 ;;
   esac
   schema_mount=(--dir "$(dirname "$schema_file")" --ro-bind "$schema_file" "$schema_file")
@@ -46,7 +48,7 @@ run_codex() {
     --dir /workspace --dir /workspace/src --dir /workspace/scripts --dir /workspace/scripts/lib \
     --ro-bind "$PWD/src/game" /workspace/src/game \
     --ro-bind "$PWD/package.json" /workspace/package.json --ro-bind "$codex_package" /codex-cli \
-    --setenv HOME /codex-home --setenv CODEX_HOME /codex-home --unsetenv OPENAI_API_KEY \
+    --setenv TMPDIR /tmp --setenv HOME /codex-home --setenv CODEX_HOME /codex-home --unsetenv OPENAI_API_KEY \
     --chdir /workspace "${NODE_BINARY}" /codex-cli/bin/codex.js "$@"
 }
 

@@ -1,0 +1,677 @@
+{
+  "model": "gpt-image-2.5-sunburst",
+  "quality": "high",
+  "size": "1536x1024",
+  "recipe": "monogatari",
+  "hero": "Watcher",
+  "identityReference": "@work/identity/watcher-idle.png",
+  "identityDescription": "Approved Watcher skin identity sheet: original anime heroine in a violet short kimono-robe, white blindfold with a gold closed-eye sigil, magenta ribbons, gold-tipped staff (generated, not committed)",
+  "identityCues": "a tall slender original anime heroine with a violet short kimono-robe with wide sleeves, a white cloth blindfold with a small gold closed-eye sigil covering her eyes, long loose hair with magenta ribbons, a long gold-tipped staff, dark leggings, bare feet, a small pointed chin and calm serene bearing.",
+  "palette": "violet and royal purple, gold, magenta ribbon, slate-blue accents; saturated cloudless sky or one flat hot colour panel behind her; no red, no bronze.",
+  "styleReferences": [
+    {
+      "tag": "poster",
+      "path": "@work/monogatari-refs/poster-second-season.jpg",
+      "description": "Monogatari series second-season key art: extreme low camera angle, cloudless cobalt sky, white geometric masts, stacked diagonal figures (copyrighted, not committed)"
+    },
+    {
+      "tag": "closeup",
+      "path": "@work/monogatari-refs/yotsugi-closeup.jpg",
+      "description": "Monogatari series close-up frame: huge flat eyes with crisp highlights, shard-like flat hair, fine linework, painted sea and cloud backdrop (copyrighted, not committed)"
+    },
+    {
+      "tag": "classroom",
+      "path": "@work/monogatari-refs/classroom-group.webp",
+      "description": "Monogatari series group frame: hard diagonal shadow cuts, cracked grey wall with one hot flat colour panel, geometric clutter, long limbs (copyrighted, not committed)"
+    }
+  ],
+  "prototype": [
+    "strike_watcher",
+    "defend_watcher",
+    "eruption",
+    "foresight",
+    "deva_form",
+    "slayer_wheel_kick"
+  ],
+  "cards": {
+    "slayer_bowling_bash": {
+      "name": "Bowling Bash",
+      "type": "attack",
+      "scene": "A wide high swing of her staff knocks three enemy silhouettes over like bowling pins in a row, seen from a low angle with a cloudless sky and white geometry.",
+      "styles": [
+        "poster",
+        "classroom"
+      ]
+    },
+    "slayer_deceive_reality": {
+      "name": "Deceive Reality",
+      "type": "skill",
+      "scene": "She steps through a fold in the world: the frame is split by a hard diagonal where the two halves show mirrored views of the same room, her palm raised toward her golden-lit double.",
+      "styles": [
+        "classroom",
+        "closeup"
+      ]
+    },
+    "slayer_fasting": {
+      "name": "Fasting",
+      "type": "power",
+      "scene": "She kneels calmly before an empty wooden bowl with her hands in her lap, a pale green light rising around her, emblem composition with calm margins.",
+      "styles": [
+        "poster",
+        "closeup"
+      ]
+    },
+    "slayer_master_reality": {
+      "name": "Master Reality",
+      "type": "power",
+      "scene": "She shapes flat glowing geometric blocks floating around her with one open palm, calm face tilted, symmetric emblem composition with cloudless sky.",
+      "styles": [
+        "poster",
+        "closeup"
+      ]
+    },
+    "slayer_pressure_points": {
+      "name": "Pressure Points",
+      "type": "skill",
+      "scene": "She presses one finger to a pressure point on an enemy silhouette's shoulder while small flat glowing dots mark points along its body outline, classroom-style shadow cut.",
+      "styles": [
+        "classroom",
+        "closeup"
+      ]
+    },
+    "slayer_wave_of_the_hand": {
+      "name": "Wave of the Hand",
+      "type": "skill",
+      "scene": "She waves one lazy palm and a wave of rippling pale violet rings rolls across the frame, long sleeve fluttering in flat shapes, enemy silhouettes sagging at the edges.",
+      "styles": [
+        "classroom",
+        "closeup"
+      ]
+    },
+    "slayer_wheel_kick": {
+      "name": "Wheel Kick",
+      "type": "attack",
+      "scene": "A high spinning wheel kick seen side-on from waist height: one long leg sweeping a big flat circle across the frame with a flat gold impact burst at its end, her blindfold ribbons trailing, cloudless sky.",
+      "styles": [
+        "poster",
+        "classroom"
+      ]
+    },
+    "strike_watcher": {
+      "name": "Strike",
+      "type": "attack",
+      "scene": "A single clean staff strike: the gold leaf-shaped staff head slams forward toward the camera in a low angle, she leans into it with ribbons trailing, cloudless sky.",
+      "styles": [
+        "poster",
+        "classroom"
+      ]
+    },
+    "defend_watcher": {
+      "name": "Defend",
+      "type": "skill",
+      "scene": "She holds her staff horizontally across her body with both hands while a flat gold ring of light stands behind it like a halo shield, head tilted, hard shadow cut.",
+      "styles": [
+        "classroom",
+        "closeup"
+      ]
+    },
+    "eruption": {
+      "name": "Eruption",
+      "type": "attack",
+      "scene": "She thrusts one open palm forward and a ring of flat gold-orange flame spikes erupts outward from it, her jaw set under the blindfold, ribbons whipping upward, low angle.",
+      "styles": [
+        "poster",
+        "classroom"
+      ]
+    },
+    "vigilance": {
+      "name": "Vigilance",
+      "type": "skill",
+      "scene": "She stands serene with the staff upright in one hand and her other palm open, a flat slate-blue circle behind her, deadpan calm, symmetrical.",
+      "styles": [
+        "classroom",
+        "closeup"
+      ]
+    },
+    "consecrate": {
+      "name": "Consecrate",
+      "type": "attack",
+      "scene": "She sweeps her staff low and a ring of gold light flashes outward across the ground to the horizon, enemy silhouettes at the edge of the ring, low camera.",
+      "styles": [
+        "poster",
+        "classroom"
+      ]
+    },
+    "empty_body": {
+      "name": "Empty Body",
+      "type": "skill",
+      "scene": "She exhales while her body turns transparent, only a thin outline left with loose leaves blowing through her, calm tilted head, emblem composition.",
+      "styles": [
+        "classroom",
+        "closeup"
+      ]
+    },
+    "empty_fist": {
+      "name": "Empty Fist",
+      "type": "attack",
+      "scene": "A bare-handed palm strike thrust straight at the camera with a flat gold circular impact burst around it, her blindfold and ribbons behind.",
+      "styles": [
+        "poster",
+        "classroom"
+      ]
+    },
+    "collect": {
+      "name": "Collect",
+      "type": "skill",
+      "scene": "High angle: she cups both hands as small gold and violet orbs gather into her palms from the air, ribbon pooling at her feet.",
+      "styles": [
+        "classroom",
+        "closeup"
+      ]
+    },
+    "halt": {
+      "name": "Halt",
+      "type": "skill",
+      "scene": "She raises one flat palm to the camera in a stop gesture and a pale wall of light stands in front of it, enemy silhouette halted at the edge, low angle.",
+      "styles": [
+        "classroom",
+        "closeup"
+      ]
+    },
+    "simmering_fury": {
+      "name": "Simmering Fury",
+      "type": "power",
+      "scene": "Emblem composition: a small flat flame flickers above her clenched fist as her sleeve lifts, violet dusk behind, calm margins.",
+      "styles": [
+        "poster",
+        "closeup"
+      ]
+    },
+    "like_water": {
+      "name": "Like Water",
+      "type": "power",
+      "scene": "She stands barefoot on a perfectly still water surface with rings rippling from her feet, staff resting on her shoulder, cloudless sky above.",
+      "styles": [
+        "poster",
+        "closeup"
+      ]
+    },
+    "battle_hymn": {
+      "name": "Battle Hymn",
+      "type": "power",
+      "scene": "She chants with her hands pressed together while a ring of small gold swords hovers around her like a halo, symmetric emblem composition.",
+      "styles": [
+        "poster",
+        "closeup"
+      ]
+    },
+    "mental_fortress": {
+      "name": "Mental Fortress",
+      "type": "power",
+      "scene": "She stands with hands clasped inside a floating fortress of flat translucent geometric panels, a calm serene face, symmetric emblem composition.",
+      "styles": [
+        "poster",
+        "closeup"
+      ]
+    },
+    "rushdown": {
+      "name": "Rushdown",
+      "type": "power",
+      "scene": "She charges forward with fists clenched, a flat gold flame silhouette trailing behind her and wind-stripes, low camera, magenta ribbons streaming.",
+      "styles": [
+        "poster",
+        "closeup"
+      ]
+    },
+    "nirvana": {
+      "name": "Nirvana",
+      "type": "power",
+      "scene": "She floats cross-legged above a flat lotus shape with a ring of gold light behind her, small gold dots drifting upward, emblem composition.",
+      "styles": [
+        "poster",
+        "closeup"
+      ]
+    },
+    "foresight": {
+      "name": "Foresight",
+      "type": "power",
+      "scene": "Emblem composition: her gold closed-eye sigil glows on the blindfold while three small translucent windows floating around her head show glimpses of the future, tilted head.",
+      "styles": [
+        "poster",
+        "closeup"
+      ]
+    },
+    "indignation": {
+      "name": "Indignation",
+      "type": "skill",
+      "scene": "She slams the staff butt into the ground and a ring of violet energy shakes the enemy silhouettes at its edge, clenched jaw under the blindfold, low angle.",
+      "styles": [
+        "classroom",
+        "closeup"
+      ]
+    },
+    "inner_peace": {
+      "name": "Inner Peace",
+      "type": "skill",
+      "scene": "She sits in meditation with her hands on her knees, a flat slate-blue circle behind her, ribbons pooling, still and symmetrical.",
+      "styles": [
+        "classroom",
+        "closeup"
+      ]
+    },
+    "carve_reality": {
+      "name": "Carve Reality",
+      "type": "attack",
+      "scene": "She slashes the air with the staff tip, opening a thin glowing violet slit in space from which a small golden blade falls, high angle, classroom-style shadow cut.",
+      "styles": [
+        "poster",
+        "classroom"
+      ]
+    },
+    "sash_whip": {
+      "name": "Sash Whip",
+      "type": "attack",
+      "scene": "She snaps her long magenta sash across the frame like a whip, the sash a bold curved line with a flat spark at its tip, low camera.",
+      "styles": [
+        "poster",
+        "classroom"
+      ]
+    },
+    "conclude": {
+      "name": "Conclude",
+      "type": "attack",
+      "scene": "She ends her stance with one long decisive horizontal sweep of the staff, a bright gold line cutting across the whole frame behind her.",
+      "styles": [
+        "poster",
+        "classroom"
+      ]
+    },
+    "judgment": {
+      "name": "Judgment",
+      "type": "skill",
+      "scene": "She points one finger forward at an enemy silhouette while a ring and a single beam of gold light fall from above onto it, symmetric, stern tilted head.",
+      "styles": [
+        "classroom",
+        "closeup"
+      ]
+    },
+    "ragnarok": {
+      "name": "Ragnarok",
+      "type": "attack",
+      "scene": "She raises the staff and five golden thunder spears rain down from a dark storm sky onto enemy silhouettes, wrath stance, low angle, no red.",
+      "styles": [
+        "poster",
+        "classroom"
+      ]
+    },
+    "scrawl": {
+      "name": "Scrawl",
+      "type": "skill",
+      "scene": "She draws a looping glowing line in the air with one finger, forming abstract shapes (no letters) that float around her, a small amused tilt of the head.",
+      "styles": [
+        "classroom",
+        "closeup"
+      ]
+    },
+    "signature_move": {
+      "name": "Signature Move",
+      "type": "attack",
+      "scene": "She strikes one dramatic finishing pose with the staff pointed to the sky and one hand on her hip, low camera, a spotlight panel behind her.",
+      "styles": [
+        "poster",
+        "classroom"
+      ]
+    },
+    "spirit_shield": {
+      "name": "Spirit Shield",
+      "type": "skill",
+      "scene": "A large translucent spirit guardian with wide arms wraps around her like a shield of ghostly gold, she stands calmly in front of it, symmetrical.",
+      "styles": [
+        "classroom",
+        "closeup"
+      ]
+    },
+    "swivel": {
+      "name": "Swivel",
+      "type": "skill",
+      "scene": "She stands upright with both bare feet planted in a wide stance, her whole body and both legs clearly visible, and pivots at the waist while sweeping the staff held in both hands in a flat spiral to block; flat spiral lines mark the turn and her ribbons spin around her, slightly high three-quarter camera angle, calm deadpan face.",
+      "styles": [
+        "classroom",
+        "closeup"
+      ]
+    },
+    "wallop": {
+      "name": "Wallop",
+      "type": "attack",
+      "scene": "She slams the staff down and the ground cracks into big flat shards flying up, low camera, hard diagonal shadow cuts.",
+      "styles": [
+        "poster",
+        "classroom"
+      ]
+    },
+    "wish": {
+      "name": "Wish",
+      "type": "skill",
+      "scene": "She kneels and cups her hands as a flat glowing star rises from them into the cloudless sky, ribbon drifting, calm tilted head.",
+      "styles": [
+        "classroom",
+        "closeup"
+      ]
+    },
+    "deva_form": {
+      "name": "Deva Form",
+      "type": "power",
+      "scene": "Emblem composition: she floats serenely haloed in a symmetric flat golden aura with wide wings of light, staff held vertical, calm margins.",
+      "styles": [
+        "poster",
+        "closeup"
+      ]
+    },
+    "omniscience": {
+      "name": "Omniscience",
+      "type": "skill",
+      "scene": "She spreads her hands as her gold eye sigil glows and a vast eye of light opens behind her, a constellation of tiny cards around, symmetric.",
+      "styles": [
+        "classroom",
+        "closeup"
+      ]
+    },
+    "vault": {
+      "name": "Vault",
+      "type": "skill",
+      "scene": "She vaults over a white wall with the staff as a pole, a long arc across the cloudless sky, low camera, long limbs.",
+      "styles": [
+        "classroom",
+        "closeup"
+      ]
+    },
+    "talk_to_the_hand": {
+      "name": "Talk to the Hand",
+      "type": "attack",
+      "scene": "She holds a stern flat palm to the camera, a flat gold burst on the palm, enemy silhouette flinching beyond it, low angle.",
+      "styles": [
+        "poster",
+        "classroom"
+      ]
+    },
+    "tantrum": {
+      "name": "Tantrum",
+      "type": "attack",
+      "scene": "She stomps the ground with shockwave rings spreading, sleeves and ribbons flared in wrath, flat gold-orange panel behind her, low camera.",
+      "styles": [
+        "poster",
+        "classroom"
+      ]
+    },
+    "weave": {
+      "name": "Weave",
+      "type": "attack",
+      "scene": "She dances in a turn with the staff and her magenta ribbon tracing a figure-eight pattern in the air, elegant long limbs.",
+      "styles": [
+        "poster",
+        "classroom"
+      ]
+    },
+    "blasphemy": {
+      "name": "Blasphemy",
+      "type": "skill",
+      "scene": "She bows forward with clasped hands beneath a dark violet sun, ominous and quiet, hard shadow cut, tilted head.",
+      "styles": [
+        "classroom",
+        "closeup"
+      ]
+    },
+    "brilliance": {
+      "name": "Brilliance",
+      "type": "attack",
+      "scene": "She fires a beam of pure gold light from her open palm straight at the camera, the beam a bold flat shape, ribbons blown back.",
+      "styles": [
+        "poster",
+        "classroom"
+      ]
+    },
+    "devotion": {
+      "name": "Devotion",
+      "type": "power",
+      "scene": "Emblem composition: she kneels in prayer inside a pool of golden light with a flat radiant sun behind her.",
+      "styles": [
+        "poster",
+        "closeup"
+      ]
+    },
+    "worship": {
+      "name": "Worship",
+      "type": "skill",
+      "scene": "She kneels with her forehead lowered over folded hands, a shaft of gold light falling on her, ribbon pooling.",
+      "styles": [
+        "classroom",
+        "closeup"
+      ]
+    },
+    "wreath_of_flame": {
+      "name": "Wreath of Flame",
+      "type": "skill",
+      "scene": "She holds the staff upright with a wreath of flat gold flames spinning around its head, her face calm, symmetric.",
+      "styles": [
+        "classroom",
+        "closeup"
+      ]
+    },
+    "conjure_blade": {
+      "name": "Conjure Blade",
+      "type": "power",
+      "scene": "Emblem composition: a golden sword forms in the air in front of her, blade in profile, she regards it with her head tilted, calm margins.",
+      "styles": [
+        "poster",
+        "closeup"
+      ]
+    },
+    "deus_ex_machina": {
+      "name": "Deus Ex Machina",
+      "type": "skill",
+      "scene": "A great shaft of gold light falls from above onto her while tiny winged figures of light circle in the air, a mechanical gold ring above, symmetric.",
+      "styles": [
+        "classroom",
+        "closeup"
+      ]
+    },
+    "foreign_influence": {
+      "name": "Foreign Influence",
+      "type": "attack",
+      "scene": "She mimics the stance of a different ghostly fighter silhouette behind her, performing its kick, two overlaid poses, flat violet and gold.",
+      "styles": [
+        "poster",
+        "classroom"
+      ]
+    },
+    "omega": {
+      "name": "Omega",
+      "type": "power",
+      "scene": "Emblem composition: stacked rings of gold light descend like a countdown above her head as she stands under them with her hands joined, calm margins.",
+      "styles": [
+        "poster",
+        "closeup"
+      ]
+    },
+    "reach_heaven": {
+      "name": "Reach Heaven",
+      "type": "attack",
+      "scene": "She lunges upward thrusting the staff at the sky and a beam opens a hole in the clouds, extreme low camera angle.",
+      "styles": [
+        "poster",
+        "classroom"
+      ]
+    },
+    "study": {
+      "name": "Study",
+      "type": "power",
+      "scene": "Emblem composition: she reads a floating scroll of abstract diagrams (no letters) by the glow of her gold eye sigil, a stack of books beside her.",
+      "styles": [
+        "poster",
+        "closeup"
+      ]
+    },
+    "establishment": {
+      "name": "Establishment",
+      "type": "power",
+      "scene": "She plants the staff upright like a pillar and a flat temple platform forms around it, symmetric emblem composition.",
+      "styles": [
+        "poster",
+        "closeup"
+      ]
+    },
+    "meditate": {
+      "name": "Meditate",
+      "type": "skill",
+      "scene": "She sits cross-legged with a small gold orb floating above her open palm, calm, a flat cloudless sky behind.",
+      "styles": [
+        "classroom",
+        "closeup"
+      ]
+    },
+    "perseverance": {
+      "name": "Perseverance",
+      "type": "skill",
+      "scene": "She braces against a strong wind with the staff planted and sleeves flapping in flat shapes, steady, low camera.",
+      "styles": [
+        "classroom",
+        "closeup"
+      ]
+    },
+    "sands_of_time": {
+      "name": "Sands of Time",
+      "type": "attack",
+      "scene": "She smashes a golden hourglass with the staff and streams of gold sand burst outward, high angle, classroom-style shadow cut.",
+      "styles": [
+        "poster",
+        "classroom"
+      ]
+    },
+    "windmill_strike": {
+      "name": "Windmill Strike",
+      "type": "attack",
+      "scene": "She spins the staff in a big windmill circle overhead and brings it down, flat circular motion lines, low camera.",
+      "styles": [
+        "poster",
+        "classroom"
+      ]
+    },
+    "crescendo": {
+      "name": "Crescendo",
+      "type": "skill",
+      "scene": "She raises her arms and gold rings of sound grow larger and larger around her in a flat expanding series, wrath-tilted head.",
+      "styles": [
+        "classroom",
+        "closeup"
+      ]
+    },
+    "flurry_of_blows": {
+      "name": "Flurry of Blows",
+      "type": "attack",
+      "scene": "Five rapid palm strikes shown as overlapping afterimage hands fanning across the frame, one clear fist in front.",
+      "styles": [
+        "poster",
+        "classroom"
+      ]
+    },
+    "flying_sleeves": {
+      "name": "Flying Sleeves",
+      "type": "attack",
+      "scene": "Her wide sleeves fly out like blades slashing two bright gold arcs across the frame, low camera, cloudless sky.",
+      "styles": [
+        "poster",
+        "classroom"
+      ]
+    },
+    "protect": {
+      "name": "Protect",
+      "type": "skill",
+      "scene": "She shields herself behind the staff and one wide sleeve, a curved barrier arc of pale light in front, steady stance.",
+      "styles": [
+        "classroom",
+        "closeup"
+      ]
+    },
+    "prostrate": {
+      "name": "Prostrate",
+      "type": "skill",
+      "scene": "She bows low with both hands on the floor and the ribbon pooling around her, a small gold orb floating over her head.",
+      "styles": [
+        "classroom",
+        "closeup"
+      ]
+    },
+    "pray": {
+      "name": "Pray",
+      "type": "skill",
+      "scene": "She holds her hands together in prayer, gold light glowing between her palms, head tilted down, serene.",
+      "styles": [
+        "classroom",
+        "closeup"
+      ]
+    },
+    "third_eye": {
+      "name": "Third Eye",
+      "type": "skill",
+      "scene": "Huge close-up of her blindfold with the gold closed-eye sigil glowing, a small pointed chin below, a calm flat panel behind.",
+      "styles": [
+        "classroom",
+        "closeup"
+      ]
+    },
+    "cut_through_fate": {
+      "name": "Cut Through Fate",
+      "type": "attack",
+      "scene": "She slices through one long gold thread of fate with the staff tip, flat star sparks, thread curling away in bold curves, low camera.",
+      "styles": [
+        "poster",
+        "classroom"
+      ]
+    },
+    "just_lucky": {
+      "name": "Just Lucky",
+      "type": "attack",
+      "scene": "She tosses a small die and a coin together into the air with a small knowing tilt of her head, cloudless sky, flat gold highlights.",
+      "styles": [
+        "poster",
+        "classroom"
+      ]
+    },
+    "tranquility": {
+      "name": "Tranquility",
+      "type": "skill",
+      "scene": "She sits unmoving under a cloudless sky with a gentle ripple on the water, staff across her knees, still and symmetrical.",
+      "styles": [
+        "poster",
+        "closeup"
+      ]
+    },
+    "empty_mind": {
+      "name": "Empty Mind",
+      "type": "skill",
+      "scene": "She sits with her head tilted as thoughts drift out of it like leaves of light, flat and quiet, a gold ring behind.",
+      "styles": [
+        "classroom",
+        "closeup"
+      ]
+    },
+    "crush_joints": {
+      "name": "Crush Joints",
+      "type": "attack",
+      "scene": "She twists an enemy silhouette's arm into a hold with both hands, non-graphic, flat violet shadow cut, low camera.",
+      "styles": [
+        "poster",
+        "classroom"
+      ]
+    },
+    "fear_no_evil": {
+      "name": "Fear No Evil",
+      "type": "attack",
+      "scene": "She stands unflinching with one palm raised before a huge looming dark silhouette's strike, the staff planted, calm and symmetric.",
+      "styles": [
+        "poster",
+        "classroom"
+      ]
+    }
+  }
+}

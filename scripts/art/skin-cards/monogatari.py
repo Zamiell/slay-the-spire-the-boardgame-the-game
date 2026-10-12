@@ -133,7 +133,7 @@ def tile_box(index, size=(1536, 1024), inset=8):
 
 
 def prepare():
-    kratos = json.loads((HERE / "plan.json").read_text())["cards"]
+    kratos = json.loads((HERE / "skins/kratos/plan.json").read_text())["cards"]
     for owner in ("ironclad", "defect"):
         cards = catalogue(owner)
         for first in range(0, len(cards), 4):
@@ -264,12 +264,12 @@ def masks():
         # Restrict it to the proven matching physical template, allowing 2px
         # for genuine template geometry differences before per-scan registration.
         guard = (
-            Image.open(HERE / f"masks/base-{kind}{'-up' if up else ''}.png")
+            Image.open(HERE / f"masks/ironclad/base-{kind}{'-up' if up else ''}.png")
             .convert("L")
             .filter(ImageFilter.MaxFilter(5))
         )
         mask = ImageChops.darker(mask.filter(ImageFilter.GaussianBlur(0.45)), guard)
-        mask.save(HERE / f"masks/defect-{kind}{'-up' if up else ''}.png")
+        mask.save(HERE / f"masks/defect/base-{kind}{'-up' if up else ''}.png")
     (DOCS / "defect-mask-report.json").write_text(
         json.dumps(
             {
@@ -278,7 +278,7 @@ def masks():
                 "shapeGuard": "Intersection with matching proven base-template mask grown 2px, applied after feathering, excludes banner-tail frame variance.",
                 "maskBounds": {
                     p.name: list(Image.open(p).getbbox())
-                    for p in (HERE / "masks").glob("defect*")
+                    for p in (HERE / "masks/defect").glob("base-*.png")
                 },
             },
             indent=1,
@@ -414,7 +414,7 @@ def export():
             "masks": [
                 record(
                     HERE
-                    / f"masks/{'defect' if owner == 'defect' else 'base'}-{kind}{suffix}.png"
+                    / f"masks/{owner}/base-{kind}{suffix}.png"
                 )
                 for kind in ("attack", "skill", "power")
                 for suffix in ("", "-up")

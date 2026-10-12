@@ -5,6 +5,8 @@ import { createServer } from 'vite'
 import { chromium, webkit } from './lib/profile-browser.mjs'
 import { postNeowRun } from './lib/post-neow-run.mjs'
 import { chooseRelicReward } from '../src/game/run.ts'
+import { SKIN_IDS, SKIN_LABELS, skinsOf } from '../src/game/skins.ts'
+import { CHARACTER_LABEL } from '../src/ui/run-summary-data.ts'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
 const output = `${root}artifacts/treasure-animation`
@@ -12,8 +14,19 @@ mkdirSync(output, { recursive: true })
 const server = await createServer({ root, logLevel: 'silent', server: { port: 0 } })
 await server.listen()
 const errors = []
-const seats = ['ironclad', 'silent', 'defect', 'watcher'].map((character, index) => ({ id: `p${index + 1}`, name: ['A · Kratos', 'B · Silent', 'C · Defect', 'D · Watcher'][index], character,
-  ...(character === 'ironclad' ? { skin: 'kratos' } : {}) }))
+// Round N seats every hero in its Nth skin (a hero with fewer skins keeps its last look), so the party shows every skin's
+// hand model in some round. The animation checks below run for round 1; later rounds check each seat's hand and grip files.
+const heroes = ['ironclad', 'silent', 'defect', 'watcher']
+const rounds = Array.from({ length: Math.max(...heroes.map((character) => skinsOf(character).length)) }, (_, round) =>
+  heroes.map((character, index) => {
+    const skins = skinsOf(character)
+    const skin = skins[Math.min(round, skins.length - 1)]
+    return { id: `p${index + 1}`, name: `${'ABCD'[index]} · ${skin ? SKIN_LABELS[skin] : CHARACTER_LABEL[character]}`, character, ...(skin ? { skin } : {}) }
+  }))
+const [seats] = rounds
+const visualOf = (seat) => seat.skin ?? seat.character
+assert.deepEqual(SKIN_IDS.filter((skin) => !rounds.flat().some((seat) => seat.skin === skin)), [],
+  'every registered skin needs a seat in some round')
 function fixture(shared = true, roster = seats) {
   const run = postNeowRun('treasure-animation', roster)
   run.campaignProgress.actIV = 5
@@ -49,6 +62,16 @@ try {
         await page.getByRole('button', { name: 'Embark', exact: true }).click()
         await page.getByRole('button', { name: 'Start standard campaign', exact: true }).click()
         await page.waitForFunction(() => window.__STS_DEBUG__?.getRun().phase === 'neow')
+        for (const roundSeats of rounds.slice(1)) {
+          await page.evaluate((run) => window.__STS_DEBUG__.setRun(run), fixture(true, roundSeats))
+          for (const seat of roundSeats) {
+            for (const pose of ['hand', 'grip']) {
+              const href = `/assets/noncombat/treasure/${pose}-${visualOf(seat)}.webp`
+              await page.locator(`link[rel="preload"][href$="${pose}-${visualOf(seat)}.webp"]`).first().waitFor({ state: 'attached' })
+              assert.equal(await page.evaluate(async (url) => (await fetch(url)).status, href), 200, `${name}: ${href} is served`)
+            }
+          }
+        }
         await page.evaluate((run) => window.__STS_DEBUG__.setRun(run), fixture())
         // Mobile browser bars reduce the visible app height without changing vh.
         const browserBars = name === 'horizontal-phone'
@@ -87,7 +110,7 @@ try {
         assert.equal(await page.locator('[data-treasure-slot="0"]').evaluate((element) => element.tagName), 'SPAN')
         await page.locator('.potion-tip:visible').waitFor({ state: 'detached' })
         const pickup = page.locator('.treasure-claim--0')
-        assert.match(await pickup.locator('img.treasure-claim__hand--reach').getAttribute('src'), /hand-kratos\.webp/, 'the Kratos skin reaches with his own hand')
+        assert.match(await pickup.locator('img.treasure-claim__hand--reach').getAttribute('src'), new RegExp(`hand-${visualOf(seats[0])}\\.webp`), 'the skin reaches with its own hand')
         await pickup.locator('img.treasure-claim__hand').evaluateAll((images) => Promise.all(images.map((image) => image.decode())))
         const pose = (time) => pickup.evaluate((element, time) => {
           for (const node of [element, ...element.querySelectorAll('*')]) {
@@ -117,7 +140,7 @@ try {
           }, seat)
           const observed = await receipt.jsonValue()
           await receipt.dispose()
-          assert.match(observed.src, new RegExp(seats[seat].skin ?? seats[seat].character))
+          assert.match(observed.src, new RegExp(`hand-${visualOf(seats[seat])}\\.webp`))
           if (seat === 3) assert.equal(observed.phase, 'map')
           await page.locator('.treasure-claim:not(.treasure-preview)').waitFor({ state: 'detached' })
         }

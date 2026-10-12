@@ -74,6 +74,8 @@ const ownerLabel = (pack: CardPackDef) => pack.owner === 'colorless' ? 'Colorles
 const accentStyle = (id: CardPackId) => ({ '--pack-accent': PACK_ACCENT[id] }) as CSSProperties
 const heroAccentStyle = (hero: CharacterId) => ({ '--pack-accent': heroAccent(hero) }) as CSSProperties
 const heroCrest = (hero: CharacterId | 'colorless') => assetPath(`menu/compendium-icons/${hero}.webp`)
+/** The skin's accessible name: its label does not say which hero wears it (Kratos), so buttons and dialogs add the hero. */
+const skinTitle = (skin: SkinId) => `${SKIN_LABELS[skin]} skin for ${CHARACTER_LABEL[characterOfSkin(skin)]}`
 const heroPortrait = (visual: string) => assetPath(`menu/character-select/portrait-${visual}.png`)
 
 /** What the purchase dialog sells: a pack, or a skin. */
@@ -197,7 +199,7 @@ function PurchaseDialog({ offer, coins, onClose, onBrowse }: {
   const skin = 'skin' in offer ? offer.skin : null
   const pack = 'pack' in offer ? offer.pack : null
   const hero: CharacterId | 'colorless' = skin ? characterOfSkin(skin) : pack!.owner
-  const name = skin ? `${SKIN_LABELS[skin]} skin` : pack!.name
+  const name = skin ? skinTitle(skin) : pack!.name
   const price = skin ? SKIN_PRICES[skin] : CARD_PACK_PRICE
   const style = skin ? heroAccentStyle(characterOfSkin(skin)) : accentStyle(pack!.id)
   const dialog = useRef<HTMLDialogElement>(null)
@@ -235,7 +237,7 @@ function PurchaseDialog({ offer, coins, onClose, onBrowse }: {
           : <PackFan id={pack!.id} size="dialog" />}
         {bought ? <Icon className="shop-confirm__seal" src={ICON.owned} /> : null}
       </div>
-      <h2><Icon className="shop-crest" src={heroCrest(hero)} />{name}</h2>
+      <h2><Icon className="shop-crest" src={heroCrest(hero)} />{skin ? `${SKIN_LABELS[skin]} skin` : name}</h2>
       <p id="shop-confirm-copy" className="shop-confirm__copy">
         {skin ? `${CHARACTER_LABEL[characterOfSkin(skin)]} skin` : <>
           <Icon className="shop-confirm__deck" src={ICON.deck} />
@@ -284,6 +286,7 @@ function SkinRack({ skin, owned, worn, short, onBuy, onWear }: {
   const headingId = `shop-skin-${skin}`
   const progress = { '--progress': (price - short) / price } as CSSProperties
   const cost = `${formatCoins(price)} coins`
+  const title = skinTitle(skin)
   return <li className="shop-skin" data-skin={skin} data-owned={owned || undefined} data-worn={worn || undefined}
     style={heroAccentStyle(hero)} aria-labelledby={headingId}>
     <span className="shop-skin__art">
@@ -295,7 +298,7 @@ function SkinRack({ skin, owned, worn, short, onBuy, onWear }: {
       aria-label={`${worn ? 'Worn' : 'Wear'}: ${name}, ${CHARACTER_LABEL[hero]} skin`} onClick={onWear}>
       {worn ? '✓ Worn' : 'Wear'}
     </button> : <button type="button" className="shop-button shop-button--buy shop-skin__buy" disabled={short > 0} style={progress}
-      aria-label={short > 0 ? `Not enough coins for the ${name} skin, ${cost}: need ${formatCoins(short)} more` : `Buy the ${name} skin, ${cost}`}
+      aria-label={short > 0 ? `Not enough coins for the ${title}, ${cost}: need ${formatCoins(short)} more` : `Buy the ${title}, ${cost}`}
       onClick={onBuy}>
       <CoinAmount coins={price} size={26} />
     </button>}

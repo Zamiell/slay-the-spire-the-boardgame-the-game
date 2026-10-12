@@ -1,0 +1,470 @@
+{
+ "battle_hymn": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/battle_hymn.webp",
+  "webpQuality": 90,
+  "bytes": 147304
+ },
+ "blasphemy": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/blasphemy.webp",
+  "webpQuality": 90,
+  "bytes": 118038
+ },
+ "brilliance": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/brilliance.webp",
+  "webpQuality": 90,
+  "bytes": 148062
+ },
+ "carve_reality": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/carve_reality.webp",
+  "webpQuality": 90,
+  "bytes": 148338
+ },
+ "collect": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/collect.webp",
+  "webpQuality": 90,
+  "bytes": 131874
+ },
+ "conclude": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/conclude.webp",
+  "webpQuality": 90,
+  "bytes": 107342
+ },
+ "conjure_blade": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/conjure_blade.webp",
+  "webpQuality": 90,
+  "bytes": 112632
+ },
+ "consecrate": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/consecrate.webp",
+  "webpQuality": 90,
+  "bytes": 148872
+ },
+ "crescendo": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/crescendo.webp",
+  "webpQuality": 90,
+  "bytes": 145580
+ },
+ "crush_joints": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/crush_joints.webp",
+  "webpQuality": 90,
+  "bytes": 125342
+ },
+ "cut_through_fate": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/cut_through_fate.webp",
+  "webpQuality": 90,
+  "bytes": 139806
+ },
+ "defend_watcher": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/defend_watcher.webp",
+  "webpQuality": 90,
+  "bytes": 135108
+ },
+ "deus_ex_machina": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/deus_ex_machina.webp",
+  "webpQuality": 88,
+  "bytes": 143958
+ },
+ "deva_form": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/deva_form.webp",
+  "webpQuality": 84,
+  "bytes": 145916
+ },
+ "devotion": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/devotion.webp",
+  "webpQuality": 86,
+  "bytes": 152122
+ },
+ "empty_body": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/empty_body.webp",
+  "webpQuality": 88,
+  "bytes": 141590
+ },
+ "empty_fist": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/empty_fist.webp",
+  "webpQuality": 88,
+  "bytes": 146996
+ },
+ "empty_mind": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/empty_mind.webp",
+  "webpQuality": 90,
+  "bytes": 123324
+ },
+ "eruption": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/eruption.webp",
+  "webpQuality": 88,
+  "bytes": 146126
+ },
+ "establishment": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/establishment.webp",
+  "webpQuality": 88,
+  "bytes": 143198
+ },
+ "fear_no_evil": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/fear_no_evil.webp",
+  "webpQuality": 90,
+  "bytes": 133790
+ },
+ "flurry_of_blows": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/flurry_of_blows.webp",
+  "webpQuality": 88,
+  "bytes": 151220
+ },
+ "flying_sleeves": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/flying_sleeves.webp",
+  "webpQuality": 90,
+  "bytes": 116522
+ },
+ "foreign_influence": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/foreign_influence.webp",
+  "webpQuality": 88,
+  "bytes": 148908
+ },
+ "foresight": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/foresight.webp",
+  "webpQuality": 88,
+  "bytes": 151408
+ },
+ "halt": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/halt.webp",
+  "webpQuality": 90,
+  "bytes": 132190
+ },
+ "indignation": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/indignation.webp",
+  "webpQuality": 90,
+  "bytes": 133150
+ },
+ "inner_peace": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/inner_peace.webp",
+  "webpQuality": 90,
+  "bytes": 116758
+ },
+ "judgment": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/judgment.webp",
+  "webpQuality": 90,
+  "bytes": 129194
+ },
+ "just_lucky": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/just_lucky.webp",
+  "webpQuality": 90,
+  "bytes": 153106
+ },
+ "like_water": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/like_water.webp",
+  "webpQuality": 88,
+  "bytes": 146188
+ },
+ "meditate": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/meditate.webp",
+  "webpQuality": 90,
+  "bytes": 120902
+ },
+ "mental_fortress": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/mental_fortress.webp",
+  "webpQuality": 88,
+  "bytes": 153184
+ },
+ "nirvana": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/nirvana.webp",
+  "webpQuality": 88,
+  "bytes": 143464
+ },
+ "omega": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/omega.webp",
+  "webpQuality": 90,
+  "bytes": 132264
+ },
+ "omniscience": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/omniscience.webp",
+  "webpQuality": 84,
+  "bytes": 141928
+ },
+ "perseverance": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/perseverance.webp",
+  "webpQuality": 90,
+  "bytes": 114596
+ },
+ "pray": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/pray.webp",
+  "webpQuality": 90,
+  "bytes": 144780
+ },
+ "prostrate": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/prostrate.webp",
+  "webpQuality": 90,
+  "bytes": 130090
+ },
+ "protect": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/protect.webp",
+  "webpQuality": 90,
+  "bytes": 128542
+ },
+ "ragnarok": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/ragnarok.webp",
+  "webpQuality": 82,
+  "bytes": 145686
+ },
+ "reach_heaven": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/reach_heaven.webp",
+  "webpQuality": 86,
+  "bytes": 143786
+ },
+ "rushdown": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/rushdown.webp",
+  "webpQuality": 84,
+  "bytes": 142280
+ },
+ "sands_of_time": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/sands_of_time.webp",
+  "webpQuality": 78,
+  "bytes": 148762
+ },
+ "sash_whip": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/sash_whip.webp",
+  "webpQuality": 90,
+  "bytes": 111964
+ },
+ "scrawl": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/scrawl.webp",
+  "webpQuality": 90,
+  "bytes": 147230
+ },
+ "signature_move": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/signature_move.webp",
+  "webpQuality": 90,
+  "bytes": 120082
+ },
+ "simmering_fury": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/simmering_fury.webp",
+  "webpQuality": 90,
+  "bytes": 117258
+ },
+ "slayer_bowling_bash": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/slayer_bowling_bash.webp",
+  "webpQuality": 90,
+  "bytes": 149272
+ },
+ "slayer_deceive_reality": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/slayer_deceive_reality.webp",
+  "webpQuality": 86,
+  "bytes": 141268
+ },
+ "slayer_fasting": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/slayer_fasting.webp",
+  "webpQuality": 90,
+  "bytes": 143608
+ },
+ "slayer_master_reality": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/slayer_master_reality.webp",
+  "webpQuality": 86,
+  "bytes": 147530
+ },
+ "slayer_pressure_points": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/slayer_pressure_points.webp",
+  "webpQuality": 90,
+  "bytes": 118458
+ },
+ "slayer_wave_of_the_hand": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/slayer_wave_of_the_hand.webp",
+  "webpQuality": 90,
+  "bytes": 129878
+ },
+ "slayer_wheel_kick": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/slayer_wheel_kick.webp",
+  "webpQuality": 90,
+  "bytes": 144346
+ },
+ "spirit_shield": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/spirit_shield.webp",
+  "webpQuality": 88,
+  "bytes": 142108
+ },
+ "strike_watcher": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/strike_watcher.webp",
+  "webpQuality": 90,
+  "bytes": 116082
+ },
+ "study": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/study.webp",
+  "webpQuality": 86,
+  "bytes": 150854
+ },
+ "swivel": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/swivel.webp",
+  "webpQuality": 90,
+  "bytes": 124676
+ },
+ "talk_to_the_hand": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/talk_to_the_hand.webp",
+  "webpQuality": 90,
+  "bytes": 142400
+ },
+ "tantrum": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/tantrum.webp",
+  "webpQuality": 86,
+  "bytes": 149538
+ },
+ "third_eye": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/third_eye.webp",
+  "webpQuality": 90,
+  "bytes": 135174
+ },
+ "tranquility": {
+  "candidate": 3,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/tranquility.webp",
+  "webpQuality": 90,
+  "bytes": 102304,
+  "regeneration": {
+   "model": "gpt-image-2",
+   "quality": "high",
+   "size": [
+    1536,
+    1024
+   ],
+   "inputs": [
+    {
+     "role": "style",
+     "sha256": "0a006524048361ec815fb8d9648c269da8bf507224c0cd6b7a9b07ed8de7fa90",
+     "description": "Monogatari second-season poster"
+    },
+    {
+     "role": "style",
+     "sha256": "eae8b06c365b04b53a3aa6723091f172f7ae7641009a31a04ab40d7f43471762",
+     "description": "Yotsugi close-up"
+    },
+    {
+     "role": "original character identity",
+     "sha256": "39ae932a5fbdeaab78e065eb726506446a7966c09c5c1b3ac5e47cb2fd06439e",
+     "path": "scripts/art/sources/monogatari_watcher-noncombat/identity.webp"
+    },
+    {
+     "role": "original card scan",
+     "sha256": "67ed0b5c213a6c0012752196420763bf3c0a10d3e9d94193414bee64c68195c1",
+     "path": "public/assets/cards/watcher__normal__tranquility.webp"
+    },
+    {
+     "role": "original card illustration",
+     "sha256": "9e69f2d282db694ea1b6289af057b84e21ee065303819343adb833345408d85d",
+     "path": "public/assets/card-art/watcher/tranquility.webp"
+    }
+   ],
+   "modelOutputSha256": "5500efd4f7565e3a36f0d4ab33537147216ed9adfa41003ff53da5f0e6407803",
+   "sourceCrop": [
+    0,
+    40,
+    1536,
+    904
+   ]
+  }
+ },
+ "vault": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/vault.webp",
+  "webpQuality": 90,
+  "bytes": 104396
+ },
+ "vigilance": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/vigilance.webp",
+  "webpQuality": 90,
+  "bytes": 117042
+ },
+ "wallop": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/wallop.webp",
+  "webpQuality": 90,
+  "bytes": 147236
+ },
+ "weave": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/weave.webp",
+  "webpQuality": 90,
+  "bytes": 140708
+ },
+ "windmill_strike": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/windmill_strike.webp",
+  "webpQuality": 88,
+  "bytes": 146420
+ },
+ "wish": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/wish.webp",
+  "webpQuality": 90,
+  "bytes": 126902
+ },
+ "worship": {
+  "candidate": 2,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/worship.webp",
+  "webpQuality": 90,
+  "bytes": 131022
+ },
+ "wreath_of_flame": {
+  "candidate": 1,
+  "source": "scripts/art/sources/monogatari_watcher-skin-cards/wreath_of_flame.webp",
+  "webpQuality": 90,
+  "bytes": 131556
+ }
+}

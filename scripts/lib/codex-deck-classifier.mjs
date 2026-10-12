@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { Codex } from '@openai/codex-sdk'
 import { CARDS, faceOf } from '../../src/game/cards.ts'
@@ -11,7 +12,7 @@ const STALE_THREAD_ERROR = /session.{0,80}(?:not found|does not exist|invalid)|n
 const CONTEXT_ERROR = /context[_ -]?(?:window|length)[_ -]?(?:exceeded|full)/i
 const AUTH_ERROR = /authentication|unauthorized|invalid_api_key|\b401\b|refresh token|token (?:expired|revoked|invalid)|(?:log|sign)[ -]?in again/i
 const workerEnvironment = () => ({ HOME: process.env.HOME, USER: process.env.USER,
-  PATH: process.env.PATH, LANG: 'C.UTF-8', NODE_BINARY: process.execPath,
+  PATH: process.env.PATH, TMPDIR: tmpdir(), LANG: 'C.UTF-8', NODE_BINARY: process.execPath,
   ...(process.env.OPENAI_API_KEY ? { OPENAI_API_KEY: process.env.OPENAI_API_KEY } : {}),
   ...(process.env.STS_CODEX_BIN ? { STS_CODEX_BIN: process.env.STS_CODEX_BIN } : {}) })
 

@@ -1,0 +1,97 @@
+{
+  "skin": "kratos",
+  "note": "Hand-authored clock and presentation of the Kratos attack. kratos.py (the bake) rewrites poseShift and contactReach from the drawings and fails --check when they drift; everything else is edited here. Format: docs/skins/attack-animation.md.",
+  "canvas": 1152,
+  "displayScale": 2.3,
+  "ground": 1136,
+  "durationMs": 2400,
+  "travel": {
+    "out": [60, 300],
+    "back": [2000, 2280]
+  },
+  "timingNote": "Dash in 60-300ms; left extend 300-450ms; right extend 450-600ms; windup and slam 600-1800ms (yank the second blade back 100, rise 120, backswing held 240, overhead pass 60, over the top 130, impact held 550); retract 1800-2000ms; dash back 2000-2280ms. The overhead pass reuses the windup-cast drawing and the retract opens on the recovery drawing.",
+  "contactReach": 1.1726,
+  "contactPoses": [
+    "left-extended",
+    "right-extended",
+    "slam"
+  ],
+  "poseShift": {
+    "left-cast": 152,
+    "left-extended": 220,
+    "right-cast": 230,
+    "right-extended": 218,
+    "right-pull": 114,
+    "windup-cast": 19,
+    "windup": -60,
+    "slam-descend": 191,
+    "slam": 220,
+    "recovery": 156,
+    "retract": 127,
+    "catch": 50,
+    "settle": 22
+  },
+  "keys": [
+    [0, "idle"],
+    [60, "anticipation"],
+    [300, "left-cast"],
+    [375, "left-extended"],
+    [450, "right-cast"],
+    [525, "right-extended"],
+    [600, "right-pull"],
+    [700, "windup-cast"],
+    [820, "windup"],
+    [1060, "windup-cast"],
+    [1120, "slam-descend"],
+    [1250, "slam"],
+    [1800, "recovery"],
+    [1900, "retract"],
+    [2000, "catch"],
+    [2140, "settle"],
+    [2280, "idle"]
+  ],
+  "cues": [
+    {
+      "at": "left-cast",
+      "sound": "kratos-chain"
+    },
+    {
+      "at": "right-cast",
+      "sound": "kratos-chain"
+    },
+    {
+      "at": "slam-descend",
+      "sound": "kratos-chain"
+    }
+  ],
+  "hits": [
+    {
+      "at": "left-extended",
+      "weight": 0.1,
+      "style": "strike",
+      "angle": -25,
+      "vfx": "light",
+      "sound": "kratos-light"
+    },
+    {
+      "at": "right-extended",
+      "weight": 0.1,
+      "style": "strike",
+      "angle": 25,
+      "vfx": "light",
+      "sound": "kratos-light"
+    },
+    {
+      "at": "slam",
+      "weight": 0.8,
+      "style": "slam",
+      "vfx": "impact",
+      "sound": "kratos-slam"
+    }
+  ],
+  "sounds": {
+    "kratos-chain": 0.19,
+    "kratos-light": 0.16,
+    "kratos-slam": 0.32
+  }
+}

@@ -39,26 +39,30 @@ Game images used (GoW wiki, fandom):
 
 ## Pipeline (scripts/art/skin-cards/)
 
+The pipeline is shared by every card skin: a skin is a (skin id, owner character) pair (`SKIN_OWNERS` in `skincards.py`; `--skin` picks it and `--owner` overrides), and everything a skin owns is derived from that pair, so skins run in parallel without sharing a writable file: `skins/<skin>/{plan,selections}.json`, `scripts/art/sources/<skin>-skin-cards/`, `docs/skins/<skin>-card-art/{manifest.json,prompts/}`, `public/assets/skin-card-art/<skin>/<owner>/`, `public/assets/skin-cards{,-sm}/<skin>/`. The catalogue of an owner is `cards/<owner>.json`, its art-window masks are in `masks/<owner>/`, and `registration.json` holds the scan registrations of every owner (keys start with the owner or `slayer__<owner>`). The prompt and the input images of a skin come from its recipe (`recipes.py`, `"recipe"` in `plan.json`; Kratos is `kratos`, the Monogatari skins use `monogatari`). The commands below are for Kratos; add `--skin <id>` for another skin.
+
 | Step | Command | Notes |
 | --- | --- | --- |
-| Card catalogue | `node --experimental-strip-types scripts/art/skin-cards/dump-cards.mjs` | writes `cards.json` from `src/game` |
-| Game images | `python3 scripts/art/skin-cards/fetch_refs.py` | needs a browser User-Agent and Referer; records `refs.json` |
-| Generate | `python3 scripts/art/skin-cards/generate.py run --all --candidates 2` | needs `OPENAI_API_KEY` and the `openai` package; resumable, skips existing candidates, retries rate limits; raw candidates go to `$STS_SKIN_ART_WORK/work-gen` (default `artifacts/skin-art/work-gen`) |
-| Select | `python3 scripts/art/skin-cards/generate.py select <id>=<n> ...` | stores the chosen candidate as a WebP source (<= 150 KiB) in `scripts/art/sources/kratos-skin-cards/` and records it in `selections.json` |
-| Export | `python3 scripts/art/skin-cards/export.py` | 748x420 art (<= 40 KiB) in `public/assets/skin-card-art/kratos/ironclad/` plus the manifest |
-| Composite | `python3 scripts/art/skin-cards/composite.py --all --skin kratos --root public/assets` | writes `skin-cards/kratos/` (full size) and `skin-cards-sm/kratos/` (448 px), base and upgraded, keyed by the existing asset keys |
-| Validate | `python3 scripts/art/skin-cards/validate.py` | needs opencv; checks every face (see below) |
+| Card catalogue | `node --experimental-strip-types scripts/art/skin-cards/dump-cards.mjs [owner ...]` | writes `cards/<owner>.json` from `src/game` |
+| Game images | `python3 scripts/art/skin-cards/fetch_refs.py` | Kratos only; needs a browser User-Agent and Referer; records `skins/kratos/refs.json` |
+| Generate | `python3 scripts/art/skin-cards/generate.py run --all --candidates 2` | needs `OPENAI_API_KEY` and the `openai` package (run it with a Python that has `openai`, it launches the CLI with the same interpreter); resumable, skips existing candidates, retries rate limits; raw candidates go to `--work` (default `$STS_SKIN_ART_WORK/work-gen[-<skin>]`, `artifacts/skin-art` when unset) |
+| Select | `python3 scripts/art/skin-cards/generate.py select <id>=<n> ...` | stores the chosen candidate as a WebP source (<= 150 KiB) in `scripts/art/sources/<skin>-skin-cards/` and records it in `skins/<skin>/selections.json` |
+| Export | `python3 scripts/art/skin-cards/export.py` | 748x420 art (<= 40 KiB) in `public/assets/skin-card-art/<skin>/<owner>/` plus the manifest |
+| Composite | `python3 scripts/art/skin-cards/composite.py --all --skin kratos --root public/assets` | writes `skin-cards/<skin>/` (full size) and `skin-cards-sm/<skin>/` (448 px), base and upgraded, keyed by the existing asset keys |
+| Validate | `python3 scripts/art/skin-cards/validate.py [--owner silent]` | needs opencv; checks every face (see below) |
 
-Export, composite and validate make no API calls and are deterministic. `build_masks.py` rebuilds `registration.json` and `masks/` from the scans (needs opencv and scipy; only needed when the scans change).
+Export, composite and validate make no API calls and are deterministic. `build_masks.py --owner <owner>` rebuilds that owner's masks and registrations from its scans (needs opencv and scipy; only needed when the scans change or for a new owner).
 
 ## Why registration and masks
 
-The scans are not pixel-registered: most sit within a few pixels of each other and ten are 960x1341. Each scan is aligned (scale plus translation) to a reference of its frame type and face, then the art window is the set of pixels that vary between cards of one frame type (art, title, cost digit, rules text), cleaned and feathered about 1 px. Pack scans share the base geometry. Composites keep each scan's own size (the 960 px scans stay 960 px wide) and the thumbnails are composited onto the existing 448 px scans.
+The scans are not pixel-registered: most sit within a few pixels of each other and ten are 960x1341. Each scan is aligned (scale plus translation) to a reference of its frame type and face, then the art window is the set of pixels that vary between cards of one frame type (art, title, cost digit, rules text), cleaned and feathered about 1 px. Pack scans share the base geometry. Each owner's frames get their own masks (the Silent and Watcher frames differ in colour, and the masks are derived from their own scans). Composites keep each scan's own size (the 960 px scans stay 960 px wide) and the thumbnails are composited onto the existing 448 px scans.
 
-`validate.py` reports, over all 136 faces at full size and 448 px: the art-swap difference outside the window (0 exactly), the same inside it, and the share of pixels in a 3 px ring just outside the window that still differ from the median frame of the card's rarity group (old art left over).
+`validate.py` reports, over every face of the owner (136 for Ironclad) at full size and 448 px: the art-swap difference outside the window (0 exactly), the same inside it, and the share of pixels in a 3 px ring just outside the window that still differ from the median frame of the card's rarity group (old art left over).
 
 ## In the game
 
 A card wears the skin of the seat that owns its character in the run on screen (solo run, online snapshot, replay); screens outside a run (compendium, stats, Shop) use the viewer's saved choice. `src/ui/skin-context.tsx` provides the choices and `cardImagePath`, `cardThumbPath` and `cardArtPath` (`src/game/assets.ts`) take the skin. They resolve into `skin-cards/`, `skin-cards-sm/` and `skin-card-art/` only for the keys listed in `src/game/skin-card-faces.ts`, which `node scripts/sync-skin-card-faces.mjs` regenerates from those directories (`--check` fails when it is stale, and `verify-assets.mjs` runs that same comparison, so a stale list fails the asset verifier); every other card keeps its default scan. A card with a Gem socketed keeps the default generated socketed face for now (those faces are not re-skinned).
 
 `scripts/verify-assets.mjs` fails when a new Ironclad card has no skin art, unless it is listed in `PENDING_SKIN_CARDS` there, and checks the inventory, dimensions, sizes and the hashes in `manifest.json`. `scripts/verify-skin-cards-browser.mjs` covers the app (screenshots in `artifacts/skin-cards/`).
+
+The shared `build_masks.py --owner` command supports Ironclad, Silent and Watcher. Defect uses its existing specialized masks and `defect-registration.json` producer in `monogatari.py`.

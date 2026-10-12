@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-// The Kratos skin of Ironclad in the real app, on desktop and horizontal-phone screens:
+// Every registered skin (src/game/skins.ts SKINS) in the real app, on desktop and horizontal-phone screens:
 // character select, the Neow scene, a campfire, combat in a solo run, and an online room
 // where the teammate sees the other seat's skin (lobby seat list and the run's seat).
 // The treasure hand, merchant standing and attack animation have their own focused verifiers
-// (verify-treasure-animation-browser, verify-merchant-overflow-browser, verify-kratos-animation-browser).
+// (verify-treasure-animation-browser, verify-merchant-overflow-browser, verify-skin-attack-browser).
 import assert from 'node:assert/strict'
 import { mkdirSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -14,6 +14,10 @@ import { postNeowRun } from './lib/post-neow-run.mjs'
 import { createCombat, preparePlayerTurn } from '../src/game/combat.ts'
 import { createRng } from '../src/game/rng.ts'
 import { createRun } from '../src/game/run.ts'
+import { CARDS } from '../src/game/cards.ts'
+import { campfireScenePath } from '../src/game/assets.ts'
+import { SKIN_IDS, SKIN_LABELS, SKIN_TRAITS, characterOfSkin } from '../src/game/skins.ts'
+import { CHARACTER_LABEL } from '../src/ui/run-summary-data.ts'
 
 const root = resolve(import.meta.dirname, '..')
 const output = resolve(root, 'artifacts/skin-browser')
@@ -28,21 +32,33 @@ await vite.listen()
 const origin = `http://127.0.0.1:${vite.httpServer.address().port}`
 const browser = await chromium.launch({ headless: true })
 const errors = []
+// One case per registered skin: registering a skin extends every check below. All facts come from the registry.
+const CORE_HEROES = ['ironclad', 'silent', 'defect', 'watcher']
+const CASES = SKIN_IDS.map((skin) => {
+  const hero = characterOfSkin(skin)
+  const partner = CORE_HEROES.find((character) => character !== hero)
+  return { skin, hero, name: CHARACTER_LABEL[hero], label: SKIN_LABELS[skin], traits: SKIN_TRAITS[skin], partner, partnerName: CHARACTER_LABEL[partner],
+    cardNames: Object.values(CARDS).filter((def) => def.owner === hero).map((def) => def.name),
+    soloScene: campfireScenePath([skin]).split('/').pop(), partyScene: campfireScenePath([partner, skin]).split('/').pop() }
+})
+// The halo around a skin's own energy orb matches that orb's art (a skin copying another's halo would be wrong).
+const ORB_GLOW = { kratos: [220, 22, 24], monogatari_silent: [166, 248, 62], monogatari_watcher: [150, 70, 240] }
 const SCREENS = [['desktop', { width: 1440, height: 900 }], ['horizontal-phone', { width: 844, height: 390 }]]
 
-// A context signed in as `username`, who has (or has not) chosen the Kratos skin in Profile.
+// A context signed in as `username`, who has (or has not) chosen a skin in Profile.
 /** `skin` is the choice stored in Profile; the account's wallet owns it unless `owned` is false (a stale choice). */
 async function openContext(viewport, username, skin, owned = true) {
   const context = await browser.newContext({ viewport, isMobile: viewport.width < 900, hasTouch: viewport.width < 900 })
-  await context.addInitScript(({ username, skin, owned }) => {
+  const hero = skin ? characterOfSkin(skin) : undefined
+  await context.addInitScript(({ username, skin, hero, owned }) => {
     localStorage.setItem('sts-profile', JSON.stringify({ username, token: '00000000-0000-4000-8000-000000000001', secured: true }))
-    if (skin) localStorage.setItem(`sts-skins:${username.toLowerCase()}`, JSON.stringify({ ironclad: skin }))
+    if (skin) localStorage.setItem(`sts-skins:${username.toLowerCase()}`, JSON.stringify({ [hero]: skin }))
     // Only an owned skin can be worn: the account bought it (the Shop's Skins tab).
     const wallet = `sts-wallet:${username.toLowerCase()}`
     if (skin && owned && !localStorage.getItem(wallet)) {
       localStorage.setItem(wallet, JSON.stringify({ version: 1, coins: 0, packs: [], skins: [skin], addPacksToRuns: true, credited: {} }))
     }
-  }, { username, skin, owned })
+  }, { username, skin, hero, owned })
   return context
 }
 const watch = (page) => {
@@ -55,67 +71,90 @@ const decoded = (page, selector) => page.locator(selector).first().evaluate(asyn
   return image.naturalWidth > 0 ? image.currentSrc : ''
 })
 
-async function characterSelect(page) {
+async function characterSelect(page, heroName = 'Ironclad') {
   await page.goto(origin, { waitUntil: 'networkidle' })
   await page.getByRole('button', { name: 'Single Player', exact: true }).click()
   await page.getByRole('button', { name: 'Standard', exact: true }).click()
   await page.locator('.start-menu__character-roster').waitFor()
+  if (heroName !== 'Ironclad') await page.locator(`.start-menu__character-roster button[aria-label="${heroName}"]`).click()
+  await page.getByRole('heading', { name: heroName }).waitFor()
+}
+/** The character-select wallpaper once it is the hero's `art` (the previous one fades out after a switch). */
+async function wallpaper(page, art) {
+  const selector = '.start-menu__character-wallpaper'
+  await page.waitForFunction(({ selector, art }) => [...document.querySelectorAll(selector)].some((image) => image.src.endsWith(art)), { selector, art })
+  return page.locator(selector).evaluateAll(async (images, art) => {
+    const image = images.find((candidate) => candidate.src.endsWith(art))
+    await image.decode()
+    return image.naturalWidth > 0 ? image.currentSrc : ''
+  }, art)
 }
 
 try {
-  for (const [screen, viewport] of SCREENS) {
-    // Solo, skin chosen: character select, Neow, campfire and combat all show Kratos.
-    const skinned = await openContext(viewport, 'Skinner', 'kratos')
+  for (const [screen, viewport] of SCREENS) for (const { skin, hero, name, label, traits, cardNames, soloScene } of CASES) {
+    const tag = `${screen}/${skin}`
+    // Solo, skin chosen: character select, Neow, campfire and combat all show the skin.
+    const skinned = await openContext(viewport, 'Skinner', skin)
     const page = watch(await skinned.newPage())
-    await characterSelect(page)
-    assert.match(await decoded(page, '.start-menu__character-roster button[aria-label="Ironclad"] img'), /portrait-kratos\.png$/,
-      `${screen}: Ironclad's portrait wears the skin`)
-    assert.match(await decoded(page, '.start-menu__character-roster button[aria-label="Silent"] img'), /portrait-silent\.png$/,
-      `${screen}: only Ironclad has a skin`)
-    assert.match(await decoded(page, '.start-menu__character-wallpaper'), /character-kratos-wallpaper\.webp$/, `${screen}: the wallpaper follows the skin`)
-    assert.equal(await page.getByRole('heading', { name: 'Ironclad' }).count(), 1, `${screen}: the hero is still named Ironclad`)
-    assert.equal(await page.getByRole('button', { name: 'Kratos' }).count(), 0, `${screen}: Kratos is no character`)
-    await page.screenshot({ path: resolve(output, `${screen}-character-select-skinned.png`) })
+    await characterSelect(page, name)
+    assert.match(await decoded(page, `.start-menu__character-roster button[aria-label="${name}"] img`), new RegExp(`portrait-${skin}\\.png$`),
+      `${tag}: ${name}'s portrait wears the skin`)
+    for (const other of CORE_HEROES.filter((character) => character !== hero)) {
+      assert.match(await decoded(page, `.start-menu__character-roster button[aria-label="${CHARACTER_LABEL[other]}"] img`), new RegExp(`portrait-${other}\\.png$`),
+        `${tag}: only ${name} wears the skin`)
+    }
+    assert.match(await wallpaper(page, `character-${skin}-wallpaper.webp`), new RegExp(`character-${skin}-wallpaper\\.webp$`), `${tag}: the wallpaper follows the skin`)
+    assert.equal(await page.getByRole('heading', { name }).count(), 1, `${tag}: the hero is still named ${name}`)
+    assert.equal(await page.getByRole('button', { name: label, exact: true }).count(), 0, `${tag}: ${label} is no character`)
+    await page.screenshot({ path: resolve(output, `${screen}-${skin}-character-select-skinned.png`) })
     await page.getByRole('button', { name: 'Embark', exact: true }).click()
     await page.getByRole('button', { name: 'Start standard campaign', exact: true }).click()
     await page.waitForFunction(() => window.__STS_DEBUG__?.getRun().phase === 'neow')
-    assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().players[0].skin), 'kratos', `${screen}: the run carries the skin`)
-    assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().players[0].character), 'ironclad')
-    assert.match(await decoded(page, '.neow-screen__hero'), /kratos-hero\.webp$/, `${screen}: the Neow scene shows the skin`)
+    assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().players[0].skin), skin, `${tag}: the run carries the skin`)
+    assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().players[0].character), hero)
+    assert.match(await decoded(page, '.neow-screen__hero'), new RegExp(`${skin}-hero\\.webp$`), `${tag}: the Neow scene shows the skin`)
 
-    // Campfire: the scene is the skin's, not Ironclad's.
-    const fixture = postNeowRun(61, [{ id: 'p1', name: 'Ironclad', character: 'ironclad', skin: 'kratos' }])
+    // Campfire: the scene is the skin's, not the hero's.
+    const fixture = postNeowRun(61, [{ id: 'p1', name, character: hero, skin }])
     const campfire = structuredClone(fixture)
     const roomId = campfire.map.rows[0][0]
     Object.assign(campfire, { phase: 'room' })
     campfire.map.position = roomId
     campfire.map.rooms[roomId].kind = 'campfire'
     await page.evaluate((run) => window.__STS_DEBUG__.setRun(run), campfire)
-    await page.waitForFunction(() => getComputedStyle(document.querySelector('.campfire') ?? document.body).backgroundImage.includes('kratos_firecamp.webp'))
-    await page.screenshot({ path: resolve(output, `${screen}-campfire-skinned.png`) })
+    await page.waitForFunction((scene) => getComputedStyle(document.querySelector('.campfire') ?? document.body).backgroundImage.includes(scene), soloScene)
+    await page.screenshot({ path: resolve(output, `${screen}-${skin}-campfire-skinned.png`) })
 
-    // Combat: the seat is drawn as Kratos, with the character underneath still Ironclad.
+    // Combat: the seat is drawn as the skin, with the character underneath still the hero.
     const enemy = { uid: 'enemy-0', defId: 'jaw_worm', row: 0, isBoss: false, hp: 30, maxHp: 30, block: 0, strength: 0,
       vulnerable: 0, weak: 0, poison: 0, actionIndex: 0, abilityUsed: true, dead: false }
     const fight = { ...structuredClone(fixture), phase: 'combat' }
     fight.combat = preparePlayerTurn(createCombat(createRng(62), fight.players, [enemy], 'skin-browser'))
     await page.evaluate((run) => window.__STS_DEBUG__.setRun(run), fight)
-    await page.locator('.seat__interactive[data-character="kratos"]').waitFor()
-    assert.match(await decoded(page, '.seat__portrait > img'), /\/kratos-idle\.webp$|\/kratos-hero\.webp$/, `${screen}: combat idle is Kratos`)
-    assert.equal(await page.locator('.pip--energy[data-skin-orb] .energy-orb__skin').count(), 1, `${screen}: the energy orb is the skin's`)
-    assert.match(await page.locator('.energy-orb__skin').getAttribute('src'), /\/combat\/energy-orbs\/kratos\.webp$/, `${screen}: the orb art is Kratos's`)
-    assert.equal(await page.locator('.hand .card').count() > 0, true, `${screen}: Ironclad's own cards are in hand`)
-    assert.match(await page.locator('.hand .card').first().getAttribute('aria-label'), /Strike|Defend|Bash/, `${screen}: the cards are Ironclad's`)
-    await page.screenshot({ path: resolve(output, `${screen}-combat-skinned.png`) })
+    await page.locator(`.seat__interactive[data-character="${skin}"]`).waitFor()
+    assert.match(await decoded(page, '.seat__portrait > img'), new RegExp(`/${skin}-idle\\.webp$|/${skin}-hero\\.webp$`), `${tag}: combat idle is the skin`)
+    assert.equal(await page.locator('.pip--energy[data-skin-orb] .energy-orb__skin').count(), traits.energyOrb ? 1 : 0,
+      `${tag}: the energy orb is the skin's exactly when its energyOrb trait says so`)
+    if (traits.energyOrb) {
+      assert.match(await page.locator('.energy-orb__skin').getAttribute('src'), new RegExp(`/combat/energy-orbs/${skin}\\.webp$`), `${tag}: the orb art is the skin's`)
+      assert.ok(ORB_GLOW[skin], `${tag}: ORB_GLOW names every skin with its own orb`)
+      const filter = await page.locator('.pip--energy[data-skin-orb]').evaluate((orb) => getComputedStyle(orb).filter)
+      const [halo] = [...filter.matchAll(/drop-shadow\(rgba?\((\d+), (\d+), (\d+)[^)]*\)[^)]*?\s0px 0px/g)].map((match) => match.slice(1, 4).map(Number))
+      assert.deepEqual(halo, ORB_GLOW[skin], `${tag}: the orb halo is the skin's colour (${filter})`)
+    }
+    assert.equal(await page.locator('.hand .card').count() > 0, true, `${tag}: ${name}'s own cards are in hand`)
+    const handLabel = await page.locator('.hand .card').first().getAttribute('aria-label')
+    assert.ok(cardNames.some((cardName) => handLabel.includes(cardName)), `${tag}: the cards are ${name}'s (${handLabel})`)
+    await page.screenshot({ path: resolve(output, `${screen}-${skin}-combat-skinned.png`) })
     await skinned.close()
 
-    // Solo, no skin chosen: nothing of Kratos shows anywhere.
+    // Solo, no skin chosen: nothing of the skin shows anywhere.
     const plain = await openContext(viewport, 'Plain', undefined)
     const plainPage = watch(await plain.newPage())
-    await characterSelect(plainPage)
-    assert.match(await decoded(plainPage, '.start-menu__character-roster button[aria-label="Ironclad"] img'), /portrait-ironclad\.png$/,
-      `${screen}: the default Ironclad portrait`)
-    assert.match(await decoded(plainPage, '.start-menu__character-wallpaper'), /character-ironclad-wallpaper\.webp$/)
+    await characterSelect(plainPage, name)
+    assert.match(await decoded(plainPage, `.start-menu__character-roster button[aria-label="${name}"] img`), new RegExp(`portrait-${hero}\\.png$`),
+      `${tag}: the default ${name} portrait`)
+    assert.match(await wallpaper(plainPage, `character-${hero}-wallpaper.webp`), new RegExp(`character-${hero}-wallpaper\\.webp$`))
     await plainPage.getByRole('button', { name: 'Embark', exact: true }).click()
     await plainPage.getByRole('button', { name: 'Start standard campaign', exact: true }).click()
     await plainPage.waitForFunction(() => window.__STS_DEBUG__?.getRun().phase === 'neow')
@@ -123,22 +162,22 @@ try {
     const plainFight = { ...structuredClone(fixture), phase: 'combat', players: fixture.players.map(({ skin: _skin, ...rest }) => rest) }
     plainFight.combat = preparePlayerTurn(createCombat(createRng(62), plainFight.players, [enemy], 'skin-browser-plain'))
     await plainPage.evaluate((run) => window.__STS_DEBUG__.setRun(run), plainFight)
-    await plainPage.locator('.seat__interactive[data-character="ironclad"]').waitFor()
-    assert.equal(await plainPage.locator('[data-character="kratos"], [data-skin-orb], .energy-orb__skin').count(), 0, `${screen}: no Kratos without the skin`)
+    await plainPage.locator(`.seat__interactive[data-character="${hero}"]`).waitFor()
+    assert.equal(await plainPage.locator(`[data-character="${skin}"], [data-skin-orb], .energy-orb__skin`).count(), 0, `${tag}: no skin without it`)
     await plain.close()
 
     // A stored choice for a skin the account has not bought is ignored: Default everywhere, and in the run.
-    const stale = await openContext(viewport, 'Stale', 'kratos', false)
+    const stale = await openContext(viewport, 'Stale', skin, false)
     const stalePage = watch(await stale.newPage())
-    await characterSelect(stalePage)
-    assert.match(await decoded(stalePage, '.start-menu__character-roster button[aria-label="Ironclad"] img'), /portrait-ironclad\.png$/,
-      `${screen}: an unowned skin is not worn in character select`)
+    await characterSelect(stalePage, name)
+    assert.match(await decoded(stalePage, `.start-menu__character-roster button[aria-label="${name}"] img`), new RegExp(`portrait-${hero}\\.png$`),
+      `${tag}: an unowned skin is not worn in character select`)
     await stalePage.getByRole('button', { name: 'Embark', exact: true }).click()
     await stalePage.getByRole('button', { name: 'Start standard campaign', exact: true }).click()
     await stalePage.waitForFunction(() => window.__STS_DEBUG__?.getRun().phase === 'neow')
-    assert.equal(await stalePage.evaluate(() => 'skin' in window.__STS_DEBUG__.getRun().players[0]), false, `${screen}: an unowned skin never reaches a run`)
+    assert.equal(await stalePage.evaluate(() => 'skin' in window.__STS_DEBUG__.getRun().players[0]), false, `${tag}: an unowned skin never reaches a run`)
     await stale.close()
-    console.log(`PASS ${screen}: solo skin in character select, Neow, campfire and combat; default look without it`)
+    console.log(`PASS ${tag}: solo skin in character select, Neow, campfire and combat; default look without it`)
   }
 
   // A solo run saved while Kratos was a character is discarded cleanly: no crash, no Resume.
@@ -164,95 +203,96 @@ try {
   }
 
   // Online: Ann wears the skin, Bo does not; each sees the other's seat as it is.
-  for (const [screen, viewport] of SCREENS) {
-    const annContext = await openContext(viewport, 'Ann', 'kratos')
+  for (const [screen, viewport] of SCREENS) for (const { skin, hero, name, label, partner, partnerName, partyScene } of CASES) {
+    const tag = `${screen}/${skin}`
+    const annContext = await openContext(viewport, 'Ann', skin)
     const boContext = await openContext(viewport, 'Bo', undefined)
     const ann = watch(await annContext.newPage())
     const bo = watch(await boContext.newPage())
-    for (const [page, name] of [[ann, 'Ann'], [bo, 'Bo']]) {
+    for (const [page, user] of [[ann, 'Ann'], [bo, 'Bo']]) {
       await page.goto(origin, { waitUntil: 'networkidle' })
-      await setTestUsername(page, name)
+      await setTestUsername(page, user)
     }
     await ann.getByRole('button', { name: 'Play online' }).click()
-    await ann.locator('main.online-entry .online-character-roster').getByRole('button', { name: 'Ironclad' }).click()
-    assert.match(await decoded(ann, 'main.online-entry .online-character-roster button[aria-label="Ironclad"] img'), /portrait-kratos\.png$/,
-      `${screen}: the online roster shows the chosen skin`)
+    await ann.locator('main.online-entry .online-character-roster').getByRole('button', { name }).click()
+    assert.match(await decoded(ann, `main.online-entry .online-character-roster button[aria-label="${name}"] img`), new RegExp(`portrait-${skin}\\.png$`),
+      `${tag}: the online roster shows the chosen skin`)
     await ann.getByRole('button', { name: 'Create room' }).click()
     await ann.locator('.online-lobby').waitFor()
     const code = await ann.locator('.online-lobby h1').textContent()
     await bo.getByRole('button', { name: 'Play online' }).click()
-    await bo.locator('main.online-entry .online-character-roster').getByRole('button', { name: 'Silent' }).click()
+    await bo.locator('main.online-entry .online-character-roster').getByRole('button', { name: partnerName }).click()
     await bo.getByLabel('Room code').fill(code)
     await bo.getByRole('button', { name: 'Join', exact: true }).click()
     await bo.locator('.online-lobby').waitFor()
-    for (const [label, page] of [['Ann', ann], ['Bo', bo]]) {
+    for (const [who, page] of [['Ann', ann], ['Bo', bo]]) {
       const seat = page.locator('.online-seat', { hasText: 'Ann' }).locator('.online-seat__portrait img')
       await seat.waitFor()
-      assert.match(await decoded(page, '.online-seat:has-text("Ann") .online-seat__portrait img'), /\/combat\/characters\/kratos\.webp$/,
-        `${screen}: ${label} sees Ann's seat as Kratos`)
-      assert.match(await decoded(page, '.online-seat:has-text("Bo") .online-seat__portrait img'), /\/combat\/characters\/silent\.webp$/,
-        `${screen}: ${label} sees Bo's seat as Silent`)
+      assert.match(await decoded(page, '.online-seat:has-text("Ann") .online-seat__portrait img'), new RegExp(`/combat/characters/${skin}\\.webp$`),
+        `${tag}: ${who} sees Ann's seat as ${label}`)
+      assert.match(await decoded(page, '.online-seat:has-text("Bo") .online-seat__portrait img'), new RegExp(`/combat/characters/${partner}\\.webp$`),
+        `${tag}: ${who} sees Bo's seat as ${partnerName}`)
     }
-    await ann.screenshot({ path: resolve(output, `${screen}-online-lobby-ann.png`) })
-    await bo.screenshot({ path: resolve(output, `${screen}-online-lobby-bo.png`) })
+    await ann.screenshot({ path: resolve(output, `${tag.replace('/', '-')}-online-lobby-ann.png`) })
+    await bo.screenshot({ path: resolve(output, `${tag.replace('/', '-')}-online-lobby-bo.png`) })
     const room = rooms.store.rooms.get(code)
-    assert.deepEqual(room.seats.map((seat) => [seat.character, seat.skin ?? null]), [['ironclad', 'kratos'], ['silent', null]])
+    assert.deepEqual(room.seats.map((seat) => [seat.character, seat.skin ?? null]), [[hero, skin], [partner, null]])
 
     // Changing the skin in Profile while in the lobby reaches the table; so does choosing another hero.
     await ann.evaluate(() => {
       localStorage.removeItem('sts-skins:ann')
       window.dispatchEvent(new Event('sts-skin-change'))
     })
-    await bo.waitForFunction(() => document.querySelector('.online-seat:nth-child(1) .online-seat__portrait img')?.src.endsWith('/combat/characters/ironclad.webp'))
-    await ann.evaluate(() => {
-      localStorage.setItem('sts-skins:ann', JSON.stringify({ ironclad: 'kratos' }))
+    await bo.waitForFunction((hero) => document.querySelector('.online-seat:nth-child(1) .online-seat__portrait img')?.src.endsWith(`/combat/characters/${hero}.webp`), hero)
+    await ann.evaluate(([hero, skin]) => {
+      localStorage.setItem('sts-skins:ann', JSON.stringify({ [hero]: skin }))
       window.dispatchEvent(new Event('sts-skin-change'))
-    })
-    await bo.waitForFunction(() => document.querySelector('.online-seat:nth-child(1) .online-seat__portrait img')?.src.endsWith('/combat/characters/kratos.webp'))
+    }, [hero, skin])
+    await bo.waitForFunction((skin) => document.querySelector('.online-seat:nth-child(1) .online-seat__portrait img')?.src.endsWith(`/combat/characters/${skin}.webp`), skin)
 
-    // The run starts with the skin, and Bo's table shows Ann's seat in combat as Kratos.
+    // The run starts with the skin, and Bo's table shows Ann's seat in combat as the skin.
     await ann.getByRole('button', { name: 'Enter the Spire' }).click()
     await ann.getByRole('button', { name: 'Start standard campaign', exact: true }).click()
     await ann.getByRole('heading', { name: 'Neow’s Blessing' }).waitFor()
     await bo.getByRole('heading', { name: 'Neow’s Blessing' }).waitFor()
-    assert.equal(room.run.players[0].skin, 'kratos')
+    assert.equal(room.run.players[0].skin, skin)
     assert.ok(!('skin' in room.run.players[1]))
     room.run = { ...room.run, phase: 'combat', neow: null, combat: createCombat(createRng(63), room.run.players, [{
       uid: 'online-enemy', defId: 'jaw_worm', row: 0, isBoss: false, hp: 30, maxHp: 30, block: 0, strength: 0, vulnerable: 0,
       weak: 0, poison: 0, actionIndex: 0, abilityUsed: true, dead: false }], 'skin-online') }
     room.version += 1
     rooms.publishRoom(code)
-    for (const [label, page] of [['Ann', ann], ['Bo', bo]]) {
-      await page.locator('.seat__interactive[data-player-id="p1"][data-character="kratos"]').waitFor()
-      assert.equal(await page.locator('.seat__interactive[data-player-id="p2"]').getAttribute('data-character'), 'silent',
-        `${screen}: ${label} sees Silent as Silent`)
+    for (const [who, page] of [['Ann', ann], ['Bo', bo]]) {
+      await page.locator(`.seat__interactive[data-player-id="p1"][data-character="${skin}"]`).waitFor()
+      assert.equal(await page.locator('.seat__interactive[data-player-id="p2"]').getAttribute('data-character'), partner,
+        `${tag}: ${who} sees ${partnerName} as ${partnerName}`)
     }
-    await bo.screenshot({ path: resolve(output, `${screen}-online-combat-bo.png`) })
+    await bo.screenshot({ path: resolve(output, `${tag.replace('/', '-')}-online-combat-bo.png`) })
 
-    // Reconnecting keeps the look: a fresh page for Bo still sees Ann as Kratos.
+    // Reconnecting keeps the look: a fresh page for Bo still sees Ann in the skin.
     await bo.reload({ waitUntil: 'networkidle' })
-    await bo.locator('.seat__interactive[data-player-id="p1"][data-character="kratos"]').waitFor()
+    await bo.locator(`.seat__interactive[data-player-id="p1"][data-character="${skin}"]`).waitFor()
 
-    // The online campfire is lit by the party's visual ids: Silent plus Ann's Kratos, for both seats, through a reload.
+    // The online campfire is lit by the party's visual ids: the partner plus Ann's skin, for both seats, through a reload.
     const camp = structuredClone(room.run)
     const campRoom = camp.map.rows[0][0]
     camp.phase = 'room'; camp.combat = null; camp.map.position = campRoom; camp.map.rooms[campRoom].kind = 'campfire'
     room.run = camp
     room.version += 1
     rooms.publishRoom(code)
-    const litBySkin = () => /\/noncombat\/campfire\/silent_kratos_firecamp\.webp/.test(getComputedStyle(document.querySelector('.campfire') ?? document.body).backgroundImage)
-    for (const [label, page] of [['Ann', ann], ['Bo', bo]]) {
-      await page.waitForFunction(litBySkin, undefined, { timeout: 15_000 }).catch(async (error) => {
-        throw new Error(`${screen}: ${label}'s online campfire is not the skin party's scene: ${await page.evaluate(() =>
+    const litBySkin = (scene) => getComputedStyle(document.querySelector('.campfire') ?? document.body).backgroundImage.includes(scene)
+    for (const [who, page] of [['Ann', ann], ['Bo', bo]]) {
+      await page.waitForFunction(litBySkin, partyScene, { timeout: 15_000 }).catch(async (error) => {
+        throw new Error(`${tag}: ${who}'s online campfire is not the skin party's scene: ${await page.evaluate(() =>
           getComputedStyle(document.querySelector('.campfire') ?? document.body).backgroundImage)} (${error.message})`)
       })
     }
-    await bo.screenshot({ path: resolve(output, `${screen}-online-campfire-bo.png`) })
+    await bo.screenshot({ path: resolve(output, `${tag.replace('/', '-')}-online-campfire-bo.png`) })
     await bo.reload({ waitUntil: 'networkidle' })
-    await bo.waitForFunction(litBySkin, undefined, { timeout: 15_000 })
+    await bo.waitForFunction(litBySkin, partyScene, { timeout: 15_000 })
     await annContext.close()
     await boContext.close()
-    console.log(`PASS ${screen}: online lobby, combat and campfire show each seat's skin to every teammate, through a reload`)
+    console.log(`PASS ${tag}: online lobby, combat and campfire show each seat's skin to every teammate, through a reload`)
   }
   assert.deepEqual(errors, [])
 } finally {

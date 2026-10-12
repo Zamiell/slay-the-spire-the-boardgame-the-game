@@ -7,6 +7,7 @@ import { createServer } from 'vite'
 import { chromium } from 'playwright'
 import { createRoomServer } from './room-server.mjs'
 import { CARD_PACK_PRICE, SKIN_PRICE } from '../src/game/coins.ts'
+import { SKIN_IDS } from '../src/game/skins.ts'
 
 process.env.VITE_COIN_GRANTS = 'true'
 const rooms = createRoomServer()
@@ -104,18 +105,18 @@ try {
   // there is a retry of the same purchase (no second charge), and Profile lists it as a choice.
   await laptop.page.locator('.start-menu__purse').click()
   await laptop.page.getByRole('tab', { name: /^Skins/ }).click()
-  await laptop.page.getByRole('button', { name: `Buy the Kratos skin, ${SKIN_PRICE.toLocaleString('en-US')} coins`, exact: true }).click()
+  await laptop.page.getByRole('button', { name: `Buy the Kratos skin for Ironclad, ${SKIN_PRICE.toLocaleString('en-US')} coins`, exact: true }).click()
   await laptop.page.locator('.shop-confirm .shop-button--buy').click()
-  await laptop.page.getByRole('dialog', { name: 'Kratos skin unlocked' }).waitFor()
+  await laptop.page.getByRole('dialog', { name: 'Kratos skin for Ironclad unlocked' }).waitFor()
   assert.equal((await wallet(laptop.page)).coins, 9262 - SKIN_PRICE)
   assert.deepEqual((await wallet(laptop.page)).skins, ['kratos'])
   await shot(laptop.page, 'desktop-skin-purchase')
   assert.deepEqual((await wallet(phone.page)).skins, [], 'the phone has not heard of the skin yet')
   await phone.page.getByRole('button', { name: 'Done' }).click()
   await phone.page.getByRole('tab', { name: /^Skins/ }).tap()
-  await phone.page.getByRole('button', { name: `Buy the Kratos skin, ${SKIN_PRICE.toLocaleString('en-US')} coins`, exact: true }).tap()
+  await phone.page.getByRole('button', { name: `Buy the Kratos skin for Ironclad, ${SKIN_PRICE.toLocaleString('en-US')} coins`, exact: true }).tap()
   await phone.page.locator('.shop-confirm .shop-button--buy').tap()
-  await phone.page.getByRole('dialog', { name: 'Kratos skin unlocked' }).waitFor()
+  await phone.page.getByRole('dialog', { name: 'Kratos skin for Ironclad unlocked' }).waitFor()
   assert.equal((await wallet(phone.page)).coins, 9262 - SKIN_PRICE, 'a skin bought on two devices was charged twice')
   assert.deepEqual((await wallet(phone.page)).skins, ['kratos'])
   await sync(laptop.page)
@@ -127,7 +128,8 @@ try {
   await phone.page.getByRole('button', { name: 'Profile', exact: true }).tap()
   await phone.page.getByRole('tab', { name: 'Skins', exact: true }).tap()
   await phone.page.getByRole('radio', { name: 'Ironclad, Kratos', exact: true }).waitFor()
-  assert.equal(await phone.page.locator('.profile-skin--locked').count(), 0, 'an owned skin shows as a locked tile')
+  assert.equal(await phone.page.getByRole('button', { name: /^Ironclad, Kratos, locked/ }).count(), 0, 'an owned skin shows as a locked tile')
+  assert.equal(await phone.page.locator('.profile-skin--locked').count(), SKIN_IDS.length - 1, 'every skin but Kratos is still for sale')
   await shot(phone.page, 'horizontal-phone-profile-skin')
 
   // An account switch must not write the previous account's reply into the new wallet.

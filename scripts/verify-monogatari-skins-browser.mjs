@@ -6,13 +6,14 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { createServer } from 'vite'
 import { chromium, webkit } from './lib/profile-browser.mjs'
-import { installKratosFixture } from './lib/kratos-animation-fixture.mjs'
+import { installAttackFixture } from './lib/skin-attack-fixture.mjs'
 import { postNeowRun } from './lib/post-neow-run.mjs'
 import { SKIN_LABELS } from '../src/game/skins.ts'
 import { createCombat, preparePlayerTurn } from '../src/game/combat.ts'
 import { createRng } from '../src/game/rng.ts'
 
 const root = resolve(import.meta.dirname, '..')
+const HERO_NAME = { ironclad: 'Ironclad', silent: 'Silent', defect: 'Defect', watcher: 'Watcher' }
 const output = join(root, 'artifacts/monogatari-skins')
 mkdirSync(output, { recursive: true })
 const engine = process.argv.includes('--webkit') ? 'webkit' : 'chromium'
@@ -67,13 +68,15 @@ try {
       await page.getByRole('button', { name: 'Shop', exact: true }).click()
       await page.getByRole('tab', { name: /^Skins/ }).click()
       await shot(page, `${screen}-shop-offers`)
-      for (const [, skin] of cases) {
+      for (const [character, skin] of cases) {
         const rack = page.locator(`.shop-skin[data-skin="${skin}"]`)
         assert.match(await decoded(page, `.shop-skin[data-skin="${skin}"] img.shop-skin__portrait`), new RegExp(`portrait-${skin}\\.png$`))
-        await rack.getByRole('button', { name: `Buy the ${SKIN_LABELS[skin]} skin, 2,500 coins`, exact: true }).click()
-        const dialog = page.getByRole('dialog', { name: `Buy the ${SKIN_LABELS[skin]} skin?`, exact: true })
+        // The hero is part of every name: two heroes may each have a skin with the same label.
+        const title = `${SKIN_LABELS[skin]} skin for ${HERO_NAME[character]}`
+        await rack.getByRole('button', { name: `Buy the ${title}, 2,500 coins`, exact: true }).click()
+        const dialog = page.getByRole('dialog', { name: `Buy the ${title}?`, exact: true })
         await dialog.locator('.shop-button--buy').click()
-        const unlocked = page.getByRole('dialog', { name: `${SKIN_LABELS[skin]} skin unlocked`, exact: true })
+        const unlocked = page.getByRole('dialog', { name: `${title} unlocked`, exact: true })
         await unlocked.waitFor()
         await unlocked.getByRole('button', { name: 'Done', exact: true }).click()
       }
@@ -87,7 +90,7 @@ try {
       await page.getByRole('button', { name: 'Profile', exact: true }).click()
       await page.getByRole('tab', { name: 'Skins', exact: true }).click()
       for (const [character, skin] of cases) {
-        const name = character === 'ironclad' ? 'Ironclad' : 'Defect'
+        const name = HERO_NAME[character]
         const tile = page.getByRole('radio', { name: `${name}, ${SKIN_LABELS[skin]}`, exact: true })
         assert.equal(await tile.getAttribute('aria-checked'), 'true', 'purchase automatically equips its own hero')
         await page.getByRole('radio', { name: `${name}, Default`, exact: true }).click()
@@ -169,11 +172,13 @@ try {
         await page.locator('.treasure-claim:not(.treasure-preview)').waitFor({ state: 'detached' })
 
         // Reuse the production-screen real-engine fixture, with the new base/skin pair.
-        await page.evaluate(installKratosFixture)
-        await page.evaluate(([character, skin]) => window.kratosFixture.reset(character, skin), [character, skin])
+        await page.evaluate(installAttackFixture, { character, skin })
+        await page.evaluate(([character, skin]) => window.attackFixture.reset(character, skin), [character, skin])
         await decoded(page, '.seat__portrait > img')
         await page.waitForTimeout(150)
-        await page.evaluate(card => window.kratosFixture.attack(card), card)
+        // A skin without its own Energy orb keeps its hero's: the orb's colours are chosen by the character.
+        assert.equal(await page.locator('.pip--energy').getAttribute('data-character'), character, `${skin} keeps ${character}'s Energy orb`)
+        await page.evaluate(card => window.attackFixture.attack(card), card)
         await page.locator(`.character-attack--${skin}`).waitFor()
         await page.waitForTimeout(350)
         await shot(page, `${screen}-${skin}-ready`)
@@ -182,15 +187,15 @@ try {
         await page.locator('.character-attack').waitFor({ state: 'detached' })
         assert.equal(await page.locator('.character-attack').count(), 0, 'complete recovery returns to one idle body')
         await shot(page, `${screen}-${skin}-recovered`)
-        await page.evaluate(card => { window.kratosFixture.attack(card); window.kratosFixture.attack(card) }, card)
+        await page.evaluate(card => { window.attackFixture.attack(card); window.attackFixture.attack(card) }, card)
         await page.locator('.character-attack').first().waitFor()
         await page.waitForTimeout(50)
-        await page.evaluate(() => { window.kratosFixture.restoration++; window.kratosFixture.render() })
+        await page.evaluate(() => { window.attackFixture.restoration++; window.attackFixture.render() })
         await page.locator('.character-attack').waitFor({ state: 'detached' })
         await page.emulateMedia({ reducedMotion: 'reduce' })
         // Horizontal phones intentionally ignore OS reduced motion when the game toggle is off.
         await page.evaluate(() => { document.documentElement.dataset.reducedMotion = 'true' })
-        await page.evaluate(card => window.kratosFixture.attack(card), card)
+        await page.evaluate(card => window.attackFixture.attack(card), card)
         await page.waitForTimeout(150)
         assert.equal(await page.locator('.character-attack').count(), 0, 'reduced motion does not leave attack poses')
         assert.match(await decoded(page, '.seat__portrait > img'), new RegExp(`${skin}-hero\\.webp$`))

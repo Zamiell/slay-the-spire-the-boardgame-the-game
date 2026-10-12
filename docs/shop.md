@@ -58,11 +58,11 @@ III bosses at A10 = 2 × (80 + 160 + 240) = **960 coins**. Expectations at a gla
 Act I-III wins at A0, 8 at A5, 4 at A8, or 2 at A10 (fewer with Act IV and A13's second boss).
 
 **Skin price.** Every skin costs `SKIN_PRICE` = **2,500 coins** (`SKIN_PRICES` is the per-skin
-catalogue, so a future skin may cost more; `Record<SkinId, number>` makes `tsc -b` fail until a
+catalogue, so a future skin may cost more; Kratos, Silent-chan and Watcher-chan all cost 2,500; `Record<SkinId, number>` makes `tsc -b` fail until a
 new skin has a price).
 
-Current skins: Kratos (Ironclad), Ironclad-chan (Ironclad), and Defect-chan (Defect), each **2,500 coins**.
-The anime skins change presentation only; their owners remain Ironclad and Defect.
+Current skins: Kratos and Ironclad-chan (Ironclad), Silent-chan (Silent), Defect-chan (Defect) and Watcher-chan (Watcher),
+each **2,500 coins**. The skins change presentation only; their owners keep their rules.
 
 ## The wallet
 
@@ -182,7 +182,11 @@ its one button. Unowned, the button is the price (2,500 with the coin icon), dis
 same gauge as a pack when the purse is short, and **Buy** opens the same confirm dialog with the
 portrait; owned, the rack carries the wax seal and a **Wear / Worn** toggle (`aria-pressed`)
 that sets the preference in one tap. Buying a skin wears it at once unless its hero already
-wears another skin. The heroes without a skin keep a locked "Coming soon" rack. Profile's
+wears another skin. There are five skins, all 2,500 coins: Kratos and Ironclad-chan (Ironclad), Silent-chan
+(Silent), Defect-chan (Defect) and Watcher-chan (Watcher), the four "-chan" skins in the style of the Monogatari
+anime series (`docs/monogatari-skins/`, `docs/skins/monogatari_silent-art/`, `docs/skins/monogatari_watcher-art/`).
+Every base hero has a skin, so no rack is locked; a hero added later without one gets a locked "Coming soon" rack
+(`LOCKED_HEROES`) until its first skin ships. The rack grid is as wide as the racks (`--skin-rack-count`). Profile's
 Skins tab lists Default plus the owned skins; an unowned skin is a locked tile with its price
 that opens this tab.
 

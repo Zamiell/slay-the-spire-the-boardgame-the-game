@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Download God of War 1/2/3 reference images from the GoW fandom wiki (MediaWiki API) into a local,
-git-ignored folder, and record title/URL/SHA-256 in refs.json. Images stay out of git; the repo only
+git-ignored folder, and record title/URL/SHA-256 in skins/kratos/refs.json. Images stay out of git; the repo only
 keeps the manifest.
 
   python3 scripts/art/skin-cards/fetch_refs.py [--out <dir>]
@@ -24,7 +24,7 @@ UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chr
 WIDTH = 1280
 
 # tag -> wiki file titles. Tags are what plan.json's "refs" entries refer to.
-FILES = json.loads((HERE / 'ref-files.json').read_text())
+FILES = json.loads((HERE / 'skins/kratos/ref-files.json').read_text())
 
 
 def get(url):
@@ -59,7 +59,7 @@ def main():
         manifest.append({'tag': tag, 'title': title, 'page': 'https://godofwar.fandom.com/wiki/' + urllib.parse.quote(title.replace(' ', '_')),
                          'url': url, 'sha256': hashlib.sha256(target.read_bytes()).hexdigest()})
         print(tag, target.stat().st_size)
-    (HERE / 'refs.json').write_text(json.dumps(manifest, indent=1) + '\n')
+    (HERE / 'skins/kratos/refs.json').write_text(json.dumps(manifest, indent=1) + '\n')
 
 
 if __name__ == '__main__':

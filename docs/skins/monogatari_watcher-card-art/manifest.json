@@ -1,0 +1,1633 @@
+{
+ "model": "gpt-image-2.5-sunburst",
+ "quality": "high",
+ "size": "1536x1024",
+ "cardSize": [
+  748,
+  420
+ ],
+ "identityReference": {
+  "description": "Approved Watcher skin identity sheet: original anime heroine in a violet short kimono-robe, white blindfold with a gold closed-eye sigil, magenta ribbons, gold-tipped staff (generated, not committed)",
+  "sha256": "bdb07ae01eb9225ad6609fc5641afbc7136cbf4d9ce2b3e75d83dfacd3ba7e83"
+ },
+ "styleReferences": {
+  "poster": {
+   "description": "Monogatari series second-season key art: extreme low camera angle, cloudless cobalt sky, white geometric masts, stacked diagonal figures (copyrighted, not committed)",
+   "sha256": "0a006524048361ec815fb8d9648c269da8bf507224c0cd6b7a9b07ed8de7fa90"
+  },
+  "closeup": {
+   "description": "Monogatari series close-up frame: huge flat eyes with crisp highlights, shard-like flat hair, fine linework, painted sea and cloud backdrop (copyrighted, not committed)",
+   "sha256": "eae8b06c365b04b53a3aa6723091f172f7ae7641009a31a04ab40d7f43471762"
+  },
+  "classroom": {
+   "description": "Monogatari series group frame: hard diagonal shadow cuts, cracked grey wall with one hot flat colour panel, geometric clutter, long limbs (copyrighted, not committed)",
+   "sha256": "1e7fdbc9e0c88f3925a35d4a23b49fe2824a86c9d2bdd8d09d30d174462e05c3"
+  }
+ },
+ "cards": [
+  {
+   "id": "slayer_bowling_bash",
+   "scene": "A wide high swing of her staff knocks three enemy silhouettes over like bowling pins in a row, seen from a low angle with a cloudless sky and white geometry.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/slayer_bowling_bash.webp",
+    "sha256": "bb96588cf40ee7f6c7496e5aa2417f74d98cc990950d5369e5a9247e35e5f3e3"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/slayer_bowling_bash.txt",
+    "sha256": "f0c8137debc8acb4c9d35061229402e1f6c27f360450568cc6882d9011f938e8"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/slayer_bowling_bash.webp",
+    "sha256": "0185694e2440c75b5a3c660ecd786155c69724224bff5bd79d66f27f6c7c76c2"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "slayer_deceive_reality",
+   "scene": "She steps through a fold in the world: the frame is split by a hard diagonal where the two halves show mirrored views of the same room, her palm raised toward her golden-lit double.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/slayer_deceive_reality.webp",
+    "sha256": "cffd8f330a887c22f79ac7f6abd2bc309870a9fee25cf2e61122494dce6fe7fe"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/slayer_deceive_reality.txt",
+    "sha256": "d6d97a89a6ec39f88c6d6280f527c02000f34dfd9b88a98810cb2c9dec03fc36"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/slayer_deceive_reality.webp",
+    "sha256": "a407e5813789c9a4c445c66f07eb1f40a9d0ecc6f7eeddcf323c6e0f3a2e124e"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "slayer_fasting",
+   "scene": "She kneels calmly before an empty wooden bowl with her hands in her lap, a pale green light rising around her, emblem composition with calm margins.",
+   "styleImages": [
+    "poster",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/slayer_fasting.webp",
+    "sha256": "eb2625fcff0b4f2c692dfcb4569b30e25e5940a362f5d5b170649e4b2bfe0cbb"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/slayer_fasting.txt",
+    "sha256": "d6191511cc291732cf7d4b38f4777e9b1dedb680c94746c799c65aa10d5afd5d"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/slayer_fasting.webp",
+    "sha256": "b52860ae3cc782632ff9f6558110b818b15405ee8cadbfdbf3dae7734c02106d"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "slayer_master_reality",
+   "scene": "She shapes flat glowing geometric blocks floating around her with one open palm, calm face tilted, symmetric emblem composition with cloudless sky.",
+   "styleImages": [
+    "poster",
+    "closeup"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/slayer_master_reality.webp",
+    "sha256": "568a3c6bdd71be750041707fbec492693062d2e5e47bcc4291d920d2d8dcee24"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/slayer_master_reality.txt",
+    "sha256": "49a465c053078c3e46959a754b81c46ef118a1d2ab5e471f4610182550d6a7b2"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/slayer_master_reality.webp",
+    "sha256": "e86c20d0b0a60850fddb446a2d57e81087e69349ec2e4603e5cdc0e6f0195f92"
+   },
+   "webpQuality": 75
+  },
+  {
+   "id": "slayer_pressure_points",
+   "scene": "She presses one finger to a pressure point on an enemy silhouette's shoulder while small flat glowing dots mark points along its body outline, classroom-style shadow cut.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/slayer_pressure_points.webp",
+    "sha256": "812283235a2ab53c7103cc3ae6f7c4a6231f28f1a4482f6954a6c113325a98b1"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/slayer_pressure_points.txt",
+    "sha256": "552566c0622698670eabfef9a7c4775436d4ba911622075ec12be00be4a703d8"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/slayer_pressure_points.webp",
+    "sha256": "8a50e40b741b30119a07a51adff1f8cda965ac5dd22f49e8777cc7428b334af4"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "slayer_wave_of_the_hand",
+   "scene": "She waves one lazy palm and a wave of rippling pale violet rings rolls across the frame, long sleeve fluttering in flat shapes, enemy silhouettes sagging at the edges.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/slayer_wave_of_the_hand.webp",
+    "sha256": "c38af3a63b13f26c1f16939f7a460a146d38aeadb1b701b60e8df4a9f1cbab67"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/slayer_wave_of_the_hand.txt",
+    "sha256": "d59e07a0e79257f2f9e42882fa7966f6ec3d743cc45f2b45720977226ee5df26"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/slayer_wave_of_the_hand.webp",
+    "sha256": "41671557cf1a696f31ee3a0a5ffe6201e8e80fed1942fe5044e18772963ac3ea"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "slayer_wheel_kick",
+   "scene": "A high spinning wheel kick seen side-on from waist height: one long leg sweeping a big flat circle across the frame with a flat gold impact burst at its end, her blindfold ribbons trailing, cloudless sky.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/slayer_wheel_kick.webp",
+    "sha256": "7b09d95d8d572a174fcad6c92e2a6aa1df7dfd2eb33da0590349b26005a155d9"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/slayer_wheel_kick.txt",
+    "sha256": "08ed8fc1a2a9c43d8654dddbe2dd76761a92f27fe074c15a6dd06c98c92bf76d"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/slayer_wheel_kick.webp",
+    "sha256": "b7ee5628844875015671baeb89aa00576c19566e825aee6c6920a05d9b0dbbdc"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "strike_watcher",
+   "scene": "A single clean staff strike: the gold leaf-shaped staff head slams forward toward the camera in a low angle, she leans into it with ribbons trailing, cloudless sky.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/strike_watcher.webp",
+    "sha256": "86efbacc6726d1b40386c694fee860ab497b08cce120540e93c9ce7716d331c6"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/strike_watcher.txt",
+    "sha256": "6624edefbbefa58be839210de2bfec27818bd1357d7527e62d3230692f1e790f"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/strike_watcher.webp",
+    "sha256": "e043da36ee1375433fda0f0794fcf3427d2d3f2a30a1d4161acbc6f5afe70cd6"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "defend_watcher",
+   "scene": "She holds her staff horizontally across her body with both hands while a flat gold ring of light stands behind it like a halo shield, head tilted, hard shadow cut.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/defend_watcher.webp",
+    "sha256": "9fae66f14075d1195bbdfd06f3c354e75d433390c6275f5aaea293563edd712c"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/defend_watcher.txt",
+    "sha256": "c39bd3d12ecee20c7f4f89f0fe2322d9065e1dae7e68f590dae5d3fba85e1b7c"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/defend_watcher.webp",
+    "sha256": "43db597c844ec6d8503a048ed158f222ca217ad99338f7c20eedd507dc38e9b6"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "eruption",
+   "scene": "She thrusts one open palm forward and a ring of flat gold-orange flame spikes erupts outward from it, her jaw set under the blindfold, ribbons whipping upward, low angle.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/eruption.webp",
+    "sha256": "b27e2f3ba90214ee126a98ffce26f138a1ded7f3813e34237293d05183e5e104"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/eruption.txt",
+    "sha256": "9aa6d0c59585c295f10de2417f3c9a06d49e7b3ae0e2e0f1aaa915472feb7646"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/eruption.webp",
+    "sha256": "33993f73ed97bd29dbd5733a4fb39d06dd348f66e51f364afa43c6651e8628da"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "vigilance",
+   "scene": "She stands serene with the staff upright in one hand and her other palm open, a flat slate-blue circle behind her, deadpan calm, symmetrical.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/vigilance.webp",
+    "sha256": "d2873e56b32a581324a5883eb59bb54bb070f54f092157f8eb0be20da54480c4"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/vigilance.txt",
+    "sha256": "27fe85c470b008bee1fe741eb7fe6ba41d56f96963315312e8ba2e7e0c757b58"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/vigilance.webp",
+    "sha256": "2bd14a1dbd572b26c5dd062afc631ab0edd18c0e762ed0e075757a5e7425b7df"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "consecrate",
+   "scene": "She sweeps her staff low and a ring of gold light flashes outward across the ground to the horizon, enemy silhouettes at the edge of the ring, low camera.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/consecrate.webp",
+    "sha256": "321e88d256dadab33ff52026deabc6bd1235555ccd23a427810f79df5907cc12"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/consecrate.txt",
+    "sha256": "2f59ae270d4d74411fe5d2422e9f2901f8b213c809b070c4a61d635918dcadf2"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/consecrate.webp",
+    "sha256": "9c41f303b10de082d18841b360be023b87de5d94982bd16f3c7d92c5d1e88038"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "empty_body",
+   "scene": "She exhales while her body turns transparent, only a thin outline left with loose leaves blowing through her, calm tilted head, emblem composition.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/empty_body.webp",
+    "sha256": "b178672cf62783d48bda1a196499e0a11d477171c3c229de83120f9f3458bafa"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/empty_body.txt",
+    "sha256": "b30c88d54e680c4c6d5ec201966cdfc2bc18285f9c1d81473b1495275ac5e2a9"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/empty_body.webp",
+    "sha256": "9ac07951072fc7282fd8196d7bb5d5bfe59a2ab5c573a5fec351694ede0d622a"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "empty_fist",
+   "scene": "A bare-handed palm strike thrust straight at the camera with a flat gold circular impact burst around it, her blindfold and ribbons behind.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/empty_fist.webp",
+    "sha256": "d6d524ef173172f8016b774762f52597098d0423df92ed18f5aba0d264526436"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/empty_fist.txt",
+    "sha256": "4aaf3137b7d27286cf64b21ad3fb878ea6891240d23c71d69b977be3a0e97334"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/empty_fist.webp",
+    "sha256": "e0f5833037a72c08dafaf0d1b404e5bd99bc17993b39abaea1c47a04fe2eb935"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "collect",
+   "scene": "High angle: she cups both hands as small gold and violet orbs gather into her palms from the air, ribbon pooling at her feet.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/collect.webp",
+    "sha256": "b583985a00657feb360a262de30eec5264fe5bec36c1a97cfa6d0dffaf4f61c9"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/collect.txt",
+    "sha256": "f720259797d58644fee73a1c203825799f57d38b0062aa4a3e17f03909d65f50"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/collect.webp",
+    "sha256": "bf267d03e0bc772ff65f8447dfc628c2996205a7aa3d6d49a77a464963fa145b"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "halt",
+   "scene": "She raises one flat palm to the camera in a stop gesture and a pale wall of light stands in front of it, enemy silhouette halted at the edge, low angle.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/halt.webp",
+    "sha256": "9fef6c5152ddd73949365be6a82b09aa6dc95b2910dbf6708af3aa9a48b3dd49"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/halt.txt",
+    "sha256": "bf44a6bdd7dd5825717bc3bec714b7beeb30937fbf27b3e29897767b26fcbeed"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/halt.webp",
+    "sha256": "61d509040bb332cf4bd920ef5f4395ca79a4ff3b98bddc5f3c00f91e013df33c"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "simmering_fury",
+   "scene": "Emblem composition: a small flat flame flickers above her clenched fist as her sleeve lifts, violet dusk behind, calm margins.",
+   "styleImages": [
+    "poster",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/simmering_fury.webp",
+    "sha256": "7ee155ac726aa345c7d5ea00cccd3df2c2a6dc1ff9e79fe7cf3a2e9d6e966d65"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/simmering_fury.txt",
+    "sha256": "0e480365a44b717025b7d28c484dd7c794bfc270a572d4c87aea7c2daaa918b9"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/simmering_fury.webp",
+    "sha256": "16903c92ca6a3cf40bb3f71dca0f7f6bd886151dd43cdb13a5f40ac02614f282"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "like_water",
+   "scene": "She stands barefoot on a perfectly still water surface with rings rippling from her feet, staff resting on her shoulder, cloudless sky above.",
+   "styleImages": [
+    "poster",
+    "closeup"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/like_water.webp",
+    "sha256": "ca8c52aa818a26e2d6f74b919a4667350337bd1b879de1ac7a1ef1e8158132ed"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/like_water.txt",
+    "sha256": "e4d76f73d23fbb10a3565b1961fd59f046e1e35671e06ea99186f71f96c9de9d"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/like_water.webp",
+    "sha256": "9fbef6d37a3e8af4fa7bbb693099e748c35a64a72d35869d28f276649526b87d"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "battle_hymn",
+   "scene": "She chants with her hands pressed together while a ring of small gold swords hovers around her like a halo, symmetric emblem composition.",
+   "styleImages": [
+    "poster",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/battle_hymn.webp",
+    "sha256": "b02fb126b4b33bc4a297a6f2c457391253be16d6c79f86e6f125bc4740398a4f"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/battle_hymn.txt",
+    "sha256": "b6b5390d0dfe346fa395d1070b4b95b77ccd2cca9c8927697a826ac268603d2f"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/battle_hymn.webp",
+    "sha256": "264fc992d463ed8dc82c409635796da58c7e10ff2dadbdf32696925890f05b55"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "mental_fortress",
+   "scene": "She stands with hands clasped inside a floating fortress of flat translucent geometric panels, a calm serene face, symmetric emblem composition.",
+   "styleImages": [
+    "poster",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/mental_fortress.webp",
+    "sha256": "6f120ee346428c6a9e9bd3d4a1edfc39aa5df98584cec97c6a85a097c1c2c878"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/mental_fortress.txt",
+    "sha256": "5eab49153d6cb3e5f91c6cf1b0d472556fc8f58f9c17d45980b5e4b291d95e3c"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/mental_fortress.webp",
+    "sha256": "eeaf2d42c4aa2c0a6974b0abfc6a65ecb8a82d6bc6227d6fa8796e85b355bb0e"
+   },
+   "webpQuality": 75
+  },
+  {
+   "id": "rushdown",
+   "scene": "She charges forward with fists clenched, a flat gold flame silhouette trailing behind her and wind-stripes, low camera, magenta ribbons streaming.",
+   "styleImages": [
+    "poster",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/rushdown.webp",
+    "sha256": "a4c363f161987ec43c1738c79b80c37cd2455fe87c3d3e0395741d3573b52970"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/rushdown.txt",
+    "sha256": "10f03cf2f114a09b53ed4e55499c2766368e13b22f1a48c72a28030e63d0d181"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/rushdown.webp",
+    "sha256": "cde3e53369707a26591c97780b51cfb7d0c9df9ff76d28c23bbc63ea7fce6eb7"
+   },
+   "webpQuality": 75
+  },
+  {
+   "id": "nirvana",
+   "scene": "She floats cross-legged above a flat lotus shape with a ring of gold light behind her, small gold dots drifting upward, emblem composition.",
+   "styleImages": [
+    "poster",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/nirvana.webp",
+    "sha256": "709f7dec54ecf484e3320a6ec73e1f0e803327c9f38d6fbe3a461b6030026ecb"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/nirvana.txt",
+    "sha256": "13bac3a06020c513fc55b22804a9865e8625eda5c4d294d6682afdf57d5d0ea1"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/nirvana.webp",
+    "sha256": "1ca5ef169996efd6e54fd2f47f711f1e37dd000ce8a192a14121336f16487342"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "foresight",
+   "scene": "Emblem composition: her gold closed-eye sigil glows on the blindfold while three small translucent windows floating around her head show glimpses of the future, tilted head.",
+   "styleImages": [
+    "poster",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/foresight.webp",
+    "sha256": "1028a132758c557f1592bf855e7fafdf3623e890eeef0ef3898867b39365f49f"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/foresight.txt",
+    "sha256": "b91c3289da6f50183ebd75583882cb15c97e4e021d124b75639f7ee2c87bccaa"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/foresight.webp",
+    "sha256": "056f76e6e5cad1b0054412e3c981f06c4cbe8198766437d4e8d15d1dbc732e4f"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "indignation",
+   "scene": "She slams the staff butt into the ground and a ring of violet energy shakes the enemy silhouettes at its edge, clenched jaw under the blindfold, low angle.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/indignation.webp",
+    "sha256": "052442b8560a9928c86a89ccbd518c1170acaa6b15a0fd3d20dcf91d45af9cdd"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/indignation.txt",
+    "sha256": "3ac76432af230b2f1fe6e7643af154ba7e4147e81f0e085da01cb76336f6f56c"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/indignation.webp",
+    "sha256": "2674136c90d3185d4688d4c69682b6427c8cb71181990f83f7ef0de07cfedeea"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "inner_peace",
+   "scene": "She sits in meditation with her hands on her knees, a flat slate-blue circle behind her, ribbons pooling, still and symmetrical.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/inner_peace.webp",
+    "sha256": "b50d7193521fc2541c736043d1eb01aa7490248993afa2d565c6d532be731349"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/inner_peace.txt",
+    "sha256": "a3f7c83baa2c2019c00de665db28f6be8f0643521e5e168c56be3b5b99b9e812"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/inner_peace.webp",
+    "sha256": "c4e61650fe02567789366354a4730dc70ec4b5225183049fcaacf3ff5d2fa0b0"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "carve_reality",
+   "scene": "She slashes the air with the staff tip, opening a thin glowing violet slit in space from which a small golden blade falls, high angle, classroom-style shadow cut.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/carve_reality.webp",
+    "sha256": "70a563661444b47c059ee571e4be4d73c96f5261a1592c8b92c8d0e2f8a5a7c7"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/carve_reality.txt",
+    "sha256": "bfd2f265be810d192e2bc06bc6fea2696ae39fda523a4e710fdb0bd431e1d25c"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/carve_reality.webp",
+    "sha256": "b4f3425c98f4907b9217d310f593da5d729eb11b7c20db8c422968bc9cc95de5"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "sash_whip",
+   "scene": "She snaps her long magenta sash across the frame like a whip, the sash a bold curved line with a flat spark at its tip, low camera.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/sash_whip.webp",
+    "sha256": "886ceb1ce90a524f0848d68d3375de6fd90b8ee98bf20f1c4a4633e45075a892"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/sash_whip.txt",
+    "sha256": "759ffcad1f5bf015a18c9abcbdcde7f05a138da7cc06f0de4417ef8f0e7c7eb7"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/sash_whip.webp",
+    "sha256": "70149c4abca5b1c714a901c69da1d8fae2c36b0ccdc9280586ac72f40a2ce312"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "conclude",
+   "scene": "She ends her stance with one long decisive horizontal sweep of the staff, a bright gold line cutting across the whole frame behind her.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/conclude.webp",
+    "sha256": "8175854f35d4c9a9246781789a47cd04097741b2f9681841c20263678668ea33"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/conclude.txt",
+    "sha256": "6cf9e401b7638bbd1b5ebc38fba0b9a02e042214644669dd9189decf11344ffa"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/conclude.webp",
+    "sha256": "de247855dfb72757eed48909db609088e720b098f5eecad02583e9a5a6227ec0"
+   },
+   "webpQuality": 90
+  },
+  {
+   "id": "judgment",
+   "scene": "She points one finger forward at an enemy silhouette while a ring and a single beam of gold light fall from above onto it, symmetric, stern tilted head.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/judgment.webp",
+    "sha256": "34da6bc076a30114bae3470601d134003c8745ecd03b3a73e00b9903bf5effa8"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/judgment.txt",
+    "sha256": "b1c9a9cb4f1cd7c9327ead595f377f6a8efa0288c5be664012b42e25322f4da5"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/judgment.webp",
+    "sha256": "54a07144c4f9053afda6535a79fa04db6fdd7f290836d5baaad48eb8d6af9dc1"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "ragnarok",
+   "scene": "She raises the staff and five golden thunder spears rain down from a dark storm sky onto enemy silhouettes, wrath stance, low angle, no red.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/ragnarok.webp",
+    "sha256": "ace5856d0050a2d6dac06049381c28d104fc01e2ebdf773b6f1aaedc7ea80eea"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/ragnarok.txt",
+    "sha256": "6427a57a398c70c02cce9a4f7df5f48a858311fdbeed7b8e34c37f09cf2ca0b8"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/ragnarok.webp",
+    "sha256": "6bb46ca17732aa4f0763a041ba7b5ab4bff884dfc96445e553daa08644903b64"
+   },
+   "webpQuality": 75
+  },
+  {
+   "id": "scrawl",
+   "scene": "She draws a looping glowing line in the air with one finger, forming abstract shapes (no letters) that float around her, a small amused tilt of the head.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/scrawl.webp",
+    "sha256": "6eebd8cd76407ca1a57e340b9e10c5fb2cf73a6d632cfd4b093a46dc5067cb7d"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/scrawl.txt",
+    "sha256": "c8212e9ee84a803e67051d1893e02482d9b987e4b2c039152b8d87b0e653ead2"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/scrawl.webp",
+    "sha256": "d194b359085e84504c066b841718d06df5bed73fc191b76440eb53de764d32ce"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "signature_move",
+   "scene": "She strikes one dramatic finishing pose with the staff pointed to the sky and one hand on her hip, low camera, a spotlight panel behind her.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/signature_move.webp",
+    "sha256": "b113650a04daf232760b90c5b013e589f563d68a49a24b2649e3bfd2e7cabd6c"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/signature_move.txt",
+    "sha256": "7daccf2a7542514188423ccbcbce89f56ed44a5609f78a591968c219d215e9b9"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/signature_move.webp",
+    "sha256": "c8ce97626fdb7b788386b7d8cd502f6a80f008bdc48ce9b19eecb95afe738135"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "spirit_shield",
+   "scene": "A large translucent spirit guardian with wide arms wraps around her like a shield of ghostly gold, she stands calmly in front of it, symmetrical.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/spirit_shield.webp",
+    "sha256": "c9777dfb21c9a6740b3db041bc4df2e03910f7ca7ff90aa8c29cefe6b47c99b1"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/spirit_shield.txt",
+    "sha256": "6a7e664389d2019f8f161f72a6a3f081d2f5821cbf2850892b0676816207fee9"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/spirit_shield.webp",
+    "sha256": "c8e576dfd60524482b9579ba366da987df5bb85991ab7a028766f6b24305cf83"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "swivel",
+   "scene": "She stands upright with both bare feet planted in a wide stance, her whole body and both legs clearly visible, and pivots at the waist while sweeping the staff held in both hands in a flat spiral to block; flat spiral lines mark the turn and her ribbons spin around her, slightly high three-quarter camera angle, calm deadpan face.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/swivel.webp",
+    "sha256": "58b599545bc2578e444df22c0907c0ae4bfbabda6808e5cd27b8bbaf69d1e4f8"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/swivel.txt",
+    "sha256": "7ea8a0d2ba490209e9e76875ff4067b225c5e150e44d1cf1f0135dad826dd1a6"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/swivel.webp",
+    "sha256": "43c3872cd2a4d42c5926e6393cbc4440c98c196e0c6eae0e53fe9e122b00a65d"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "wallop",
+   "scene": "She slams the staff down and the ground cracks into big flat shards flying up, low camera, hard diagonal shadow cuts.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/wallop.webp",
+    "sha256": "57ebfcffac3948c29394d67b2b1446dcb9c7e995d8f844f38812ff387acb38fe"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/wallop.txt",
+    "sha256": "6bfcebd1b2b5e5397e6db5a2dca26f431cd1b2666d0fe4ffcc49b0ddfc417ed8"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/wallop.webp",
+    "sha256": "74e50ed60b0322f7e0e4b37a33aa718c14899d4d524c27c4accde5c76fbe1ec9"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "wish",
+   "scene": "She kneels and cups her hands as a flat glowing star rises from them into the cloudless sky, ribbon drifting, calm tilted head.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/wish.webp",
+    "sha256": "c6fc0727e4dc286f20e0bc203391322892013c41562198c4c3a3572d18f6a6a2"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/wish.txt",
+    "sha256": "77f891900692619bef16f34bd62f1a1faa5ed15119e86c72cbb49950f988e079"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/wish.webp",
+    "sha256": "52f3b3765ed3b77a07372565667e076729af959b85d762c75e0d7b472c9a860c"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "deva_form",
+   "scene": "Emblem composition: she floats serenely haloed in a symmetric flat golden aura with wide wings of light, staff held vertical, calm margins.",
+   "styleImages": [
+    "poster",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/deva_form.webp",
+    "sha256": "385e75a558e37e1c8fef5318914933f766423207129f07f459e1cadc67d01eb3"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/deva_form.txt",
+    "sha256": "d6c99c2a246ce3ad5c907276237752e48ff21cbcf73b0445203d31e63cc55118"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/deva_form.webp",
+    "sha256": "2a608153a87ad50a139a5cf51ed6850c03064fddbe3941cc0a92d2a29e366dd7"
+   },
+   "webpQuality": 75
+  },
+  {
+   "id": "omniscience",
+   "scene": "She spreads her hands as her gold eye sigil glows and a vast eye of light opens behind her, a constellation of tiny cards around, symmetric.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/omniscience.webp",
+    "sha256": "78729568d865fcbfffe58a71b2c22db428016b0e1b6e32096209f60f50d9802f"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/omniscience.txt",
+    "sha256": "c6e5c9faad6a26126a4ba34440d51b1e30fec96de9c6ab300699fe7a9be13478"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/omniscience.webp",
+    "sha256": "0fbf3d0cba1d72e497fd4176b196522342e38b9736ad7c1fc82eefccb21718a2"
+   },
+   "webpQuality": 75
+  },
+  {
+   "id": "vault",
+   "scene": "She vaults over a white wall with the staff as a pole, a long arc across the cloudless sky, low camera, long limbs.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/vault.webp",
+    "sha256": "1c51434455a097fff9c1be983a5f3b85ec2470e02f742f20b637c8355e7f692b"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/vault.txt",
+    "sha256": "ff51c3d5b92eb9c77be4623e0c98ccf11d1183edb17de8a660e0b6ccc2fb690e"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/vault.webp",
+    "sha256": "fe61c1b952b167088388a93e9f5d7e274cd9cd2f1b75487d4bfcd1f4e005ed02"
+   },
+   "webpQuality": 90
+  },
+  {
+   "id": "talk_to_the_hand",
+   "scene": "She holds a stern flat palm to the camera, a flat gold burst on the palm, enemy silhouette flinching beyond it, low angle.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/talk_to_the_hand.webp",
+    "sha256": "25cbecdb7b640e93321d2fe1afbbfb11a24f05fd85d9320bb719d315ff08a191"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/talk_to_the_hand.txt",
+    "sha256": "20b79346e3d0de88582ec85dd8dd732da78f3f9dc54f8a1c0f91305d8a0c3fcf"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/talk_to_the_hand.webp",
+    "sha256": "dca9d28f4fe03502188846a104f21dab8b1e45f706a09aaa2c829959d1fe2ef2"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "tantrum",
+   "scene": "She stomps the ground with shockwave rings spreading, sleeves and ribbons flared in wrath, flat gold-orange panel behind her, low camera.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/tantrum.webp",
+    "sha256": "13e8f6c00a3b416094df8429d6400d8ccd1cd899384ec9c6a40370ba827a3189"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/tantrum.txt",
+    "sha256": "e6c0456e32901b72d606313fae470c30b9b9305710febdea42ff11b495013753"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/tantrum.webp",
+    "sha256": "78b15fa21b836530826b3d44385c364a739da2da8bac4c2b18d076661117e463"
+   },
+   "webpQuality": 75
+  },
+  {
+   "id": "weave",
+   "scene": "She dances in a turn with the staff and her magenta ribbon tracing a figure-eight pattern in the air, elegant long limbs.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/weave.webp",
+    "sha256": "ac08ab0cf5b96c94bfde57e5f4015ac2d888d317426ec17b1ba6e89a73f0e0dd"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/weave.txt",
+    "sha256": "48dccbd50fa4da5dea16971ed57bb2daba4fb20bf9405da7fc05e8f5bc334635"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/weave.webp",
+    "sha256": "f27b9c576ecfeb28ab8f8b7c1dffb0fab322632f4278d7e55d3e36e35e6399a2"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "blasphemy",
+   "scene": "She bows forward with clasped hands beneath a dark violet sun, ominous and quiet, hard shadow cut, tilted head.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/blasphemy.webp",
+    "sha256": "be7079f084f7c24ce7d6446dfcc771734c29a1caa082bf948e18020b98af2b09"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/blasphemy.txt",
+    "sha256": "1c7ac510fc269941d53aace8c6e0b90548fb5d898dc16531cf717ea7da3afcce"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/blasphemy.webp",
+    "sha256": "f7883c5a105e7cd2df67f55b5bf597f9bac09a0440cbb7676f5856dbdd1fe7cb"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "brilliance",
+   "scene": "She fires a beam of pure gold light from her open palm straight at the camera, the beam a bold flat shape, ribbons blown back.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/brilliance.webp",
+    "sha256": "3ce8ca1c9258f03fa00a9de527cef0152267dba6ff17162c9280d3c6d8150a1b"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/brilliance.txt",
+    "sha256": "3d46a224c1a5b87c7a2588ddf0891d43b3abd5d0bd0eb03198636c430e6a90c7"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/brilliance.webp",
+    "sha256": "64bfbd05b010fc0a3bb855801d5d2601f29f01346f07062a7444f3ca22339d7d"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "devotion",
+   "scene": "Emblem composition: she kneels in prayer inside a pool of golden light with a flat radiant sun behind her.",
+   "styleImages": [
+    "poster",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/devotion.webp",
+    "sha256": "ed409315c589048387dd635c105cda4dbd1f01a55415610335fc8b84841b1d4f"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/devotion.txt",
+    "sha256": "597dc76d9bffc72369f235f13f20dd74fb8a893cb68525967ef0df6daa05ecc8"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/devotion.webp",
+    "sha256": "d36e5d1a56867f0b9f37ad4be3c87582c7423c2006094f4adbe075be9081757e"
+   },
+   "webpQuality": 75
+  },
+  {
+   "id": "worship",
+   "scene": "She kneels with her forehead lowered over folded hands, a shaft of gold light falling on her, ribbon pooling.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/worship.webp",
+    "sha256": "196cef83ff6df1e4d038ce0ce38c0c35c6c65c26345291184abe5d4b65aa51f6"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/worship.txt",
+    "sha256": "c279944eb2422babc1b2d50c01cb3acd44c51da4253f7421a7d4e195362bff0f"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/worship.webp",
+    "sha256": "42a68e7618c4fc41fb6aa617614062dc3c74f2b806877a4f668b831471a26f19"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "wreath_of_flame",
+   "scene": "She holds the staff upright with a wreath of flat gold flames spinning around its head, her face calm, symmetric.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/wreath_of_flame.webp",
+    "sha256": "7b7f84392ff5772c26e0176ffa1ba688b50300fdc8abc1f343bb9c3782576b96"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/wreath_of_flame.txt",
+    "sha256": "326be4df5370156ceda116e53abb517b4c481b2f148329a07c5c74abae8981c2"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/wreath_of_flame.webp",
+    "sha256": "5ad5b5614d37c2c49217e95b9be228501072f8915e966142356961f2f3459ad7"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "conjure_blade",
+   "scene": "Emblem composition: a golden sword forms in the air in front of her, blade in profile, she regards it with her head tilted, calm margins.",
+   "styleImages": [
+    "poster",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/conjure_blade.webp",
+    "sha256": "403f2ee3d0baf696f566eec1ec159f2babd69e6fc7c870047d7f3e0990262d11"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/conjure_blade.txt",
+    "sha256": "afc7c43f5b94f28b3f19ebf555d89aff9ea96c84b010e91db1fdb7d69fbdb164"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/conjure_blade.webp",
+    "sha256": "0cd81037a6f68d370e155dc6104f1646c2458493c33bb997d8caabdbd48a38ba"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "deus_ex_machina",
+   "scene": "A great shaft of gold light falls from above onto her while tiny winged figures of light circle in the air, a mechanical gold ring above, symmetric.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/deus_ex_machina.webp",
+    "sha256": "f8c033ca639da3b23cf93e86b5a91b6e99d356578aacf3582f7c809f96570cdc"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/deus_ex_machina.txt",
+    "sha256": "3514b81d63fc19bbb914e376ba90ea3824098838858f4830de99869bcfab08c7"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/deus_ex_machina.webp",
+    "sha256": "66bd6b55252415066d0cbb997d514759556b68bfa484c159571300089c502f62"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "foreign_influence",
+   "scene": "She mimics the stance of a different ghostly fighter silhouette behind her, performing its kick, two overlaid poses, flat violet and gold.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/foreign_influence.webp",
+    "sha256": "b90704b1bc86dbde33c5986d6cece795e85c81d251fd3d065168f4afd104b83c"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/foreign_influence.txt",
+    "sha256": "db32051a7a62d2d1f94e16f8c2d88d3497389c185baea7d3c38e3e7dfacbfaa8"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/foreign_influence.webp",
+    "sha256": "2b25c86e107b3d4c9ecbd085bc7dc5e6fd97aaebffe7bdcbc2773942d41329fe"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "omega",
+   "scene": "Emblem composition: stacked rings of gold light descend like a countdown above her head as she stands under them with her hands joined, calm margins.",
+   "styleImages": [
+    "poster",
+    "closeup"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/omega.webp",
+    "sha256": "c61b163600638538566d99041b560222dc3cc7ef52191eec2180135b48f32f68"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/omega.txt",
+    "sha256": "28781e99ae3440f7084a9559ddca4942fcf11ff01813163f5a1be6de680e0497"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/omega.webp",
+    "sha256": "61b9c443e6903543eaa7c424997f4722e436081c6deb3f8c305c32f8c59ce3f5"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "reach_heaven",
+   "scene": "She lunges upward thrusting the staff at the sky and a beam opens a hole in the clouds, extreme low camera angle.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/reach_heaven.webp",
+    "sha256": "e4d6cfe28ca734b29ab1aa8446fac37ceb4282ba335cd071412321dced692991"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/reach_heaven.txt",
+    "sha256": "8f47bcc4714892c51212897d2c5416e7f5f7116b3b7ac275f2e3fe40efb09fbe"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/reach_heaven.webp",
+    "sha256": "9a5834b0704afd42e0c8c49e611168a1350f2525fe0ce7aa69e651faedd3b0f9"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "study",
+   "scene": "Emblem composition: she reads a floating scroll of abstract diagrams (no letters) by the glow of her gold eye sigil, a stack of books beside her.",
+   "styleImages": [
+    "poster",
+    "closeup"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/study.webp",
+    "sha256": "55f982dde33b831890007cb8bca0c6abbe7bc7a7681fc9c2d44af1b5b53fe282"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/study.txt",
+    "sha256": "0c1836595fb69e7498ebae6c25bee6d5527e2ce671b608dec6693fca1dd5431d"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/study.webp",
+    "sha256": "f1e63664522c4b862c335fc70edc9f1db6e2adeac899856cab34188c39bd5e23"
+   },
+   "webpQuality": 75
+  },
+  {
+   "id": "establishment",
+   "scene": "She plants the staff upright like a pillar and a flat temple platform forms around it, symmetric emblem composition.",
+   "styleImages": [
+    "poster",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/establishment.webp",
+    "sha256": "66b255a83747189c38021a35b646406c7a0b6ff6d0bf98eb1adbb1858039bb2c"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/establishment.txt",
+    "sha256": "bbfae75a124911bf2e537eca046a50e84fc99320d134f755fda68ff12dbe68c7"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/establishment.webp",
+    "sha256": "083f6e193540fc23eebb40caa1af44fb0b90981ba4e5aed4cec69d963f95b440"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "meditate",
+   "scene": "She sits cross-legged with a small gold orb floating above her open palm, calm, a flat cloudless sky behind.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/meditate.webp",
+    "sha256": "73a68c1e51d3321cc78ca7c9c9ea9047f9d9409cb79a3a76be8f16ab25a4ced0"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/meditate.txt",
+    "sha256": "f0bc637869751d16f6793e50df7523a69db3a154ed44a695f7e8b3cbe9150632"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/meditate.webp",
+    "sha256": "964d67c919cb08f1d6c0b42d1447fecd46206755a013fd94156e9b4a33e4a2cc"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "perseverance",
+   "scene": "She braces against a strong wind with the staff planted and sleeves flapping in flat shapes, steady, low camera.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/perseverance.webp",
+    "sha256": "1caed07e4d31282dcfcb285ea6a5d9b6751fcc64adedb4447aa18c6839d315e9"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/perseverance.txt",
+    "sha256": "1961e8a526717c609b4484cf444260cab5658a9e9c8cd233a56cdbd7630f0ba6"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/perseverance.webp",
+    "sha256": "e22296aa42e0dd61bcde1c07ab4137d972dd1ee573405c7e93de9b619d20f358"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "sands_of_time",
+   "scene": "She smashes a golden hourglass with the staff and streams of gold sand burst outward, high angle, classroom-style shadow cut.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/sands_of_time.webp",
+    "sha256": "b7c93858b39f3062e958a1ed225b0ddf3e89525b799573317ea25e773e215f1e"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/sands_of_time.txt",
+    "sha256": "bfdf2cc419b0bcd4716b784b2c545ba93d842755f0ff4d4ef4d8b4f4f49e48ff"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/sands_of_time.webp",
+    "sha256": "52fb1f51e2544f5347958e75d372188db9fe72f73c1032e356281fcd8afd8abf"
+   },
+   "webpQuality": 70
+  },
+  {
+   "id": "windmill_strike",
+   "scene": "She spins the staff in a big windmill circle overhead and brings it down, flat circular motion lines, low camera.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/windmill_strike.webp",
+    "sha256": "7b0ec8cf05ecd91f2d3e2b2144229c57f755f9dd474e0ee9758eb09bea925210"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/windmill_strike.txt",
+    "sha256": "f2a867ca84b0a0e3536037689259f6cf8d2eeffdc1e86d54d3e333681bd0aad8"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/windmill_strike.webp",
+    "sha256": "4794d0ce4642a7c98481ccd5725ef5af472415ef4689da2ba07094ad97833347"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "crescendo",
+   "scene": "She raises her arms and gold rings of sound grow larger and larger around her in a flat expanding series, wrath-tilted head.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/crescendo.webp",
+    "sha256": "9a4526232d5dc7d35b428eaa0289b5642e4d3be40f07db354a6c7330e3df0d93"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/crescendo.txt",
+    "sha256": "342feb6c1abd733fc65bff74b82136cd9fc91794dff73211db51bd71b1e9c28f"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/crescendo.webp",
+    "sha256": "fb4232b91fbf52b5290bd759aa3f94cb1cf230d5a2166c7883a704a357eaf51f"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "flurry_of_blows",
+   "scene": "Five rapid palm strikes shown as overlapping afterimage hands fanning across the frame, one clear fist in front.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/flurry_of_blows.webp",
+    "sha256": "ec6ccaebe4e6178ded02683d5bcac8410ea9ea82f49cdd16875f6afef32be41a"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/flurry_of_blows.txt",
+    "sha256": "3ab770a06255e53583f37f7503b03cfa54f66557549383d19215685961500e4b"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/flurry_of_blows.webp",
+    "sha256": "07ba88ee74d0da3f7a1d44ec53ba5f35fee964f544aaa3acac42496e42c6b5b8"
+   },
+   "webpQuality": 75
+  },
+  {
+   "id": "flying_sleeves",
+   "scene": "Her wide sleeves fly out like blades slashing two bright gold arcs across the frame, low camera, cloudless sky.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/flying_sleeves.webp",
+    "sha256": "edcd0de0e3641de7848a9c609f9d5b545cc22e1052dbf0e611e332f4f45d49ac"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/flying_sleeves.txt",
+    "sha256": "77c6f885af6491c96f30eeb6063a280b1bbe9e8313f0d294bb7da65ef2b76c77"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/flying_sleeves.webp",
+    "sha256": "9b7849b670ffc7a9930350d0c89b0ed70c1075a5f4b44bd2551ed2f51298b7c6"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "protect",
+   "scene": "She shields herself behind the staff and one wide sleeve, a curved barrier arc of pale light in front, steady stance.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/protect.webp",
+    "sha256": "bc20de92f6be140eced619131edf9f23fe86b001b865ff075e68272ba6216344"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/protect.txt",
+    "sha256": "f68da645afe08d72e4bbe446653a15c7a64eadcaf9afe6e60fcaa42ed83184ee"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/protect.webp",
+    "sha256": "2daa7c9abf987ff56d07381f8dba6e334a711b7b96c34c95af649493e3f69276"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "prostrate",
+   "scene": "She bows low with both hands on the floor and the ribbon pooling around her, a small gold orb floating over her head.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/prostrate.webp",
+    "sha256": "bfcbe672ec5871da331e0d4eabd8cbf8c02be71815c0332dcb4227360aa4efed"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/prostrate.txt",
+    "sha256": "d8d3b4261f972b294373438df8cc8ce76a5ba2469def99252af336c0af4cdc7a"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/prostrate.webp",
+    "sha256": "0c916d76c3c4b6691a6c29ad8db7b35b7030b7852443e108fce16e3de7dd94d1"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "pray",
+   "scene": "She holds her hands together in prayer, gold light glowing between her palms, head tilted down, serene.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/pray.webp",
+    "sha256": "ae3ec2de3bc378e38a91efc35736f977c93f6aeec9632beffbf25fce29986feb"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/pray.txt",
+    "sha256": "b7a1a9e8524d78037263be8dfebd1781f140778df5492b1d4d5e81010a507cb0"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/pray.webp",
+    "sha256": "d521180bd12b6fd454bafcbb46e51d1b30dcc30df5be1ebc26b8d6ede9a1a2ef"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "third_eye",
+   "scene": "Huge close-up of her blindfold with the gold closed-eye sigil glowing, a small pointed chin below, a calm flat panel behind.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/third_eye.webp",
+    "sha256": "17637349cf7231e089aa45e8d9839d44d3ac12b4bf6513b95308d06e3f03bdab"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/third_eye.txt",
+    "sha256": "b505c2af5c754598aa091189773d36709b500a1ba1f0986200e5449b7559a997"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/third_eye.webp",
+    "sha256": "c102fe814dc735b6693faf1d01f81f64bec6ec7cd2f6c3fef75fcca82ee7ed42"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "cut_through_fate",
+   "scene": "She slices through one long gold thread of fate with the staff tip, flat star sparks, thread curling away in bold curves, low camera.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/cut_through_fate.webp",
+    "sha256": "a9ab32cfe8e06938f66c66143584982f0473107c24c2d56bacb970241875c6ec"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/cut_through_fate.txt",
+    "sha256": "96eaa55ba5a903a5d2832253a73b62e8e764df0f0235935ecfbcdddb2f4fba17"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/cut_through_fate.webp",
+    "sha256": "e76c8f63d00c0fdeaed3a766222e1e12e8d4a69f515f0b505bbd340a324fab6c"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "just_lucky",
+   "scene": "She tosses a small die and a coin together into the air with a small knowing tilt of her head, cloudless sky, flat gold highlights.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/just_lucky.webp",
+    "sha256": "ed2d2edd90e7dd7050d7f2a24d33d5f449b2ab014d631400bd3d6edffc4e8dd6"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/just_lucky.txt",
+    "sha256": "49c9b97056bd25146565868e494480b85ed0551a1dc742aa675b45987ae63666"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/just_lucky.webp",
+    "sha256": "ffc7235a0a0f4acd593252c45431ef56cc6ca87a4a71214b5f25e065a8d91437"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "tranquility",
+   "scene": "She sits unmoving under a cloudless sky with a gentle ripple on the water, staff across her knees, still and symmetrical.",
+   "styleImages": [
+    "poster",
+    "closeup"
+   ],
+   "candidate": 3,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/tranquility.webp",
+    "sha256": "b053aee6c4b97f44759b50fbeb24543b4ac402a30c2c3e875ac9a46a95225082"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/tranquility.txt",
+    "sha256": "2fa2eed756ab9548dc50a786b5ae7f075ce37d9673aa6a9051a1140a2d590448"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/tranquility.webp",
+    "sha256": "7559cd84d13ff6458dca44900c49e734156ebe8ba67319bfa9e0b8bd59e1f16a"
+   },
+   "webpQuality": 90,
+   "regeneration": {
+    "model": "gpt-image-2",
+    "quality": "high",
+    "size": [
+     1536,
+     1024
+    ],
+    "inputs": [
+     {
+      "role": "style",
+      "sha256": "0a006524048361ec815fb8d9648c269da8bf507224c0cd6b7a9b07ed8de7fa90",
+      "description": "Monogatari second-season poster"
+     },
+     {
+      "role": "style",
+      "sha256": "eae8b06c365b04b53a3aa6723091f172f7ae7641009a31a04ab40d7f43471762",
+      "description": "Yotsugi close-up"
+     },
+     {
+      "role": "original character identity",
+      "sha256": "39ae932a5fbdeaab78e065eb726506446a7966c09c5c1b3ac5e47cb2fd06439e",
+      "path": "scripts/art/sources/monogatari_watcher-noncombat/identity.webp"
+     },
+     {
+      "role": "original card scan",
+      "sha256": "67ed0b5c213a6c0012752196420763bf3c0a10d3e9d94193414bee64c68195c1",
+      "path": "public/assets/cards/watcher__normal__tranquility.webp"
+     },
+     {
+      "role": "original card illustration",
+      "sha256": "9e69f2d282db694ea1b6289af057b84e21ee065303819343adb833345408d85d",
+      "path": "public/assets/card-art/watcher/tranquility.webp"
+     }
+    ],
+    "modelOutputSha256": "5500efd4f7565e3a36f0d4ab33537147216ed9adfa41003ff53da5f0e6407803",
+    "sourceCrop": [
+     0,
+     40,
+     1536,
+     904
+    ]
+   }
+  },
+  {
+   "id": "empty_mind",
+   "scene": "She sits with her head tilted as thoughts drift out of it like leaves of light, flat and quiet, a gold ring behind.",
+   "styleImages": [
+    "classroom",
+    "closeup"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/empty_mind.webp",
+    "sha256": "266bd5d1231c888b084bf0c4597ede016864e1df27427e9f89b9ab7bbbb6585c"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/empty_mind.txt",
+    "sha256": "62b1754c0d172423fb98d2ba8a70116741375d0f66b3a8475ce8c74436cfd3e3"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/empty_mind.webp",
+    "sha256": "3f03051ccce19ec12827bf03c1534059960f1a19f171694692106b6e7a5e77e5"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "crush_joints",
+   "scene": "She twists an enemy silhouette's arm into a hold with both hands, non-graphic, flat violet shadow cut, low camera.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/crush_joints.webp",
+    "sha256": "6250b03df4948dda6eb11db03eec234b7142ce189b0bc18f8ed62f4d10f739d1"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/crush_joints.txt",
+    "sha256": "cfd49e58565bc83506760e5133b38f3999f7fc2d1245362f1591e391bde22df7"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/crush_joints.webp",
+    "sha256": "6a3df3306eff98ac9f021a2fd3af13ead00cd40c3383c51ebf15ef1449f89c04"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "fear_no_evil",
+   "scene": "She stands unflinching with one palm raised before a huge looming dark silhouette's strike, the staff planted, calm and symmetric.",
+   "styleImages": [
+    "poster",
+    "classroom"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/monogatari_watcher-skin-cards/fear_no_evil.webp",
+    "sha256": "e009dfa3946b6517f67a1c81387bc28ab2f1e2025e5dac3e942097c42b0a3d43"
+   },
+   "prompt": {
+    "path": "docs/skins/monogatari_watcher-card-art/prompts/fear_no_evil.txt",
+    "sha256": "fdb12d70fd69e178cba729266054966e94c229eb9c6c926c83ccb86a0f004e50"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/monogatari_watcher/watcher/fear_no_evil.webp",
+    "sha256": "79cc7de5da9f42b0d71534c19f2fbfb89d387e0a29804e676818ab691897f6d0"
+   },
+   "webpQuality": 85
+  }
+ ]
+}

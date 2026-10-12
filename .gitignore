@@ -32,10 +32,8 @@ artifacts/
 public/assets/cards-hd/
 public/assets/enemies/
 
-# Offline animation renderer bytecode and native kernel cache.
-scripts/animation/__pycache__/
+# Python bytecode and the offline animation renderer's native kernel cache, wherever a script is run from.
+__pycache__/
 
 # Raw image-model output; selected lossless sources are committed under scripts/art.
 output/imagegen/
-scripts/art/__pycache__/
-scripts/art/skin-cards/__pycache__/

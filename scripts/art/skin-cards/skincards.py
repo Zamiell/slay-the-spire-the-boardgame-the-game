@@ -1,9 +1,18 @@
 """Shared helpers for the skin card pipeline: card catalogue, scan paths, art-window masks, compositing.
 
-Deterministic, Pillow + numpy only, no API calls. The art-window masks in masks/ are built from the
+Deterministic, Pillow + numpy only, no API calls. The art-window masks in masks/<owner>/ are built from the
 committed scans by build_masks.py; everything else reads them.
+
+A skin is a pair (skin id, owner character). Everything a skin owns is derived from that pair by convention,
+so several skins can run through the pipeline in parallel without sharing a writable file:
+  scripts/art/skin-cards/skins/<skin>/{plan,selections}.json   scene plan and chosen candidates
+  scripts/art/sources/<skin>-skin-cards/<cardId>.webp          selected 1536x1024 sources
+  docs/skins/<skin>-card-art/{manifest.json,prompts/}          provenance
+  public/assets/skin-card-art/<skin>/<owner>/<cardId>.webp     748x420 art
+  public/assets/skin-cards{,-sm}/<skin>/<assetKey>.webp        composited faces
 """
 import json
+import os
 import re
 from pathlib import Path
 
@@ -13,6 +22,8 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parents[3]
 HERE = Path(__file__).resolve().parent
 MASKS = HERE / 'masks'
+SKIN_OWNERS = {'kratos': 'ironclad', 'monogatari_ironclad': 'ironclad', 'monogatari_silent': 'silent',
+               'monogatari_defect': 'defect', 'monogatari_watcher': 'watcher'}
 CARDS = ROOT / 'public/assets/cards'
 THUMBS = ROOT / 'public/assets/cards-sm'
 REF_SIZE = (744, 1039)
@@ -25,9 +36,49 @@ def slug(name):
     return re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-')
 
 
-def load_catalogue():
-    """Every Ironclad card: id, name, type, rarity, pack. Generated from src/game by dump-cards.mjs."""
-    return json.loads((HERE / 'cards.json').read_text())
+def add_skin_args(parser):
+    parser.add_argument('--skin', default='kratos', help='skin id (default kratos)')
+    parser.add_argument('--owner', help='owner character of the skin (default: from SKIN_OWNERS)')
+
+
+def resolve(args):
+    """(skin, owner) from the --skin/--owner arguments."""
+    owner = args.owner or SKIN_OWNERS.get(args.skin)
+    if not owner:
+        raise SystemExit(f'unknown skin {args.skin!r}: pass --owner or add it to SKIN_OWNERS in skincards.py')
+    return args.skin, owner
+
+
+def skin_data(skin):
+    return HERE / 'skins' / skin
+
+
+def sources_dir(skin):
+    return ROOT / f'scripts/art/sources/{skin}-skin-cards'
+
+
+def docs_dir(skin):
+    return ROOT / f'docs/skins/{skin}-card-art'
+
+
+def art_dir(skin, owner):
+    return ROOT / f'public/assets/skin-card-art/{skin}/{owner}'
+
+
+def work_dir(skin):
+    """Scratch for raw candidates (git-ignored); a separate folder per skin so parallel runs never share one."""
+    root = Path(os.environ.get('STS_SKIN_ART_WORK', ROOT / 'artifacts/skin-art'))
+    return root / ('work-gen' if skin == 'kratos' else f'work-gen-{skin}')
+
+
+def load_json(path, default=None):
+    path = Path(path)
+    return json.loads(path.read_text()) if path.exists() else default
+
+
+def load_catalogue(owner='ironclad'):
+    """Every card of `owner`: id, name, type, rarity, pack, owner. Generated from src/game by dump-cards.mjs."""
+    return [{**card, 'owner': owner} for card in json.loads((HERE / f'cards/{owner}.json').read_text())]
 
 
 def scan_key(card, upgraded):
@@ -45,10 +96,9 @@ def family(card):
     return 'slayer' if card.get('pack') else 'base'
 
 
-def mask_path(fam, card_type, upgraded):
-    """Pack scans share their owner's template; Defect has its own registered masks."""
-    prefix = 'defect' if fam == 'defect' else 'base'
-    return MASKS / f"{prefix}-{card_type}{'-up' if upgraded else ''}.png"
+def mask_path(owner, card_type, upgraded):
+    """Pack scans share their owner's template geometry (see validate.py), so they use the owner's base masks."""
+    return MASKS / owner / f"base-{card_type}{'-up' if upgraded else ''}.png"
 
 
 def registration(key):
@@ -88,7 +138,7 @@ def warp(image, matrix, resample):
 
 def window_alpha(card, upgraded, size):
     """Soft alpha (float32 0..1, shape h x w) of the art window in this scan's own pixel space."""
-    mask = Image.open(mask_path(family(card), card['type'], upgraded)).convert('L')
+    mask = Image.open(mask_path(card['owner'], card['type'], upgraded)).convert('L')
     mask = warp(mask, registration(scan_key(card, upgraded)), Image.Resampling.BILINEAR)
     if tuple(size) != REF_SIZE:
         mask = mask.resize(tuple(size), Image.Resampling.BILINEAR)
@@ -118,6 +168,6 @@ def extract_art(scan, card, upgraded):
     # scan -> reference is the inverse of the stored reference -> scan map
     inverse = np.linalg.inv(np.vstack([matrix, [0, 0, 1]]))[:2]
     registered = warp(scan, inverse, Image.Resampling.BICUBIC)
-    alpha = np.asarray(Image.open(mask_path(family(card), card['type'], upgraded)).convert('L'), dtype=np.float32)[..., None] / 255.0
+    alpha = np.asarray(Image.open(mask_path(card['owner'], card['type'], upgraded)).convert('L'), dtype=np.float32)[..., None] / 255.0
     flat = np.asarray(registered, dtype=np.float32) * alpha + 20 * (1 - alpha)
     return Image.fromarray(flat.astype(np.uint8)).crop(WINDOW_BOX[card['type']])

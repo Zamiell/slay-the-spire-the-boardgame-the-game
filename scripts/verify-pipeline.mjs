@@ -145,11 +145,39 @@ check('an engine submodule selects what its barrel selects', () => {
   assertDeepEqual(affected('src/game/combat/not-imported-yet.ts'), scripts)
   assertDeepEqual(affected('src/game/run/not-imported-yet.ts'), scripts)
 })
+check('skin attack and art tooling selects the skin verifiers rather than the whole suite', () => {
+  const owned = (file, owners) => {
+    const selected = affected(file)
+    includesEvery(selected, owners, file)
+    assert(selected.length <= owners.length + 4, `${file} fell back to ${selected.length} verifiers`)
+  }
+  for (const file of ['src/ui/combat-vfx.ts', 'src/ui/combat-sfx.ts']) includesEvery(affected(file), ['verify-skin-attack-browser.mjs', 'verify-skin-browser.mjs'], file)
+  for (const file of ['scripts/animation/audit-poses.py', 'scripts/animation/monogatari.py', 'scripts/animation/monogatari_silent.py',
+    'scripts/animation/monogatari_watcher.py', 'scripts/animation/measure-monogatari_watcher.py']) owned(file, ['verify-assets.mjs', 'verify-skin-attack-browser.mjs'])
+  // The generator, its shared geometry and the skin configs own the attack verifiers; the generated stylesheet reruns only the
+  // attack verifiers and the skin registry the skin-registration proofs.
+  for (const file of ['scripts/animation/skin-attack.py', 'scripts/animation/skin_geometry.py', 'scripts/animation/skins/monogatari_silent.json',
+    'scripts/animation/test-skins/test_combo.json']) owned(file, ['verify-assets.mjs', 'verify-skin-attack-browser.mjs'])
+  includesEvery(affected('src/ui/styles/staged-attacks.css'), ['verify-assets.mjs', 'verify-skin-attack-browser.mjs'], 'the generated attack stylesheet')
+  includesEvery(affected('src/game/skins.ts'), ['verify-test-skins-browser.mjs'], 'src/game/skins.ts registers the test skins')
+  for (const file of ['scripts/art/export-monogatari_silent-char.py', 'scripts/art/export-monogatari_watcher-char.py', 'scripts/art/cutout-monogatari_watcher-idle.py']) {
+    owned(file, ['verify-assets.mjs', 'verify-skin-browser.mjs'])
+  }
+  for (const file of ['scripts/art/export-monogatari-noncombat.py', 'scripts/art/export-monogatari_silent-noncombat.py', 'scripts/art/export-multi-skin-noncombat.py']) {
+    owned(file, ['verify-assets.mjs', 'verify-art-scenes-browser.mjs', 'verify-merchant-overflow-browser.mjs', 'verify-treasure-animation-browser.mjs'])
+  }
+})
+
 check('shared frontend changes use cores plus named visual owners', () => {
   for (const file of ['src/game/assets.ts', 'src/ui/useCampfireScene.ts', 'src/ui/CampfireScreen.tsx',
     'src/ui/OnlineCampfireScreen.tsx']) {
     includesEvery(affectedBrowser(file), ['verify-campfire-assets-browser.mjs'], `${file} campfire artwork`)
   }
+  for (const file of ['src/game/campfire-scene.ts', 'src/game/campfire-scenes.ts']) {
+    includesEvery(affectedBrowser(file), ['verify-campfire-assets-browser.mjs', 'verify-art-scenes-browser.mjs'], `${file} campfire scene choice`)
+  }
+  includesEvery(affected('src/game/campfire-scene.ts'), ['verify-skins.mjs'], 'campfire fallback rule')
+  includesEvery(affected('scripts/sync-campfire-scenes.mjs'), ['verify-assets.mjs'], 'campfire scene manifest')
   for (const sheet of ['src/ui/chrome.css', 'src/ui/chrome/keys.css']) {
     includesEvery(affectedBrowser(sheet), [
       'verify-browser.mjs', 'verify-noncombat-browser.mjs', 'verify-online-browser.mjs',

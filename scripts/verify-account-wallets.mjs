@@ -118,6 +118,33 @@ try {
   assert.equal(raced.filter((reply) => reply.body.purchase.ok).length, 1, 'one balance bought both a skin and a pack')
   const left = SKIN_PRICE - (raced[0].body.purchase.ok ? SKIN_PRICE : CARD_PACK_PRICE)
   assert.equal((await request({}, racer.token)).body.wallet.coins, left, 'the winner of the race was charged its own price')
+  // Several skins across heroes (Kratos, Silent-chan and Watcher-chan):
+  // an account owns them independently, three skins race for two purses' worth of coins, and migration keeps catalogue order.
+  const collector = { username: 'SkinCollector', token: crypto.randomUUID() }
+  await fetch(`${origin}/api/profile`, { method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ ...collector, password: 'test wallet password' }) })
+  const collectorProfile = service.store.profiles.find((entry) => entry.token === collector.token)
+  collectorProfile.wallet = { ...createWallet(), coins: SKIN_PRICE * 2 + 7 }
+  assert.deepEqual((await request({ skin: 'monogatari_watcher' }, collector.token)).body.purchase, { ok: true })
+  assert.deepEqual((await request({ skin: 'monogatari_silent' }, collector.token)).body.purchase, { ok: true })
+  const collected = await request({}, collector.token)
+  assert.deepEqual(collected.body.wallet.skins, ['monogatari_silent', 'monogatari_watcher'], 'owned skins keep catalogue order, not purchase order')
+  assert.equal(collected.body.wallet.coins, 7, 'each -chan skin costs exactly its catalogue price')
+  assert.equal((await request({ skin: 'kratos' }, collector.token)).body.purchase.reason, 'insufficient')
+  assert.equal((await request({ skin: 'monogatari_silent' }, collector.token)).body.wallet.coins, 7, 'a retried -chan purchase charged again')
+  const carriedAll = { username: 'SkinCarrier', token: crypto.randomUUID() }
+  await fetch(`${origin}/api/profile`, { method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ ...carriedAll, password: 'test wallet password' }) })
+  const everything = await request({ migration: migration({ ...createWallet(), coins: 11, skins: ['monogatari_watcher', 'kratos', 'monogatari_silent'] }) }, carriedAll.token)
+  assert.deepEqual(everything.body.wallet.skins, ['kratos', 'monogatari_silent', 'monogatari_watcher'])
+  assert.equal(everything.body.wallet.coins, 11, 'migrating three owned skins must not restore their prices')
+  const triple = { username: 'SkinTriple', token: crypto.randomUUID() }
+  await fetch(`${origin}/api/profile`, { method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ ...triple, password: 'test wallet password' }) })
+  service.store.profiles.find((entry) => entry.token === triple.token).wallet = { ...createWallet(), coins: SKIN_PRICE * 2 }
+  const three = await Promise.all(['kratos', 'monogatari_silent', 'monogatari_watcher'].map((skin) => request({ skin }, triple.token)))
+  assert.equal(three.filter((reply) => reply.body.purchase.ok).length, 2, 'two purses of coins bought exactly two of three skins')
+  assert.equal((await request({}, triple.token)).body.wallet.coins, 0)
   console.log('Account wallets: migration, cross-device credits, purchases, isolation, persistence and retries passed')
 } finally {
   await service.close()

@@ -1,0 +1,577 @@
+[
+ {
+  "id": "slayer_bowling_bash",
+  "name": "Bowling Bash",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 1,
+  "pack": "slayer_watcher",
+  "text": null
+ },
+ {
+  "id": "slayer_deceive_reality",
+  "name": "Deceive Reality",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 2,
+  "pack": "slayer_watcher",
+  "text": null
+ },
+ {
+  "id": "slayer_fasting",
+  "name": "Fasting",
+  "type": "power",
+  "rarity": "uncommon",
+  "cost": 2,
+  "pack": "slayer_watcher",
+  "text": "On your Attacks and Skills, each hit deals +1 damage, each [Block] icon gains +1 Block. Start of turn: Lose a Miracle. If unable, discard this card."
+ },
+ {
+  "id": "slayer_master_reality",
+  "name": "Master Reality",
+  "type": "power",
+  "rarity": "rare",
+  "cost": 1,
+  "pack": "slayer_watcher",
+  "text": null
+ },
+ {
+  "id": "slayer_pressure_points",
+  "name": "Pressure Points",
+  "type": "skill",
+  "rarity": "rare",
+  "cost": 1,
+  "pack": "slayer_watcher",
+  "text": null
+ },
+ {
+  "id": "slayer_wave_of_the_hand",
+  "name": "Wave of the Hand",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 1,
+  "pack": "slayer_watcher",
+  "text": null
+ },
+ {
+  "id": "slayer_wheel_kick",
+  "name": "Wheel Kick",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 1,
+  "pack": "slayer_watcher",
+  "text": null
+ },
+ {
+  "id": "strike_watcher",
+  "name": "Strike",
+  "type": "attack",
+  "rarity": "starter",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "defend_watcher",
+  "name": "Defend",
+  "type": "skill",
+  "rarity": "starter",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "eruption",
+  "name": "Eruption",
+  "type": "attack",
+  "rarity": "starter",
+  "cost": 2,
+  "text": null
+ },
+ {
+  "id": "vigilance",
+  "name": "Vigilance",
+  "type": "skill",
+  "rarity": "starter",
+  "cost": 2,
+  "text": null
+ },
+ {
+  "id": "consecrate",
+  "name": "Consecrate",
+  "type": "attack",
+  "rarity": "common",
+  "cost": 0,
+  "text": null
+ },
+ {
+  "id": "empty_body",
+  "name": "Empty Body",
+  "type": "skill",
+  "rarity": "common",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "empty_fist",
+  "name": "Empty Fist",
+  "type": "attack",
+  "rarity": "common",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "collect",
+  "name": "Collect",
+  "type": "skill",
+  "rarity": "common",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "halt",
+  "name": "Halt",
+  "type": "skill",
+  "rarity": "common",
+  "cost": 0,
+  "text": null
+ },
+ {
+  "id": "simmering_fury",
+  "name": "Simmering Fury",
+  "type": "power",
+  "rarity": "uncommon",
+  "cost": 2,
+  "text": null
+ },
+ {
+  "id": "like_water",
+  "name": "Like Water",
+  "type": "power",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "battle_hymn",
+  "name": "Battle Hymn",
+  "type": "power",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "mental_fortress",
+  "name": "Mental Fortress",
+  "type": "power",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "rushdown",
+  "name": "Rushdown",
+  "type": "power",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "nirvana",
+  "name": "Nirvana",
+  "type": "power",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "foresight",
+  "name": "Foresight",
+  "type": "power",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "indignation",
+  "name": "Indignation",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "inner_peace",
+  "name": "Inner Peace",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "carve_reality",
+  "name": "Carve Reality",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 2,
+  "text": null
+ },
+ {
+  "id": "sash_whip",
+  "name": "Sash Whip",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "conclude",
+  "name": "Conclude",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "judgment",
+  "name": "Judgment",
+  "type": "skill",
+  "rarity": "rare",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "ragnarok",
+  "name": "Ragnarok",
+  "type": "attack",
+  "rarity": "rare",
+  "cost": 3,
+  "text": null
+ },
+ {
+  "id": "scrawl",
+  "name": "Scrawl",
+  "type": "skill",
+  "rarity": "rare",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "signature_move",
+  "name": "Signature Move",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 2,
+  "text": null
+ },
+ {
+  "id": "spirit_shield",
+  "name": "Spirit Shield",
+  "type": "skill",
+  "rarity": "rare",
+  "cost": 2,
+  "text": null
+ },
+ {
+  "id": "swivel",
+  "name": "Swivel",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 2,
+  "text": null
+ },
+ {
+  "id": "wallop",
+  "name": "Wallop",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 2,
+  "text": null
+ },
+ {
+  "id": "wish",
+  "name": "Wish",
+  "type": "skill",
+  "rarity": "rare",
+  "cost": 3,
+  "text": null
+ },
+ {
+  "id": "deva_form",
+  "name": "Deva Form",
+  "type": "power",
+  "rarity": "rare",
+  "cost": 2,
+  "text": null
+ },
+ {
+  "id": "omniscience",
+  "name": "Omniscience",
+  "type": "skill",
+  "rarity": "rare",
+  "cost": 3,
+  "text": null
+ },
+ {
+  "id": "vault",
+  "name": "Vault",
+  "type": "skill",
+  "rarity": "rare",
+  "cost": 3,
+  "text": null
+ },
+ {
+  "id": "talk_to_the_hand",
+  "name": "Talk to the Hand",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "tantrum",
+  "name": "Tantrum",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "weave",
+  "name": "Weave",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 0,
+  "text": null
+ },
+ {
+  "id": "blasphemy",
+  "name": "Blasphemy",
+  "type": "skill",
+  "rarity": "rare",
+  "cost": 2,
+  "text": null
+ },
+ {
+  "id": "brilliance",
+  "name": "Brilliance",
+  "type": "attack",
+  "rarity": "rare",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "devotion",
+  "name": "Devotion",
+  "type": "power",
+  "rarity": "rare",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "worship",
+  "name": "Worship",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": "X",
+  "text": null
+ },
+ {
+  "id": "wreath_of_flame",
+  "name": "Wreath of Flame",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": "X",
+  "text": null
+ },
+ {
+  "id": "conjure_blade",
+  "name": "Conjure Blade",
+  "type": "power",
+  "rarity": "rare",
+  "cost": "X",
+  "text": null
+ },
+ {
+  "id": "deus_ex_machina",
+  "name": "Deus Ex Machina",
+  "type": "skill",
+  "rarity": "rare",
+  "cost": 0,
+  "text": null
+ },
+ {
+  "id": "foreign_influence",
+  "name": "Foreign Influence",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 2,
+  "text": null
+ },
+ {
+  "id": "omega",
+  "name": "Omega",
+  "type": "power",
+  "rarity": "rare",
+  "cost": 3,
+  "text": null
+ },
+ {
+  "id": "reach_heaven",
+  "name": "Reach Heaven",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "study",
+  "name": "Study",
+  "type": "power",
+  "rarity": "uncommon",
+  "cost": 2,
+  "text": null
+ },
+ {
+  "id": "establishment",
+  "name": "Establishment",
+  "type": "power",
+  "rarity": "rare",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "meditate",
+  "name": "Meditate",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "perseverance",
+  "name": "Perseverance",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "sands_of_time",
+  "name": "Sands of Time",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 2,
+  "text": null
+ },
+ {
+  "id": "windmill_strike",
+  "name": "Windmill Strike",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 2,
+  "text": null
+ },
+ {
+  "id": "crescendo",
+  "name": "Crescendo",
+  "type": "skill",
+  "rarity": "common",
+  "cost": 0,
+  "text": null
+ },
+ {
+  "id": "flurry_of_blows",
+  "name": "Flurry of Blows",
+  "type": "attack",
+  "rarity": "common",
+  "cost": 0,
+  "text": null
+ },
+ {
+  "id": "flying_sleeves",
+  "name": "Flying Sleeves",
+  "type": "attack",
+  "rarity": "common",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "protect",
+  "name": "Protect",
+  "type": "skill",
+  "rarity": "common",
+  "cost": 2,
+  "text": null
+ },
+ {
+  "id": "prostrate",
+  "name": "Prostrate",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "pray",
+  "name": "Pray",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "third_eye",
+  "name": "Third Eye",
+  "type": "skill",
+  "rarity": "common",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "cut_through_fate",
+  "name": "Cut Through Fate",
+  "type": "attack",
+  "rarity": "common",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "just_lucky",
+  "name": "Just Lucky",
+  "type": "attack",
+  "rarity": "common",
+  "cost": 0,
+  "text": null
+ },
+ {
+  "id": "tranquility",
+  "name": "Tranquility",
+  "type": "skill",
+  "rarity": "common",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "empty_mind",
+  "name": "Empty Mind",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "crush_joints",
+  "name": "Crush Joints",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": null
+ },
+ {
+  "id": "fear_no_evil",
+  "name": "Fear No Evil",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": null
+ }
+]

@@ -20,27 +20,27 @@
  },
  "masks": [
   {
-   "path": "scripts/art/skin-cards/masks/defect-attack.png",
+   "path": "scripts/art/skin-cards/masks/defect/base-attack.png",
    "sha256": "39ab8418dee049e6f2cc49bc146479f1cbbc9e7946095f2436c9dc29476fe737"
   },
   {
-   "path": "scripts/art/skin-cards/masks/defect-attack-up.png",
+   "path": "scripts/art/skin-cards/masks/defect/base-attack-up.png",
    "sha256": "1a357dec19377b4ecdb9c37f361158d69630eb4790a81d74d2579808a091d5c4"
   },
   {
-   "path": "scripts/art/skin-cards/masks/defect-skill.png",
+   "path": "scripts/art/skin-cards/masks/defect/base-skill.png",
    "sha256": "f6916f484635614f7c6d8115d9324df844298bf801da1af9e5349148a5dd88a7"
   },
   {
-   "path": "scripts/art/skin-cards/masks/defect-skill-up.png",
+   "path": "scripts/art/skin-cards/masks/defect/base-skill-up.png",
    "sha256": "d0dfd50953d5322661a8783c21e822f651e9817c4dafb6805c96f2a011c9817a"
   },
   {
-   "path": "scripts/art/skin-cards/masks/defect-power.png",
+   "path": "scripts/art/skin-cards/masks/defect/base-power.png",
    "sha256": "40ebbcbd7e6c59a42b1ca885ae2b5d4959a8141c47d4c1583797a15ba85bb2fc"
   },
   {
-   "path": "scripts/art/skin-cards/masks/defect-power-up.png",
+   "path": "scripts/art/skin-cards/masks/defect/base-power-up.png",
    "sha256": "79cc6c76495742751ae5b1620dc7d602db9c75c42d29211b303c4789e5a20ec8"
   }
  ],

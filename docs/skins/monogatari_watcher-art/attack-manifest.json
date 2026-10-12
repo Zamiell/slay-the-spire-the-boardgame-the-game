@@ -1,0 +1,868 @@
+{
+  "model": "gpt-image-2.5-sunburst",
+  "workflow": "imagegen bundled image_gen.py edit",
+  "quality": "high",
+  "background": "transparent (native alpha)",
+  "size": "1536x1024",
+  "format": "png, stored as lossless WebP",
+  "sourceEncoding": "Selected PNGs converted to lossless WebP with exact native RGBA pixels preserved. Input order is the order of the --image arguments (image 1 = layout, 2 = identity, 3 = guide, 4 = previous drawing).",
+  "registration": "scripts/animation/sources/monogatari_watcher/registration.json (attack section) and scripts/animation/skins/monogatari_watcher.json (audit landmarks)",
+  "bake": "python3 scripts/animation/monogatari_watcher.py; measurements by scripts/animation/measure-monogatari_watcher.py",
+  "inputsBuilder": "scripts/animation/sources/monogatari_watcher/attack/make-pose-inputs.py",
+  "note": "The model ignores absolute size on the layout canvas and shortens or stretches a diagonal staff, so every drawing is measured and scaled by the geometric mean of its blindfold-cloth head scale and its staff-length scale (the two must agree within 20%). The guide images (stick figure plus a gold bar of the right staff length and line) are what kept the proportions: runs without a guide drew heads 1.3-1.8x too large and staffs about 0.6x too short. Pose guides carry only joint angles; she is painted fully from the identity image. Added 2026-10-12 (animation audit, rounds 1 and 2): round 1 added dash1, dash2, brake, rise, backstep and settle so every travel segment had stepping drawings; round 2 (reviewer with a stepped clock found skating and one-cut staff swings) replaced the grounded stride drawings dash1, dash2 and backstep with real flight drawings (leap, glide, descend, hop1, hop2, land) and added in-between drawings (ready0-ready3, swing, sweepmid, guard2) so no staff end moves more than 180 canvas px and no head more than 90 px between consecutive drawings. They use layout-s15 and a guide scale of 0.95, were drawn from an approved neighbouring drawing, and the sources were stored lossless because the blindfold and staff detectors need exact white and gold pixels. The flight drawings are lifted off the ground by the config `audit.airborne` values. The stored inputs/ images are the exact guides submitted for the added drawings (make-pose-inputs.py reproduces them byte for byte).",
+  "generated": [
+    {
+      "name": "ready0",
+      "size": [
+        1536,
+        1024
+      ],
+      "n": 16,
+      "selected": "ready0c candidate 3 (of 4). Rounds: ready0 and ready0b followed image 4 (the next drawing and the rest pose) and drew the staff at -47 to -59 degrees instead of the guide near-vertical, one with a doubled leaf in the hair; ready0c with a -82 degree guide gave -79 degrees.",
+      "prompt": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/ready0-prompt.txt",
+        "sha256": "0bbfe95d3d33e891372faaffc61decf0d5620da455b8d96bd2f1b5ec4765e25f"
+      },
+      "source": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/ready0.webp",
+        "sha256": "200713005eea631a7b2284fc58d3693ff00807c7c03bce20d84cda2b6dac052d"
+      },
+      "output": {
+        "path": "public/assets/combat/characters/animated/monogatari_watcher-ready0.webp",
+        "sha256": "d0307b3954f21593cd812516bbdef7716c6042aabbcb37fea8d35668cf6d9c4f"
+      },
+      "inputs": [
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/layout-s15.png",
+          "sha256": "7f537a03561fb3ef9897a0e61b96921afc1c9b5ee405b59a5e6c16a4c2da2ac4"
+        },
+        {
+          "description": "Approved Watcher front idle cutout (1024x1536, native alpha); pose reference outside the repo ($STS_SKIN_WORK/watcher-assets/watcher-front-idle.png), derived from scripts/art/sources/monogatari_watcher-char/idle-cutout.webp",
+          "sha256": "1a506f5610a80f3954ff46bab879338bb11066fe083bd17a3ad4bcf27a525be7"
+        },
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/guide-ready0.png",
+          "sha256": "7b6525acd26d70d5cbdf7394f8b994e46f3d4736fbd662317737317c5ba47adf"
+        },
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/settle.webp",
+          "sha256": "f01b965ec43076b8e1aae11cbac4ce4ed8f4c47ddb638a3e7a7787ac5c3555b5",
+          "description": "the approved neighbouring drawing (image 4), passed as the identical PNG"
+        }
+      ],
+      "notes": "First instant of the attack: the staff tilting just out of the idle vertical, butt still at the ground, feet together."
+    },
+    {
+      "name": "ready1",
+      "size": [
+        1536,
+        1024
+      ],
+      "n": 4,
+      "selected": "ready0d candidate 1 (of 4); chosen over candidates 2-4 for the smallest head and staff-tip step to the neighbouring drawings.",
+      "prompt": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/ready1-prompt.txt",
+        "sha256": "6659df0367dfd8d1d511d4204b791e9f39e047c1be28252aa68f11a59fba7885"
+      },
+      "source": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/ready1.webp",
+        "sha256": "961a1c128e74cccec171b96065251c1579c34dd9b0b143946326e6005d2caa22"
+      },
+      "output": {
+        "path": "public/assets/combat/characters/animated/monogatari_watcher-ready1.webp",
+        "sha256": "816e35d8de02500f8d620e125bcd3314d719c5f5b65a25dc31cf6b09e039e6d4"
+      },
+      "inputs": [
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/layout-s15.png",
+          "sha256": "7f537a03561fb3ef9897a0e61b96921afc1c9b5ee405b59a5e6c16a4c2da2ac4"
+        },
+        {
+          "description": "Approved Watcher front idle cutout (1024x1536, native alpha); pose reference outside the repo ($STS_SKIN_WORK/watcher-assets/watcher-front-idle.png), derived from scripts/art/sources/monogatari_watcher-char/idle-cutout.webp",
+          "sha256": "1a506f5610a80f3954ff46bab879338bb11066fe083bd17a3ad4bcf27a525be7"
+        },
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/guide-ready1.png",
+          "sha256": "ef024bb31e4829ca0b70f279433b47a1b870dff5c1e9bc36a93e560c1c83b0c6"
+        },
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/settle.webp",
+          "sha256": "f01b965ec43076b8e1aae11cbac4ce4ed8f4c47ddb638a3e7a7787ac5c3555b5",
+          "description": "the approved neighbouring drawing (image 4), passed as the identical PNG"
+        }
+      ],
+      "notes": "Staff at about -59 degrees, the right hand slid to the hip, left hand on the shaft."
+    },
+    {
+      "name": "ready2",
+      "size": [
+        1536,
+        1024
+      ],
+      "n": 4,
+      "selected": "ready1b candidate 2 (of 4); candidate 3 rejected (head and staff scales disagree 19%).",
+      "prompt": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/ready2-prompt.txt",
+        "sha256": "cac51b492b1e3a5ad1eb6fb82912eae81a265810179abca88d4d998959b11014"
+      },
+      "source": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/ready2.webp",
+        "sha256": "39845b622dcab4f9f737bb60609f9fce2c94e59b97fe1f8ffcb1b774efe9b0a9"
+      },
+      "output": {
+        "path": "public/assets/combat/characters/animated/monogatari_watcher-ready2.webp",
+        "sha256": "0161dca984f832d640c0c9185efcfbd007341e34590358f003980979540a58ed"
+      },
+      "inputs": [
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/layout-s15.png",
+          "sha256": "7f537a03561fb3ef9897a0e61b96921afc1c9b5ee405b59a5e6c16a4c2da2ac4"
+        },
+        {
+          "description": "Approved Watcher front idle cutout (1024x1536, native alpha); pose reference outside the repo ($STS_SKIN_WORK/watcher-assets/watcher-front-idle.png), derived from scripts/art/sources/monogatari_watcher-char/idle-cutout.webp",
+          "sha256": "1a506f5610a80f3954ff46bab879338bb11066fe083bd17a3ad4bcf27a525be7"
+        },
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/guide-ready2.png",
+          "sha256": "5280766c3a49abe0743036d20b9823b6efba5b3642ba74cd7814213d2590bc06"
+        },
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/ready3.webp",
+          "sha256": "ef9c38da0b2a3b6d34317516dac5f338b7bd06ef4d1e2e730b8fc02cbb39f372",
+          "description": "the approved neighbouring drawing (image 4), passed as the identical PNG"
+        }
+      ],
+      "notes": "Beginning to sink, staff at about -28 degrees."
+    },
+    {
+      "name": "ready3",
+      "size": [
+        1536,
+        1024
+      ],
+      "n": 8,
+      "selected": "ready2b candidate 1 (of 4); the first run (ready2) drew a lunge-wide stance that made the feet jump from the closer drawings, the second asked for a narrow stance.",
+      "prompt": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/ready3-prompt.txt",
+        "sha256": "4e765b15d57330b6e89149a6244ef4a63ac1a9d569a5cddeeb7c0becdd5d8436"
+      },
+      "source": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/ready3.webp",
+        "sha256": "ef9c38da0b2a3b6d34317516dac5f338b7bd06ef4d1e2e730b8fc02cbb39f372"
+      },
+      "output": {
+        "path": "public/assets/combat/characters/animated/monogatari_watcher-ready3.webp",
+        "sha256": "fba5d8c79a85221a705aff1acae6b442405ee6e51c5e689c66d3e06ab4119adc"
+      },
+      "inputs": [
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/layout-s15.png",
+          "sha256": "7f537a03561fb3ef9897a0e61b96921afc1c9b5ee405b59a5e6c16a4c2da2ac4"
+        },
+        {
+          "description": "Approved Watcher front idle cutout (1024x1536, native alpha); pose reference outside the repo ($STS_SKIN_WORK/watcher-assets/watcher-front-idle.png), derived from scripts/art/sources/monogatari_watcher-char/idle-cutout.webp",
+          "sha256": "1a506f5610a80f3954ff46bab879338bb11066fe083bd17a3ad4bcf27a525be7"
+        },
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/guide-ready3.png",
+          "sha256": "7575cf5177cb24275ea1c8e1bace2c9d6e44a74445b8b763dee22d6c88e01c9a"
+        },
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/anticipation.webp",
+          "sha256": "8dfe894a52af39d1af21487b3645e99dbb6ed29d793a7864a749f0366a0a47a4",
+          "description": "the approved neighbouring drawing (image 4), passed as the identical PNG"
+        }
+      ],
+      "notes": "Shallow crouch, staff nearly horizontal, feet close together: the drawing before the low guard."
+    },
+    {
+      "name": "anticipation",
+      "size": [
+        1536,
+        1024
+      ],
+      "n": 12,
+      "selected": "v4 candidate 1 (of 3); earlier runs without or with an undersized guide were rejected for a 1.3-1.8x head and a 0.6x staff",
+      "prompt": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/anticipation-prompt.txt",
+        "sha256": "8c7e3ff338dbec6b078310457f1ca5b0c7728399744e2820cf1b3e971039ec45"
+      },
+      "source": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/anticipation.webp",
+        "sha256": "8dfe894a52af39d1af21487b3645e99dbb6ed29d793a7864a749f0366a0a47a4"
+      },
+      "output": {
+        "path": "public/assets/combat/characters/animated/monogatari_watcher-anticipation.webp",
+        "sha256": "a3e4b692e04ab71f6c70ead9586e03865fa7e3ed963fbdf5ed79ca4d9efc2f55"
+      },
+      "inputs": [
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/layout-s20.png",
+          "sha256": "10242af9e94204da4b1abde69d64c1848aa0fc3279fab031ad709f97d2c4295d"
+        },
+        {
+          "description": "Approved Watcher front idle cutout (1024x1536, native alpha); pose reference outside the repo ($STS_SKIN_WORK/watcher-assets/watcher-front-idle.png), derived from scripts/art/sources/monogatari_watcher-char/idle-cutout.webp",
+          "sha256": "1a506f5610a80f3954ff46bab879338bb11066fe083bd17a3ad4bcf27a525be7"
+        },
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/guide-anticipation.png",
+          "sha256": "e727ccc4daecbf732a06f3c21b4eb1e8f65dc3eff2a80398321f8bafb7bd299e"
+        }
+      ],
+      "notes": "Staff low guard, glide in. Four rounds of three candidates: no guide, then a guide at three scales; only the last (guide and idle layout at the scale the model draws) kept the head and staff proportions."
+    },
+    {
+      "name": "leap",
+      "size": [
+        1536,
+        1024
+      ],
+      "n": 4,
+      "selected": "candidate 4 (of 4).",
+      "prompt": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/leap-prompt.txt",
+        "sha256": "a3cebc63508f5cbf74d8aad6bb3c295b47bba7bb161c6e9d9f980acbc2913d87"
+      },
+      "source": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/leap.webp",
+        "sha256": "0e88dc4166a465837e4d91d6b325b90081adb1767c617dd3ce1ebbb560c014e4"
+      },
+      "output": {
+        "path": "public/assets/combat/characters/animated/monogatari_watcher-leap.webp",
+        "sha256": "1e4934baeec3421d5ab5236c975d2163b7b91993dca67307c89baf5cc98665db"
+      },
+      "inputs": [
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/layout-s15.png",
+          "sha256": "7f537a03561fb3ef9897a0e61b96921afc1c9b5ee405b59a5e6c16a4c2da2ac4"
+        },
+        {
+          "description": "Approved Watcher front idle cutout (1024x1536, native alpha); pose reference outside the repo ($STS_SKIN_WORK/watcher-assets/watcher-front-idle.png), derived from scripts/art/sources/monogatari_watcher-char/idle-cutout.webp",
+          "sha256": "1a506f5610a80f3954ff46bab879338bb11066fe083bd17a3ad4bcf27a525be7"
+        },
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/guide-leap.png",
+          "sha256": "b6a4537e29076efefd9ca07ca6cde01d5653dffc55d6cfc51472754b0451b2d4"
+        },
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/anticipation.webp",
+          "sha256": "8dfe894a52af39d1af21487b3645e99dbb6ed29d793a7864a749f0366a0a47a4",
+          "description": "the approved neighbouring drawing (image 4), passed as the identical PNG"
+        }
+      ],
+      "notes": "The push-off: both feet leave the ground (rear toes last), front knee high, staff carried low. Airborne by `audit.airborne.leap`."
+    },
+    {
+      "name": "glide",
+      "size": [
+        1536,
+        1024
+      ],
+      "n": 4,
+      "selected": "candidate 1 (of 4); candidate 4 rejected (staff 23% over the head scale).",
+      "prompt": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/glide-prompt.txt",
+        "sha256": "30a66ef8bef3e8b28122a41bfe65f138acff871e99b400e3c721d2942a7c3aa3"
+      },
+      "source": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/glide.webp",
+        "sha256": "90f1209ddbb70cfcf76e154c4029034961a25741647fd49125ab4e8d8296c2db"
+      },
+      "output": {
+        "path": "public/assets/combat/characters/animated/monogatari_watcher-glide.webp",
+        "sha256": "86569447de55954110670fafcf41099a6a4dd6447c1cd21a8d0a597ee1712c74"
+      },
+      "inputs": [
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/layout-s15.png",
+          "sha256": "7f537a03561fb3ef9897a0e61b96921afc1c9b5ee405b59a5e6c16a4c2da2ac4"
+        },
+        {
+          "description": "Approved Watcher front idle cutout (1024x1536, native alpha); pose reference outside the repo ($STS_SKIN_WORK/watcher-assets/watcher-front-idle.png), derived from scripts/art/sources/monogatari_watcher-char/idle-cutout.webp",
+          "sha256": "1a506f5610a80f3954ff46bab879338bb11066fe083bd17a3ad4bcf27a525be7"
+        },
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/guide-glide.png",
+          "sha256": "325cc78e4a0781a97e6813a6b6cd1c12d61265a7d6311af7e266a2f78cf960d3"
+        },
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/anticipation.webp",
+          "sha256": "8dfe894a52af39d1af21487b3645e99dbb6ed29d793a7864a749f0366a0a47a4",
+          "description": "the approved neighbouring drawing (image 4), passed as the identical PNG"
+        }
+      ],
+      "notes": "Top of the flying dash: no foot near the ground, body stretched forward, staff low and level. Airborne by `audit.airborne.glide`."
+    },
+    {
+      "name": "descend",
+      "size": [
+        1536,
+        1024
+      ],
+      "n": 4,
+      "selected": "candidate 4 (of 4).",
+      "prompt": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/descend-prompt.txt",
+        "sha256": "def6fac7a5202058d93d5b5e8011df1374e7cb352e25ab3adfa3ac98bc89ff14"
+      },
+      "source": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/descend.webp",
+        "sha256": "d40117f77f4a465668a949fc6598e833d9807071683b82cdc98bc2ac6daf0d8f"
+      },
+      "output": {
+        "path": "public/assets/combat/characters/animated/monogatari_watcher-descend.webp",
+        "sha256": "39c4a97fc8d71fe36c21a461e1e004d810eb63a9dc357b0b3ecb9435f4c6a8d5"
+      },
+      "inputs": [
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/layout-s15.png",
+          "sha256": "7f537a03561fb3ef9897a0e61b96921afc1c9b5ee405b59a5e6c16a4c2da2ac4"
+        },
+        {
+          "description": "Approved Watcher front idle cutout (1024x1536, native alpha); pose reference outside the repo ($STS_SKIN_WORK/watcher-assets/watcher-front-idle.png), derived from scripts/art/sources/monogatari_watcher-char/idle-cutout.webp",
+          "sha256": "1a506f5610a80f3954ff46bab879338bb11066fe083bd17a3ad4bcf27a525be7"
+        },
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/guide-descend.png",
+          "sha256": "1155c122921188a73c162e7a6650cadc6daa5b993567f529e6bbe09e728e803b"
+        },
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/brake.webp",
+          "sha256": "e8eb83d80f2e346e7891a2a41bc6212de96e9adde8ad73c3136835f84e74aea3",
+          "description": "the approved neighbouring drawing (image 4), passed as the identical PNG"
+        }
+      ],
+      "notes": "Coming down: front toes reaching for the ground, rear leg trailing. Airborne by `audit.airborne.descend`."
+    },
+    {
+      "name": "brake",
+      "size": [
+        1536,
+        1024
+      ],
+      "n": 4,
+      "selected": "candidate 4 (of 4)",
+      "prompt": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/brake-prompt.txt",
+        "sha256": "12ad64b3c603a96eaf85da299efe339d7820063a479bbcccedfa01c2f17024b9"
+      },
+      "source": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/brake.webp",
+        "sha256": "e8eb83d80f2e346e7891a2a41bc6212de96e9adde8ad73c3136835f84e74aea3"
+      },
+      "output": {
+        "path": "public/assets/combat/characters/animated/monogatari_watcher-brake.webp",
+        "sha256": "1e0f51ea40adf2b0ee83f688a94081eee5528a396804d105423faa332a67b701"
+      },
+      "inputs": [
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/layout-s15.png",
+          "sha256": "7f537a03561fb3ef9897a0e61b96921afc1c9b5ee405b59a5e6c16a4c2da2ac4"
+        },
+        {
+          "description": "Approved Watcher front idle cutout (1024x1536, native alpha); pose reference outside the repo ($STS_SKIN_WORK/watcher-assets/watcher-front-idle.png), derived from scripts/art/sources/monogatari_watcher-char/idle-cutout.webp",
+          "sha256": "1a506f5610a80f3954ff46bab879338bb11066fe083bd17a3ad4bcf27a525be7"
+        },
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/guide-brake.png",
+          "sha256": "8ba13f2cc3e9af39719495e5e3c9ed8ae1ed6c4db3cc29a82ded47f9c05d49ee"
+        },
+        {
+          "sha256": "4ed700cf187c67a9812a8a7061a3c5fc95c8d3cceaa6e50e8f1d1b750d0696c0",
+          "description": "the approved previous drawing (image 4), passed as the identical PNG; it was the dash2 drawing, replaced in round 2 (sha256 is that of the PNG that was passed)"
+        }
+      ],
+      "notes": "Braking landing at the end of the dash: front foot planted far forward, staff gathered in both hands."
+    },
+    {
+      "name": "windup",
+      "size": [
+        1536,
+        1024
+      ],
+      "n": 7,
+      "selected": "second round candidate 3 (of 4)",
+      "prompt": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/windup-prompt.txt",
+        "sha256": "a0d9f503fa7271f5004ad0d2ce8cf34d9a8fa83335316da2926fc8e9dd9fa242"
+      },
+      "source": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/windup.webp",
+        "sha256": "5cb857b3d2a97678a498058eede8027135043c2c56ba2b5a0cd1960c2b494e5c"
+      },
+      "output": {
+        "path": "public/assets/combat/characters/animated/monogatari_watcher-windup.webp",
+        "sha256": "2d6ef363652a37b140183793394a5ea48c0582fa27c4875ed68d29f6c1e1658c"
+      },
+      "inputs": [
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/layout-s20.png",
+          "sha256": "10242af9e94204da4b1abde69d64c1848aa0fc3279fab031ad709f97d2c4295d"
+        },
+        {
+          "description": "Approved Watcher front idle cutout (1024x1536, native alpha); pose reference outside the repo ($STS_SKIN_WORK/watcher-assets/watcher-front-idle.png), derived from scripts/art/sources/monogatari_watcher-char/idle-cutout.webp",
+          "sha256": "1a506f5610a80f3954ff46bab879338bb11066fe083bd17a3ad4bcf27a525be7"
+        },
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/guide-windup.png",
+          "sha256": "e441de68213e01442d06867560bb6ca7c6e1087e5d4b2e0ac6e118cb0d24fc73"
+        },
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/anticipation.webp",
+          "sha256": "8dfe894a52af39d1af21487b3645e99dbb6ed29d793a7864a749f0366a0a47a4",
+          "description": "approved anticipation drawing"
+        }
+      ],
+      "notes": "Round 1 (3 candidates, staff 1.12-1.17x the head-scale length) was replaced by a second round whose prompt added a staff-length check (staff/head agreement 0.99)."
+    },
+    {
+      "name": "thrust",
+      "size": [
+        1536,
+        1024
+      ],
+      "n": 4,
+      "selected": "candidate 2 (of 4)",
+      "prompt": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/thrust-prompt.txt",
+        "sha256": "25d0ea4167daed27323943584e75742324a0c87052771ee5cd39ddf358a59912"
+      },
+      "source": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/thrust.webp",
+        "sha256": "1a0cafc022f0fad717f675250e6d0c9817d48ab661cae995484df0d6e0d56163"
+      },
+      "output": {
+        "path": "public/assets/combat/characters/animated/monogatari_watcher-thrust.webp",
+        "sha256": "b937446d3b4a926a6a7c407bcfd970e2ddd541a8d02dc4d02888d72bb87c7fdd"
+      },
+      "inputs": [
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/layout-s15.png",
+          "sha256": "7f537a03561fb3ef9897a0e61b96921afc1c9b5ee405b59a5e6c16a4c2da2ac4"
+        },
+        {
+          "description": "Approved Watcher front idle cutout (1024x1536, native alpha); pose reference outside the repo ($STS_SKIN_WORK/watcher-assets/watcher-front-idle.png), derived from scripts/art/sources/monogatari_watcher-char/idle-cutout.webp",
+          "sha256": "1a506f5610a80f3954ff46bab879338bb11066fe083bd17a3ad4bcf27a525be7"
+        },
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/guide-thrust.png",
+          "sha256": "2306d57daea748f65485b0ec3f6c6c68b20b4edd0a23d57bf42a54acceabc3c5"
+        },
+        {
+          "description": "superseded windup draft (round 1 candidate 2), same pose family as the kept windup; not kept",
+          "sha256": "50d8e0cced6fcdb59acb6b382d46d50adea03d22e7bbaa39a94b5900fde1ee4f"
+        }
+      ],
+      "notes": "Rear foot planted, staff horizontal at full reach."
+    },
+    {
+      "name": "swing",
+      "size": [
+        1536,
+        1024
+      ],
+      "n": 4,
+      "selected": "candidate 3 (of 4); candidates 2 and 4 rejected (head 18% over the staff scale).",
+      "prompt": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/swing-prompt.txt",
+        "sha256": "64e58d1d1cb602009c9be2baf5a6be91c2b8c5dd77dc6977b20b32ff636b403e"
+      },
+      "source": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/swing.webp",
+        "sha256": "e974a72ae73c35bffa300d7c54adf62a1c9743e7a58562596c081f14ede5a865"
+      },
+      "output": {
+        "path": "public/assets/combat/characters/animated/monogatari_watcher-swing.webp",
+        "sha256": "b6bba15c6ae93ea3947a398e5d941ad30cfcd7e3d6b6f80dbfae66b3f4667484"
+      },
+      "inputs": [
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/layout-s15.png",
+          "sha256": "7f537a03561fb3ef9897a0e61b96921afc1c9b5ee405b59a5e6c16a4c2da2ac4"
+        },
+        {
+          "description": "Approved Watcher front idle cutout (1024x1536, native alpha); pose reference outside the repo ($STS_SKIN_WORK/watcher-assets/watcher-front-idle.png), derived from scripts/art/sources/monogatari_watcher-char/idle-cutout.webp",
+          "sha256": "1a506f5610a80f3954ff46bab879338bb11066fe083bd17a3ad4bcf27a525be7"
+        },
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/guide-swing.png",
+          "sha256": "3638dbc0c18b815d9de6fa281802dc7ee255bad4c19a7acba55426f76495e798"
+        },
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/thrust.webp",
+          "sha256": "1a0cafc022f0fad717f675250e6d0c9817d48ab661cae995484df0d6e0d56163",
+          "description": "the approved neighbouring drawing (image 4), passed as the identical PNG"
+        }
+      ],
+      "notes": "The staff driven down out of the thrust, same lunge as the thrust drawing, halfway to the sweep."
+    },
+    {
+      "name": "sweep",
+      "size": [
+        1536,
+        1024
+      ],
+      "n": 8,
+      "selected": "second round candidate 1 (of 4)",
+      "prompt": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/sweep-prompt.txt",
+        "sha256": "ed9397ba31f454e781a090824eedcd8e5c2f3a3630389a5f082d742f26dea75b"
+      },
+      "source": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/sweep.webp",
+        "sha256": "2028e263056f6424809ff6657555934eb153b4d67b68fb6d1c566874ac81621d"
+      },
+      "output": {
+        "path": "public/assets/combat/characters/animated/monogatari_watcher-sweep.webp",
+        "sha256": "0483027c1d3c69a017eb448cc6d6964281aa9e5a5738e9eb89c00240165429f5"
+      },
+      "inputs": [
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/layout-s15.png",
+          "sha256": "7f537a03561fb3ef9897a0e61b96921afc1c9b5ee405b59a5e6c16a4c2da2ac4"
+        },
+        {
+          "description": "Approved Watcher front idle cutout (1024x1536, native alpha); pose reference outside the repo ($STS_SKIN_WORK/watcher-assets/watcher-front-idle.png), derived from scripts/art/sources/monogatari_watcher-char/idle-cutout.webp",
+          "sha256": "1a506f5610a80f3954ff46bab879338bb11066fe083bd17a3ad4bcf27a525be7"
+        },
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/guide-sweep.png",
+          "sha256": "092152fc2ee0ff07ad0e5904b8d5d6fe4b8d33a42ae5b9338ced2e6d09cf6c0f"
+        },
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/thrust.webp",
+          "sha256": "1a0cafc022f0fad717f675250e6d0c9817d48ab661cae995484df0d6e0d56163",
+          "description": "approved thrust drawing"
+        }
+      ],
+      "notes": "Round 1 (4 candidates) drew the diagonal staff 0.80-0.87x of its head-scale length; the second round added a staff-length check (agreement 0.96)."
+    },
+    {
+      "name": "sweepmid",
+      "size": [
+        1536,
+        1024
+      ],
+      "n": 4,
+      "selected": "candidate 4 (of 4).",
+      "prompt": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/sweepmid-prompt.txt",
+        "sha256": "9e8f9d2a8c372b5f29e73c3739b3d00ea97e8781905c8c5d765e26e546da7e8f"
+      },
+      "source": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/sweepmid.webp",
+        "sha256": "c8361f0ec334332a8da03d6bbb94290c30d09be42403e3948b97bcaa874395a1"
+      },
+      "output": {
+        "path": "public/assets/combat/characters/animated/monogatari_watcher-sweepmid.webp",
+        "sha256": "694bdf9bcf7ca577c24726626fa311ed45e29f83d99c5b89635ea2584fd53fde"
+      },
+      "inputs": [
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/layout-s15.png",
+          "sha256": "7f537a03561fb3ef9897a0e61b96921afc1c9b5ee405b59a5e6c16a4c2da2ac4"
+        },
+        {
+          "description": "Approved Watcher front idle cutout (1024x1536, native alpha); pose reference outside the repo ($STS_SKIN_WORK/watcher-assets/watcher-front-idle.png), derived from scripts/art/sources/monogatari_watcher-char/idle-cutout.webp",
+          "sha256": "1a506f5610a80f3954ff46bab879338bb11066fe083bd17a3ad4bcf27a525be7"
+        },
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/guide-sweepmid.png",
+          "sha256": "196e6a448e7318b9fd2d9de61027a58e3833ae18b297233f5989eb0203228632"
+        },
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/rise.webp",
+          "sha256": "16f3f0358bbc2873454bccc3eaef8a4fb1bfd4c61b9ed416de5b48509e40d367",
+          "description": "the approved neighbouring drawing (image 4), passed as the identical PNG"
+        }
+      ],
+      "notes": "Straightening out of the sweep with the staff halfway up, feet still planted."
+    },
+    {
+      "name": "rise",
+      "size": [
+        1536,
+        1024
+      ],
+      "n": 4,
+      "selected": "candidate 4 (of 4)",
+      "prompt": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/rise-prompt.txt",
+        "sha256": "c33e029853fd3af1c4fb6ab9f5781d0ab428419ff859c27e68ec8e38bfbfc812"
+      },
+      "source": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/rise.webp",
+        "sha256": "16f3f0358bbc2873454bccc3eaef8a4fb1bfd4c61b9ed416de5b48509e40d367"
+      },
+      "output": {
+        "path": "public/assets/combat/characters/animated/monogatari_watcher-rise.webp",
+        "sha256": "1e8ff820f0e9b3c716e00d4fccf0bb14939568c32c9aadc10b736310467114a6"
+      },
+      "inputs": [
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/layout-s15.png",
+          "sha256": "7f537a03561fb3ef9897a0e61b96921afc1c9b5ee405b59a5e6c16a4c2da2ac4"
+        },
+        {
+          "description": "Approved Watcher front idle cutout (1024x1536, native alpha); pose reference outside the repo ($STS_SKIN_WORK/watcher-assets/watcher-front-idle.png), derived from scripts/art/sources/monogatari_watcher-char/idle-cutout.webp",
+          "sha256": "1a506f5610a80f3954ff46bab879338bb11066fe083bd17a3ad4bcf27a525be7"
+        },
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/guide-rise.png",
+          "sha256": "c2dbb43b96c0d77e9283bf3c573df6bd8eb503f13afa70f323b18286c0ced311"
+        },
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/sweep.webp",
+          "sha256": "2028e263056f6424809ff6657555934eb153b4d67b68fb6d1c566874ac81621d",
+          "description": "the approved previous drawing (image 4), passed as the identical PNG"
+        }
+      ],
+      "notes": "Rising out of the sweep: torso straightening, front foot sliding back, staff swinging up through the front."
+    },
+    {
+      "name": "hop1",
+      "size": [
+        1536,
+        1024
+      ],
+      "n": 8,
+      "selected": "hop1b candidate 3 (of 4). The first run drew the ribbons ahead of the backwards motion (to the left) or rejected scales; hop1b asked for them dragged to the right, behind the leftward hop.",
+      "prompt": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/hop1-prompt.txt",
+        "sha256": "9ada61f71536b7a009728064a9625957a105d542327169fb582a54bab80e38e8"
+      },
+      "source": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/hop1.webp",
+        "sha256": "55c2a755da7c87da863622ea7d0d39bc3814e5496e026cb0449c78d53cb9e14f"
+      },
+      "output": {
+        "path": "public/assets/combat/characters/animated/monogatari_watcher-hop1.webp",
+        "sha256": "e1310f3436c173fa311e28a83782b29a51d6618cdb1ed088f38befebdf171627"
+      },
+      "inputs": [
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/layout-s15.png",
+          "sha256": "7f537a03561fb3ef9897a0e61b96921afc1c9b5ee405b59a5e6c16a4c2da2ac4"
+        },
+        {
+          "description": "Approved Watcher front idle cutout (1024x1536, native alpha); pose reference outside the repo ($STS_SKIN_WORK/watcher-assets/watcher-front-idle.png), derived from scripts/art/sources/monogatari_watcher-char/idle-cutout.webp",
+          "sha256": "1a506f5610a80f3954ff46bab879338bb11066fe083bd17a3ad4bcf27a525be7"
+        },
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/guide-hop1.png",
+          "sha256": "1e640b514637279302b12755ee8b6073bf6083bcb0594020a4cdff985b14f358"
+        },
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/rise.webp",
+          "sha256": "16f3f0358bbc2873454bccc3eaef8a4fb1bfd4c61b9ed416de5b48509e40d367",
+          "description": "the approved neighbouring drawing (image 4), passed as the identical PNG"
+        }
+      ],
+      "notes": "Takeoff of the backwards hop, both feet off the ground, staff swinging up; ribbons lag to the right. Airborne by `audit.airborne.hop1`."
+    },
+    {
+      "name": "hop2",
+      "size": [
+        1536,
+        1024
+      ],
+      "n": 4,
+      "selected": "candidate 4 (of 4).",
+      "prompt": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/hop2-prompt.txt",
+        "sha256": "e5fd0eb791fafecee1ecbf94b998d886b51c2deef60b069725bb1c51371bdffb"
+      },
+      "source": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/hop2.webp",
+        "sha256": "831b9b13e9b83ca6ce77dba205e77732a340905a5d2eefa9c998a6548f6a6e03"
+      },
+      "output": {
+        "path": "public/assets/combat/characters/animated/monogatari_watcher-hop2.webp",
+        "sha256": "251edbbd914a3d06212a4d5d1c8091618d4d557661a5e70ec0daadaf66223586"
+      },
+      "inputs": [
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/layout-s15.png",
+          "sha256": "7f537a03561fb3ef9897a0e61b96921afc1c9b5ee405b59a5e6c16a4c2da2ac4"
+        },
+        {
+          "description": "Approved Watcher front idle cutout (1024x1536, native alpha); pose reference outside the repo ($STS_SKIN_WORK/watcher-assets/watcher-front-idle.png), derived from scripts/art/sources/monogatari_watcher-char/idle-cutout.webp",
+          "sha256": "1a506f5610a80f3954ff46bab879338bb11066fe083bd17a3ad4bcf27a525be7"
+        },
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/guide-hop2.png",
+          "sha256": "72d1a9cca8422df84f46beb61390825b5d5ca8ef00367888f2b6486b1030e055"
+        },
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/recovery.webp",
+          "sha256": "a244c6e414fe8ed80debdde49f9e8595cf140e6a2d4f8b0de42631aa725c2c06",
+          "description": "the approved neighbouring drawing (image 4), passed as the identical PNG"
+        }
+      ],
+      "notes": "Descending half of the hop, toes reaching down, staff in a 42 degree guard. Airborne by `audit.airborne.hop2`."
+    },
+    {
+      "name": "land",
+      "size": [
+        1536,
+        1024
+      ],
+      "n": 4,
+      "selected": "candidate 1 (of 4); candidate 2 rejected (no blindfold found by the detector).",
+      "prompt": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/land-prompt.txt",
+        "sha256": "64d80f07b06edd0a7d4a61c8e91c54df787f288e4cb5ca95e5668112f1ccc098"
+      },
+      "source": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/land.webp",
+        "sha256": "eb45a9472ef53ce65fd7f7f9bdbbd9c0a8ee84ab0f2423b74fe0e0dac969ef1f"
+      },
+      "output": {
+        "path": "public/assets/combat/characters/animated/monogatari_watcher-land.webp",
+        "sha256": "2ffd094a672517e6763b3b937867a0eb560fa2c10529db81770355aaca137395"
+      },
+      "inputs": [
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/layout-s15.png",
+          "sha256": "7f537a03561fb3ef9897a0e61b96921afc1c9b5ee405b59a5e6c16a4c2da2ac4"
+        },
+        {
+          "description": "Approved Watcher front idle cutout (1024x1536, native alpha); pose reference outside the repo ($STS_SKIN_WORK/watcher-assets/watcher-front-idle.png), derived from scripts/art/sources/monogatari_watcher-char/idle-cutout.webp",
+          "sha256": "1a506f5610a80f3954ff46bab879338bb11066fe083bd17a3ad4bcf27a525be7"
+        },
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/guide-land.png",
+          "sha256": "914daf609eaaf14e19bf2ca93c72bfca3dd78ac14ead1cb30fc0bbc73735ae30"
+        },
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/recovery.webp",
+          "sha256": "a244c6e414fe8ed80debdde49f9e8595cf140e6a2d4f8b0de42631aa725c2c06",
+          "description": "the approved neighbouring drawing (image 4), passed as the identical PNG"
+        }
+      ],
+      "notes": "Touchdown on both soles, knees soft, guard raised."
+    },
+    {
+      "name": "recovery",
+      "size": [
+        1536,
+        1024
+      ],
+      "n": 4,
+      "selected": "candidate 2 (of 4)",
+      "prompt": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/recovery-prompt.txt",
+        "sha256": "45ffe465747f4747a0271d871240ddea8d2284f9e7a79c699af220c615c163c2"
+      },
+      "source": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/recovery.webp",
+        "sha256": "a244c6e414fe8ed80debdde49f9e8595cf140e6a2d4f8b0de42631aa725c2c06"
+      },
+      "output": {
+        "path": "public/assets/combat/characters/animated/monogatari_watcher-recovery.webp",
+        "sha256": "672701ad101b9ce8f0bc8cebf77a307ce5a0faa251bc1dc763b20ac976fb56b8"
+      },
+      "inputs": [
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/layout-s15.png",
+          "sha256": "7f537a03561fb3ef9897a0e61b96921afc1c9b5ee405b59a5e6c16a4c2da2ac4"
+        },
+        {
+          "description": "Approved Watcher front idle cutout (1024x1536, native alpha); pose reference outside the repo ($STS_SKIN_WORK/watcher-assets/watcher-front-idle.png), derived from scripts/art/sources/monogatari_watcher-char/idle-cutout.webp",
+          "sha256": "1a506f5610a80f3954ff46bab879338bb11066fe083bd17a3ad4bcf27a525be7"
+        },
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/guide-recovery.png",
+          "sha256": "2e6420bbe55c4450a86a0072821d05a67d143ed4f8ef1992b41b7fc5036d2aa5"
+        },
+        {
+          "description": "superseded sweep draft (round 1 candidate 1), same pose family as the kept sweep; not kept",
+          "sha256": "223bf5696d0ec468c8a1ca4b224e24a454fb27f0ca3f3895f7cae9a0df6d1cc1"
+        }
+      ],
+      "notes": "Standing re-guard with the staff raised on a diagonal."
+    },
+    {
+      "name": "guard2",
+      "size": [
+        1536,
+        1024
+      ],
+      "n": 8,
+      "selected": "guard2b candidate 2 (of 4). The first run drew the staff at -58 degrees, too far from the settle drawing; guard2b asked for 76 degrees.",
+      "prompt": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/guard2-prompt.txt",
+        "sha256": "dceac3f221efa47f0f08e69d7d55fed3cce2c4feb01943f06af2a0babe3ee5df"
+      },
+      "source": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/guard2.webp",
+        "sha256": "944c2dd37a9269043187645aafebf1237707263211a9975bc17a33e6b1856037"
+      },
+      "output": {
+        "path": "public/assets/combat/characters/animated/monogatari_watcher-guard2.webp",
+        "sha256": "b0381f04a1019ccd62bf60325a3c47f749e6937ff74b5be51ec38a0c8a6de5b7"
+      },
+      "inputs": [
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/layout-s15.png",
+          "sha256": "7f537a03561fb3ef9897a0e61b96921afc1c9b5ee405b59a5e6c16a4c2da2ac4"
+        },
+        {
+          "description": "Approved Watcher front idle cutout (1024x1536, native alpha); pose reference outside the repo ($STS_SKIN_WORK/watcher-assets/watcher-front-idle.png), derived from scripts/art/sources/monogatari_watcher-char/idle-cutout.webp",
+          "sha256": "1a506f5610a80f3954ff46bab879338bb11066fe083bd17a3ad4bcf27a525be7"
+        },
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/guide-guard2.png",
+          "sha256": "141395ef2dc39ec64af026cecb36321d4d9d1b5a2b851d8dd2be57d657d6e67e"
+        },
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/settle.webp",
+          "sha256": "f01b965ec43076b8e1aae11cbac4ce4ed8f4c47ddb638a3e7a7787ac5c3555b5",
+          "description": "the approved neighbouring drawing (image 4), passed as the identical PNG"
+        }
+      ],
+      "notes": "The staff swinging back toward the vertical, one step before the settle drawing."
+    },
+    {
+      "name": "settle",
+      "size": [
+        1536,
+        1024
+      ],
+      "n": 4,
+      "selected": "candidate 2 (of 4)",
+      "prompt": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/settle-prompt.txt",
+        "sha256": "3d5a90484a4e92b71f6e17cd3d6d729d1203424af98e1ffd08c9e0dc1fbb82ed"
+      },
+      "source": {
+        "path": "scripts/animation/sources/monogatari_watcher/attack/settle.webp",
+        "sha256": "f01b965ec43076b8e1aae11cbac4ce4ed8f4c47ddb638a3e7a7787ac5c3555b5"
+      },
+      "output": {
+        "path": "public/assets/combat/characters/animated/monogatari_watcher-settle.webp",
+        "sha256": "626d4c7a164d83d9a8f3a5257555d3eff49c9d418f7cc3b9c73355cc4d775723"
+      },
+      "inputs": [
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/layout-s15.png",
+          "sha256": "7f537a03561fb3ef9897a0e61b96921afc1c9b5ee405b59a5e6c16a4c2da2ac4"
+        },
+        {
+          "description": "Approved Watcher front idle cutout (1024x1536, native alpha); pose reference outside the repo ($STS_SKIN_WORK/watcher-assets/watcher-front-idle.png), derived from scripts/art/sources/monogatari_watcher-char/idle-cutout.webp",
+          "sha256": "1a506f5610a80f3954ff46bab879338bb11066fe083bd17a3ad4bcf27a525be7"
+        },
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/inputs/guide-settle.png",
+          "sha256": "3ab7882eda84362f2a2f407d6ea0ea75aecb262bc25b26ec73493dc37044d55d"
+        },
+        {
+          "path": "scripts/animation/sources/monogatari_watcher/attack/recovery.webp",
+          "sha256": "a244c6e414fe8ed80debdde49f9e8595cf140e6a2d4f8b0de42631aa725c2c06",
+          "description": "the approved previous drawing (image 4), passed as the identical PNG"
+        }
+      ],
+      "notes": "The staff swung back to vertical, both soles flat, left hand lowered: one step from the idle drawing."
+    }
+  ]
+}

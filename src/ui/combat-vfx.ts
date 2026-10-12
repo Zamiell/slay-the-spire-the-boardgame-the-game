@@ -5,7 +5,7 @@ import { assetPath } from '../game/assets.ts'
 import rigMetadata from './rig-animation-metadata.json' with { type: 'json' }
 import { POTIONS } from '../game/relics.ts'
 import type { CombatState, TurnEffectPresentation } from '../game/combat/types.ts'
-import type { SkinId } from '../game/skins.ts'
+import { characterOfSkin, isSkinId, type SkinId } from '../game/skins.ts'
 import type { CardType, CharacterId, OrbType, Enemy } from '../game/types.ts'
 
 export type VfxFamily =
@@ -303,7 +303,7 @@ const POTION_RECIPES: Readonly<Record<string, VfxRecipe>> = {
   whale_ale: recipe('buff', 'drink', 'potion-burst', 'whale-navy'),
 }
 
-const actorAttack: Record<CharacterId | SkinId, VfxRecipe> = {
+const actorAttack: Record<CharacterId, VfxRecipe> = {
   ironclad: recipe('blunt', 'lunge', 'ironclad-strike', 'ember-orange'),
   silent: recipe('slash', 'lunge', 'silent-shiv', 'steel-green'),
   defect: recipe('projectile', 'cast', 'magic-burst', 'voltaic-blue'),
@@ -312,16 +312,24 @@ const actorAttack: Record<CharacterId | SkinId, VfxRecipe> = {
   guardian: recipe('blunt', 'lunge', 'guard-bloom', 'guard-blue'),
   hexaghost: recipe('projectile', 'cast', 'hexaghost-flame-impact', 'chaos-green'),
   hermit: recipe('projectile', 'lunge', 'magic-burst', 'impact-ochre'),
-  kratos: recipe('slash', 'lunge', 'kratos/impact', 'ember-orange'),
-  monogatari_ironclad: recipe('blunt', 'lunge', 'ironclad-strike', 'ember-orange'),
-  monogatari_defect: recipe('projectile', 'cast', 'magic-burst', 'voltaic-blue'),
 }
 
-const actorTone: Record<CharacterId | SkinId, string> = {
+/** A skin's own feel; a skin without an entry looks like the hero it dresses. */
+const skinAttack: Partial<Record<SkinId, VfxRecipe>> = {
+  kratos: recipe('slash', 'lunge', 'kratos/impact', 'ember-orange'),
+  monogatari_silent: recipe('slash', 'lunge', 'monogatari_silent/impact', 'venom-green'),
+  monogatari_watcher: recipe('blunt', 'lunge', 'monogatari_watcher/impact', 'astral-violet'),
+}
+
+const actorTone: Record<CharacterId, string> = {
   ironclad: 'ember-orange', silent: 'venom-green', defect: 'voltaic-blue', watcher: 'astral-violet',
   slime_boss: 'chaos-green', guardian: 'guard-blue', hexaghost: 'chaos-green', hermit: 'impact-ochre',
-  kratos: 'ember-orange', monogatari_ironclad: 'ember-orange', monogatari_defect: 'voltaic-blue',
 }
+
+const attackRecipe = (visual: CharacterId | SkinId): VfxRecipe =>
+  skinAttack[visual as SkinId] ?? actorAttack[isSkinId(visual) ? characterOfSkin(visual) : visual]
+const toneOf = (visual: CharacterId | SkinId): string =>
+  actorTone[isSkinId(visual) ? characterOfSkin(visual) : visual]
 
 function allEffects(def: CardDef, mode?: number): Effect[] {
   const selectedMode = mode === undefined ? undefined : def.modes?.[mode]
@@ -339,40 +347,40 @@ function fallbackRecipe(character: CharacterId | SkinId, def: CardDef, mode?: nu
   const has = (...kinds: Effect['kind'][]) => effects.some((effect) => kinds.includes(effect.kind))
 
   if (has('evoke', 'recurseOrb', 'fission', 'triggerOrbEndTurn')) {
-    return recipe('orb', 'cast', 'magic-burst', actorTone[character])
+    return recipe('orb', 'cast', 'magic-burst', toneOf(character))
   }
   if (has('gainLightningEndTurnBonus', 'lightningTargetsRow')) return lightningChannel
   if (has('poison', 'poisonChoices', 'multiplyPoison', 'gainHitPoison', 'attachCorpseExplosion')) return poison
   if (has('gainShiv', 'gainShivPerDiscard', 'useAllShivs', 'gainShivDamageBonus')) return shiv
-  if (has('enterStance')) return recipe('stance', 'cast', 'magic-burst', actorTone[character])
+  if (has('enterStance')) return recipe('stance', 'cast', 'magic-burst', toneOf(character))
   if (has('gainMiracle')) return recipe('mantra', 'cast', 'watcher-pray', 'mantra-cyan')
   if (character === 'hexaghost' && resolvedType === 'attack') return actorAttack.hexaghost
-  if (has('hit', 'rowHit', 'hitChoices', 'hitPerExhaust', 'copyLastAttack')) return actorAttack[character]
+  if (has('hit', 'rowHit', 'hitChoices', 'hitPerExhaust', 'copyLastAttack')) return attackRecipe(character)
   if (has('damage', 'damagePerAttackIntent', 'execute')) {
-    return recipe('projectile', 'cast', 'magic-burst', actorTone[character])
+    return recipe('projectile', 'cast', 'magic-burst', toneOf(character))
   }
   if (has('block', 'blockChoices', 'gainBlockFromLastHit', 'gainBlockPerExhaust')) {
-    return recipe('block', 'recoil', 'guard-bloom', actorTone[character])
+    return recipe('block', 'recoil', 'guard-bloom', toneOf(character))
   }
-  if (has('channel', 'channelDieOrb')) return recipe('utility', 'cast', 'magic-burst', actorTone[character])
+  if (has('channel', 'channelDieOrb')) return recipe('utility', 'cast', 'magic-burst', toneOf(character))
   if (has('applyWeak', 'applyVulnerable', 'weakChoices', 'vulnerableChoices', 'clearTargetBlock')) {
-    return recipe('debuff', 'cast', 'magic-burst', actorTone[character])
+    return recipe('debuff', 'cast', 'magic-burst', toneOf(character))
   }
   if (has('draw', 'drawThenDiscard', 'drawToHandSize', 'cycleHand', 'searchDraw', 'recoverDiscard', 'recoverExhaust', 'recoverExhaustToDraw')) {
-    return recipe('draw', 'cast', 'magic-burst', actorTone[character])
+    return recipe('draw', 'cast', 'magic-burst', toneOf(character))
   }
   if (has('discard', 'discardAny', 'discardNonRetain', 'topdeck')) {
-    return recipe('discard', 'cast', 'magic-burst', actorTone[character])
+    return recipe('discard', 'cast', 'magic-burst', toneOf(character))
   }
   if (has('exhaustFromHand', 'exhaustHand', 'exhaustDrawPile', 'removeAllOrbs', 'exhaustNextCard')) {
-    return recipe('exhaust', 'cast', 'magic-burst', actorTone[character])
+    return recipe('exhaust', 'cast', 'magic-burst', toneOf(character))
   }
   if (def.guardianVariableType && resolvedType === 'skill') {
-    return recipe('block', 'recoil', 'guard-bloom', actorTone[character])
+    return recipe('block', 'recoil', 'guard-bloom', toneOf(character))
   }
-  if (resolvedType === 'attack') return actorAttack[character]
-  if (def.type === 'power' || effects.length > 0) return recipe('buff', 'cast', 'magic-burst', actorTone[character])
-  return recipe('utility', 'none', 'magic-burst', actorTone[character])
+  if (resolvedType === 'attack') return attackRecipe(character)
+  if (def.type === 'power' || effects.length > 0) return recipe('buff', 'cast', 'magic-burst', toneOf(character))
+  return recipe('utility', 'none', 'magic-burst', toneOf(character))
 }
 
 /** Resolve a card ID (optionally suffixed with `+`) against the acting character and chosen mode. */

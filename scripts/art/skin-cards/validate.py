@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-"""Validate the registrations and masks against every Ironclad scan (needs opencv for the group median).
+"""Validate the registrations and masks against every scan of an owner (needs opencv for the group median).
 
   swap   the art cut from a card's base face is composited into its upgraded face (and the reverse); both faces
          print the same art, so the result must equal the scan: exactly outside the window, near-zero inside.
   halo   a flat colour is composited over every scan; pixels in a 3px ring outside the window are compared with
          the median frame of the card's rarity group. Old art would show there.
 
-  python3 scripts/art/skin-cards/validate.py
+  python3 scripts/art/skin-cards/validate.py [--owner silent]
 """
+import argparse
 from collections import defaultdict
 
 import cv2
@@ -40,7 +41,9 @@ def swap(card, root, size_name):
 
 
 def main():
-    cards = load_catalogue()
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('--owner', default='ironclad')
+    cards = load_catalogue(parser.parse_args().owner)
     results = []
     for card in cards:
         for root, name in ((CARDS, 'full'), (THUMBS, 'sm')):
@@ -66,7 +69,7 @@ def main():
         median = np.median(stack, axis=0)
         for (card, _), scan in zip(members, stack):
             key = scan_key(card, up)
-            mask = np.asarray(Image.open(mask_path(fam, card_type, up)).convert('L'))
+            mask = np.asarray(Image.open(mask_path(card['owner'], card_type, up)).convert('L'))
             support = (mask > 5).astype(np.uint8)
             ring = cv2.dilate(support, KERNEL).astype(bool) & ~support.astype(bool)
             ring &= np.arange(mask.shape[0])[:, None] > 186

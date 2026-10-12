@@ -46,7 +46,7 @@ This avoids a first-frame blank without restarting the beam or changing targets.
 ```sh
 node scripts/verify-defect-chan-evoke-browser.mjs
 node scripts/verify-monogatari-animation-browser.mjs
-node scripts/verify-kratos-animation-browser.mjs --engine=chromium --screen=desktop --record
+node scripts/verify-skin-attack-browser.mjs --engine=chromium --screen=desktop --record
 node scripts/verify-monogatari-online-browser.mjs
 node scripts/verify-all.mjs --changed=origin/master --lane=light --jobs=4
 ```
@@ -54,6 +54,9 @@ node scripts/verify-all.mjs --changed=origin/master --lane=light --jobs=4
 The new focused E2E uses real Dual Cast and upgraded Fission events through the
 production renderer, not synthetic presentation events. It records Chromium and
 WebKit on desktop (1440×900) and horizontal phone (844×390 CSS pixels).
+Pose screenshots are taken in their own evokes with the animations frozen at a time inside the
+pose, because a software-rendered frame can outlast the 140 ms recover pose; the timing assertions
+run on unfrozen evokes.
 `artifacts/defect-chan-evoke/report.json`, four WebM recordings and phase/queued/
 cold/original-Defect screenshots are inspectable and reproducible. The final
 focused command passed **4/4**, zero browser/asset errors: one decoded body at

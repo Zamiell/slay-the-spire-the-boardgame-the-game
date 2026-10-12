@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { extname, join, resolve } from 'node:path'
+import { SKIN_IDS } from '../src/game/skins.ts'
+import { SKIN_CARD_FACES } from '../src/game/skin-card-faces.ts'
 
 const dist = resolve(process.argv[2] ?? 'dist')
 const multiplayer = process.argv.includes('--multiplayer')
@@ -19,7 +21,11 @@ assert(!output.match(/["']--campfire-scene["']:`url\("\$\{[\w$]+\(/), 'campfire 
 assert(readFileSync(join(dist, 'index.html'), 'utf8').includes('./assets/'), 'entry assets are not relative')
 assert(readFileSync(join(dist, 'index.html'), 'utf8').includes('./favicon.png'), 'favicon is not relative')
 assert(existsSync(join(dist, 'assets/cards/relics__boss__empty-cage.webp')), 'Empty Cage card is missing from Pages output')
-assert(existsSync(join(dist, 'assets/skin-cards-sm/kratos/ironclad__starter__strike.webp')), 'Kratos skin card faces are missing from Pages output')
+for (const skin of SKIN_IDS) {
+  const face = SKIN_CARD_FACES[skin]?.faces[0]
+  assert(face, `${skin} has no skin card faces to ship`)
+  assert(existsSync(join(dist, `assets/skin-cards-sm/${skin}/${face}.webp`)), `${skin} skin card faces are missing from Pages output`)
+}
 assert(existsSync(join(dist, 'assets/relic-icons/empty_cage.png')), 'Empty Cage icon is missing from Pages output')
 
 console.log(`${multiplayer ? 'multiplayer' : 'single-player'} Pages build verified (${files.length} text files)`)

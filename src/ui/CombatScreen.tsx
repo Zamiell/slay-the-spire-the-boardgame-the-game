@@ -15,7 +15,7 @@ import { StartTurnOrder } from './combat-screen/StartTurnOrder.tsx'
 // vfx.tsx for the effect overlay a play puts on it.
 import rigMetadata from './rig-animation-metadata.json' with { type: 'json' }
 import { enemyDef } from '../game/enemies.ts'
-import { hasStagedAttack, playerVisualId, skinTraits } from '../game/skins.ts'
+import { hasStagedAttack, playerVisualId, skinTraits, type VisualId } from '../game/skins.ts'
 import {
   PHASE_LABEL,
   canAfford,
@@ -59,16 +59,19 @@ import {
   DefectEvokeVfx,
   HermitBullets,
   splitAttackWeights,
-  KratosImpacts,
-  KRATOS_CONTACT_REACH,
-  KRATOS_DISPLAY_SCALE,
-  KRATOS_POSES,
+  StagedImpacts,
+  isStagedAttackAsset,
+  stagedAttackAssets,
+  stagedAttackOf,
+  stagedIdleAsset,
+  stagedPoseAsset,
   characterAttackContactMs,
   isCharacterAttack,
   latestTargetPresentationEvent,
   ORB_END_TURN_STAGGER_MS,
   isEndTurnLightning,
 } from './combat-screen/vfx.tsx'
+import type { StagedAttackSpec } from './combat-screen/staged-attacks.ts'
 import { assetPath, potionIconPath, relicIconPath } from '../game/assets.ts'
 import { CombatAnimation, combatVideoPath, preloadCombatVideo, useSafariCombatVideo } from './CombatAnimation.tsx'
 import { cardCost, cardDef, cardIsCurse, faceOf } from '../game/cards.ts'
@@ -247,9 +250,6 @@ const CHAMBER_RETURN_MS = 460
 const CHAMBER_RETURN_STAGGER_MS = 35
 const CHAMBER_REFLOW_MS = 420
 
-const kratosPoseAsset = (pose: typeof KRATOS_POSES[number]) =>
-  assetPath(`combat/characters/animated/kratos-${pose}.webp`)
-
 const isMonogatariVisual = (visual: string | undefined) =>
   visual === 'monogatari_ironclad' || visual === 'monogatari_defect'
 const monogatariPoseAsset = (visual: string, pose: string) =>
@@ -366,13 +366,13 @@ function CharacterAttackPose({ asset, assetPath: sourceAsset, fallbackAsset, att
 }
 
 // Complete registered drawings share the travel/impact clock, including WebKit.
-function KratosAttackPose({ ready }: { ready: boolean }) {
-  return ready ? <>{KRATOS_POSES.map(pose => (
-    <span key={pose} className={`character-attack__pose character-attack__pose--rig is-loaded character-attack__pose--kratos-${pose}`}>
-      <img src={kratosPoseAsset(pose)} alt="" />
+function StagedAttackPose({ visual, spec, ready }: { visual: VisualId; spec: StagedAttackSpec; ready: boolean }) {
+  return ready ? <>{spec.poses.map(pose => (
+    <span key={pose} className={`character-attack__pose character-attack__pose--rig is-loaded character-attack__pose--${visual}-${pose}`}>
+      <img src={stagedPoseAsset(visual, pose)} alt="" />
     </span>
   ))}</> : <span className="character-attack__pose character-attack__pose--rig is-loaded is-fallback">
-    <CombatAnimation src={assetPath('combat/characters/animated/kratos-idle.webp')} />
+    <CombatAnimation src={stagedIdleAsset(visual)} />
   </span>
 }
 
@@ -738,17 +738,21 @@ function CombatScreenView({
     return () => { cancel(); window.removeEventListener('resize', resize) }
   }, [viewer?.character, reducedMotion])
   const [characterAttackBlobs, setCharacterAttackBlobs] = useState<Map<string, Blob | true>>(() => new Map())
-  // Each Kratos attack decides once whether its registered drawings were decoded in time.
+  // Each staged attack decides once whether its registered drawings were decoded in time.
   // The pose layer and the travel share that answer, so the idle fallback never parks at blade reach.
   // Presentation seqs restart each combat, so the combat id is part of the key.
-  const kratosPosesReadyByAttack = useRef(new Map<string, boolean>())
-  const kratosPosesReady = (seq: number) => {
+  const stagedPosesReadyByAttack = useRef(new Map<string, boolean>())
+  const stagedPosesReady = (visual: VisualId, spec: StagedAttackSpec, seq: number) => {
     const key = `${state.combatId}:${seq}`
-    const latched = kratosPosesReadyByAttack.current.get(key)
+    const latched = stagedPosesReadyByAttack.current.get(key)
     if (latched !== undefined) return latched
-    const ready = KRATOS_POSES.every(pose => characterAttackBlobs.has(kratosPoseAsset(pose)))
-    kratosPosesReadyByAttack.current.set(key, ready)
+    const ready = spec.poses.every(pose => characterAttackBlobs.has(stagedPoseAsset(visual, pose)))
+    stagedPosesReadyByAttack.current.set(key, ready)
     return ready
+  }
+  const stagedAssetsOf = (player: CombatState['players'][number]) => {
+    const spec = stagedAttackOf(playerVisualId(player))
+    return spec && stagedAttackAssets(playerVisualId(player), spec)
   }
   // Pose and cast origin share a latch: late artwork never re-aims a cold projectile.
   const monogatariPosesReadyByAttack = useRef(new Map<string, boolean>())
@@ -780,9 +784,8 @@ function CombatScreenView({
     return ready
   }
   const characterAttackAssets = prefersReducedMotion ? '' : [...new Set(state.players.filter((player) => !player.dead).flatMap((player) =>
-    playerVisualId(player) === 'kratos'
-      ? [...KRATOS_POSES.map(kratosPoseAsset), ...['light', 'impact'].map(name => assetPath(`combat/vfx/actions/kratos/${name}.webp`))]
-      : isMonogatariVisual(playerVisualId(player))
+    stagedAssetsOf(player)
+      ?? (isMonogatariVisual(playerVisualId(player))
         ? [...['hero', ...(player.character === 'ironclad' ? ['ready', 'impact'] : ['charge', 'release'])]
           .map(pose => monogatariPoseAsset(playerVisualId(player), pose)),
           ...(player.character === 'defect' ? ['lightning', 'dark']
@@ -795,7 +798,7 @@ function CombatScreenView({
           ? ['ready', player.character === 'watcher' ? 'thrust' : 'impact']
             .map((pose) => assetPath(`combat/characters/${player.character}-${pose}.webp`))
           : [assetPath(`combat/rigged/hero-${player.character}-attack.webp`),
-            ...(player.character === 'hermit' ? ['hermit-bullet', 'hermit-impact'].map(name => assetPath(`combat/vfx/actions/${name}.webp`)) : [])]))].sort().join('|')
+            ...(player.character === 'hermit' ? ['hermit-bullet', 'hermit-impact'].map(name => assetPath(`combat/vfx/actions/${name}.webp`)) : [])])))].sort().join('|')
   useEffect(() => {
     const controller = new AbortController()
     const assets = characterAttackAssets.split('|').filter(Boolean)
@@ -822,8 +825,8 @@ function CombatScreenView({
       .map((src) => [src, current.get(src)!])))
     void Promise.all(assets.filter((src) => !characterAttackBlobs.has(src)).map(async (src) => {
       try {
-        if (src.includes('/characters/monogatari_') || src.includes('/characters/animated/kratos-') ||
-          src.includes('/actions/kratos/') || /\/(lightning|dark)-channel\.webp$/.test(src)) {
+        if (isStagedAttackAsset(src) || src.includes('/characters/monogatari_') ||
+          /\/(lightning|dark)-channel\.webp$/.test(src)) {
           const image = new Image()
           image.src = src
           await image.decode()
@@ -1434,7 +1437,7 @@ function CombatScreenView({
     const board = boardRef.current
     if (!board) return
     if (prefersReducedMotion || !activeVfx.some(isCharacterAttack)) {
-      kratosPosesReadyByAttack.current.clear()
+      stagedPosesReadyByAttack.current.clear()
       monogatariPosesReadyByAttack.current.clear()
       setCharacterAttacks((current) => Object.keys(current).length === 0 ? current : {})
       return
@@ -1475,6 +1478,8 @@ function CombatScreenView({
       const actorRect = actor.getBoundingClientRect()
       const actorCenterX = actorRect.left + actorRect.width / 2
       const actorCenterY = actorRect.top + actorRect.height / 2
+      const attackVisual = playerVisualId(player)
+      const staged = stagedAttackOf(attackVisual)
       next[player.id] = attacks.flatMap((active) => {
         const targets = active.event.enemyIds.flatMap((id) => {
           const target = enemies.find((enemy) => enemy.dataset.enemyId === id)?.querySelector<HTMLElement>('.enemy__portrait')
@@ -1517,10 +1522,10 @@ function CombatScreenView({
           active,
           interrupted: !hasStagedAttack(playerVisualId(player)) && active.event.seq <= latestNonAttackSeq,
           targetId: target.id,
-          // Kratos stops where his chained blades, not his body, reach the target.
-          x: playerVisualId(player) === 'kratos' && kratosPosesReady(active.event.seq)
+          // A staged skin stops where its weapon, not its body, reaches the target.
+          x: staged && stagedPosesReady(attackVisual, staged, active.event.seq)
             ? Math.max(0, combatBodyPoint(targetPortrait).x - actorCenterX -
-              KRATOS_CONTACT_REACH * Math.min(actorRect.width, actorRect.height))
+              staged.contactReach * Math.min(actorRect.width, actorRect.height))
             : Math.max(0, targetRect.left - actorRect.right + actorRect.width * 0.22),
           y: targetRect.bottom - actorRect.bottom,
           targets,
@@ -1529,8 +1534,8 @@ function CombatScreenView({
     }
     // A finished attack forgets its latch, so a replayed seq decides afresh.
     const running = new Set(Object.values(next).flat().map((attack) => `${state.combatId}:${attack.active.event.seq}`))
-    for (const key of kratosPosesReadyByAttack.current.keys()) {
-      if (!running.has(key)) kratosPosesReadyByAttack.current.delete(key)
+    for (const key of stagedPosesReadyByAttack.current.keys()) {
+      if (!running.has(key)) stagedPosesReadyByAttack.current.delete(key)
     }
     for (const key of monogatariPosesReadyByAttack.current.keys()) {
       if (!running.has(key)) monogatariPosesReadyByAttack.current.delete(key)
@@ -6841,11 +6846,13 @@ function CombatScreenView({
             : occupant?.character === 'guardian' && occupant.guardianMode === 'defense' ? 'guardian-defense'
             : occupantVisual
           const characterAttackAsset = assetPath(`combat/rigged/hero-${rigId}-attack.webp`)
-          const characterIdleAsset = isMonogatariVisual(occupantVisual)
-            ? assetPath(`combat/characters/animated/${occupantVisual}-idle.webp`) : occupantVisual === 'watcher'
-            ? assetPath('combat/characters/watcher-hero.webp') : assetPath(occupantVisual === 'kratos' ? 'combat/characters/animated/kratos-idle.webp' : `combat/rigged/hero-${rigId}-idle.webp`)
+          const stagedSpec = occupantVisual ? stagedAttackOf(occupantVisual) : undefined
+          const characterIdleAsset = occupantVisual === 'watcher'
+            ? assetPath('combat/characters/watcher-hero.webp')
+            : stagedSpec || isMonogatariVisual(occupantVisual) ? stagedIdleAsset(occupantVisual!)
+            : assetPath(`combat/rigged/hero-${rigId}-idle.webp`)
           const characterArtScale = prefersReducedMotion || occupant?.dead || occupantVisual === 'watcher' ? 1
-            : occupantVisual === 'kratos' ? KRATOS_DISPLAY_SCALE
+            : stagedSpec ? stagedSpec.displayScale
             : (rigMetadata as Record<string, { scale?: number }>)[`hero-${rigId}`]?.scale ?? 1
           // Where the painted head ends, so held potions and Orbs float just above it.
           const animatedPortrait = !prefersReducedMotion && !occupant?.dead && !slimeSpawnEvent
@@ -6913,7 +6920,7 @@ function CombatScreenView({
                         player.id === occupant.id) ? `. Target for ${pendingStartPlayer.label}` : ''}`}
                     >
                       <span className="seat__portrait" aria-hidden="true" style={{ '--character-art-scale': characterArtScale } as React.CSSProperties}>
-                        {occupantVisual === 'watcher' && occupant.stance !== 'neutral' ? (
+                        {occupant.character === 'watcher' && occupant.stance !== 'neutral' ? (
                           <span className={`stance-aura stance-aura--${occupant.stance}`} />
                         ) : null}
                         {occupantVisual === 'guardian' && occupant.guardianMode ? (
@@ -6981,8 +6988,9 @@ function CombatScreenView({
                                 <span className="character-attack__pose character-attack__pose--watcher-cast">
                                   <img src={assetPath('combat/characters/watcher-thrust.webp')} alt="" />
                                 </span>
-                              </> : occupantVisual === 'kratos' ? <KratosAttackPose
-                                ready={kratosPosesReady(characterAttack.active.event.seq)}
+                              </> : stagedSpec ? <StagedAttackPose
+                                visual={occupantVisual!} spec={stagedSpec}
+                                ready={stagedPosesReady(occupantVisual!, stagedSpec, characterAttack.active.event.seq)}
                               /> : <CharacterAttackPose
                                 key={characterAttack.active.event.seq}
                                 attackSeq={characterAttack.active.event.seq}
@@ -7026,7 +7034,7 @@ function CombatScreenView({
                             characterAttack.active.event.seq === latestCharacterAttackSeq ? (
                               <span className="character-attack__swing" />
                             ) : null}
-                            {occupantVisual === 'kratos' ? <KratosImpacts event={characterAttack.active.event} /> : null}
+                            {stagedSpec ? <StagedImpacts event={characterAttack.active.event} visual={occupantVisual!} spec={stagedSpec} /> : null}
                             {occupant?.character === 'defect' &&
                             characterAttack.active.event.seq === latestCharacterAttackSeq ? (
                               <>
@@ -7514,7 +7522,7 @@ function CombatScreenView({
             'pip',
             'pip--energy',
             motionActive.has('energy') ? `motion-pulse-${motionBeats.energy % 2}` : '',
-          ].filter(Boolean).join(' ')} data-character={viewerVisual} data-skin-orb={skinOrb || undefined}
+          ].filter(Boolean).join(' ')} data-character={skinOrb ? viewerVisual : viewer.character} data-skin-orb={skinOrb || undefined}
           data-guardian-mode={viewer.guardianMode ?? undefined} data-empty={viewer.energy === 0 || undefined}
           title="Energy">
             {skinOrb ? <img className="energy-orb__skin"

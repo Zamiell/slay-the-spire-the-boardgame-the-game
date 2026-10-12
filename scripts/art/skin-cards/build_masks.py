@@ -14,10 +14,14 @@ the pixels deviating from the group median on any card are the art window plus t
 title strip is cut away, holes filled, the window component kept, grown 1px so no old art survives at
 the edge, and feathered ~1px.
 
-  python3 scripts/art/skin-cards/build_masks.py [--reuse]   # --reuse keeps registration.json and only rebuilds the masks
+Every owner (ironclad, silent, watcher, ...) is derived from its own scans, because the frames differ in
+colour and may differ a few pixels in geometry: masks go to masks/<owner>/, and only that owner's keys of the
+shared registration.json are replaced.
+
+  python3 scripts/art/skin-cards/build_masks.py [--owner silent] [--reuse]   # --reuse keeps the registrations and only rebuilds the masks
 """
+import argparse
 import json
-import sys
 from collections import defaultdict
 from multiprocessing import Pool
 
@@ -26,12 +30,26 @@ import numpy as np
 from scipy.optimize import minimize
 from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
-from skincards import CARDS, HERE, MASKS, REF_SIZE, WINDOW_BOX, family, load_catalogue, registration, scan_key
+from skincards import CARDS, HERE, MASKS, REF_SIZE, family, load_catalogue, registration, scan_key
 
 THRESHOLD = 14      # max channel deviation from the group median
 TITLE_CUT = 186     # rows above this belong to the banner/title, never the window
 SEED = (372, 360)   # inside every window
-REFERENCE = {'attack': 'ironclad__normal__twin-strike', 'skill': 'ironclad__normal__true-grit', 'power': 'ironclad__normal__inflame'}
+# The registration reference scan of each frame type: one ordinary common card (the face's own '+' scan for the upgraded face).
+REFERENCES = {
+    'ironclad': {'attack': 'ironclad__normal__twin-strike', 'skill': 'ironclad__normal__true-grit', 'power': 'ironclad__normal__inflame'},
+}
+
+
+def references(owner, cards):
+    if owner in REFERENCES:
+        return REFERENCES[owner]
+    def pick(card_type):  # the alphabetically first common card, else uncommon (there is no common Power)
+        for rarity in ('common', 'uncommon'):
+            found = [scan_key(c, False) for c in cards if c['type'] == card_type and c['rarity'] == rarity and not c.get('pack')]
+            if found:
+                return min(found)
+    return {t: pick(t) for t in ('attack', 'skill', 'power')}
 
 cv2.setNumThreads(1)
 
@@ -154,16 +172,23 @@ def build_masks(cards, matrices, report):
 
 
 def main():
-    MASKS.mkdir(exist_ok=True)
-    cards = load_catalogue()
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('--owner', choices=['ironclad', 'silent', 'watcher'], default='ironclad',
+                        help='Defect uses its specialized registration and masks in monogatari.py')
+    parser.add_argument('--reuse', action='store_true')
+    args = parser.parse_args()
+    owner = args.owner
+    (MASKS / owner).mkdir(parents=True, exist_ok=True)
+    cards = load_catalogue(owner)
+    reference = references(owner, cards)
     keys = [(scan_key(card, up), card['type'], up) for card in cards for up in (False, True)]
     matrices, scores = {}, {}
     cache = HERE / 'registration.json'
-    if '--reuse' in sys.argv and cache.exists():
+    if args.reuse and cache.exists():
         matrices = {key: registration(key) for key, _, _ in keys}
         scores = {k: 1.0 for k in matrices}
     if not matrices:
-        jobs = [(key, REFERENCE[card_type] + ('+' if up else '')) for key, card_type, up in keys]
+        jobs = [(key, reference[card_type] + ('+' if up else '')) for key, card_type, up in keys]
         with Pool(4) as pool:
             for key, score, matrix in pool.imap_unordered(register, jobs):
                 matrices[key], scores[key] = matrix, score
@@ -178,9 +203,11 @@ def main():
         masks[('base', card_type, True)] = ImageChops.multiply(up, grow(base, 2))
     for (fam, card_type, up), mask in sorted(masks.items()):
         soft = grow(mask, 1).filter(ImageFilter.GaussianBlur(0.7))
-        soft.save(MASKS / f"{fam}-{card_type}{'-up' if up else ''}.png", optimize=True)
+        soft.save(MASKS / owner / f"{fam}-{card_type}{'-up' if up else ''}.png", optimize=True)
         print(f"{fam}-{card_type}{'-up' if up else ''}", int((np.asarray(mask) > 0).sum()), 'px')
     table = {key: [round(float(v), 4) for v in matrix.flatten()] for key, matrix in sorted(matrices.items())}
+    previous = json.loads(cache.read_text()) if cache.exists() else {}
+    table = dict(sorted({**previous, **table}.items()))
     (HERE / 'registration.json').write_text(json.dumps(table, indent=0) + '\n')
     print(len(table), 'registered scans; worst scores:', sorted(scores.items(), key=lambda kv: kv[1])[:8])
 

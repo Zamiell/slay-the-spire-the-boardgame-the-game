@@ -1,0 +1,429 @@
+{
+  "skin": "monogatari_silent",
+  "note": "Hand-authored clock and presentation of the Monogatari Silent attack: a short poison-dagger strike (push-off and a three-drawing flight in, landing, thrust, rising cut, three drawings of the arm coming down, quick hop back). The drawings are baked from the sources by monogatari_silent.py (planted on the idle rear sole, poseShift stays ~0; the two flight drawings with no sole carry a registration shift) which writes audit.landmarks (the near, ring-hand dagger, tip first); skin-attack.py --measure --write stores poseShift and contactReach; everything else is edited here. Format: docs/skins/attack-animation.md.",
+  "canvas": 1152,
+  "displayScale": 2.3,
+  "ground": 1136,
+  "durationMs": 1280,
+  "travel": {
+    "out": [115, 410],
+    "back": [855, 1140],
+    "path": {
+      "out": [
+        [115, 0],
+        [160, 0.015],
+        [180, 0.065],
+        [215, 0.5],
+        [245, 0.78],
+        [275, 0.965],
+        [320, 0.985],
+        [365, 0.995],
+        [410, 1]
+      ],
+      "back": [
+        [855, 1],
+        [900, 0.985],
+        [975, 0.37],
+        [1015, 0.04],
+        [1065, 0.01],
+        [1140, 0]
+      ]
+    }
+  },
+  "timingNote": "Footwork follows travel.path: drawings with a planted foot hold the box nearly still (the audit's groundSpeedPxPerMs caps it at 0.45 px/ms on screen) and the airborne drawings (dash1b, dash2, air, air2 out; skip, skipb back) carry the dash, about 28 head lengths in 115ms each way. Every cut moves the head by at most 110px and the near-hand dagger by at most 151px (about two and a half head lengths). Out: coil (sink out of the idle) 25-70, crouch 70-115, dash1 (push-off stride, box starts) 115-160, dash1b (take-off) 160-180, dash2 (flight) 180-215, air (the right arm hanging, dagger down) 215-245, air2 (arm swung forward) 245-275, dash3 (landing stride) 275-320, lunge 320-365, thrust (arm half extended) 365-410; the stab (first hit, dagger at full reach) 410-530; the rising cut with its acid-green trail (second hit) 530-585; swing1, swing2 and swing3 (the arm comes down and the dagger flips to the reverse grip) 585-720; follow-through with the cloak and scarf swinging forward 720-810. Back: rise0 and rise come up out of the stride 810-900, the skip (airborne hop back) 900-975 and skipb (descent) 975-1015 cover the trip, land 1015-1065, recover 1065-1140; the last 140ms is the exact idle drawing. Every drawing holds at least minHoldMs (45ms, so a device under 50fps never skips one) except the five flight drawings listed in shortHolds, each with its reason; the cuts keep their size and only the grounded drawings were lengthened. Both contact drawings share one dagger-tip line.",
+  "contactReach": 0.6858,
+  "contactPoses": [
+    "stab",
+    "slash"
+  ],
+  "keys": [
+    [0, "idle"],
+    [25, "coil"],
+    [70, "crouch"],
+    [115, "dash1"],
+    [160, "dash1b"],
+    [180, "dash2"],
+    [215, "air"],
+    [245, "air2"],
+    [275, "dash3"],
+    [320, "lunge"],
+    [365, "thrust"],
+    [410, "stab"],
+    [530, "slash"],
+    [585, "swing1"],
+    [630, "swing2"],
+    [675, "swing3"],
+    [720, "follow"],
+    [810, "rise0"],
+    [855, "rise"],
+    [900, "skip"],
+    [975, "skipb"],
+    [1015, "land"],
+    [1065, "recover"],
+    [1140, "idle"]
+  ],
+  "cues": [
+    {
+      "at": "dash3",
+      "sound": "monogatari_silent-whisper"
+    },
+    {
+      "at": "follow",
+      "sound": "monogatari_silent-cloak"
+    }
+  ],
+  "hits": [
+    {
+      "at": "stab",
+      "weight": 0.4,
+      "style": "strike",
+      "angle": 0,
+      "vfx": "impact",
+      "sound": "monogatari_silent-stab"
+    },
+    {
+      "at": "slash",
+      "weight": 0.6,
+      "style": "strike",
+      "angle": -8,
+      "vfx": "light",
+      "sound": "monogatari_silent-slash"
+    }
+  ],
+  "sounds": {
+    "monogatari_silent-whisper": 0.14,
+    "monogatari_silent-stab": 0.2,
+    "monogatari_silent-slash": 0.18,
+    "monogatari_silent-cloak": 0.1
+  },
+  "audit": {
+    "tolerances": {
+      "propRatio": 0.32,
+      "soleRatio": 0.36,
+      "headStepPx": 110,
+      "propStepPx": 151,
+      "groundSpeedPxPerMs": 0.45,
+      "headRatio": 0.035
+    },
+    "skip": {
+      "hoodTip": [
+        "follow",
+        "swing3"
+      ],
+      "soleRatio": [
+        "dash1b",
+        "dash2",
+        "air",
+        "air2",
+        "dash3",
+        "skip",
+        "skipb",
+        "swing1",
+        "swing2",
+        "swing3"
+      ]
+    },
+    "airborne": {
+      "dash1b": 10,
+      "dash2": 24,
+      "air": 16,
+      "air2": 10,
+      "skip": 24,
+      "skipb": 12
+    },
+    "landmarks": {
+      "idle": {
+        "head": [
+          [578.2, 756.0],
+          [569.7, 817.1]
+        ],
+        "props": {
+          "dagger": [
+            [509.5, 955.1],
+            [479.1, 975.9]
+          ]
+        }
+      },
+      "coil": {
+        "head": [
+          [632.0, 847.3],
+          [623.3, 907.8]
+        ],
+        "props": {
+          "dagger": [
+            [442.2, 1030.1],
+            [473.7, 1009.4]
+          ]
+        }
+      },
+      "crouch": {
+        "head": [
+          [615.0, 906.1],
+          [621.4, 967.8]
+        ],
+        "props": {
+          "dagger": [
+            [437.2, 1045.5],
+            [469.1, 1033.1]
+          ]
+        }
+      },
+      "dash1": {
+        "head": [
+          [714.5, 918.8],
+          [740.7, 974.1]
+        ],
+        "props": {
+          "dagger": [
+            [562.0, 1007.6],
+            [597.4, 1002.1]
+          ]
+        }
+      },
+      "dash1b": {
+        "head": [
+          [711.6, 878.5],
+          [715.6, 939.5]
+        ],
+        "props": {
+          "dagger": [
+            [533.8, 983.5],
+            [568.6, 978.3]
+          ]
+        }
+      },
+      "dash2": {
+        "head": [
+          [741.5, 892.8],
+          [747.1, 953.7]
+        ],
+        "props": {
+          "dagger": [
+            [553.6, 1018.7],
+            [588.5, 1008.2]
+          ]
+        }
+      },
+      "air": {
+        "head": [
+          [771.0, 891.2],
+          [763.4, 951.8]
+        ],
+        "props": {
+          "dagger": [
+            [667.8, 1059.1],
+            [673.0, 1025.3]
+          ]
+        }
+      },
+      "air2": {
+        "head": [
+          [778.5, 896.3],
+          [782.3, 957.3]
+        ],
+        "props": {
+          "dagger": [
+            [770.8, 1068.7],
+            [746.5, 1046.5]
+          ]
+        }
+      },
+      "dash3": {
+        "head": [
+          [789.9, 904.3],
+          [789.9, 965.4]
+        ],
+        "props": {
+          "dagger": [
+            [844.5, 1055.3],
+            [807.8, 1040.1]
+          ]
+        }
+      },
+      "lunge": {
+        "head": [
+          [740.7, 935.8],
+          [745.5, 996.7]
+        ],
+        "props": {
+          "dagger": [
+            [704.0, 1035.1],
+            [658.1, 1029.4]
+          ]
+        }
+      },
+      "thrust": {
+        "head": [
+          [723.0, 901.5],
+          [720.0, 962.6]
+        ],
+        "props": {
+          "dagger": [
+            [812.7, 990.8],
+            [779.2, 982.9]
+          ]
+        }
+      },
+      "stab": {
+        "head": [
+          [749.9, 940.0],
+          [745.8, 1001.0]
+        ],
+        "props": {
+          "dagger": [
+            [913.0, 996.9],
+            [869.9, 998.6]
+          ]
+        }
+      },
+      "slash": {
+        "head": [
+          [754.1, 928.8],
+          [755.9, 989.9]
+        ],
+        "props": {
+          "dagger": [
+            [917.0, 911.7],
+            [877.4, 930.6]
+          ]
+        }
+      },
+      "swing1": {
+        "head": [
+          [773.5, 888.1],
+          [771.9, 949.2]
+        ],
+        "props": {
+          "dagger": [
+            [877.3, 962.2],
+            [835.5, 962.6]
+          ]
+        }
+      },
+      "swing2": {
+        "head": [
+          [774.1, 877.4],
+          [771.3, 938.4]
+        ],
+        "props": {
+          "dagger": [
+            [807.6, 1022.4],
+            [772.7, 1004.4]
+          ]
+        }
+      },
+      "swing3": {
+        "head": [
+          [797.0, 848.5],
+          [783.5, 908.1]
+        ],
+        "props": {
+          "dagger": [
+            [715.7, 1057.6],
+            [717.5, 1009.2]
+          ]
+        }
+      },
+      "follow": {
+        "head": [
+          [784.9, 868.4],
+          [768.3, 927.3]
+        ],
+        "props": {
+          "dagger": [
+            [591.3, 1031.9],
+            [625.3, 1001.4]
+          ]
+        }
+      },
+      "rise0": {
+        "head": [
+          [718.6, 885.0],
+          [717.0, 946.1]
+        ],
+        "props": {
+          "dagger": [
+            [546.8, 1052.4],
+            [576.6, 1028.6]
+          ]
+        }
+      },
+      "rise": {
+        "head": [
+          [647.2, 840.8],
+          [645.9, 902.0]
+        ],
+        "props": {
+          "dagger": [
+            [493.3, 1032.1],
+            [522.8, 1013.6]
+          ]
+        }
+      },
+      "skip": {
+        "head": [
+          [548.9, 807.6],
+          [544.1, 868.6]
+        ],
+        "props": {
+          "dagger": [
+            [445.3, 1029.5],
+            [471.6, 1001.2]
+          ]
+        }
+      },
+      "skipb": {
+        "head": [
+          [571.6, 758.8],
+          [566.7, 819.7]
+        ],
+        "props": {
+          "dagger": [
+            [456.1, 983.3],
+            [488.5, 954.8]
+          ]
+        }
+      },
+      "land": {
+        "head": [
+          [583.0, 855.4],
+          [579.4, 916.5]
+        ],
+        "props": {
+          "dagger": [
+            [453.4, 1066.1],
+            [487.2, 1038.1]
+          ]
+        }
+      },
+      "recover": {
+        "head": [
+          [574.5, 784.3],
+          [579.1, 847.8]
+        ],
+        "props": {
+          "dagger": [
+            [491.9, 1018.8],
+            [518.8, 986.9]
+          ]
+        }
+      }
+    },
+    "note": "soleRatio is relaxed because lunge, stab, slash and follow plant the rear toe with the heel lifted, so the sole band measures the whole boot (dash3 and skip, a trailing toe and an airborne boot, are not checked by it); dash2 and skip are leaps drawn 24px (frame px, `lift` in attack-registration.json) off the ground; the idle dagger is foreshortened toward the camera, so its profile drawings read up to 31% longer (propRatio); every cap in `tolerances` equals the measured maximum recorded in the README's audit table (verify-assets ratchets both); headStepPx caps how far the head centre may move between two consecutive drawings (a jump needs an in-between drawing)."
+  },
+  "poseShift": {},
+  "measure": {
+    "unplanted": [
+      "air",
+      "air2"
+    ]
+  },
+  "minHoldMs": 45,
+  "shortHolds": {
+    "dash1b": "take-off: the box leaves the ground, the next drawing is the flight itself",
+    "dash2": "flight at full dash speed (28 head lengths in 115ms): each drawing covers a few head lengths of travel",
+    "air": "flight at full dash speed: the arm hangs while the box is still crossing the gap",
+    "air2": "flight at full dash speed: the arm swings forward just before the landing stride",
+    "skipb": "descent of the back hop: lands in the next drawing"
+  }
+}

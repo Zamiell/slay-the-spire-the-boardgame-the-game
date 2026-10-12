@@ -2,20 +2,16 @@
 """Export the selected sources: 748x420 text-free art (<= 40 KiB, the CSS fallback face) and the manifest.
 No API calls. Run after `generate.py select`.
 
-  python3 scripts/art/skin-cards/export.py
+  python3 scripts/art/skin-cards/export.py [--skin kratos] [--owner ironclad]
 """
+import argparse
 import hashlib
 import json
 
 from PIL import Image, ImageOps
 
-from skincards import HERE, ROOT, load_catalogue
-
-PLAN = json.loads((HERE / 'plan.json').read_text())
-SELECTIONS = json.loads((HERE / 'selections.json').read_text())
-REFS = {r['tag']: r for r in json.loads((HERE / 'refs.json').read_text())}
-DOCS = ROOT / 'docs/skins/kratos-card-art'
-OUT = ROOT / 'public/assets/skin-card-art/kratos/ironclad'
+from recipes import record_ref
+from skincards import ROOT, add_skin_args, art_dir, docs_dir, load_catalogue, load_json, resolve, skin_data
 
 
 def record(path):
@@ -32,26 +28,44 @@ def export(image, path):
     raise ValueError(f'{path.name}: card art exceeds 40 KiB')
 
 
+def header(plan, skin):
+    """Model, references and (Kratos) game images of the manifest. Repo files are recorded by path and hash;
+    external references (the copyrighted style frames, identity sheets) only by description and hash."""
+    base = {'model': plan['model'], 'quality': plan['quality'], 'size': plan['size'], 'cardSize': [748, 420]}
+    if plan.get('recipe', 'kratos') == 'kratos':
+        refs = {r['tag']: r for r in load_json(skin_data(skin) / 'refs.json')}
+        return {**base, 'references': [record(ROOT / p) for p in [*plan['styleReferences'], plan['identityReference']]],
+                'gameImages': {tag: {k: refs[tag][k] for k in ('title', 'page', 'url', 'sha256')}
+                               for tag in sorted({t for c in plan['cards'].values() for t in c['refs']})}}
+    return {**base, 'identityReference': record_ref(plan['identityReference'], plan['identityDescription']),
+            'styleReferences': {r['tag']: record_ref(r['path'], r['description']) for r in plan['styleReferences']}}
+
+
 def main():
-    manifest = {'model': PLAN['model'], 'quality': PLAN['quality'], 'size': PLAN['size'], 'cardSize': [748, 420],
-                'references': [record(ROOT / p) for p in [*PLAN['styleReferences'], PLAN['identityReference']]],
-                'gameImages': {tag: {k: REFS[tag][k] for k in ('title', 'page', 'url', 'sha256')}
-                               for tag in sorted({t for c in PLAN['cards'].values() for t in c['refs']})},
-                'cards': []}
-    for card in load_catalogue():
-        selection = SELECTIONS.get(card['id'])
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    add_skin_args(parser)
+    skin, owner = resolve(parser.parse_args())
+    plan = load_json(skin_data(skin) / 'plan.json')
+    selections = load_json(skin_data(skin) / 'selections.json', {})
+    docs, out = docs_dir(skin), art_dir(skin, owner)
+    manifest = {**header(plan, skin), 'cards': []}
+    for card in load_catalogue(owner):
+        selection = selections.get(card['id'])
         if not selection:
             continue
         source = ROOT / selection['source']
-        target = OUT / f"{card['id']}.webp"
+        target = out / f"{card['id']}.webp"
         quality = export(Image.open(source), target)
-        entry = PLAN['cards'][card['id']]
-        manifest['cards'].append({'id': card['id'], 'scene': entry['scene'], 'gameImages': entry['refs'],
+        entry = plan['cards'][card['id']]
+        manifest['cards'].append({'id': card['id'], 'scene': entry['scene'],
+                                  **({'gameImages': entry['refs']} if 'refs' in entry else {'styleImages': entry.get('styles') or [r['tag'] for r in plan['styleReferences']]}),
                                   'candidate': selection['candidate'], 'source': record(source),
-                                  'prompt': record(DOCS / f"prompts/{card['id']}.txt"),
+                                  **({'regeneration': selection['regeneration']} if 'regeneration' in selection else {}),
+                                  'prompt': record(docs / f"prompts/{card['id']}.txt"),
                                   'output': record(target), 'webpQuality': quality})
         print(card['id'], target.stat().st_size)
-    (DOCS / 'manifest.json').write_text(json.dumps(manifest, indent=1) + '\n')
+    docs.mkdir(parents=True, exist_ok=True)
+    (docs / 'manifest.json').write_text(json.dumps(manifest, indent=1) + '\n')
 
 
 if __name__ == '__main__':

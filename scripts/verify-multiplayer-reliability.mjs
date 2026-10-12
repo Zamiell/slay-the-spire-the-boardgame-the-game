@@ -79,7 +79,7 @@ assert.match(ci, /workflow_dispatch:/)
 assert.match(ci, /pnpm build/)
 assert.equal((ci.match(/node-version: 24/g) ?? []).length, 1)
 assert.match(ci, /verify-all\.mjs --changed="\$base" --lane=light --jobs=4/)
-assert.match(ci, /jobs:\s+verify:\s+runs-on: ubuntu-latest/)
+assert.match(ci, /jobs:\s+verify:\s+runs-on: ubuntu-26\.04/)
 assert.doesNotMatch(ci, /verify-browser:/)
 assert.match(
   ci,

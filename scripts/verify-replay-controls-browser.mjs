@@ -216,6 +216,9 @@ try {
   assert.equal(await bar.floors(), await expectedFloor(page, ahead - 10), 'Rewind left the run at the wrong state')
   await page.getByRole('button', { name: 'Resume', exact: true }).click()
 
+  await page.waitForFunction((value) => Number(document.querySelector('[role="slider"]').getAttribute('aria-valuenow')) > value, ahead - 10)
+  await page.getByRole('button', { name: 'Pause', exact: true }).click()
+
   // The scrubber seeks to any point, in both directions, and shows the act and floor there.
   await page.mouse.move(...Object.values(await bar.at(0.5)))
   await page.locator('.replay-bar__tip').waitFor()
@@ -224,7 +227,6 @@ try {
   const where = await expectedWhere(page, Number(tipMove))
   assert(tip.includes(where), `The scrubber tip "${tip.replace(/\s+/g, ' ')}" does not say ${where}`)
   await page.screenshot({ path: join(output, 'desktop-hover.png') })
-  await page.getByRole('button', { name: 'Pause', exact: true }).click()
   await page.mouse.move(...Object.values(await bar.at(0.5)))
   await page.mouse.down()
   await page.mouse.up()
@@ -307,8 +309,6 @@ try {
   // Pausing holds a card play mid-click, jumping abandons it cleanly, and leaving leaves no cursor behind.
   const clicks = await open({ width: 1600, height: 900 }, false, clickLogText)
   const { page: clickPage, bar: clickBar } = clicks
-  // Keep the pointer on the bar so it stays up however long the opening moves take.
-  await clickPage.mouse.move(...Object.values(await clickBar.at(0.5)))
   // Pause the moment the card appears, from inside the page, so the click that plays it cannot win the race.
   await clickPage.waitForFunction(() => {
     const strike = [...document.querySelectorAll('.hand button')].some((button) => /^Strike,/.test(button.getAttribute('aria-label') ?? button.textContent ?? ''))
@@ -317,6 +317,7 @@ try {
     return true
   }, null, { polling: 'raf' })
   await clickPage.locator('.replay-bar [data-action="toggle"][aria-label="Resume"]').waitFor()
+  await clickPage.mouse.move(...Object.values(await clickBar.at(0.5)))
   const heldMove = await clickBar.position()
   await clickPage.waitForTimeout(1500)
   assert.equal(await clickBar.position(), heldMove, 'A paused card play kept advancing')

@@ -1545,7 +1545,6 @@ export async function playRunLog(log: RunLog, options: {
           ...(exit ? [{ ref: controlRef(exit), element: exit }] : []),
           { ref: choice.source }, ...(choice.steps ?? []).map((ref) => ({ ref })),
         ]
-        let skipped = false
         const choiceIndex = Number(Boolean(missedRoom)) + Number(Boolean(forced)) + Number(Boolean(entry)) + Number(Boolean(exit))
         // In a fight, the Orb, target and turn-resolution steps after a recorded choice's first click are one
         // start-of-turn decision and run together; card picks, and every step out of combat, stay readable.
@@ -1557,7 +1556,6 @@ export async function playRunLog(log: RunLog, options: {
           // The patch, not the click, is the record: a stale or unmatched click is skipped, never fatal.
           if (!source) {
             skippedClick(item.ref)
-            skipped = true
             break
           }
           const from = point(source)
@@ -1569,15 +1567,20 @@ export async function playRunLog(log: RunLog, options: {
           await moveCursor(cursor, from, true, options.reducedMotion, pace, followUp ? REPLAY_STEP_CURSOR_MS : REPLAY_CURSOR_MS)
           if (options.signal.aborted) break
           const recordedDeckCommit = semanticDeckMutation(event) && index === refs.length - 1 && /^Confirm\b/.test(item.ref.name ?? '')
+          const last = index === refs.length - 1
+          // An Orb dropped onto Loop resolves when clicked; reach its card before that click removes it.
+          const drop = last && choice.target && source.matches('[data-orb-slot]')
+            ? queryRunLogControl(doc, choice.target) : null
+          const orbDrop = drop?.matches('.end-turn-effect--card') ? drop : null
+          if (orbDrop) await moveCursor(cursor, point(orbDrop), true, options.reducedMotion, pace)
           await waitForPause(doc, pace)
           if (options.signal.aborted) break
           if (!recordedDeckCommit) await activateControl(source, item.ref)
           if (options.signal.aborted) break
           // Some targets, such as a Defect's Orbs, only become choosable once their card is picked up.
-          const target = index === choiceIndex && choice.target && !choice.steps?.length
-            ? await waitForControl(doc, choice.target, pace) : null
+          const target = last && choice.target && !orbDrop ? await waitForControl(doc, choice.target, pace) : null
           if (options.signal.aborted) break
-          if (index === choiceIndex && choice.target && !choice.steps?.length && !target) skippedClick(choice.target)
+          if (last && choice.target && !orbDrop && !target) skippedClick(choice.target)
           if (target && choice.target) {
             await moveCursor(cursor, point(target), true, options.reducedMotion, pace)
             if (options.signal.aborted) break
@@ -1587,27 +1590,10 @@ export async function playRunLog(log: RunLog, options: {
             if (options.signal.aborted) break
           }
           cursor.removeAttribute('data-pressed')
-          lastClick = target ? null : from
+          lastClick = target || orbDrop ? null : from
           lastAction = pace.clock
           // A quick step plays on into the next one; everything else waits for its effects.
-          if (index < refs.length - 1 ? !quickStep(index + 1) : !(choice.target && choice.steps?.length)) await settle(doc, pace)
-        }
-        if (options.signal.aborted) break
-        const target = choice.target && choice.steps?.length && !skipped
-          ? await waitForControl(doc, choice.target, pace) : null
-        if (options.signal.aborted) break
-        if (choice.target && choice.steps?.length && !skipped && !target) skippedClick(choice.target)
-        if (target && choice.target) {
-          await moveCursor(cursor, point(target), true, options.reducedMotion, pace)
-          if (options.signal.aborted) break
-          await waitForPause(doc, pace)
-          if (options.signal.aborted) break
-          await activateControl(target, choice.target)
-          if (options.signal.aborted) break
-          cursor.removeAttribute('data-pressed')
-          lastClick = null
-          lastAction = pace.clock
-          await settle(doc, pace)
+          if (last || !quickStep(index + 1)) await settle(doc, pace)
         }
       }
       if (options.signal.aborted) break

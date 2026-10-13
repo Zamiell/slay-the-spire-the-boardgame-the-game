@@ -394,15 +394,16 @@ try {
     const { createRun } = await import('/src/game/run.ts')
     const { validateRunLog } = await import('/src/ui/run-log.ts')
     const initial = createRun(45, [{ id: 'p1', name: 'Replay Tester', character: 'ironclad' }])
+    // Every state is valid on its own; replaying the whole log exceeds the expanded-state budget.
+    initial.log = Array(64).fill('x'.repeat(4_096))
     const final = structuredClone(initial); final.phase = 'defeat'; final.neow = null
-    const events = Array.from({ length: 2_000 }, (_, index) => ({ patch: index === 1_999
-      ? [{ path: [], value: final }] : [{ path: ['log', index], value: `Step ${index} ${'x'.repeat(1_024)}` }] }))
-    const started = performance.now()
-    const result = validateRunLog({ version: 2, runId: initial.campaign.runId, initial, events })
-    return { result, elapsed: performance.now() - started }
+    const terminal = { patch: [{ path: [], value: final }] }
+    if (!validateRunLog({ version: 2, runId: initial.campaign.runId, initial, events: [terminal] })) throw new Error('Work-budget fixture has invalid states')
+    const events = Array.from({ length: 2_000 }, (_, index) => index === 1_999
+      ? terminal : { patch: [{ path: ['players', 0, 'gold'], value: index % 100 }] })
+    return validateRunLog({ version: 2, runId: initial.campaign.runId, initial, events })
   })
-  assert.equal(validationBudget.result, null)
-  assert(validationBudget.elapsed < 1_000, `Run-log work budget was too slow: ${validationBudget.elapsed}ms`)
+  assert.equal(validationBudget, null, 'Run-log validation accepted an excessive expanded-state workload')
 
   const controlBudget = await page.evaluate(async () => {
     const { createRun } = await import('/src/game/run.ts')
@@ -477,6 +478,9 @@ try {
   await page.waitForTimeout(360)
   await page.screenshot({ path: join(output, 'clock-transition-desktop.png') })
   await page.locator('.app-shell').waitFor()
+  const transitionToggle = page.locator('.replay-bar [data-action="toggle"]')
+  if (await transitionToggle.getAttribute('aria-label') === 'Replay from the start') await transitionToggle.click()
+  await page.locator('.replay-bar').getByRole('button', { name: 'Pause', exact: true }).click()
   await page.locator('.run-replay__cursor').waitFor()
   assert.equal(await page.evaluate(async () => (await import('/src/ui/run-log.ts')).queryRunLogControl(
     document, { selector: '.game-settings', name: 'Settings' })), null, 'Replay may activate settings controls')
@@ -485,7 +489,7 @@ try {
   await page.keyboard.press('Escape')
   await page.getByRole('dialog', { name: 'Slay the Spire' }).waitFor()
   assert.equal(await page.getByRole('button', { name: 'Give up', exact: true }).count(), 0)
-  await page.getByRole('button', { name: 'Return to main menu', exact: true }).click()
+  await page.getByRole('dialog', { name: 'Slay the Spire' }).getByRole('button', { name: 'Return to main menu', exact: true }).click()
   await page.getByRole('button', { name: 'Replay', exact: true }).waitFor()
   assert.equal(await page.locator('.run-replay__cursor').count(), 0, 'synthetic cursor survived leaving replay')
   const localAfterReplay = await page.evaluate(() => ({
@@ -522,10 +526,11 @@ try {
     const initial = createRun(42, [{ id: 'p1', name: 'Replay Tester', character: 'ironclad' }])
     const final = structuredClone(initial); final.phase = 'defeat'; final.neow = null
     const controller = new AbortController()
-    window.__REPLAY_GUARD__ = { controller, promise: playRunLog({ version: 2, runId: initial.campaign.runId, initial,
+    const pace = { speed: 1, paused: true }
+    window.__REPLAY_GUARD__ = { controller, pace, promise: playRunLog({ version: 2, runId: initial.campaign.runId, initial,
       events: [{ patch: [{ path: [], value: final }], choice: { source: { selector: '#replay-action-fixture' },
         steps: [{ selector: '#replay-step-fixture' }] } }] },
-    { setRun() {}, setViewer() {}, reducedMotion: false, signal: controller.signal,
+    { setRun() {}, setViewer() {}, reducedMotion: false, signal: controller.signal, pace,
       pause: () => { document.body.dataset.replayPauseRequests = String(Number(document.body.dataset.replayPauseRequests ?? 0) + 1) } }) }
     return true
   })
@@ -542,6 +547,7 @@ try {
   const trusted = await page.evaluate(() => ({ action: document.querySelector('#replay-action-fixture').dataset.clicks ?? '0',
     inspect: document.querySelector('.map-peek__open').dataset.clicks ?? '0' }))
   assert.deepEqual(trusted, { action: '0', inspect: '1' })
+  await page.evaluate(() => { window.__REPLAY_GUARD__.pace.paused = false })
   await page.waitForFunction(() => document.querySelector('#replay-action-fixture')?.dataset.clicks === '1')
   await page.waitForTimeout(1_200)
   assert.equal(await page.evaluate(() => document.querySelector('#replay-step-fixture')?.dataset.clicks ?? '0'), '0',
@@ -891,6 +897,118 @@ try {
   await widePhone.page.getByRole('button', { name: 'Choose run log' }).waitFor()
   assert.deepEqual(widePhone.errors, [])
   await widePhone.context.close()
+
+  for (const [screen, viewport, hasTouch] of [
+    ['desktop', { width: 1600, height: 900 }, false],
+    ['horizontal-phone', { width: 844, height: 390 }, true],
+  ]) {
+    const loopReplay = await open(viewport, hasTouch)
+    const loopPage = loopReplay.page
+    try {
+      await loopPage.evaluate(async () => {
+        const [R, D, { CombatScreen }, C, { createRun }, L] = await Promise.all([
+          import('/@id/react'), import('/@id/react-dom/client'), import('/src/ui/CombatScreen.tsx'),
+          import('/src/game/combat.ts'), import('/src/game/run.ts'), import('/src/ui/run-log.ts'),
+        ])
+        document.querySelector('#root').style.display = 'none'
+        const node = document.createElement('main')
+        node.className = 'app-shell app-shell--combat sts-scope'
+        document.body.append(node)
+        const f = window.loopFixture = { epoch: 0, recording: true }
+        f.root = (D.createRoot ?? D.default.createRoot)(node)
+        function Scene() {
+          const [run, setRun] = (R.useState ?? R.default.useState)(() => structuredClone(f.initial))
+          f.run = run; f.setRun = setRun
+          L.useRunLog(run, f.recording, 'p1')
+          return (R.createElement ?? R.default.createElement)(CombatScreen, {
+            state: run.combat, act: 1, viewerId: 'p1', autoAdvance: false,
+            onChange: combat => setRun({ ...run, combat }),
+          })
+        }
+        f.render = () => f.root.render((R.createElement ?? R.default.createElement)(Scene, { key: f.epoch }))
+        f.install = async upgraded => {
+          const run = createRun(43, [{ id: 'p1', name: 'Loop Tester', character: 'defect' }])
+          const enemy = uid => ({ uid, defId: 'jaw_worm', row: 0, isBoss: false, actsLast: false,
+            hp: 40, maxHp: 40, block: 0, strength: 0, vulnerable: 0, weak: 0, poison: 0,
+            goldReward: 0, cardReward: null, actionIndex: 0, abilityUsed: false, dead: false })
+          run.combat = C.createCombat({ seed: 43, calls: 0 }, run.players, [enemy('loop-1'), enemy('loop-2')], 'loop-replay')
+          Object.assign(run.combat.players[0], { hand: [], draw: [], discard: [],
+            powers: [{ uid: 'loop-power', defId: 'loop', upgraded }], orbs: ['lightning', 'frost', null] })
+          run.combat.phase = 'player'; run.combat.turn = 1
+          run.combat = C.beginEndTurnResolution(run.combat)
+          run.phase = 'combat'; run.neow = null
+          f.initial = run; f.recording = true; f.epoch++
+          await L.startRunLog(run)
+          f.render()
+        }
+      })
+      for (const [upgraded, stageFirst] of hasTouch ? [[false, false], [true, false]] : [[false, false], [false, true], [true, true]]) {
+        await loopPage.evaluate(upgraded => window.loopFixture.install(upgraded), upgraded)
+        const card = loopPage.locator('.end-turn-effect--card')
+        const orb = loopPage.getByRole('button', { name: 'Choose lightning Orb 1', exact: true })
+        await card.waitFor()
+        if (!upgraded && !stageFirst) {
+          await card.evaluate(card => Promise.all(card.getAnimations().map(animation => animation.finished)))
+          await loopPage.screenshot({ path: join(output, `loop-${screen}.png`) })
+        }
+        for (let repeat = 0; repeat < (upgraded ? 2 : 1); repeat++) {
+          if (hasTouch) {
+            await loopPage.getByRole('button', { name: 'Duplicate lightning Orb effect', exact: true }).click()
+          } else {
+            if (stageFirst) await card.click()
+            const from = await orb.boundingBox(), to = await card.boundingBox()
+            assert(from && to)
+            await loopPage.mouse.move(from.x + from.width / 2, from.y + from.height / 2)
+            await loopPage.mouse.down()
+            await loopPage.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 4 })
+            await loopPage.mouse.up()
+          }
+          await loopPage.waitForFunction(repeats =>
+            window.loopFixture.run.combat.endTurnProgress?.loopRepeats?.length === repeats ||
+            !document.querySelector('.end-turn-effect--card'), repeat + 1)
+        }
+        await card.waitFor({ state: 'detached' })
+        const log = await loopPage.evaluate(async () => {
+          const f = window.loopFixture
+          return { ...await (await import('/src/ui/run-log.ts')).readRunLog(f.initial.campaign.runId), initial: f.initial }
+        })
+        assert.equal(log.events.length, upgraded ? 2 : 1, `${screen}: Loop decisions were not recorded`)
+        if (!hasTouch) {
+          assert(log.events.every(event => event.choice.target?.name.startsWith('Loop')), 'The real Orb drag lost its Loop drop target')
+          if (stageFirst) assert(log.events.every(event => event.choice.steps?.length), 'Staging Loop did not record the follow-up Orb step')
+        }
+        await loopPage.evaluate(() => {
+          const f = window.loopFixture
+          f.recording = false; f.epoch++; f.render()
+        })
+        await card.waitFor()
+        const result = await loopPage.evaluate(async log => {
+          const f = window.loopFixture, controller = new AbortController(), clickOrders = []
+          let started, ended, calls = 0
+          try {
+            const remove = await window.__awaitReplay({ controller, promise: (await import('/src/ui/run-log.ts')).playRunLog(log, {
+              setRun: run => {
+                if (calls++) clickOrders.push(f.run.combat.endTurnProgress?.order)
+                f.setRun(run)
+              },
+              setViewer() {}, reducedMotion: false, signal: controller.signal,
+              onPosition: position => { if (!position) started = performance.now(); else ended = performance.now() },
+            }) }, 15_000)
+            remove()
+            return { elapsed: ended - started, clickOrders, order: f.run.combat.endTurnProgress?.order,
+              hp: f.run.combat.enemies.map(enemy => enemy.hp) }
+          } finally { controller.abort() }
+        }, log)
+        const expected = [...Array(upgraded ? 2 : 1).fill('p1/orb:0'), 'p1/orb:0@loop-1', 'p1/orb:1']
+        assert.deepEqual(result.order, expected, `${screen}: replay queued the wrong Loop copies`)
+        assert.deepEqual(result.clickOrders.at(-1), expected, `${screen}: the Orb click failed before the recorded patch applied`)
+        assert.deepEqual(result.hp, [40, 40], `${screen}: choosing Loop also resolved damage`)
+        assert(result.elapsed < 3_000 * log.events.length, `${screen}: Loop replay stalled for ${result.elapsed}ms`)
+        assert.deepEqual(loopReplay.skips, [], `${screen}: replay waited for a vanished Loop target`)
+      }
+      assert.deepEqual(loopReplay.errors, [], `${screen}: Loop replay logged browser errors`)
+    } finally { await loopReplay.context.close() }
+  }
 
   console.log('✓ run replay: desktop drag and phone upload validation, Time Eater transition, live cursor, input guard, pause menu, log download')
 } finally {

@@ -2382,6 +2382,10 @@ export function applyEffect(
           const at = context.shivTargetIndex ?? 0
           const enemyUid = context.shivEnemyUids?.[at]
           context.shivTargetIndex = at + 1
+          if (context.previewShivTarget?.(state, at, enemyUid, true)) {
+            context.invalidShivTarget = true
+            return
+          }
           if (!enemyUid) continue
           if (resolveEnemyTargets(state, 'enemy', enemyUid).length === 0) {
             context.invalidShivTarget = true
@@ -2410,6 +2414,10 @@ export function applyEffect(
         const at = context.shivTargetIndex ?? 0
         const enemyUid = context.shivEnemyUids?.[at]
         context.shivTargetIndex = at + 1
+        if (context.previewShivTarget?.(state, at, enemyUid, false)) {
+          context.invalidShivTarget = true
+          return
+        }
         if (!enemyUid || resolveEnemyTargets(state, 'enemy', enemyUid).length === 0) {
           context.invalidShivTarget = true
           continue

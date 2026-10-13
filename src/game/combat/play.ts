@@ -10,6 +10,7 @@ import {
   cardResolutionIsOver,
   clone,
   combatIsOver,
+  enemyLabel,
   findPlayer,
   livingEnemies,
   powerAbilityKey,
@@ -281,6 +282,7 @@ function cardResolutionChoicesAreValid(
   sourceAttachedGemId?: string,
   energyCharged = energySpent,
   sourceDeadOn = false,
+  previewShivs = false,
 ): boolean {
   if (!adjacentDamageChoicesAreValid(effects, state, context)) return false
   const powerBeamCards = guardianPowerBeamCards(player, sourceCardUid)
@@ -301,7 +303,7 @@ function cardResolutionChoicesAreValid(
     ? effect.amount
     : effect.kind === 'gainShivPerDiscard' ? discarded + effect.bonus : 0), 0)
   const shivChoices = context.shivEnemyUids ?? []
-  if (shivChoices.length < mandatoryShivs ||
+  if ((!previewShivs && shivChoices.length < mandatoryShivs) ||
     shivChoices.length > mandatoryShivs + overflowShivCount(state, gainedShivs) ||
     shivChoices.some((uid, index) => (index < mandatoryShivs && uid === null) ||
       (uid !== null && !livingEnemies(state).some((enemy) => enemy.uid === uid)))) return false
@@ -525,15 +527,53 @@ function resolveSlimeBossPlayReactions(
   }
 }
 
-/**
- * Plays a card from a player's hand. Returns the same state reference when the
- * play is illegal: not that player's card, not enough energy, wrong phase.
- */
+/** Runs the real card resolution on a clone until its next unresolved Shiv target. */
+export function previewCardShivTargets(
+  state: CombatState,
+  playerId: string,
+  cardUid: string,
+  context: PlayContext,
+  source: 'hand' | 'copy' | 'chamber' = 'hand',
+): { index: number; options: { uid: string; label: string }[]; complete: boolean } | null {
+  const progress: { index: number; options: { uid: string; label: string }[]; complete: boolean } = {
+    index: 0, options: [], complete: false,
+  }
+  let reachedShivs = false
+  const observe: NonNullable<PlayContext['previewShivTarget']> = (simulation, index, target, optional) => {
+    reachedShivs = true
+    const options = livingEnemies(simulation).map((enemy) => ({
+      uid: enemy.uid, label: enemyLabel(simulation.enemies, enemy),
+    }))
+    const valid = optional && target === null || options.some((option) => option.uid === target)
+    progress.index = valid ? index + 1 : index
+    progress.options = valid ? [] : options
+    return !valid
+  }
+  const resolved = source === 'copy'
+    ? playCardCopyImpl(state, playerId, context, observe)
+    : source === 'chamber'
+      ? playHermitChamberCardImpl(state, playerId, cardUid, context, observe)
+      : playCardImpl(state, playerId, cardUid, context, observe)
+  progress.complete = resolved !== state
+  return reachedShivs || progress.complete ? progress : null
+}
+
+/** Plays a card from hand, returning the same state reference for an illegal play. */
 export function playCard(
   state: CombatState,
   playerId: string,
   cardUid: string,
   context: PlayContext = { enemyUid: null, playerId: null },
+): CombatState {
+  return playCardImpl(state, playerId, cardUid, context)
+}
+
+function playCardImpl(
+  state: CombatState,
+  playerId: string,
+  cardUid: string,
+  context: PlayContext,
+  previewShivTarget?: PlayContext['previewShivTarget'],
 ): CombatState {
   if ((state.pendingTriggers?.length ?? 0) > 0 ||
     mandatoryChoicePending(state, context.hermitChamberPlay === true)) return state
@@ -623,6 +663,7 @@ export function playCard(
     state, player, def, resolvesOnPlay ? effects : [], context, effectEnergy, cost, held, !forcedPlay,
   ) || resolvesOnPlay && !cardResolutionChoicesAreValid(
     state, player, def, effects, context, effectEnergy, held.uid, attachedGemId, cost, held.hermitDeadOn === true,
+    Boolean(previewShivTarget),
   )) return state
   const next = clone(state)
   const actor = findPlayer(next, playerId)
@@ -724,6 +765,7 @@ export function playCard(
   const ctx = resolutionContext(context, def,
     attachedGemId ? { ...held, attachedGemId } : held, effectEnergy, doubled)
   ctx.slayerAttachedAtStart = slayerAttachmentKeys(next)
+  ctx.previewShivTarget = previewShivTarget
   ctx.hermitRapidFireCard = rapidFire > 0
   pinRowAnchor(next, def, ctx)
   let remainingEffects: Effect[] | undefined
@@ -984,6 +1026,16 @@ export function playHermitChamberCard(
   cardUid: string,
   context: PlayContext = { enemyUid: null, playerId: null },
 ): CombatState {
+  return playHermitChamberCardImpl(state, playerId, cardUid, context)
+}
+
+function playHermitChamberCardImpl(
+  state: CombatState,
+  playerId: string,
+  cardUid: string,
+  context: PlayContext,
+  previewShivTarget?: PlayContext['previewShivTarget'],
+): CombatState {
   const pending = state.pendingHermitChamberPlays?.[0]
   const owner = findPlayer(state, playerId)
   // A Hermit who dies mid-resolution (e.g. a Thorns/Sharp Hide retaliation)
@@ -1010,9 +1062,9 @@ export function playHermitChamberCard(
     return skipPendingHermitChamberPlay(state, pending,
       `${actor.name}'s mandatory Chamber play of ${def.name} was skipped because it cannot be played`)
   }
-  const resolved = playCard(staged, playerId, cardUid, {
+  const resolved = playCardImpl(staged, playerId, cardUid, {
     ...context, hermitChamberPlay: true, ...(pending ? { outsidePlayWindow: true } : {}),
-  })
+  }, previewShivTarget)
   return resolved === staged ? state : resolved
 }
 
@@ -1129,6 +1181,15 @@ export function playCardCopy(
   playerId: string,
   context: PlayContext = { enemyUid: null, playerId: null },
 ): CombatState {
+  return playCardCopyImpl(state, playerId, context)
+}
+
+function playCardCopyImpl(
+  state: CombatState,
+  playerId: string,
+  context: PlayContext,
+  previewShivTarget?: PlayContext['previewShivTarget'],
+): CombatState {
   if ((state.pendingTriggers?.length ?? 0) > 0) return state
   const pending = state.pendingCardCopy
   if (state.phase !== 'copy' || !pending || pending.playerId !== playerId) return state
@@ -1168,7 +1229,8 @@ export function playCardCopy(
   const effects = def.modes ? def.modes[context.mode!]!.effects : def.effects
   if (!slimeCommandTargetsAreValid(state, player, def, effects, context, pending.energySpent, 0, pending.card, false) ||
     !cardResolutionChoicesAreValid(state, player, def, effects, context,
-    pending.energySpent, pending.card.uid, attachedGemId, pending.energySpent, pending.card.hermitDeadOn === true)) return state
+    pending.energySpent, pending.card.uid, attachedGemId, pending.energySpent, pending.card.hermitDeadOn === true,
+    Boolean(previewShivTarget))) return state
 
   const next = clone(state)
   const copy = next.pendingCardCopy!
@@ -1234,6 +1296,7 @@ export function playCardCopy(
   )
   ctx.slayerAttachedAtStart = slayerAttachmentKeys(next)
   ctx.hermitRapidFireCard = copy.hermitRapidFireCard === true
+  ctx.previewShivTarget = previewShivTarget
   pinRowAnchor(next, def, ctx)
   next.log = [...next.log, `${actor.name} played ${def.name}`]
 

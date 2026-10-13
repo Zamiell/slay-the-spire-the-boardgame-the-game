@@ -32,6 +32,7 @@ import {
   playCost,
   preparePlayerTurn,
   previewCardChoice,
+  previewCardShivTargets,
   previewCardCopyChoice,
   resolveEnemyTargets,
   resolveDeterministicForcedCard,
@@ -8641,6 +8642,46 @@ check('Storm of Steel turns every chosen discard into a Shiv, plus one when upgr
 })
 
 check('Unload uses every held Shiv as a separately targeted attack', () => {
+  const reportedUnload = instance('unload')
+  const reported = combat([
+    makePlayer({ character: 'silent', hand: [reportedUnload], energy: 4, shivs: 5, strength: 1 }),
+  ], [
+    makeEnemy({ uid: 'taskmaster', defId: 'taskmaster', hp: 15, maxHp: 15 }),
+    makeEnemy({ uid: 'slaver', defId: 'red_slaver', hp: 1, maxHp: 10 }),
+  ])
+  const resolved = playCard(reported, 'p1', reportedUnload.uid, {
+    enemyUid: 'taskmaster', playerId: null, shivEnemyUids: Array(5).fill('taskmaster'),
+  })
+  assertEqual(resolved, reported, 'the engine still rejects attacks aimed at a target defeated earlier in this play')
+  const before = structuredClone(reported)
+  const progress = previewCardShivTargets(reported, 'p1', reportedUnload.uid, {
+    enemyUid: 'taskmaster', playerId: null, shivEnemyUids: Array(4).fill('taskmaster'),
+  })
+  assertDeepEqual(progress, { index: 4, options: [{ uid: 'slaver', label: 'Red Slaver' }], complete: false })
+  assertDeepEqual(reported, before, 'target previews cannot spend Energy or Shivs, deal damage, or change RNG')
+  const split = playCard(reported, 'p1', reportedUnload.uid, {
+    enemyUid: 'taskmaster', playerId: null,
+    shivEnemyUids: ['taskmaster', 'taskmaster', 'taskmaster', 'taskmaster', 'slaver'],
+  })
+  assertEqual(split.phase, 'won', 'later Shivs aimed at another living enemy still resolve')
+  assertEqual(split.players[0].energy, 3)
+  assertEqual(split.players[0].shivs, 0)
+  assertDeepEqual(split.enemies.map((enemy) => enemy.hp), [0, 0])
+  const onlyEnemy = { ...reported, enemies: [{ ...reported.enemies[0], hp: 1 }] }
+  const endedByHit = previewCardShivTargets(onlyEnemy, 'p1', reportedUnload.uid, {
+    enemyUid: 'taskmaster', playerId: null, shivEnemyUids: [],
+  })
+  assertDeepEqual(endedByHit, { index: 0, options: [], complete: true },
+    'no Shiv targeting is needed after the card hit ends combat')
+  const missing = playCard(reported, 'p1', reportedUnload.uid, {
+    enemyUid: 'taskmaster', playerId: null, shivEnemyUids: Array(5).fill('missing'),
+  })
+  assertEqual(missing, reported, 'nonexistent Shiv targets still reject the whole play')
+  const lethalHit = playCard(reported, 'p1', reportedUnload.uid, {
+    enemyUid: 'slaver', playerId: null, shivEnemyUids: Array(5).fill('taskmaster'),
+  })
+  assertEqual(lethalHit.phase, 'won', 'Shivs can finish the other enemy after the card hit kills the Slaver')
+
   for (const upgraded of [false, true]) {
     const unload = instance('unload', upgraded)
     const state = combat([

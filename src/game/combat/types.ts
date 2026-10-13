@@ -588,6 +588,8 @@ export type PlayContext = {
   shortfall?: boolean
   /** Internal cursor while multiple gain-Shiv clauses consume target choices. */
   shivTargetIndex?: number
+  /** Internal observer for a read-only card targeting simulation. */
+  previewShivTarget?: (state: CombatState, index: number, target: string | null | undefined, optional: boolean) => boolean
   /** Internal cursor while independent Weak/Vulnerable tokens resolve. */
   enemyChoiceIndex?: number
   /** Internal cursor while card-spent Soulburn resolves. */

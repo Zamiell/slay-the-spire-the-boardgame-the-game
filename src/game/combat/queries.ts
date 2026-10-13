@@ -298,6 +298,7 @@ export function resolutionContext(
     spentUids: new Set<string>(),
     shortfall: false,
     shivTargetIndex: 0,
+    previewShivTarget: undefined,
     enemyChoiceIndex: 0,
     soulburnTargetIndex: 0,
     invalidShivTarget: false,

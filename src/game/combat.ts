@@ -94,6 +94,7 @@ export {
   abandonForcedCard,
   activatePower,
   playCard,
+  previewCardShivTargets,
   playCardCopy,
   playHermitChamberCard,
   previewCardChoice,

@@ -137,6 +137,7 @@ import {
   powerAbilityUsed,
   powerActivationAllowed,
   previewCardChoice,
+  previewCardShivTargets,
   previewCardDamage,
   previewCardCopyChoice,
   previewHermitChamberCardChoice,
@@ -3634,9 +3635,8 @@ function CombatScreenView({
     setArmedEndTurnAbilityId((current) => current === 'evoke-target' ? null : current)
   }, [evokeTargetStep])
 
-  function commit(next: Pending, skipOverflow = false) {
-    if (cardActionPending.current) return
-    const context = {
+  function cardContext(next: Pending) {
+    return {
       enemyUid: next.enemyUid,
       enemyUids: next.enemyUids,
       playerId: next.playerId ?? viewer!.id,
@@ -3681,6 +3681,31 @@ function CombatScreenView({
       evokeEnemyUids: next.evokeEnemyUids as (string | null)[],
       metamorphosisPowerUid: next.metamorphosisPowerUid,
     }
+  }
+
+  const pendingShivProgress = useMemo(() => pending && choiceSatisfied && evokeChoicesDone &&
+    (!pendingNeedsCardEnemy || pending.enemyUid !== null) &&
+    pending.enemyUids.length >= pending.enemyChoices &&
+    pending.shivEnemyUids.length < pending.spentShivs + pending.overflowShivs
+    ? previewCardShivTargets(state, viewer.id, pending.card.uid, cardContext(pending),
+      pending.chamberPlay ? 'chamber' : pending.cardInHand ? 'hand' : 'copy')
+    : null, [state, viewer, pending, pendingDef, choiceSatisfied, evokeChoicesDone,
+      pendingNeedsCardEnemy, miracleOnCard])
+  useEffect(() => {
+    if (!pending || !pendingShivProgress) return
+    if (pendingShivProgress.complete) {
+      stageOrCommit(pending)
+      return
+    }
+    if (pendingShivProgress.index >= pending.shivEnemyUids.length) return
+    setPending((current) => current === pending
+      ? { ...current, shivEnemyUids: current.shivEnemyUids.slice(0, pendingShivProgress.index) }
+      : current)
+  }, [pending, pendingShivProgress])
+
+  function commit(next: Pending, skipOverflow = false) {
+    if (cardActionPending.current) return
+    const context = cardContext(next)
     // The online draw pile is not authoritative for action validation. The room
     // has already bound this action to its private preview, so only the engine
     // can validate it.
@@ -3957,6 +3982,15 @@ function CombatScreenView({
         shivEnemyUids: [],
       }
       setPending(next)
+    }
+    if (next.shivEnemyUids.length < next.spentShivs + next.overflowShivs) {
+      const progress = previewCardShivTargets(state, viewer!.id, next.card.uid, cardContext(next),
+        next.chamberPlay ? 'chamber' : next.cardInHand ? 'hand' : 'copy')
+      const unusedTarget = next.shivEnemyUids.at(-1) ?? next.enemyUid ?? livingEnemies(state)[0]?.uid
+      if (progress?.complete && unusedTarget) {
+        next = { ...next, shivEnemyUids: [...next.shivEnemyUids,
+          ...Array<string>(next.spentShivs + next.overflowShivs - next.shivEnemyUids.length).fill(unusedTarget)] }
+      }
     }
     const poolSize = next.choiceCards?.length ?? Math.max(0, viewer!.hand.length - Number(next.cardInHand))
     const minimumPaid = next.picked.length >= Math.min(next.choice?.minimum ?? 0, poolSize)
@@ -4806,7 +4840,8 @@ function CombatScreenView({
       }
       if (!slayerTargetAffordable(pending, enemy)) return
       const next = withAdjacentChoices({ ...pending, enemyUid: enemy.uid })
-      if (next.enemyUids.length < next.enemyChoices || next.spentShivs + next.overflowShivs > 0 ||
+      if (next.spentShivs + next.overflowShivs > 0) stageOrCommit(next)
+      else if (next.enemyUids.length < next.enemyChoices ||
         next.needsAlly || next.playerIds.length < next.playerChoices || next.needsSwitch) setPending(next)
       else commit(next)
       return
@@ -4825,10 +4860,9 @@ function CombatScreenView({
       return
     }
     if (pending.shivEnemyUids.length < pending.spentShivs + pending.overflowShivs) {
+      if (pendingShivProgress && !pendingShivProgress.options.some((option) => option.uid === enemy.uid)) return
       const next = { ...pending, shivEnemyUids: [...pending.shivEnemyUids, enemy.uid] }
-      if (next.shivEnemyUids.length < next.spentShivs + next.overflowShivs || next.needsAlly ||
-        next.playerIds.length < next.playerChoices || next.needsSwitch) setPending(next)
-      else commit(next)
+      stageOrCommit(next)
     }
   }
 
@@ -5071,7 +5105,9 @@ function CombatScreenView({
     : independentEnemyPending
       ? `Choose ${independentHitPending ? 'damage' : 'token'} target ${(pending?.enemyUids.length ?? 0) + 1}/${pending?.enemyChoices}`
     : spentShivPending
-      ? `Choose Shiv attack ${(pending?.shivEnemyUids.length ?? 0) + 1}/${pending?.spentShivs}`
+      ? `Choose Shiv attack ${(pending?.shivEnemyUids.length ?? 0) + 1}/${pending?.spentShivs}${
+        pendingShivProgress && pendingShivProgress.options.length < livingEnemies(state).length
+          ? ' — choose a surviving enemy' : ''}`
     : overflowOnly
     ? `Choose overflow Shiv target ${(pending?.shivEnemyUids.length ?? 0) - (pending?.spentShivs ?? 0) + 1}/${pending?.overflowShivs}, or skip the rest`
     : normalEnemyPrompt
@@ -5778,7 +5814,8 @@ function CombatScreenView({
       {prompt ? (
         // Slayer Pack: A card-play window has no glowing piece to point at, so its
         // instruction stays a readable banner even when there is no button.
-        <div className={prompt === playWindowPrompt ? 'prompt prompt--status prompt--play-window' : 'prompt'}>
+        <div className={prompt === playWindowPrompt ? 'prompt prompt--status prompt--play-window'
+          : spentShivPending && !normalEnemyPending ? 'prompt prompt--status' : 'prompt'}>
           <span className="prompt__text" role="status">{prompt}</span>
           {prompt === playWindowPrompt && playWindow?.optional ? (
             <button type="button" className="prompt__mode" data-play-window-finish
@@ -6789,7 +6826,8 @@ function CombatScreenView({
                 // A boss stands in every row, so the only reading that means
                 // anything to the person looking at the screen is their own.
                 defender={viewer}
-                disabled={Boolean(pendingStartEnemy?.id.startsWith('facing:') && !startEnemyChoiceAvailable(enemy.uid))}
+                disabled={Boolean(pendingStartEnemy?.id.startsWith('facing:') && !startEnemyChoiceAvailable(enemy.uid) ||
+                  pendingShivProgress && !pendingShivProgress.options.some((option) => option.uid === enemy.uid))}
                 targeted={(isEndTurnEnemyTarget(enemy) ||
                   cardDrag?.targetUid === enemy.uid ||
                   cardDragTargetRow !== undefined && (cardDragTargetRow === enemy.row || enemy.isBoss) ||
@@ -6804,7 +6842,8 @@ function CombatScreenView({
                     pending.hermitEnemyUids.length < loadedTargetCount(pending) ||
                     pending.soulburnEnemyUids.length < pending.soulburnChoices)) || (
                   ((pendingEvokeTarget < 0 && (pending?.needsEnemy === true && !enemyChoicesDone || independentEnemyPending) &&
-                    slayerTargetAllowed(enemy)) ||
+                    slayerTargetAllowed(enemy) && (!pendingShivProgress ||
+                      pendingShivProgress.options.some((option) => option.uid === enemy.uid))) ||
                     (pendingEvokeTarget >= 0 && !pendingEvokeUsesRows && pendingEvokeTargetUids.has(enemy.uid))) && choiceSatisfied
                 ))) && !enemy.dead}
                 onClick={onEnemyClick}
@@ -7369,7 +7408,8 @@ function CombatScreenView({
                       stageIndex={stageEnemies.findIndex((candidate) => candidate.uid === enemy.uid)}
                       rowLabel={occupant?.name ?? `Player ${row + 1}`}
                       defender={occupant}
-                      disabled={Boolean(pendingStartEnemy?.id.startsWith('facing:') && !startEnemyChoiceAvailable(enemy.uid))}
+                      disabled={Boolean(pendingStartEnemy?.id.startsWith('facing:') && !startEnemyChoiceAvailable(enemy.uid) ||
+                        pendingShivProgress && !pendingShivProgress.options.some((option) => option.uid === enemy.uid))}
                       targeted={(isEndTurnEnemyTarget(enemy) ||
                         cardDrag?.targetUid === enemy.uid ||
                         cardDragTargetRow !== undefined && (cardDragTargetRow === enemy.row || enemy.isBoss) ||
@@ -7384,7 +7424,8 @@ function CombatScreenView({
                           pending.hermitEnemyUids.length < loadedTargetCount(pending) ||
                           pending.soulburnEnemyUids.length < pending.soulburnChoices)) || (
                         ((pendingEvokeTarget < 0 && (pending?.needsEnemy === true && !enemyChoicesDone || independentEnemyPending) &&
-                          slayerTargetAllowed(enemy)) ||
+                          slayerTargetAllowed(enemy) && (!pendingShivProgress ||
+                            pendingShivProgress.options.some((option) => option.uid === enemy.uid))) ||
                           (pendingEvokeTarget >= 0 && !pendingEvokeUsesRows && pendingEvokeTargetUids.has(enemy.uid))) && choiceSatisfied
                       ))) && !enemy.dead}
                       onClick={onEnemyClick}

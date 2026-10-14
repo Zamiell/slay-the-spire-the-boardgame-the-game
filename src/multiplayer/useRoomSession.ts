@@ -9,7 +9,7 @@ import type { CampaignProgress, SpireKeys } from '../game/campaign.ts'
 import type { BossCoinAward } from '../game/coins.ts'
 import type { NeowCard, NeowRewardOffer } from '../game/neow.ts'
 import type { CardInstance, CharacterId, Enemy, Player } from '../game/types.ts'
-import { savedCampaign } from '../campaign-storage.ts'
+import { savedCampaign, saveAscensionUnlock } from '../campaign-storage.ts'
 import type { CardPackId } from '../game/packs.ts'
 import { enabledCardPacks } from '../wallet.ts'
 import type { SkinId } from '../game/skins.ts'
@@ -187,6 +187,7 @@ export type VisibleRun = {
 }
 
 export type RoomSnapshot = {
+  earnedAscension?: number
   code: string
   phase: 'lobby' | 'run'
   selectingCampaign: boolean
@@ -938,6 +939,10 @@ export function useRoomSession() {
   // Whether the account that took this seat in this tab is still the one signed in,
   // so the seat's coins go to it alone; the seat token stays inside this hook.
   const seatOwnsCoins = snapshot && credentials?.code === snapshot.code ? claimSeatOwner(credentials.token) : false
+
+  useEffect(() => {
+    if (seatOwnsCoins && snapshot?.earnedAscension !== undefined) saveAscensionUnlock(snapshot.earnedAscension)
+  }, [seatOwnsCoins, snapshot?.earnedAscension])
 
   return {
     snapshot,

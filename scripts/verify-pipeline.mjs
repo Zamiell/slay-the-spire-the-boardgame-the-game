@@ -70,7 +70,8 @@ check('frontend surfaces select their cores and named focused browser checks', (
     'verify-skin-browser.mjs', 'verify-skin-cards-browser.mjs', 'verify-monogatari-online-browser.mjs', 'verify-start-turn-resync-browser.mjs'], 'online screen')
   assert(!online.includes('verify-browser.mjs'))
   assert(!online.includes('verify-noncombat-browser.mjs'))
-  assertEqual(online.length, 7, 'online screen selected an unrelated browser suite')
+  assert(online.includes('verify-multiplayer-resume-browser.mjs'))
+  assertEqual(online.length, 8, 'online screen selected an unrelated browser suite')
   assertDeepEqual(affectedBrowser('src\\ui\\OnlineGame.tsx'), online)
   assertDeepEqual(affectedBrowser('src/multiplayer/useRoomSession.ts'),
     [...online.filter((script) => script !== 'verify-courier-browser.mjs'), 'verify-combat-layout-reload-browser.mjs'].sort())
@@ -246,6 +247,24 @@ check('browser lane detection handles formatting and wrappers', () => {
   assert(drivesABrowser('verify-custom-browser.mjs', "import './wrapper.mjs'"))
   assert(!drivesABrowser('verify-example.mjs', '// playwright is intentionally absent'))
   assert(!browserScript('verify-pipeline.mjs', root))
+})
+check('dependency caches keep separate repository roots isolated', () => {
+  const directory = mkdtempSync(resolve(tmpdir(), 'sts-routing-roots-'))
+  try {
+    for (const [name, dependencies] of [['first', ['a', 'b']], ['second', ['b', 'a']]]) {
+      const repo = resolve(directory, name)
+      mkdirSync(resolve(repo, 'scripts'), { recursive: true })
+      mkdirSync(resolve(repo, 'src'))
+      for (const id of ['a', 'b']) writeFileSync(resolve(repo, `src/${id}.mjs`), 'export const value = 1')
+      for (const [index, dependency] of dependencies.entries()) {
+        writeFileSync(resolve(repo, `scripts/verify-${index}.mjs`), `import '../src/${dependency}.mjs'`)
+      }
+      assertDeepEqual(affectedVerifiers(repo, ['src/a.mjs'], ['verify-0.mjs', 'verify-1.mjs']),
+        [name === 'first' ? 'verify-0.mjs' : 'verify-1.mjs'])
+    }
+  } finally {
+    rmSync(directory, { recursive: true, force: true })
+  }
 })
 check('rename parsing keeps both ownership paths', () => {
   assertDeepEqual(changedPaths('R100\0src/ui/RoomScreen.tsx\0src/ui/CombatRoom.tsx\0M\0package.json\0'), [

@@ -479,6 +479,13 @@
 .pause-menu .choice-modal__panel > button { min-height: 46px; font-family: 'Kreon', Georgia, serif; font-size: 1rem; }
 .pause-menu .choice-modal__panel > .is-chosen { color: #241807; background: linear-gradient(#ffe79a, #c99331); }
 
+@media (max-height: 30rem) {
+  .pause-menu .choice-modal__panel { gap: 0.25rem; padding: 0.75rem; }
+  .pause-menu .choice-modal__panel > h2,
+  .pause-menu .choice-modal__panel > p { margin: 0; }
+  .pause-menu .choice-modal__panel > button { min-height: 40px; padding: 0.35rem 0.75rem; }
+}
+
 @keyframes prompt-in {
   from {
     opacity: 0;

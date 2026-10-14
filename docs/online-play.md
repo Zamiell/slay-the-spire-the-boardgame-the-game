@@ -88,6 +88,19 @@ Room data lives outside the checkout at
 `~/.local/share/slay-the-spire-server/rooms.json`. Actions deployments update the `current`
 release symlink, validate the existing store, and restart the service without deleting it.
 Players connected during a restart retain their seats while the browsers reconnect.
+Use **Save and disconnect** in the in-run pause menu to return to the main menu while
+keeping your seat. Open **Play online**, then **Resume ROOMCODE** in the same browser to
+return; closing the tab also keeps the recovery. Teammates can keep playing while you are
+away. Rooms expire after 24 hours without room activity, so every player should disconnect
+when the party stops for the day. An expired room cannot be resumed.
+
+Recording a multiplayer result also saves each participant's earned Ascension in their
+browser's campaign journal. With two or more heroes, defeating the Act II boss qualifies;
+a one-hero run requires the Act III boss. The next level is available in later solo and
+multiplayer runs, including for a player who reconnects after the result and next lobby.
+Borrowing a teammate's unlocked level alone does not grant it. Other campaign marks are
+kept with the room.
+
 Only multiplayer rooms expire after 24 hours of inactivity. Leaderboard runs are retained
 indefinitely in `rooms.json.leaderboard.json` and its append-only `rooms.json.leaderboard.log`, while
 player profiles remain in `rooms.json`. Back up and restore these together with the optional

@@ -12663,13 +12663,16 @@ check('a win below the team maximum does not advance Ascension', () => {
   const progress = { ...createCampaignProgress(), highestAscension: 2 }
   const room = createRoom(createStore(), { code: 'UNLOWR', campaignProgress: progress })
   const leader = joinRoom(room, { character: 'ironclad', campaignProgress: progress })
-  joinRoom(room, { character: 'silent', campaignProgress: { ...createCampaignProgress(), highestAscension: 9 } })
+  const donor = joinRoom(room, { character: 'silent', campaignProgress: { ...createCampaignProgress(), highestAscension: 9 } })
   chooseAscension(room, leader.token, 2)
   startRun(room, leader.token, { seed: 912 })
   room.run = { ...room.run, phase: 'victory', act: 3,
     campaign: { ...room.run.campaign, bossesDefeated: 3, highestBossActDefeated: 3 } }
   apply(room, leader.token, { kind: 'finishRun' })
   assertEqual(room.campaignBaseProgress.highestAscension, 2)
+  apply(room, leader.token, { kind: 'returnToLobby' })
+  removeSeat(room, donor.token)
+  assertEqual(room.campaignProgress.highestAscension, 3, 'the remaining player lost their own earned level')
 })
 
 check('consecutive multiplayer runs keep unique campaign ids and earn marks', () => {
@@ -14204,6 +14207,44 @@ check('a skinned seat reserved for Catch Up and connected later wears its skin i
   joinRoom(room, { token: reserved.token, connected: true })
   assertEqual(room.run.players.find((player) => player.id === reserved.playerId).skin, 'kratos')
   assertEqual(snapshotFor(room, leader.token).run.players.find((player) => player.id === reserved.playerId).skin, 'kratos')
+})
+
+check('earned Ascension belongs to every run participant and survives the next lobby', () => {
+  const room = createRoom(createStore(), { code: 'EARNED' })
+  const leader = joinRoom(room, { character: 'ironclad', campaignProgress: { ...createCampaignProgress(), highestAscension: 2 } })
+  const guest = joinRoom(room, { character: 'silent', campaignProgress: { ...createCampaignProgress(), highestAscension: 9 } })
+  chooseAscension(room, leader.token, 9)
+  startRun(room, leader.token, { seed: 1410 })
+  assertEqual(snapshotFor(room, leader.token).earnedAscension, 0)
+  markDisconnected(room, guest.token)
+  room.run = { ...room.run, phase: 'defeat', act: 3,
+    campaign: { ...room.run.campaign, bossesDefeated: 2, highestBossActDefeated: 2 } }
+  apply(room, leader.token, { kind: 'finishRun' })
+  assertEqual(snapshotFor(room, leader.token).earnedAscension, 10)
+  assertEqual(snapshotFor(room, guest.token).earnedAscension, 10)
+  apply(room, leader.token, { kind: 'returnToLobby' })
+  assertEqual(snapshotFor(room, guest.token).earnedAscension, 10)
+  const newcomer = joinRoom(room, { character: 'defect' })
+  assertEqual(snapshotFor(room, newcomer.token).earnedAscension, 0, 'a new seat inherited a previous clear')
+  removeSeat(room, newcomer.token)
+  startRun(room, leader.token, { seed: 1411 })
+  room.run = { ...room.run, phase: 'defeat' }
+  apply(room, leader.token, { kind: 'finishRun' })
+  assertEqual(snapshotFor(room, guest.token).earnedAscension, 10, 'a later loss erased the earned clear')
+})
+
+check('earned Ascension follows party boss thresholds and caps at Ascension 13', () => {
+  for (const [count, ascension, bossAct, expected] of [[1, 5, 2, 0], [1, 5, 3, 6], [2, 5, 1, 0], [2, 3, 2, 4], [2, 13, 3, 13]]) {
+    const room = createRoom(createStore(), { code: 'THRESH' })
+    const leader = joinRoom(room, { character: 'ironclad', campaignProgress: { ...createCampaignProgress(), highestAscension: 13 } })
+    if (count === 2) joinRoom(room, { character: 'silent' })
+    chooseAscension(room, leader.token, ascension)
+    startRun(room, leader.token, { seed: 1412 })
+    room.run = { ...room.run, phase: 'defeat', act: 3,
+      campaign: { ...room.run.campaign, bossesDefeated: bossAct, highestBossActDefeated: bossAct } }
+    apply(room, leader.token, { kind: 'finishRun' })
+    assertEqual(snapshotFor(room, leader.token).earnedAscension, expected)
+  }
 })
 
 report('co-op rooms')

@@ -6298,33 +6298,6 @@ try {
   check('returning to the lobby clears a stale pause before the next run', () => {
     assertEqual(staleLobbyPause, 0)
   })
-  let offlineLeaveStarted
-  const heldLeaveStarted = new Promise((resolveStarted) => { offlineLeaveStarted = resolveStarted })
-  let releaseOfflineLeave
-  const heldLeave = new Promise((resolveLeave) => { releaseOfflineLeave = resolveLeave })
-  await fourPages[0].route(`**/api/rooms/${fourCode}/leave`, async (route) => {
-    offlineLeaveStarted()
-    await heldLeave
-    await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' })
-  })
-  try {
-    await fourPages[0].press('body', 'Escape')
-    const offlinePause = fourPages[0].getByRole('dialog', { name: 'Slay the Spire' })
-    await offlinePause.waitFor()
-    fourPages[0].once('dialog', (dialog) => dialog.accept())
-    await offlinePause.getByRole('button', { name: 'Return to main menu' }).click()
-    await withTimeout(heldLeaveStarted, 30_000, 'held offline room leave')
-    await fourPages[0].getByRole('button', { name: 'Single Player' }).waitFor()
-    const forgottenOfflineSession = await fourPages[0].evaluate(() => ({
-      active: sessionStorage.getItem('sts-room-session'),
-      recoveries: localStorage.getItem('sts-room-recoveries'),
-    }))
-    check('Return to main menu forgets local recovery without waiting for the leave endpoint', () => {
-      assertDeepEqual(forgottenOfflineSession, { active: null, recoveries: null })
-    })
-  } finally {
-    releaseOfflineLeave()
-  }
   await Promise.all(fourContexts.map((context) => context.close()))
 
   check('the online flow has no browser errors', () => {

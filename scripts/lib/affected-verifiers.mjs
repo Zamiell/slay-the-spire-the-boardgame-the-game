@@ -162,7 +162,7 @@ const focusedOnlyUiOwners = ownerMap([
 ])
 const sourceExtensions = ['', '.ts', '.tsx', '.mjs', '.js']
 const sharedBrowserOwners = ['verify-browser.mjs', 'verify-noncombat-browser.mjs', 'verify-online-browser.mjs']
-const onlineBrowserOwners = ['verify-online-browser.mjs', 'verify-hosted-multiplayer-browser.mjs']
+const onlineBrowserOwners = ['verify-online-browser.mjs', 'verify-hosted-multiplayer-browser.mjs', 'verify-multiplayer-resume-browser.mjs']
 const stylesheetBrowserOwners = (file) => file === 'src/ui/styles/hand.css'
   ? ['verify-card-cancel-browser.mjs', 'verify-combat-hand-viewport-browser.mjs',
     'verify-combat-player-clipping-browser.mjs', 'verify-end-turn-drag-browser.mjs', 'verify-card-damage-preview-browser.mjs']
@@ -182,6 +182,8 @@ const engineModuleOf = (file) => {
 }
 const directImportCache = new Map()
 const sourceCache = new Map()
+const browserScriptCache = new Map()
+const dependencyCache = new Map()
 const cleanPath = (file) => file.replaceAll('\\', '/')
 
 const importsPlaywright = (source) =>
@@ -254,17 +256,18 @@ function imports(file, root, seen = new Set()) {
 
 export function browserScript(script, root) {
   const file = resolve(root, 'scripts', script)
-  const dependencies = [...imports(join('scripts', script), root)].filter((dependency) => dependency !== file)
-  return drivesABrowser(script, sourceOf(file), dependencies.map(sourceOf))
+  if (!browserScriptCache.has(file)) {
+    const dependencies = [...imports(join('scripts', script), root)].filter((dependency) => dependency !== file)
+    browserScriptCache.set(file, drivesABrowser(script, sourceOf(file), dependencies.map(sourceOf)))
+  }
+  return browserScriptCache.get(file)
 }
 
 export function affectedVerifiers(root, changedFiles, scripts) {
-  // Asset batches ask about the same entry points repeatedly. Walk each
-  // dependency graph once per selection, rather than once per changed image.
-  const dependencyCache = new Map()
   const dependenciesOf = file => {
-    if (!dependencyCache.has(file)) dependencyCache.set(file, imports(file, root))
-    return dependencyCache.get(file)
+    const absolute = resolve(root, file)
+    if (!dependencyCache.has(absolute)) dependencyCache.set(absolute, imports(file, root))
+    return dependencyCache.get(absolute)
   }
   const changed = new Set(changedFiles.map(cleanPath))
   const selected = new Set()

@@ -849,13 +849,12 @@ export function OnlineGame({ onLocal, settings, onSettings }: Props) {
             }
           }}>Give up</button> : null}
           <button type="button" onClick={() => {
-            if (!window.confirm('Leave this run and return to the main menu?')) return
             setPauseOpen(false)
             voice.stop()
-            void room.leave()
-            room.forget(true)
+            room.forget()
             onLocal()
-          }}>Return to main menu</button>
+          }}>Save and disconnect</button>
+          <small>Resume from Play online in this browser. Rooms expire after 24 hours of inactivity.</small>
         </section>
       </dialog>
 

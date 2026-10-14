@@ -285,9 +285,11 @@ function campaignBeforeCurrentRun(run: RunState): CampaignProgress {
     const journal = unsavedJournal ?? savedCampaign()
     return { ...journal, nextRunNumber: Math.max(journal.nextRunNumber, run.campaignProgress.nextRunNumber) }
   }
-  return !run.campaign.finalized
-    ? { ...run.campaignProgress, nextRunNumber: Math.max(0, run.campaignProgress.nextRunNumber - 1) }
-    : run.campaignProgress
+  return {
+    ...run.campaignProgress,
+    nextRunNumber: run.campaign.finalized ? run.campaignProgress.nextRunNumber : Math.max(0, run.campaignProgress.nextRunNumber - 1),
+    highestAscension: Math.max(run.campaignProgress.highestAscension, savedCampaign().highestAscension),
+  }
 }
 
 function campaignBeforePendingRun(run: RunState): CampaignProgress {
@@ -675,7 +677,7 @@ function LocalGame({ open, onOpen, onClose, onOnline, settings, onSettings, acti
   // Set when Embark found the UTC day had turned since the menu was drawn.
   const [dailyTurned, setDailyTurned] = useState(false)
   // For a Daily Climb this reads the stored journal, which only the persist effect writes, from `run`.
-  const playerProgress = useMemo(() => campaignBeforeCurrentRun(run), [run.campaignProgress, run.campaign.finalized, run.meta.dailyDate])
+  const playerProgress = useMemo(() => campaignBeforeCurrentRun(run), [run.campaignProgress, run.campaign.finalized, run.meta.dailyDate, active])
   // The engine fixes a Daily Climb's seed, Ascension and setup from its day.
   const metaOptions: RunMetaOptions = mode === 'daily' ? { mode, dailyDate: today } : { mode, modifiers: customModifierIds, quickStartAct }
   const canGiveUp = canGiveUpRun(run, run.campaignProgress)
@@ -1015,7 +1017,8 @@ function LocalGame({ open, onOpen, onClose, onOnline, settings, onSettings, acti
   // worse one.
   useEffect(() => {
     if (replayLog || tutorial) return
-    const journal = open ? campaignBeforePendingRun(run) : campaignBeforeCurrentRun(run)
+    const progress = open ? campaignBeforePendingRun(run) : campaignBeforeCurrentRun(run)
+    const journal = { ...progress, highestAscension: Math.max(progress.highestAscension, savedCampaign().highestAscension) }
     try {
       localStorage.setItem(CAMPAIGN_KEY, JSON.stringify(journal))
       unsavedJournal = null

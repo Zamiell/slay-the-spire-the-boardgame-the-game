@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { apply, chooseLastStandRule, createRoom, createStore, joinRoom, saveStore, startRun } from './lib/rooms.mjs'
+import { apply, chooseLastStandRule, createRoom, createStore, joinRoom, saveStore, snapshotFor, startRun } from './lib/rooms.mjs'
 import { pendingRelicPreview, resolveCardRewards } from '../src/game/state.ts'
 import { reservePrismaticDraws } from '../src/game/run/rewards.ts'
 import { createCombat } from '../src/game/combat.ts'
@@ -57,6 +57,21 @@ try {
     assertEqual(restoredBorrowed.campaignProgress.actIV, 0)
     assertEqual(restoredBorrowed.seats[1].campaignUnlocks.colorless, 3)
     assertEqual(restoredBorrowed.seats[1].campaignUnlocks.actIV, 5)
+  })
+
+  const earned = createRoom(store, { code: 'EARNED' })
+  const earnedHost = joinRoom(earned, { character: 'ironclad' })
+  const earnedGuest = joinRoom(earned, { character: 'silent' })
+  startRun(earned, earnedHost.token, { seed: 1410 })
+  earned.run = { ...earned.run, phase: 'defeat', act: 3,
+    campaign: { ...earned.run.campaign, bossesDefeated: 2, highestBossActDefeated: 2 } }
+  apply(earned, earnedHost.token, { kind: 'finishRun' })
+  apply(earned, earnedHost.token, { kind: 'returnToLobby' })
+  saveStore(store)
+  const restoredEarned = createStore({ file }).rooms.get('EARNED')
+  check('earned multiplayer Ascension survives a restart after the next lobby', () => {
+    assertEqual(snapshotFor(restoredEarned, earnedGuest.token).earnedAscension, 1)
+    assertEqual(restoredEarned.seats[1].connected, false)
   })
 
   const pending = createRoom(store, { code: 'PENDNG' })

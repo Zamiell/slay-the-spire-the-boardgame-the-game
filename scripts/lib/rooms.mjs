@@ -14,6 +14,7 @@
 // the same instant. Every mutation therefore goes through `apply`, which is the
 // single writer — Node's single thread does the rest.
 import { randomBytes } from 'node:crypto'
+import { ascensionBossQualifies, MAX_ASCENSION } from '../../src/game/campaign.ts'
 import { appendFileSync, closeSync, existsSync, fstatSync, mkdirSync, openSync, readFileSync, readSync, renameSync, truncateSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { isRemovedHeroRun, mergeLeaderboardRuns, restoreLeaderboardRuns } from './leaderboard.mjs'
@@ -741,7 +742,8 @@ function includeSeatUnlocks(room) {
     ...base,
     colorless: Math.max(base.colorless, ...unlocks.map((value) => value.colorless)),
     actIV: Math.max(base.actIV, ...unlocks.map((value) => value.actIV)),
-    highestAscension: Math.max(base.highestAscension, ...unlocks.map((value) => value.highestAscension)),
+    highestAscension: Math.max(base.highestAscension, ...unlocks.map((value) => value.highestAscension),
+      ...room.seats.map((seat) => seat.earnedAscension ?? 0)),
   }
   room.ascension = Math.min(room.ascension, room.campaignProgress.highestAscension)
   if (room.metaOptions.quickStartAct === 4 && room.campaignProgress.actIV < 5) {
@@ -3099,6 +3101,14 @@ function finishCampaignRun(room, seatToken) {
       ascensionPlayed: room.run.ascension,
     },
   )
+  if (ascensionBossQualifies(room.run.players.length, room.run.campaign.highestBossActDefeated)) {
+    const earned = Math.min(MAX_ASCENSION, room.run.ascension + 1)
+    for (const seat of room.seats) {
+      if (room.run.players.some((player) => player.id === seat.playerId)) {
+        seat.earnedAscension = Math.max(seat.earnedAscension ?? 0, earned)
+      }
+    }
+  }
   room.campaignBaseProgress = {
     ...campaignProgress,
     highestAscension: room.run.ascension === teamMaxAscension && campaignProgress.highestAscension > room.run.ascension
@@ -5690,6 +5700,7 @@ export function snapshotFor(room, seatToken, shared = {}) {
     /** Changes whenever the server restarts, because restored rooms may resume at a lower version. */
     epoch: SERVER_EPOCH,
     you: seat ? seatPublic(seat) : null,
+    earnedAscension: seat?.earnedAscension ?? 0,
     campfireChoice: viewerId !== null && room.campfireChoices?.[viewerId]
       ? { ...room.campfireChoices[viewerId] }
       : undefined,

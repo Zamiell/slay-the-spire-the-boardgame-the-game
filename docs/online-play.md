@@ -94,6 +94,10 @@ return; closing the tab also keeps the recovery. Teammates can keep playing whil
 away. Rooms expire after 24 hours without room activity, so every player should disconnect
 when the party stops for the day. An expired room cannot be resumed.
 
+Saved rooms are checked before their Resume buttons appear. Deleted rooms and removed
+seats are forgotten, so a new visit opens the main menu when no resumable rooms remain.
+A temporary server or network outage keeps the saved credentials for another attempt.
+
 Recording a multiplayer result also saves each participant's earned Ascension in their
 browser's campaign journal. With two or more heroes, defeating the Act II boss qualifies;
 a one-hero run requires the Act III boss. The next level is available in later solo and

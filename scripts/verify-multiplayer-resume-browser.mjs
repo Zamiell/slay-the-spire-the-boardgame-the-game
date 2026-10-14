@@ -38,6 +38,79 @@ try {
   await vite.listen()
   const origin = `http://127.0.0.1:${vite.httpServer.address().port}`
   browser = await chromium.launch({ headless: true })
+  // These rooms expire while no tab is connected, so no socket can clean browser storage.
+  for (const [screen, viewport] of [['desktop', { width: 1440, height: 900 }], ['horizontal-phone', { width: 844, height: 390 }]]) {
+    for (const active of [false, true]) {
+      const response = await fetch(`${roomOrigin}/api/rooms`, { method: 'POST',
+        headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: 'ExpiredVisitor', character: 'ironclad' }) })
+      assert(response.ok)
+      const created = await response.json()
+      const expired = { code: created.snapshot.code, token: created.token }
+      const room = rooms.store.rooms.get(expired.code)
+      rooms.sweepRooms(room.lastActivityAt + 24 * 60 * 60 * 1000 + 1)
+      assert.equal(rooms.store.rooms.has(expired.code), false)
+      const context = await browser.newContext({ viewport })
+      await context.addInitScript(() => {
+        window.__EXPIRED_MULTIPLAYER_SHOWN__ = false
+        new MutationObserver(() => {
+          if (document.querySelector('.online-entry, .online-lobby, .app-shell--online')) window.__EXPIRED_MULTIPLAYER_SHOWN__ = true
+        }).observe(document, { childList: true, subtree: true })
+      })
+      const page = watch(await context.newPage())
+      await page.goto(origin)
+      await page.getByRole('button', { name: 'Single Player', exact: true }).waitFor()
+      await page.evaluate(({ expired, active }) => {
+        if (active) sessionStorage.setItem('sts-room-session', JSON.stringify(expired))
+        else localStorage.setItem('sts-room-recoveries', JSON.stringify([expired]))
+      }, { expired, active })
+      await page.reload()
+      await page.locator('.start-menu__nav:visible, .online-entry:visible, .online-lobby:visible').first().waitFor()
+      assert(await page.getByRole('button', { name: 'Single Player', exact: true }).isVisible(),
+        'an expired saved room opened multiplayer instead of the main menu')
+      assert.equal(await page.evaluate(() => window.__EXPIRED_MULTIPLAYER_SHOWN__), false,
+        'an expired room flashed the multiplayer menu before the main menu')
+      assert.equal(await page.evaluate(() => localStorage.getItem('sts-room-recoveries')), null)
+      assert.equal(await page.evaluate(() => sessionStorage.getItem('sts-room-session')), null)
+      if (!active) await page.screenshot({ path: resolve(output, `${screen}-expired-main-menu.png`) })
+      await page.getByRole('button', { name: 'Play online', exact: true }).click()
+      await page.getByRole('heading', { name: 'Climb together' }).waitFor()
+      assert.equal(await page.getByRole('button', { name: `Resume ${expired.code}`, exact: true }).count(), 0)
+      await context.close()
+    }
+  }
+  console.log('✓ expired stored and active sessions open the main menu without showing multiplayer on desktop and horizontal phone')
+
+  // An unavailable server is not evidence that a stored room has expired.
+  const unavailableResponse = await fetch(`${roomOrigin}/api/rooms`, { method: 'POST',
+    headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: 'OfflineVisitor', character: 'ironclad' }) })
+  assert(unavailableResponse.ok)
+  const unavailableCreated = await unavailableResponse.json()
+  const unavailableSaved = { code: unavailableCreated.snapshot.code, token: unavailableCreated.token }
+  const unavailableContext = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+  const unavailable = watch(await unavailableContext.newPage())
+  await unavailable.goto(origin)
+  await unavailable.getByRole('button', { name: 'Single Player', exact: true }).waitFor()
+  await unavailable.evaluate((saved) => localStorage.setItem('sts-room-recoveries', JSON.stringify([saved])), unavailableSaved)
+  const unavailablePath = `**/api/rooms/${unavailableSaved.code}`
+  await unavailable.route(unavailablePath, (route) => route.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"Temporarily unavailable"}' }))
+  await unavailable.reload()
+  await unavailable.getByRole('button', { name: 'Single Player', exact: true }).waitFor()
+  assert.deepEqual(await unavailable.evaluate(() => JSON.parse(localStorage.getItem('sts-room-recoveries'))), [unavailableSaved])
+  await unavailable.getByRole('button', { name: 'Play online', exact: true }).click()
+  await unavailable.getByRole('heading', { name: 'Climb together' }).waitFor()
+  await unavailable.unroute(unavailablePath)
+  await unavailable.evaluate(() => window.dispatchEvent(new Event('online')))
+  await unavailable.getByRole('button', { name: `Resume ${unavailableSaved.code}`, exact: true }).waitFor()
+  assert.equal(rooms.store.rooms.get(unavailableSaved.code).seats[0].connected, false, 'validating a recovery connected its seat')
+  const idleRoom = rooms.store.rooms.get(unavailableSaved.code)
+  rooms.sweepRooms(idleRoom.lastActivityAt + 24 * 60 * 60 * 1000 + 1)
+  await unavailable.evaluate(() => window.dispatchEvent(new Event('focus')))
+  await unavailable.getByRole('button', { name: `Resume ${unavailableSaved.code}`, exact: true }).waitFor({ state: 'detached' })
+  assert.equal(await unavailable.evaluate(() => localStorage.getItem('sts-room-recoveries')), null)
+  await unavailableContext.close()
+
+  console.log('✓ a server outage preserves the seat, reconnect validates it without joining, and focus removes a newly expired room')
+
   const contexts = []
   const pages = []
   for (const [index, viewport] of [{ width: 1440, height: 900 }, { width: 844, height: 390 }].entries()) {
@@ -90,6 +163,12 @@ try {
     return snapshot.seats.every((seat) => !seat.connected)
   }, hostCredentials)
   // A new tab has no sessionStorage; the durable recovery must still be usable.
+  const invalidSaved = { code: 'OLD999', token: 'expired-seat-token' }
+  const invalidToken = { code, token: 'removed-seat-token' }
+  for (const page of pages) await page.evaluate((invalid) => {
+    const saved = JSON.parse(localStorage.getItem('sts-room-recoveries'))
+    localStorage.setItem('sts-room-recoveries', JSON.stringify([...saved, ...invalid]))
+  }, [invalidSaved, invalidToken])
   await Promise.all(pages.map((page) => page.close()))
   rooms.sweepRooms(room.lastActivityAt + 24 * 60 * 60 * 1000 - 1)
   assert(rooms.store.rooms.has(code), 'room expired before 24 hours of inactivity')
@@ -100,6 +179,9 @@ try {
     const page = watch(await context.newPage())
     fresh.push(page)
     await page.goto(origin)
+    await page.getByRole('button', { name: `Resume ${code}`, exact: true }).waitFor()
+    assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('sts-room-recoveries'))), [index ? guestCredentials : hostCredentials],
+      'validation did not remove only the invalid room and seat')
     await page.getByRole('button', { name: `Resume ${code}`, exact: true }).click()
     await page.locator('.app-shell--online').waitFor()
     assert.deepEqual(await credentials(page), index ? guestCredentials : hostCredentials)
@@ -107,6 +189,9 @@ try {
   ;[host, guest] = fresh
   assert.deepEqual(room.run, before, 'resuming changed the saved run')
   assert.equal((await journal(host)).highestAscension, 2, 'borrowing an ascension granted it before a clear')
+  await host.reload()
+  await host.locator('.app-shell--online').waitFor()
+  assert.deepEqual(await credentials(host), hostCredentials, 'a valid active session was not restored')
 
   // The guest misses the result broadcast and next-lobby transition entirely.
   await guest.context().setOffline(true)
@@ -146,7 +231,7 @@ try {
   assert.equal(rooms.store.rooms.has(expiringCode), false)
   assert.equal(await guest.evaluate(() => localStorage.getItem('sts-room-recoveries')), null)
   assert.deepEqual(errors, [])
-  console.log('✓ multiplayer saves resume in fresh tabs within 24h; earned ascensions survive missed results, lobby changes, solo navigation, and reload; expired recoveries clear')
+  console.log('✓ expired startup goes straight to main without multiplayer flash; recovery checks preserve valid seats and outages; multiplayer saves resume in fresh tabs within 24h; earned ascensions survive missed results, lobby changes, solo navigation, and reload; expired recoveries clear')
 } catch (error) {
   for (const [index, context] of (browser?.contexts() ?? []).entries()) {
     for (const [pageIndex, page] of context.pages().entries()) {

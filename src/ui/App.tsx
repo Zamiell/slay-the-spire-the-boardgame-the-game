@@ -63,7 +63,7 @@ import type { CharacterId } from '../game/types.ts'
 import { visualId } from '../game/skins.ts'
 import { preferredSkin } from '../skin-preference.ts'
 import { SkinProvider } from './skin-context.tsx'
-import { hasRoomSession } from '../multiplayer/useRoomSession.ts'
+import { hasRoomSession, validRoomSessions } from '../multiplayer/useRoomSession.ts'
 import { isActIVUnlocked } from '../game/campaign.ts'
 import { allocateSharedMarks, canEnterActIV } from '../game/campaign.ts'
 import type { CampaignProgress } from '../game/campaign.ts'
@@ -321,7 +321,15 @@ export function App() {
       document.removeEventListener('visibilitychange', settle)
     }
   }, [])
-  const [online, setOnline] = useState(() => !SINGLE_PLAYER_ONLY && hasRoomSession())
+  const [online, setOnline] = useState<boolean | null>(() => !SINGLE_PLAYER_ONLY && hasRoomSession() ? null : false)
+  useEffect(() => {
+    if (SINGLE_PLAYER_ONLY || online !== null) return
+    let active = true
+    void validRoomSessions().then((valid) => {
+      if (active) setOnline(valid.length > 0)
+    }, () => { if (active) setOnline(false) })
+    return () => { active = false }
+  }, [online])
   const [localOpen, setLocalOpen] = useState(false)
   const [settings, setSettings] = useGameSettings()
   useEffect(() => settings.sfxVolume > 0 ? installSoundEffects(true) : undefined, [settings.sfxVolume])
@@ -575,11 +583,13 @@ export function App() {
   return (
     <SkinProvider>
     <Suspense fallback={<main className="app-loading" role="status">Loading…</main>}>
+      {online === null ? <main className="app-loading" role="status">Loading…</main> : <>
       <div className="game-mode" hidden={online}>
         <LocalGame open={localOpen} onOpen={() => setLocalOpen(true)} onClose={() => setLocalOpen(false)} onOnline={SINGLE_PLAYER_ONLY ? undefined : () => setOnline(true)}
           settings={settings} onSettings={setSettings} active={!online} />
       </div>
       {online && OnlineGame ? <OnlineGame onLocal={() => setOnline(false)} settings={settings} onSettings={setSettings} /> : null}
+      </>}
     </Suspense>
     </SkinProvider>
   )

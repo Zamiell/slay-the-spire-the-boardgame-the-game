@@ -132,8 +132,23 @@ try {
   assert.equal(rooms.store.rooms.get(code).seats[1].connected, true, 'the replacement socket did not restore the guest')
   assert.equal(guestSockets.length, 2, 'an actual WebSocket drop did not reconnect the guest')
 
+  const savedHost = await host.evaluate(() => JSON.parse(sessionStorage.getItem('sts-room-session')))
+  await Promise.all([host.close(), guest.close()])
+  const idleRoom = rooms.store.rooms.get(code)
+  rooms.sweepRooms(idleRoom.lastActivityAt + 24 * 60 * 60 * 1000 + 1)
+  assert.equal(rooms.store.rooms.has(code), false)
+  for (const [context, active] of [[desktop, true], [phone, false]]) {
+    const returning = await context.newPage()
+    if (active) await returning.addInitScript((saved) => sessionStorage.setItem('sts-room-session', JSON.stringify(saved)), savedHost)
+    await returning.goto(pagesOrigin)
+    await returning.getByRole('button', { name: 'Single Player', exact: true }).waitFor()
+    assert.equal(await returning.locator('.online-entry, .online-lobby').count(), 0,
+      'a hosted visit with a deleted room opened multiplayer')
+    assert.equal(await returning.evaluate(() => localStorage.getItem('sts-room-recoveries')), null)
+    assert.equal(await returning.evaluate(() => sessionStorage.getItem('sts-room-session')), null)
+  }
   await Promise.all([desktop.close(), phone.close()])
-  console.log('✓ hosted clients keep a live socket through failed HTTP probes and reconnect after a real drop')
+  console.log('✓ hosted clients reconnect through real drops and open the main menu when saved rooms have expired')
 } finally {
   await browser?.close()
   await rooms?.close()

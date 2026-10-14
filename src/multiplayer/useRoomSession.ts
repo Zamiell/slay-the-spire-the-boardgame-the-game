@@ -344,8 +344,14 @@ function retire(target: Credentials) {
   return saved
 }
 
+function savedRoomSessions(): Credentials[] {
+  const saved = savedRecoveries()
+  const active = savedCredentials()
+  return active && !saved.some((entry) => entry.token === active.token) ? [...saved, active] : saved
+}
+
 export function hasRoomSession() {
-  return savedCredentials() !== null || savedRecoveries().length > 0
+  return savedRoomSessions().length > 0
 }
 
 async function json(response: Response) {
@@ -362,6 +368,29 @@ async function json(response: Response) {
 
 const resetAfterFailure = () => resetRoomEndpoint()
 
+export async function validRoomSessions() {
+  const sessions = savedRoomSessions()
+  if (sessions.length === 0) return []
+  const endpoint = await roomUrl('/api/rooms/')
+  const verified = new Set(await Promise.all(sessions.map(async (saved) => {
+    try {
+      await json(await fetch(`${endpoint}${encodeURIComponent(saved.code)}`, {
+        headers: { 'x-room-token': saved.token },
+        signal: AbortSignal.timeout(REFRESH_TIMEOUT_MS),
+      }))
+      return saved.token
+    } catch (cause) {
+      if (cause instanceof RequestError && (cause.status === 401 || cause.status === 404)) {
+        retire(saved)
+        const active = savedCredentials()
+        if (active?.token === saved.token && active.code === saved.code) sessionStorage.removeItem(ACTIVE_KEY)
+      } else resetAfterFailure()
+      return null
+    }
+  })))
+  return savedRoomSessions().filter((saved) => verified.has(saved.token))
+}
+
 export function useRoomSession() {
   const [credentials, setCredentials] = useState<Credentials | null>(savedCredentials)
   const [snapshot, setSnapshot] = useState<RoomSnapshot | null>(null)
@@ -370,7 +399,7 @@ export function useRoomSession() {
   const [connection, setConnection] = useState<Connection>(credentials ? 'connecting' : 'idle')
   const [error, setError] = useState('')
   const [entering, setEntering] = useState(false)
-  const [recoveries, setRecoveries] = useState(savedRecoveries)
+  const [recoveries, setRecoveries] = useState<Credentials[]>([])
   const enteringRef = useRef(false)
   const refreshSequence = useRef(0)
   const reconciliation = useRef({ generation: -1, target: 0, running: false })
@@ -400,13 +429,34 @@ export function useRoomSession() {
 
   useEffect(() => {
     mounted.current = true
-    const sync = (event: StorageEvent) => {
-      if (event.key === RECOVERY_KEY) setRecoveries(savedRecoveries())
+    let active = true
+    let sequence = 0
+    const refresh = () => {
+      const request = ++sequence
+      void validRoomSessions().then((valid) => {
+        if (!active || request !== sequence) return
+        const tokens = new Set(valid.map((saved) => saved.token))
+        setRecoveries(savedRecoveries().filter((saved) => tokens.has(saved.token)))
+      }, () => { if (active && request === sequence) setRecoveries([]) })
     }
+    const refreshVisible = () => { if (document.visibilityState === 'visible') refresh() }
+    const sync = (event: StorageEvent) => {
+      if (event.key === RECOVERY_KEY || event.key === null) refresh()
+    }
+    refresh()
     addEventListener('storage', sync)
+    addEventListener('focus', refreshVisible)
+    addEventListener('online', refreshVisible)
+    document.addEventListener('visibilitychange', refreshVisible)
+    const timer = window.setInterval(() => { if (!savedCredentials()) refreshVisible() }, 60_000)
     return () => {
+      active = false
       mounted.current = false
+      clearInterval(timer)
       removeEventListener('storage', sync)
+      removeEventListener('focus', refreshVisible)
+      removeEventListener('online', refreshVisible)
+      document.removeEventListener('visibilitychange', refreshVisible)
     }
   }, [])
 

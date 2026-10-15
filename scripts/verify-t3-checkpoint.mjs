@@ -16,14 +16,17 @@ const git = (cwd, args, env = {}, executable = '/usr/bin/git') => {
 }
 const digest = (file) => createHash('sha256').update(readFileSync(file)).digest('hex')
 
-function capture(cwd, executable) {
+function capture(cwd, executable, prefixed = true) {
   const common = git(cwd, ['rev-parse', '--path-format=absolute', '--git-common-dir'])
   const index = join(common, `t3-checkpoint-index-${randomUUID()}`)
   const env = { GIT_INDEX_FILE: index }
+  const call = (args) => git(prefixed ? temporary : cwd, prefixed ? ['-C', cwd, ...args] : args, env, executable)
   try {
-    git(cwd, ['read-tree', 'HEAD'], env, executable)
-    git(cwd, ['add', '-A', '--', '.'], env, executable)
-    return git(cwd, ['write-tree'], env, executable)
+    call(['read-tree', 'HEAD'])
+    if (executable === wrapper) assert.match(call(['ls-files', '--debug', '--', 'cached']), /mtime: [1-9]\d*:/,
+      'T3 read-tree discarded the file-stat cache and will rescan unchanged assets')
+    call(['add', '-A', '--', '.'])
+    return call(['write-tree'])
   } finally {
     rmSync(index, { force: true })
     rmSync(`${index}.lock`, { force: true })
@@ -47,6 +50,7 @@ function verify(cwd) {
   const expected = capture(cwd, '/usr/bin/git')
   const actual = capture(cwd, wrapper)
   assert.equal(actual, expected, `cached capture differs from T3 capture: ${git(cwd, ['diff', expected, actual])}`)
+  assert.equal(capture(cwd, wrapper, false), expected, 'unprefixed checkpoint changed behavior')
   assert.equal(git(cwd, ['show', `${expected}:tracked`]), 'unstaged')
   assert.equal(git(cwd, ['show', `${expected}:ignored`]), 'ignored but tracked in HEAD')
   assert.equal(git(cwd, ['show', `${expected}:untracked space`]), 'new file')
@@ -64,7 +68,7 @@ try {
   git(repository, ['config', 'user.name', 'Checkpoint fixture'])
   git(repository, ['config', 'user.email', 'checkpoint@example.test'])
   git(repository, ['config', 'core.hooksPath', '/dev/null'])
-  for (const file of ['tracked', 'deleted', 'assumed', 'skipped']) writeFileSync(join(repository, file), 'initial')
+  for (const file of ['tracked', 'deleted', 'assumed', 'skipped', 'cached']) writeFileSync(join(repository, file), 'initial')
   writeFileSync(join(repository, 'ignored'), 'ignored but tracked in HEAD')
   git(repository, ['add', '.'])
   git(repository, ['-c', 'commit.gpgsign=false', 'commit', '-qm', 'fixture'])

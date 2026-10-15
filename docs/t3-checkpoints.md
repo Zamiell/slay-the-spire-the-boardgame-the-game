@@ -6,11 +6,17 @@ tracked animation assets even when they are unchanged and can exceed T3's
 30-second process timeout.
 
 `infra/t3-checkpoint-git.py` is a Linux Git passthrough for this host. Only T3's
-`read-tree HEAD` with a fresh `t3-checkpoint-index-<UUID>` in the repository's
+`read-tree HEAD` (including T3's `git -C <repo>` prefix) with a fresh
+`t3-checkpoint-index-<UUID>` in the repository's
 common Git directory uses the developer index's stat cache. It clears inherited
 assume-unchanged/skip-worktree flags and resets the copied index to HEAD before
 capture. The developer index and working files are never written. Every other
 command goes directly to `/usr/bin/git`.
+
+The verifier runs from outside each repository using T3's `-C` invocation and
+checks that an unchanged tracked file retains its nonzero Git index timestamp.
+This catches an invocation that still produces the right tree but silently
+falls back to rescanning every asset.
 
 Run `node scripts/verify-t3-checkpoint.mjs`, then install a durable copy:
 

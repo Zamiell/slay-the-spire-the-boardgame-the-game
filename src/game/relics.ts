@@ -384,8 +384,7 @@ boss({ id: 'ring_of_serpent', name: 'Ring of Serpent', trigger: { kind: 'startOf
 boss({ id: 'snecko_eye', name: 'Snecko Eye',
   trigger: { kind: 'dieRelic', faces: [1, 2] }, effects: [{ kind: 'draw', amount: 2 }],
   abilities: [{ trigger: { kind: 'dieRelic', faces: [3, 4] }, effects: [{ kind: 'gainEnergy', amount: 1 }] }],
-  rule: 'On a 5 or 6, gain the printed Snecko effect.',
-  text: 'On a 1 or 2: draw 2. On a 3 or 4: gain 1 Energy. On a 5 or 6: gain Snecko.' })
+  text: 'On a 1 or 2: draw 2. On a 3 or 4: gain 1 Energy. On a 5: your next card this turn costs 2 Energy. On a 6: your next card this turn costs 0 Energy.' })
 boss({ id: 'sozu', name: 'Sozu', trigger: { kind: 'startOfTurn' },
   effects: [{ kind: 'gainEnergy', amount: 1 }], rule: 'You cannot gain Potions.',
   text: 'Start of turn: gain 1 Energy. You cannot gain Potions.' })

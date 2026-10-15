@@ -16,8 +16,8 @@ try {
     const page = await browser.newPage({ viewport: { width, height }, reducedMotion: 'reduce' })
     page.setDefaultTimeout(10_000)
     page.on('pageerror', error => errors.push(String(error)))
-    await page.goto(`http://localhost:${server.httpServer.address().port}`)
-    await page.getByRole('button', { name: 'Single Player', exact: true }).click()
+    await page.goto(`http://localhost:${server.httpServer.address().port}`, { waitUntil: 'domcontentloaded', timeout: 30_000 })
+    await page.getByRole('button', { name: 'Single Player', exact: true }).click({ timeout: 30_000 })
     await page.getByRole('button', { name: 'Standard', exact: true }).click()
     await page.getByRole('button', { name: 'Embark' }).click()
     await page.getByRole('button', { name: 'Start standard campaign', exact: true }).click()
@@ -116,10 +116,29 @@ try {
     await page.locator('.enemy:not(.enemy--dead) .enemy__head').first().click()
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.enemies[0].weak === 1)
     await page.screenshot({ path: `${out}/${name}-cheat-picked.png` })
+
+    run.players[0].relics = [{ defId: 'snecko_eye', spent: false }]
+    run.combat.players[0].relics = run.players[0].relics
+    run.combat.players[0].potions = []
+    await page.evaluate(run => window.__STS_DEBUG__.setRun(run), run)
+    const snecko = page.locator('.relic-chip[data-relic="snecko_eye"]')
+    await snecko.hover()
+    const sneckoTip = snecko.locator('.relic-tip')
+    await sneckoTip.waitFor({ state: 'visible' })
+    const sneckoText = await sneckoTip.innerText()
+    assert(sneckoText.includes('On a 5: your next card this turn costs 2 Energy.'),
+      `${name}: Snecko Eye does not explain roll 5`)
+    assert(sneckoText.includes('On a 6: your next card this turn costs 0 Energy.'),
+      `${name}: Snecko Eye does not explain roll 6`)
+    const sneckoBox = await sneckoTip.boundingBox()
+    assert(sneckoBox && sneckoBox.x >= 0 && sneckoBox.y >= 0 &&
+      sneckoBox.x + sneckoBox.width <= width && sneckoBox.y + sneckoBox.height <= height,
+    `${name}: Snecko Eye's complete rules are clipped`)
+    await page.screenshot({ path: `${out}/${name}-snecko-tooltip.png` })
     await page.close()
   }
   assert.deepEqual(errors, [])
-  console.log('✓ Dolly\'s Mirror offers and resolves Red Mask on desktop and horizontal phone')
+  console.log('✓ die relic choices resolve and Snecko Eye explains rolls 5 and 6 on desktop and horizontal phone')
 } finally {
   await browser.close()
   await server.close()

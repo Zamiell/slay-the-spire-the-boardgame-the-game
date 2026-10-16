@@ -19,6 +19,8 @@ import type { SkinId } from './game/skins.ts'
 export type Wallet = {
   version: 1
   coins: number
+  /** Daily coin credits already included in this balance, across browser imports. */
+  dailyCoinsEarned?: number
   /** Bought packs, in catalogue order. */
   packs: CardPackId[]
   /** Bought skins, in catalogue order. Wearing one is a separate choice (`skin-preference.ts`). */
@@ -64,6 +66,8 @@ export function parseWallet(value: unknown): Wallet {
   return {
     version: 1,
     coins: count(saved.coins, MAX_WALLET_COINS) ? saved.coins : 0,
+    ...(count(saved.dailyCoinsEarned, MAX_WALLET_COINS) && saved.dailyCoinsEarned > 0
+      ? { dailyCoinsEarned: saved.dailyCoinsEarned } : {}),
     packs: normalizeCardPacks(saved.packs),
     skins: normalizeSkins(saved.skins),
     addPacksToRuns: typeof saved.addPacksToRuns === 'boolean' ? saved.addPacksToRuns : true,

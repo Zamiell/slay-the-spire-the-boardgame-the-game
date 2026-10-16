@@ -1,5 +1,6 @@
 import { savedProfile } from './profile.ts'
 import type { RunState } from './game/run.ts'
+import type { BossAct } from './game/coins.ts'
 import type { CardInstance, CharacterId } from './game/types.ts'
 import { resetRoomEndpoint, roomUrl } from './multiplayer/room-endpoint.ts'
 import { damageTotals } from './ui/run-summary-data.ts'
@@ -42,6 +43,7 @@ type LeaderboardSubmission = {
   damageBlocked: number
   floorsCleared?: number
   dailyDate?: string
+  dailyBossActs?: BossAct[]
 }
 
 let fallbackOutbox: LeaderboardSubmission[] = []
@@ -98,7 +100,7 @@ export function queueFinishedSoloRun(run: RunState) {
     ...(run.floorsCleared === undefined ? {} : {
       floorsCleared: Math.max(0, Math.floor(run.floorsCleared)),
     }),
-    ...(run.meta.dailyDate ? { dailyDate: run.meta.dailyDate } : {}),
+    ...(run.meta.dailyDate ? { dailyDate: run.meta.dailyDate, dailyBossActs: run.campaign.bossCoins?.map((award) => award.act) } : {}),
   }
   const queued = readOutbox()
   const existing = queued.findIndex((entry) => entry.id === submission.id)
@@ -143,10 +145,11 @@ async function flush() {
           continue
         }
         if (!response.ok) throw new Error('Leaderboard submission failed')
-        const acknowledged = await response.json().catch(() => null) as { floorsClearedAccepted?: boolean; finalDeckAccepted?: boolean; profileAccepted?: boolean; dailyDateAccepted?: boolean } | null
+        const acknowledged = await response.json().catch(() => null) as { floorsClearedAccepted?: boolean; finalDeckAccepted?: boolean; profileAccepted?: boolean; dailyDateAccepted?: boolean; dailyCoinsAccepted?: boolean } | null
         // An older server would store a climb without its day, so it could never rank.
         if (run.floorsCleared !== undefined && acknowledged?.floorsClearedAccepted !== true ||
             run.dailyDate !== undefined && acknowledged?.dailyDateAccepted !== true ||
+            run.dailyDate !== undefined && run.profileToken !== undefined && acknowledged?.dailyCoinsAccepted !== true ||
             run.finalDeck !== undefined && acknowledged?.finalDeckAccepted !== true ||
             run.profileToken !== undefined && acknowledged?.profileAccepted !== true) {
           resetRoomEndpoint()

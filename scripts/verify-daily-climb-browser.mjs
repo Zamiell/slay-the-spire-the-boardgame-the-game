@@ -8,12 +8,16 @@ import { createServer } from 'vite'
 import { chromium, setTestUsername } from './lib/profile-browser.mjs'
 import { createRoomServer } from './room-server.mjs'
 import { addLeaderboardRun } from './lib/leaderboard.mjs'
+import { rollBossCoins } from '../src/game/coins.ts'
+import { dailySeedText } from '../src/game/daily.ts'
+import { seedFromString } from '../src/game/rng.ts'
 import { assert, assertEqual, check, report, suite } from './lib/harness.mjs'
 
 const root = resolve(import.meta.dirname, '..')
 const output = resolve(root, 'artifacts/daily-climb-browser')
 mkdirSync(output, { recursive: true })
 process.env.VITE_LEADERBOARD = 'true'
+process.env.VITE_COIN_GRANTS = 'true'
 const rooms = createRoomServer()
 const { port } = await rooms.listen(0)
 const roomOrigin = `http://127.0.0.1:${port}`
@@ -23,10 +27,14 @@ const origin = `http://127.0.0.1:${vite.httpServer.address().port}`
 const browser = await chromium.launch({ headless: true })
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
 const errors = []
+let releaseWalletRead
+let pendingWalletRead
 page.on('pageerror', (error) => errors.push(String(error)))
 page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()) })
 
 const today = new Date().toISOString().slice(0, 10)
+const bossAwards = [1, 2, 1].map((act, index) => ({ act, coins: rollBossCoins(seedFromString(dailySeedText(today)), index, act, 10) }))
+const bossCoins = bossAwards.reduce((sum, award) => sum + award.coins, 0)
 const token = '00000000-0000-4000-8000-000000000001' // The profile-browser test player.
 const screenshot = async (name) => {
   await page.waitForFunction(() => [...document.images].every((image) => image.complete && image.naturalWidth > 0))
@@ -52,7 +60,7 @@ try {
   addLeaderboardRun(rooms.store, { id: 'champion-a:campaign-1', username: 'Champion', character: 'watcher', ascension: 10,
     mode: 'daily', dailyDate: today, startedAtAct: 1, highestBossActDefeated: 4, combatsFinished: 4, damageDealt: 40,
     damageTaken: 10, damageBlocked: 30, damageStatsComplete: true, floorsCleared: 14, finalDeck: [{ defId: 'strike_watcher', upgraded: false }] })
-  await page.goto(origin)
+  await page.goto(origin, { waitUntil: 'domcontentloaded' })
   await setTestUsername(page, 'DailyTester')
   await page.reload()
 
@@ -90,18 +98,53 @@ try {
     assert(started.sharedSeed, 'the run did not use the day seed')
   })
 
-  await page.evaluate(() => {
+  await page.evaluate((awards) => {
     const run = structuredClone(window.__STS_DEBUG__.getRun())
     run.neow = null
+    run.players = run.players.map((player) => ({ ...player, relics: player.relics.map((relic) => ({ ...relic, pending: false })) }))
+    run.campaign = { ...run.campaign, bossCoins: awards, bossesDefeated: awards.length, highestBossActDefeated: 2 }
+    run.act = 3
     run.phase = 'defeat'
+    run.rewards = []
+    run.rewardDestination = null
     run.floorsCleared = 9
     run.combatsFinished = 3
     run.players[0].damageStats = { attack: 30, poison: 0, special: 0, taken: 5, blocked: 15 }
     window.__STS_DEBUG__.setRun(run)
+  }, bossAwards)
+  await page.getByText('Coins to claim', { exact: true }).waitFor()
+  const pendingCoins = await page.locator('.run-summary__coins .coin-amount__value').innerText()
+  check('the Daily Climb shows the normal A10 bounty before recording', () => assertEqual(Number(pendingCoins.replace(/,/g, '')), bossCoins))
+  await page.locator('.coin-gain__toast').waitFor({ state: 'hidden' })
+  await screenshot('daily-coins-desktop')
+  await page.setViewportSize({ width: 844, height: 390 })
+  await screenshot('daily-coins-horizontal-phone')
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.evaluate(async () => { await (await import('/src/wallet-storage.ts')).syncAccountWallet() })
+  let walletReadBlocked
+  const blocked = new Promise((resolve) => { walletReadBlocked = resolve })
+  const gate = new Promise((resolve) => { releaseWalletRead = resolve })
+  let blockWalletRead = true
+  await page.route('**/api/profile/wallet', async (route) => {
+    if (!blockWalletRead) return route.continue()
+    blockWalletRead = false
+    const response = await route.fetch()
+    walletReadBlocked()
+    await gate
+    await route.fulfill({ response })
   })
+  pendingWalletRead = page.evaluate(async () => { await (await import('/src/wallet-storage.ts')).syncAccountWallet() })
+  await Promise.race([blocked, pendingWalletRead.then(() => { throw new Error('the stale wallet read was not intercepted') })])
   await page.getByRole('button', { name: 'Record campaign result' }).click()
   await page.getByRole('heading', { name: '9 floors reached' }).waitFor()
   await page.getByText('Run recorded on the leaderboard.').waitFor()
+  releaseWalletRead()
+  await pendingWalletRead
+  await page.getByText(`Run recorded · ${bossCoins} in your purse`, { exact: true }).waitFor({ timeout: 5000 })
+  await page.waitForFunction((coins) => JSON.parse(localStorage.getItem('sts-wallet:dailytester'))?.coins === coins, bossCoins)
+  await page.evaluate(async () => { await (await import('/src/wallet-storage.ts')).syncAccountWallet() })
+  check('recording a Daily Climb puts its coins in the account wallet', () => assertEqual(
+    rooms.store.profiles.find((profile) => profile.username === 'DailyTester').wallet.coins, bossCoins))
   await screenshot('daily-result-desktop')
   const recorded = rooms.store.leaderboardRuns.find((run) => run.dailyDate === today && run.username === 'DailyTester')
   const journal = await page.evaluate(() => JSON.parse(localStorage.getItem('sts-physical-campaign')))
@@ -128,6 +171,7 @@ try {
   const nextRunId = await page.evaluate(() => {
     const run = structuredClone(window.__STS_DEBUG__.getRun())
     run.neow = null
+    run.players = run.players.map((player) => ({ ...player, relics: player.relics.map((relic) => ({ ...relic, pending: false })) }))
     run.phase = 'defeat'
     window.__STS_DEBUG__.setRun(run)
     return run.campaign.runId
@@ -160,6 +204,7 @@ try {
   await page.evaluate(() => {
     const run = structuredClone(window.__STS_DEBUG__.getRun())
     run.neow = null
+    run.players = run.players.map((player) => ({ ...player, relics: player.relics.map((relic) => ({ ...relic, pending: false })) }))
     run.phase = 'defeat'
     run.floorsCleared = 12
     run.combatsFinished = 3
@@ -314,26 +359,31 @@ try {
     run.ascension = 10
     run.phase = 'defeat'
     const realFetch = window.fetch
-    // A server from before the Daily Climb stores the run but knows nothing of its day.
+    // Older servers can lack either the day or the durable coin-payout acknowledgement.
+    let dayAccepted = false
     window.fetch = (input, init) => init?.method === 'POST' && String(input).includes('/api/leaderboard')
-      ? Promise.resolve(new Response('{"ok":true,"added":true,"floorsClearedAccepted":true,"finalDeckAccepted":true,"profileAccepted":true}', { status: 201 }))
+      ? Promise.resolve(new Response(JSON.stringify({ ok: true, added: true, floorsClearedAccepted: true, finalDeckAccepted: true, profileAccepted: true, dailyDateAccepted: dayAccepted }), { status: 201 }))
       : realFetch(input, init)
     const { queueFinishedSoloRun, flushLeaderboardOutbox } = await import('/src/leaderboard.ts')
     const id = queueFinishedSoloRun(run)
-    await flushLeaderboardOutbox(true)
-    const keptQueued = JSON.parse(localStorage.getItem('sts-leaderboard-outbox') ?? '[]').some((entry) => entry.id === id)
+    let keptQueued = true
+    for (const value of [false, true]) {
+      dayAccepted = value
+      await flushLeaderboardOutbox(true)
+      keptQueued &&= JSON.parse(localStorage.getItem('sts-leaderboard-outbox') ?? '[]').some((entry) => entry.id === id)
+    }
     window.fetch = realFetch
     const report = await flushLeaderboardOutbox(true)
     return { keptQueued, recorded: report.recorded.includes(id) }
   }, today)
-  check('a climb stays queued until a server confirms it keeps the day', () => {
+  check('a climb stays queued until a server confirms its day and coin payout', () => {
     assert(olderServer.keptQueued && olderServer.recorded, JSON.stringify(olderServer))
   })
   // Midnight: a controlled clock crosses 00:00 UTC while the menu is open.
   const clockContext = await browser.newContext({ viewport: { width: 1440, height: 900 } })
   const clockPage = await clockContext.newPage()
   clockPage.on('pageerror', (error) => errors.push(String(error)))
-  await clockPage.clock.install({ time: new Date('2026-10-01T23:59:50Z') })
+  await clockPage.clock.install({ time: new Date('2026-10-01T23:00:00Z') })
   await clockPage.goto(origin)
   const openClockCharacterScreen = async () => {
     await clockPage.getByRole('button', { name: 'Single Player', exact: true }).click()
@@ -342,6 +392,7 @@ try {
     await clockPage.getByRole('button', { name: 'Embark' }).waitFor()
   }
   await openClockCharacterScreen()
+  await clockPage.clock.pauseAt(new Date('2026-10-01T23:59:50Z'))
   // Jump past midnight without letting the menu's midnight timer run.
   await clockPage.clock.setSystemTime(new Date('2026-10-02T00:00:05Z'))
   await clockPage.getByRole('button', { name: 'Embark' }).click()
@@ -359,13 +410,15 @@ try {
   const timerContext = await browser.newContext({ viewport: { width: 1440, height: 900 } })
   const timerPage = await timerContext.newPage()
   timerPage.on('pageerror', (error) => errors.push(String(error)))
-  await timerPage.clock.install({ time: new Date('2026-10-02T23:59:58Z') })
+  await timerPage.clock.install({ time: new Date('2026-10-02T23:00:00Z') })
   await timerPage.goto(origin)
   await timerPage.getByRole('button', { name: 'Single Player', exact: true }).click()
   await timerPage.getByRole('button', { name: 'Daily', exact: true }).click()
   await timerPage.getByRole('button', { name: 'Continue', exact: true }).click()
   await timerPage.getByRole('button', { name: 'Embark' }).waitFor()
+  await timerPage.clock.pauseAt(new Date('2026-10-02T23:59:58Z'))
   await timerPage.clock.runFor(5_000)
+  await timerPage.clock.resume()
   await timerPage.getByRole('button', { name: 'Embark' }).click()
   await timerPage.waitForFunction(() => window.__STS_DEBUG__?.getRun()?.meta.dailyDate)
   const timerDay = await timerPage.evaluate(() => window.__STS_DEBUG__.getRun().meta.dailyDate)
@@ -376,6 +429,8 @@ try {
   const unexpected = errors.filter((error) => !error.includes('status of 429') && !error.includes('status of 404'))
   check('the daily climb raised no browser errors', () => assertEqual(unexpected.length, 0, unexpected.join('\n')))
 } finally {
+  releaseWalletRead?.()
+  await pendingWalletRead?.catch(() => {})
   await browser.close()
   await vite.close()
   await rooms.close()

@@ -10,6 +10,7 @@ import { basename } from 'node:path'
 import { WebSocketServer } from 'ws'
 import { classifyDeckType, codexReady } from './lib/codex-deck-classifier.mjs'
 import { addLeaderboardRun, dailyLeaderboard, leaderboardSnapshot, personalStats, roomLeaderboardRun, winningDecksPage } from './lib/leaderboard.mjs'
+import { backfillDailyCoins, creditRecordedDailyCoins } from './lib/daily-coins.mjs'
 import { deckHash, HERO_NAMES, SPECIFIC_ARCHETYPE_FLOOR, otherDeckType, randomDeck, recordDeckClassification, soloDeck, statsSnapshot, validClassifierThreadId, validDeckType, validSoloDeck } from './lib/stats.mjs'
 import {
   apply,
@@ -407,8 +408,9 @@ export function createRoomServer({
     if (!room.run?.campaign.finalized) continue
     try { restoredLeaderboardRuns = addLeaderboardRun(store, roomLeaderboardRun(room)) || restoredLeaderboardRuns } catch {}
   }
-  if (store.file && existsSync(store.file) && (store.statsStateDirty || store.statsChanges.size || store.interruptedJournals.size)) flushSave()
-  else if (restoredLeaderboardRuns) queueSave()
+  const backfilledDailyCoins = backfillDailyCoins(store)
+  if (store.file && existsSync(store.file) && (backfilledDailyCoins || store.statsStateDirty || store.statsChanges.size || store.interruptedJournals.size)) flushSave()
+  else if (restoredLeaderboardRuns || backfilledDailyCoins) queueSave()
   scheduleClassification()
 
   for (const [code, room] of store.rooms) roomActivity.set(code, room.lastActivityAt ?? Date.now())
@@ -944,8 +946,19 @@ export function createRoomServer({
         if (body.profileToken && !profile) return send(response, 409, { error: 'Profile unavailable' })
         const { winningDecks: _, ...submission } = body
         const added = addLeaderboardRun(store, { ...submission, username: profile?.username })
+        const recorded = store.leaderboardRuns.find((run) => run.id === body.id)
+        if (recorded?.dailyDate !== undefined) {
+          creditRecordedDailyCoins(store, recorded, profile)
+          if (store.walletsDirty) {
+            if (!attemptSave()) {
+              queueSave()
+              return send(response, 503, { error: 'Could not save your Daily Climb coins. Please try again.' })
+            }
+            store.walletsDirty = false
+          }
+        }
         if (added) { queueSave(); scheduleClassification() }
-        return send(response, added ? 201 : 200, { ok: true, added, floorsClearedAccepted: true, finalDeckAccepted: true, profileAccepted: true, dailyDateAccepted: true })
+        return send(response, added ? 201 : 200, { ok: true, added, floorsClearedAccepted: true, finalDeckAccepted: true, profileAccepted: true, dailyDateAccepted: true, dailyCoinsAccepted: true })
       }
       if (request.method === 'POST' && url.pathname === '/api/rooms') {
         sweepRooms()

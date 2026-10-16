@@ -1,4 +1,5 @@
 import { DAILY_ASCENSION } from '../../src/game/daily.ts'
+import { MAX_BOSS_AWARDS } from '../../src/game/coins.ts'
 import { CHARACTER_IDS } from '../../src/game/types.ts'
 import { deckHash, isRemovedHero, primeStatsDeck, recordDeckClassification, soloDeck, statsDecks, validDeckType } from './stats.mjs'
 
@@ -77,6 +78,8 @@ export function normalizeLeaderboardRun(value, recordedAt = Date.now()) {
   if (!MODES.has(value.mode)) bad('Run mode is invalid')
   const party = characters(value)
   const day = dailyDate(value, recordedAt)
+  if (value.dailyBossActs !== undefined && (day === undefined || !Array.isArray(value.dailyBossActs) ||
+      value.dailyBossActs.length > MAX_BOSS_AWARDS || value.dailyBossActs.some((act) => ![1, 2, 3, 4].includes(act)))) bad('Daily boss acts are invalid')
   if (value.winningDecks !== undefined && (!Array.isArray(value.winningDecks) || value.winningDecks.length !== party.length ||
       value.winningDecks.some((deck) => !deck || !party.includes(deck.character)))) bad('Winning deck owners do not match the party')
   const run = {
@@ -99,6 +102,7 @@ export function normalizeLeaderboardRun(value, recordedAt = Date.now()) {
       ? null : integer(value.floorsCleared, 'Floor count', 0, 1000),
     recordedAt: integer(recordedAt, 'Recorded time', 0, Number.MAX_SAFE_INTEGER),
     ...(day === undefined ? {} : { dailyDate: day }),
+    ...(value.dailyBossActs === undefined ? {} : { dailyBossActs: [...value.dailyBossActs] }),
   }
   primeStatsDeck(run)
   return run
@@ -150,7 +154,9 @@ function missingRunDetails(previous, run) {
   // the check runs on the stored row so an old run cannot be moved onto a later board.
   const day = previous.dailyDate === undefined && run.dailyDate !== undefined
     ? backfilledDailyDate({ ...previous, ...updates }, run.dailyDate) : undefined
-  return day === undefined ? updates : { ...updates, dailyDate: day }
+  if (previous.dailyDate === undefined && day === undefined) return updates
+  return { ...updates, ...(day === undefined ? {} : { dailyDate: day }),
+    ...(previous.dailyBossActs === undefined && run.dailyBossActs !== undefined ? { dailyBossActs: run.dailyBossActs } : {}) }
 }
 
 export function mergeLeaderboardRuns(legacyRuns, archivedRuns, { preferLegacyRuns = false, journalIds = new Set() } = {}) {

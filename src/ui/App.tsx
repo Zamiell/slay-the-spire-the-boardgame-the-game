@@ -119,7 +119,7 @@ import { isCardPackId } from '../game/packs.ts'
 import { enabledCardPacks, MAX_RUN_KEY_LENGTH, soloRunKey } from '../wallet.ts'
 import { ACCOUNT_WALLETS, creditRunCoins, currentWalletKey, savedWallet, syncAccountWallet } from '../wallet-storage.ts'
 import { CoinGainToast, type CoinGain } from './Coins.tsx'
-import { isRestricted, onProfileChange, PROFILE_KEY, SPIRE_REJECTION } from '../profile.ts'
+import { isRestricted, onProfileChange, PROFILE_KEY, savedProfile, SPIRE_REJECTION } from '../profile.ts'
 import {
   discardRunLog,
   downloadRunLog,
@@ -656,7 +656,7 @@ function LocalGame({ open, onOpen, onClose, onOnline, settings, onSettings, acti
   const pauseDialog = useRef<HTMLDialogElement>(null)
   const runShell = useRef<HTMLElement>(null)
   const queuedLeaderboardRun = useRef<string | null>(null)
-  const leaderboardSubmission = useRef<string | null>(null)
+  const leaderboardSubmission = useRef<{ id: string; owner: string } | null>(null)
   const [leaderboardStatus, setLeaderboardStatus] = useState<'pending' | 'recorded' | 'queued' | 'rejected' | null>(null)
   const [recordRunId, setRecordRunId] = useState<string | null>(null)
   const [runLogExtractedRunId, setRunLogExtractedRunId] = useState<string | null>(null)
@@ -733,10 +733,19 @@ function LocalGame({ open, onOpen, onClose, onOnline, settings, onSettings, acti
   }
 
   const flushQueuedRun = () => void flushLeaderboardOutbox().then(({ recorded, rejected }) => {
-    const id = leaderboardSubmission.current
-    if (!id) return
+    const submission = leaderboardSubmission.current
+    if (!submission) return
+    const { id, owner } = submission
     if (recorded.includes(id) || rejected.includes(id)) leaderboardSubmission.current = null
     setLeaderboardStatus(recorded.includes(id) ? 'recorded' : rejected.includes(id) ? 'rejected' : 'queued')
+    if (recorded.includes(id) && currentWalletKey() === owner) {
+      const before = savedWallet().coins
+      // An in-flight refresh may predate this payout. Wait for it, then read again.
+      void syncAccountWallet().then(() => syncAccountWallet()).then(({ wallet }) => {
+        const coins = wallet.coins - before
+        if (coins > 0 && currentWalletKey() === owner) setCoinGain((current) => ({ coins, total: wallet.coins, id: (current?.id ?? 0) + 1 }))
+      }).catch(() => {})
+    }
   })
 
   useEffect(() => {
@@ -848,7 +857,7 @@ function LocalGame({ open, onOpen, onClose, onOnline, settings, onSettings, acti
       if (!ownsRun(built)) {
         // Another account signed in since this run began (possibly in another tab): its coins are not theirs.
         if (coinsOwed(run.campaign.bossCoins) > 0) setRunLogMessage('This run was started by another account, so its coins were not paid. Sign in to that account to play its runs.')
-      } else {
+      } else if (!(run.meta.dailyDate !== undefined && ACCOUNT_WALLETS && savedProfile())) {
         const { coins, total } = creditRunCoins(coinKey, run.campaign.bossCoins)
         if (coins > 0) setCoinGain((current) => ({ coins, total, id: (current?.id ?? 0) + 1 }))
       }
@@ -1063,9 +1072,10 @@ function LocalGame({ open, onOpen, onClose, onOnline, settings, onSettings, acti
     if (!open || replayLog || tutorial) return
     if (run.campaign.finalized) {
       if (terminalRun.current?.campaign.runId !== run.campaign.runId) return discardSoloRun()
-      if (recordRunId === run.campaign.runId && queuedLeaderboardRun.current !== run.campaign.runId) {
+      if (recordRunId === run.campaign.runId && queuedLeaderboardRun.current !== run.campaign.runId && ownsRun(built)) {
         queuedLeaderboardRun.current = run.campaign.runId
-        leaderboardSubmission.current = queueFinishedSoloRun(run)
+        const id = queueFinishedSoloRun(run)
+        leaderboardSubmission.current = id ? { id, owner: currentWalletKey() } : null
         if (leaderboardSubmission.current) {
           setLeaderboardStatus('pending')
           flushQueuedRun()

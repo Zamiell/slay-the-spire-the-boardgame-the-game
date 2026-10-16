@@ -428,7 +428,7 @@ export function resolveCombat(state: RunState): RunState {
     ? rosterBossAct(state.eventCombat?.bossDefId) ??
       rosterBossAct(combat.enemies.find((enemy) => enemy.isBoss)?.defId) ?? roomAct
     : roomAct
-  const bossCoins = state.meta.dailyDate === undefined && (wasBoss || wasBonusBoss)
+  const bossCoins = wasBoss || wasBonusBoss
     ? [...(state.campaign.bossCoins ?? []), {
       act: bossAct,
       coins: rollBossCoins(state.seed, state.campaign.bossCoins?.length ?? 0, bossAct, state.ascension),

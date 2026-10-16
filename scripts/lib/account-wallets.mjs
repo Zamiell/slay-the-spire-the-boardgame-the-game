@@ -31,12 +31,18 @@ export function syncAccountWallet(store, profile, body) {
     store.walletsDirty = true
   }
   profile.wallet = parseWallet(profile.wallet)
+  const dailyCoinsEarned = profile.dailyCoinsEarned ?? 0
+  if (dailyCoinsEarned && profile.wallet.dailyCoinsEarned !== dailyCoinsEarned) {
+    profile.wallet.dailyCoinsEarned = dailyCoinsEarned
+    store.walletsDirty = true
+  }
   if (migration && !profile.walletImports.includes(migration.id)) {
     if (profile.walletImports.length >= 256) invalid()
     const local = parseWallet(migration.wallet)
     const packs = normalizeCardPacks([...profile.wallet.packs, ...local.packs])
     const skins = normalizeSkins([...profile.wallet.skins, ...local.skins])
-    const earned = Math.max(profile.wallet.coins + spentCoins(profile.wallet), local.coins + spentCoins(local))
+    const earned = Math.max(profile.wallet.coins + spentCoins(profile.wallet), local.coins + spentCoins(local) +
+      Math.max(0, dailyCoinsEarned - (local.dailyCoinsEarned ?? 0)))
     profile.wallet = { ...profile.wallet, packs, skins,
       coins: Math.min(MAX_WALLET_COINS, Math.max(0, earned - spentCoins({ ...profile.wallet, packs, skins }))) }
     for (const [key, count] of Object.entries(local.credited)) {

@@ -103,6 +103,14 @@ try {
 
   // A skin bought on the laptop is owned on the phone: the phone's stale Shop still offers it, buying it
   // there is a retry of the same purchase (no second charge), and Profile lists it as a choice.
+  const stalePhoneWallet = await wallet(phone.page)
+  let freezePhoneReads = true
+  await phone.page.route('**/api/profile/wallet', async (route) => {
+    const body = route.request().postDataJSON()
+    if (body.skin !== undefined || body.pack !== undefined) freezePhoneReads = false
+    if (freezePhoneReads) return route.fulfill({ status: 200, json: { wallet: stalePhoneWallet } })
+    return route.continue()
+  })
   await laptop.page.locator('.start-menu__purse').click()
   await laptop.page.getByRole('tab', { name: /^Skins/ }).click()
   await laptop.page.getByRole('button', { name: `Buy the Kratos skin for Ironclad, ${SKIN_PRICE.toLocaleString('en-US')} coins`, exact: true }).click()

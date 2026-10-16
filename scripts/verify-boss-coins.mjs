@@ -1,5 +1,5 @@
 // Boss victories in real runs pay the coins the economy promises: one award per
-// boss (not per player), rolled from the run's seed, never on a Daily Climb,
+// boss (not per player), rolled from the run's seed, including a Daily Climb,
 // and fixed once rolled so a saved run resumes with the same coins.
 import { suite, check, assert, assertEqual, assertDeepEqual, report } from './lib/harness.mjs'
 import { postNeowRun } from './lib/post-neow-run.mjs'
@@ -110,11 +110,11 @@ check("a Mind Bloom boss pays by the Act of the boss it summons, not the Act it 
   assertEqual(asBonus(undefined).campaign.bossCoins[0].act, 3)
 })
 
-check('a Daily Climb boss pays nothing', () => {
+check('a Daily Climb boss pays the shared seed\'s Ascension 10 award', () => {
   const daily = createRun(1, solo, 0, createCampaignProgress(), false, false, { mode: 'daily', dailyDate: '2026-10-09' })
   const won = winBossRoom({ ...daily, phase: 'map', neow: null })
   assertEqual(won.campaign.bossesDefeated, 1, 'precondition: the boss was beaten')
-  assertEqual(won.campaign.bossCoins, undefined)
+  assertDeepEqual(won.campaign.bossCoins, [{ act: 1, coins: 69 }])
 })
 
 check('a saved run resumes with its rolled coins, and the next boss rolls a fresh number', () => {

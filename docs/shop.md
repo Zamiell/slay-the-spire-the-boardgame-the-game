@@ -28,7 +28,7 @@ as the Act whose base or Downfall boss roster holds it, falling back to the curr
 boss in no roster. The roll is seeded from
 `(run seed, award number, act, ascension)` with its own RNG, so it never advances the run's
 RNG (existing seeds, saves and replays are unchanged) and a resumed or replayed run holds the
-same coins. A Daily Climb records no awards. One award is shared by the whole party; every
+same coins. Daily Climbs earn the same boss awards at their fixed Ascension 10. One award is shared by the whole party; every
 player is owed it in full.
 
 | Ascension | Act I | Act II | Act III | Act IV | Expected from Acts I-III (sum of averages) |
@@ -103,7 +103,7 @@ retains their paid-award counts without the browser ledger's 64-run eviction.
 
 Boss victories append pending awards to `run.campaign.bossCoins`. Coins pay only when
 the result is recorded: **Stop and record result** after victory, or **Record campaign
-result** after defeat. Abandoning a run pays nothing; replays, tutorials, and Daily Climbs
+result** after defeat. Abandoning a run pays nothing; replays and tutorials
 pay nothing. Solo keys include the run id, seed, and start nonce; online keys include
 room code and run id. Server credits are idempotent by run key and award count.
 
@@ -128,6 +128,20 @@ grant moved into the account wallet is marked claimed so those clients cannot cl
 again. Avoid rolling back to a pre-Shop server: it does not preserve grant metadata.
 The read-only `scripts/coin-grants-report.mjs --store <file>` report prints names and
 amounts, never credentials.
+
+### Daily Climb history
+
+The server pays registered accounts for recorded Daily Climbs, including repeated attempts,
+using the day's shared seed and the normal A10 coin rolls. Startup backfills existing history;
+new submissions use the same path, including older clients and climbs resumed across releases.
+Each profile keeps a permanent per-run receipt, so retries, restarts and deployment rollbacks
+cannot pay twice. The wallet's `dailyCoinsEarned` field keeps these credits additive when an
+older browser wallet is imported later. New clients include their boss Acts so Mind Bloom
+also earns its normal award; older history can only recover known defeated Act bosses.
+Runs without a defeated boss earn zero; anonymous runs cannot be assigned to an account.
+Existing balances, packs, skins and frozen legacy grants are preserved. Hosted Daily Climbs
+are paid by the server when their leaderboard result is saved; standalone games pay locally.
+Preview the history with `node scripts/daily-coins-report.mjs --store <rooms.json>`.
 
 ## Packs in runs
 

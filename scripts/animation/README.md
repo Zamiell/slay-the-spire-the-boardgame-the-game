@@ -282,7 +282,7 @@ running, leaving weapons behind the contact/recovery clock. Regenerate the
 companions after changing their WebPs with
 `python3 scripts/animation/encode-safari-attacks.py` (or `--only=looter,mugger`).
 Chrome and idle animations retain their existing WebPs. Hosted APNGs use the
-existing SHA-pinned raw media origin (configured by `VITE_CAMPFIRE_BACKUP_ORIGIN`)
+existing SHA-pinned raw media origin (configured by `VITE_ASSET_BACKUP_ORIGIN`)
 to avoid both the Pages size limit and jsDelivr package limits. The focused
 parity verifier also accepts `--hosted-attacks` to reject the CDN route and
 check native PNG playback with the raw origin's `application/octet-stream` MIME.

@@ -15,7 +15,6 @@ import { createCombat, preparePlayerTurn } from '../src/game/combat.ts'
 import { createRng } from '../src/game/rng.ts'
 import { createRun } from '../src/game/run.ts'
 import { CARDS } from '../src/game/cards.ts'
-import { campfireScenePath } from '../src/game/assets.ts'
 import { SKIN_IDS, SKIN_LABELS, SKIN_TRAITS, characterOfSkin } from '../src/game/skins.ts'
 import { CHARACTER_LABEL } from '../src/ui/run-summary-data.ts'
 
@@ -38,9 +37,12 @@ const CASES = SKIN_IDS.map((skin) => {
   const hero = characterOfSkin(skin)
   const partner = CORE_HEROES.find((character) => character !== hero)
   return { skin, hero, name: CHARACTER_LABEL[hero], label: SKIN_LABELS[skin], traits: SKIN_TRAITS[skin], partner, partnerName: CHARACTER_LABEL[partner],
-    cardNames: Object.values(CARDS).filter((def) => def.owner === hero).map((def) => def.name),
-    soloScene: campfireScenePath([skin]).split('/').pop(), partyScene: campfireScenePath([partner, skin]).split('/').pop() }
+    cardNames: Object.values(CARDS).filter((def) => def.owner === hero).map((def) => def.name) }
 })
+// The campfire's loaded seated sprites, sorted: CampfireScene seats one per living hero, each loading `sitters/<visual id>.webp`.
+const seated = (expected) => [...document.querySelectorAll('.campfire__sitter')]
+  .filter((sitter) => sitter.complete && sitter.naturalWidth > 0)
+  .map((sitter) => new URL(sitter.currentSrc).pathname.match(/\/sitters\/([^/]+)\.webp$/)?.[1]).sort().join(',') === expected
 // The halo around a skin's own energy orb matches that orb's art (a skin copying another's halo would be wrong).
 const ORB_GLOW = { kratos: [220, 22, 24], monogatari_silent: [166, 248, 62], monogatari_watcher: [150, 70, 240] }
 const SCREENS = [['desktop', { width: 1440, height: 900 }], ['horizontal-phone', { width: 844, height: 390 }]]
@@ -91,7 +93,7 @@ async function wallpaper(page, art) {
 }
 
 try {
-  for (const [screen, viewport] of SCREENS) for (const { skin, hero, name, label, traits, cardNames, soloScene } of CASES) {
+  for (const [screen, viewport] of SCREENS) for (const { skin, hero, name, label, traits, cardNames } of CASES) {
     const tag = `${screen}/${skin}`
     // Solo, skin chosen: character select, Neow, campfire and combat all show the skin.
     const skinned = await openContext(viewport, 'Skinner', skin)
@@ -114,7 +116,7 @@ try {
     assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().players[0].character), hero)
     assert.match(await decoded(page, '.neow-screen__hero'), new RegExp(`${skin}-hero\\.webp$`), `${tag}: the Neow scene shows the skin`)
 
-    // Campfire: the scene is the skin's, not the hero's.
+    // Campfire: the seated hero is the skin, not the hero.
     const fixture = postNeowRun(61, [{ id: 'p1', name, character: hero, skin }])
     const campfire = structuredClone(fixture)
     const roomId = campfire.map.rows[0][0]
@@ -122,7 +124,7 @@ try {
     campfire.map.position = roomId
     campfire.map.rooms[roomId].kind = 'campfire'
     await page.evaluate((run) => window.__STS_DEBUG__.setRun(run), campfire)
-    await page.waitForFunction((scene) => getComputedStyle(document.querySelector('.campfire') ?? document.body).backgroundImage.includes(scene), soloScene)
+    await page.waitForFunction(seated, skin)
     await page.screenshot({ path: resolve(output, `${screen}-${skin}-campfire-skinned.png`) })
 
     // Combat: the seat is drawn as the skin, with the character underneath still the hero.
@@ -203,7 +205,7 @@ try {
   }
 
   // Online: Ann wears the skin, Bo does not; each sees the other's seat as it is.
-  for (const [screen, viewport] of SCREENS) for (const { skin, hero, name, label, partner, partnerName, partyScene } of CASES) {
+  for (const [screen, viewport] of SCREENS) for (const { skin, hero, name, label, partner, partnerName } of CASES) {
     const tag = `${screen}/${skin}`
     const annContext = await openContext(viewport, 'Ann', skin)
     const boContext = await openContext(viewport, 'Bo', undefined)
@@ -273,23 +275,23 @@ try {
     await bo.reload({ waitUntil: 'networkidle' })
     await bo.locator(`.seat__interactive[data-player-id="p1"][data-character="${skin}"]`).waitFor()
 
-    // The online campfire is lit by the party's visual ids: the partner plus Ann's skin, for both seats, through a reload.
+    // The online campfire seats the party's visual ids: the partner plus Ann's skin, for both seats, through a reload.
     const camp = structuredClone(room.run)
     const campRoom = camp.map.rows[0][0]
     camp.phase = 'room'; camp.combat = null; camp.map.position = campRoom; camp.map.rooms[campRoom].kind = 'campfire'
     room.run = camp
     room.version += 1
     rooms.publishRoom(code)
-    const litBySkin = (scene) => getComputedStyle(document.querySelector('.campfire') ?? document.body).backgroundImage.includes(scene)
+    const party = [partner, skin].sort().join(',')
     for (const [who, page] of [['Ann', ann], ['Bo', bo]]) {
-      await page.waitForFunction(litBySkin, partyScene, { timeout: 15_000 }).catch(async (error) => {
-        throw new Error(`${tag}: ${who}'s online campfire is not the skin party's scene: ${await page.evaluate(() =>
-          getComputedStyle(document.querySelector('.campfire') ?? document.body).backgroundImage)} (${error.message})`)
+      await page.waitForFunction(seated, party, { timeout: 15_000 }).catch(async (error) => {
+        throw new Error(`${tag}: ${who}'s online campfire does not seat the skin party: ${await page.evaluate(() =>
+          [...document.querySelectorAll('.campfire__sitter')].map((sitter) => new URL(sitter.currentSrc || sitter.src).pathname).join(','))} (${error.message})`)
       })
     }
     await bo.screenshot({ path: resolve(output, `${tag.replace('/', '-')}-online-campfire-bo.png`) })
     await bo.reload({ waitUntil: 'networkidle' })
-    await bo.waitForFunction(litBySkin, partyScene, { timeout: 15_000 })
+    await bo.waitForFunction(seated, party, { timeout: 15_000 })
     await annContext.close()
     await boContext.close()
     console.log(`PASS ${tag}: online lobby, combat and campfire show each seat's skin to every teammate, through a reload`)

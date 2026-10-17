@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import type { CSSProperties } from 'react'
 import { assetPath } from '../game/assets.ts'
 import { campfireNeedsDecision, campfireRestAvailable, canUpgradeCard } from '../game/run.ts'
 import { rulesetForCharacters } from '../game/meta.ts'
@@ -9,7 +8,7 @@ import type { ActionOutcome, PublicSeat, VisiblePlayer } from '../multiplayer/us
 import type { CampfireDecision } from '../game/run.ts'
 import { CardPicker } from './CardPicker.tsx'
 import { Icon } from './Icon.tsx'
-import { useCampfireScene } from './useCampfireScene.ts'
+import { CampfireScene } from './CampfireScene.tsx'
 import { playerVisualId } from '../game/skins.ts'
 
 type Decision = CampfireDecision
@@ -45,7 +44,6 @@ export function OnlineCampfireScreen({ player, saved, decided, seats, onAction, 
   const restHeal = 3 + (player.relics.some((relic) => relic.defId === 'regal_pillow') ? 3 : 0)
   const alive = seats.some((seat) => seat.playerId === player.id)
   const seatCharacters = seats.map((seat) => seat.character)
-  const scene = useCampfireScene(seats.map(playerVisualId))
   const ruleset = rulesetForCharacters(seatCharacters, requestedRuleset)
   const locked = decided.includes(player.id)
   const visiblePlayer = { ...player, deck, campfireTransformAvailable: transformAvailable }
@@ -88,8 +86,8 @@ export function OnlineCampfireScreen({ player, saved, decided, seats, onAction, 
   }, [actionPending, alive, locked, needsDecision])
 
   return (
-    <section className="campfire" data-party-size={seats.length}
-      style={{ '--campfire-scene': `url("${new URL(scene, window.location.href).href}")` } as CSSProperties}>
+    <section className="campfire" data-party-size={seats.length}>
+      <CampfireScene visuals={seats.map(playerVisualId)} />
       <div className="campfire__prompt">
       <h2><Icon name="burn" size={26} /> Campfire <small>Rest Site</small></h2>
       {alive ? <div className="campfire__player">

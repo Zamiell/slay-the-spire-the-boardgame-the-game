@@ -14,7 +14,7 @@ export type SkinId = (typeof SKINS)[keyof typeof SKINS][number]
 /** What per-hero art is keyed by: a worn skin's id, else the character id. */
 export type VisualId = CharacterId | SkinId
 export const SKIN_IDS: readonly SkinId[] = [...new Set(Object.values(SKINS).flat())]
-/** Every art key, characters first: the order party-keyed art (campfire scenes) is named in. */
+/** Every art key, characters first. */
 export const VISUAL_IDS: readonly VisualId[] = [...CHARACTER_IDS, ...SKIN_IDS]
 
 export const SKIN_LABELS: Record<SkinId, string> = {

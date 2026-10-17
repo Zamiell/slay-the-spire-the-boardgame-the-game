@@ -1,0 +1,7 @@
+Cut the seated character out of this painting onto a fully transparent background.
+Keep the character exactly as painted: same identity, costume, pose, proportions, art style, colours,
+and the green campfire glow falling on them from the right side of the image.
+Remove everything else: the log, the ground, grass, stones, shadows on the ground, the fire and the ruins.
+The character stays seated on an invisible seat, facing right towards the fire, three-quarter view.
+Paint in any part of the body that the log hid, so the whole figure is visible from head to feet with clean edges.
+No outline, no glow halo, no floor, no text.

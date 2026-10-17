@@ -167,21 +167,19 @@ check('skin attack and art tooling selects the skin verifiers rather than the wh
   for (const file of ['scripts/art/export-monogatari_silent-char.py', 'scripts/art/export-monogatari_watcher-char.py', 'scripts/art/cutout-monogatari_watcher-idle.py']) {
     owned(file, ['verify-assets.mjs', 'verify-skin-browser.mjs'])
   }
-  for (const file of ['scripts/art/export-monogatari-noncombat.py', 'scripts/art/export-monogatari_silent-noncombat.py', 'scripts/art/export-multi-skin-noncombat.py']) {
-    owned(file, ['verify-assets.mjs', 'verify-art-scenes-browser.mjs', 'verify-merchant-overflow-browser.mjs', 'verify-treasure-animation-browser.mjs'])
+  for (const file of ['scripts/art/export-monogatari-noncombat.py', 'scripts/art/export-monogatari_silent-noncombat.py']) {
+    owned(file, ['verify-assets.mjs', 'verify-merchant-overflow-browser.mjs', 'verify-treasure-animation-browser.mjs'])
+  }
+  for (const file of ['scripts/art/campfire-sitters.py', 'scripts/art/sources/campfire-sitters/manifest.json']) {
+    owned(file, ['verify-assets.mjs', 'verify-art-scenes-browser.mjs'])
   }
 })
 
 check('shared frontend changes use cores plus named visual owners', () => {
-  for (const file of ['src/game/assets.ts', 'src/ui/useCampfireScene.ts', 'src/ui/CampfireScreen.tsx',
-    'src/ui/OnlineCampfireScreen.tsx']) {
-    includesEvery(affectedBrowser(file), ['verify-campfire-assets-browser.mjs'], `${file} campfire artwork`)
+  for (const file of ['src/game/assets.ts', 'src/ui/CampfireScene.tsx', 'src/ui/CampfireScreen.tsx', 'src/ui/OnlineCampfireScreen.tsx',
+    'src/ui/chrome/campfire.css', 'public/assets/noncombat/campfire/sitters/kratos.webp']) {
+    includesEvery(affectedBrowser(file), ['verify-art-scenes-browser.mjs'], `${file} campfire scene`)
   }
-  for (const file of ['src/game/campfire-scene.ts', 'src/game/campfire-scenes.ts']) {
-    includesEvery(affectedBrowser(file), ['verify-campfire-assets-browser.mjs', 'verify-art-scenes-browser.mjs'], `${file} campfire scene choice`)
-  }
-  includesEvery(affected('src/game/campfire-scene.ts'), ['verify-skins.mjs'], 'campfire fallback rule')
-  includesEvery(affected('scripts/sync-campfire-scenes.mjs'), ['verify-assets.mjs'], 'campfire scene manifest')
   for (const sheet of ['src/ui/chrome.css', 'src/ui/chrome/keys.css']) {
     includesEvery(affectedBrowser(sheet), [
       'verify-browser.mjs', 'verify-noncombat-browser.mjs', 'verify-online-browser.mjs',
@@ -244,17 +242,18 @@ check('only an art pipeline input selects the slow art bakes', () => {
   for (const file of ['scripts/animation/kratos.py', 'public/assets/combat/rigged/hero-defect-idle.webp', 'public/assets/sfx/ui.ogg',
     'docs/skins/kratos-card-art/manifest.json', 'docs/skins/monogatari_watcher-art/README.md', 'docs/skins/kratos-art.json',
     'docs/monogatari-skins/prompts/combat/ironclad-ready.txt', 'docs/skins/kratos-card-art/prompts/slayer_bash.txt',
-    'src/ui/hero-art-head.json', 'scripts/art/export-fresh-campfires.py', 'public/assets/noncombat/campfire/empty_firecamp.webp',
-    'public/assets/noncombat/merchant/characters/ironclad-standing.webp', 'scripts/art/sources/kratos-skin-cards/slayer_bash.webp',
-    'scripts/art/skin-cards/masks/attack.png', 'scripts/art/sources/campfire-original-references/empty-campfire.png',
+    'src/ui/hero-art-head.json', 'public/assets/noncombat/campfire/camp.webp', 'scripts/art/campfire-sitters.py',
+    'scripts/art/sources/campfire-sitters/manifest.json', 'scripts/art/sources/kratos-skin-cards/slayer_bash.webp',
+    'scripts/art/skin-cards/masks/attack.png',
     'scripts/verify-art-bakes.mjs']) {
     assert(affected(file).includes(ART_BAKES), `${file} selects ${ART_BAKES}`)
   }
   for (const file of ['src/game/enemies.ts', 'src/game/skins.ts', 'src/game/new-system.ts', 'public/assets/noncombat/merchant/test.webp',
     'public/assets/skin-cards/kratos/x.webp', 'index.html', 'docs/skins/attack-animation.md', 'scripts/calibrate-enemy-size.py', 'docs/skins/kratos-noncombat/README.md',
     'docs/monogatari-skins/validation.md', 'docs/skins/kratos-noncombat/prompts/merchant.txt',
-    'docs/monogatari-skins/prompts/noncombat/defect-seated.txt', 'docs/skins/kratos-card-art/README.md',
+    'docs/skins/kratos-card-art/README.md',
     'scripts/art/export-kratos-menu.py', 'scripts/art/sources/kratos-noncombat/merchant.webp', 'scripts/audio/generate-combat-sfx.py',
+    'public/assets/noncombat/merchant/characters/ironclad-standing.webp', 'docs/monogatari-skins/prompts/noncombat/defect-merchant.txt',
     'scripts/animation/sources/menu-icons/stats.txt', 'scripts/animation/README.md', 'docs/monogatari-skins/cards/README.md',
     'scripts/lib/test-skins.mjs', 'docs/skins/monogatari_silent-art/prompts/select-portrait.txt',
     'public/assets/card-art/ironclad/bash.webp', 'public/assets/combat/energy-orbs/kratos.webp', 'public/assets/combat/slimes/spike.webp',
@@ -267,7 +266,7 @@ check('only an art pipeline input selects the slow art bakes', () => {
     'docs/skins/kratos-menu-art/prompts/portrait.txt', 'docs/skins/monogatari_silent-art/manifest.json',
     'docs/monogatari-skins/noncombat-manifest.json', 'scripts/animation/sources/kratos/idle.webp',
     'scripts/animation/sources/monogatari/ironclad-idle.webp', 'scripts/art/sources/monogatari_silent-char/identity.webp',
-    'scripts/art/sources/monogatari/noncombat/defect-seated.png',
+    'scripts/art/sources/monogatari/noncombat/defect-merchant.png',
   ]) assert(affected(file).includes('verify-assets.mjs'), `${file} selects verify-assets`)
   // verify-all's full-suite path (a deletion) applies the same gate.
   assertDeepEqual(gateArtBakes(scripts, ['src/game/deleted.ts']), everyRoutineCheck)

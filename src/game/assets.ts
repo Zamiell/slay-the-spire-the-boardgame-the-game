@@ -6,13 +6,11 @@
 import type { CardDef } from './cards.ts'
 import type { EnemyDef } from './enemies.ts'
 import type { PotionDef, RelicDef } from './relics.ts'
-import { campfireParty } from './campfire-scene.ts'
-import { CAMPFIRE_SCENES } from './campfire-scenes.ts'
 import { SKIN_CARD_FACES } from './skin-card-faces.ts'
-import type { SkinId, VisualId } from './skins.ts'
+import type { SkinId } from './skins.ts'
 
 const assetCdnOrigin = import.meta.env?.VITE_ASSET_CDN_ORIGIN?.replace(/\/$/, '')
-const assetBackupOrigin = import.meta.env?.VITE_CAMPFIRE_BACKUP_ORIGIN?.replace(/\/$/, '')
+const assetBackupOrigin = import.meta.env?.VITE_ASSET_BACKUP_ORIGIN?.replace(/\/$/, '')
 
 /** Public asset URL under Vite's current deployment base. */
 // Large APNGs can hit jsDelivr's package limit; the existing raw media origin
@@ -22,9 +20,7 @@ export const assetPath = (path: string): string => assetBackupOrigin &&
     path.startsWith('combat/rigged/hero-') && path.endsWith('-idle.webp'))
   ? `${assetBackupOrigin}/${path}`
   : assetCdnOrigin &&
-  (path.startsWith('bgm/') || path.startsWith('combat/') && path.endsWith('-attack.png') ||
-    path.startsWith('noncombat/campfire/') && path.endsWith('_firecamp.webp') &&
-    path !== 'noncombat/campfire/empty_firecamp.webp')
+  (path.startsWith('bgm/') || path.startsWith('combat/') && path.endsWith('-attack.png'))
   ? `${assetCdnOrigin}/${path}`
   : `${import.meta.env?.BASE_URL ?? '/'}assets/${path}`
 
@@ -156,18 +152,6 @@ export function potionCardImagePath(def: PotionDef): string {
 
 export const relicIconPath = (id: string) => assetPath(`relic-icons/${id.replace(/^downfall_/, '')}.png`)
 export const potionIconPath = (id: string) => assetPath(`potion-icons/${id}.png`)
-
-/**
- * `characters` are the party's visual ids: a hero in a skin is lit by the skin's scene.
- * A party without a painted scene falls back to a listed one (see campfireParty).
- */
-export function campfireScenePath(characters: readonly VisualId[], backup = false): string {
-  const party = campfireParty(characters, CAMPFIRE_SCENES)
-  const path = `noncombat/campfire/${party ? `${party}_` : 'empty_'}firecamp.webp`
-  return backup && assetBackupOrigin ? `${assetBackupOrigin}/${path}` : assetPath(path)
-}
-
-export const campfireSceneLocalPath = () => `${import.meta.env?.BASE_URL ?? '/'}assets/noncombat/campfire/empty_firecamp.webp`
 
 /**
  * The tier directory a card's scan lives in. Player cards are filed by rarity:

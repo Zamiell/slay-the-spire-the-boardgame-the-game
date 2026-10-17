@@ -1,7 +1,7 @@
 // Slow art audits: re-run every bake script in --check mode, decode every frame and pixel-probe the art. They prove
 // committed art still matches the pipeline that made it, so affected-verifiers selects this script only when an art
-// pipeline input changes (artBakeInput: animation scripts and sources, the campfire and skin-card art scripts and sources,
-// calibration scripts, combat art, sounds, skin art provenance).
+// pipeline input changes (artBakeInput: animation scripts and sources, the campfire sitter and skin-card art scripts and
+// sources, calibration scripts, combat art, sounds, skin art provenance).
 // verify-assets.mjs keeps the fast inventory, dimension and budget checks.
 import { existsSync, readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
@@ -9,7 +9,6 @@ import { spawnSync } from 'node:child_process'
 import { join } from 'node:path'
 import { SKIN_IDS } from '../src/game/skins.ts'
 import { scratchDir } from './lib/test-skins.mjs'
-import { campfireScenes } from './sync-campfire-scenes.mjs'
 import { SKIN_CARD_FACES } from '../src/game/skin-card-faces.ts'
 import { suite, check, assert, assertDeepEqual, assertEqual, report } from './lib/harness.mjs'
 import {
@@ -62,15 +61,6 @@ check('every Safari hardware-video companion was encoded from the current rigged
     assertEqual(manifest[relative].source, hash(source), `${relative} Safari source hash`)
     assertEqual(manifest[relative].video, hash(video), `${relative} Safari video hash`)
   }
-})
-
-check('fresh campfires use original empty and character inputs and retain their native resolution', () => {
-  const manifest = JSON.parse(readFileSync(join(repoRoot, 'docs/skins/fresh-campfires/manifest.json'), 'utf8'))
-  const expected = campfireScenes().filter((name) => /(^|_)monogatari_(silent|watcher)($|_)/.test(name)
-    || /(^|_)guardian($|_)/.test(name) && /(^|_)monogatari_(ironclad|defect)($|_)/.test(name)).sort()
-  assertDeepEqual(manifest.scenes.map((entry) => entry.scene).sort(), expected, 'fresh campfire provenance inventory')
-  const result = spawnSync('python3', ['scripts/art/export-fresh-campfires.py', '--check'], { cwd: repoRoot, encoding: 'utf8' })
-  assert(result.status === 0, result.stderr || result.stdout)
 })
 
 check('every sound effect decodes', () => {
@@ -581,8 +571,8 @@ check('every artwork file fully decodes', () => {
     [powerIconRoot, 'png', powerIconFiles.length],
     [relicIconRoot, 'png', relicIconFiles.length],
     [potionIconRoot, 'png', potionIconFiles.length],
-    [campfireRoot, 'png', listing(campfireRoot, '.png').length],
     [campfireRoot, 'webp', listing(campfireRoot, '.webp').length],
+    [join(campfireRoot, 'sitters'), 'webp', listing(join(campfireRoot, 'sitters'), '.webp').length],
   ]) {
     if (count === 0) continue
     const result = spawnSync('ffmpeg', [
@@ -590,6 +580,11 @@ check('every artwork file fully decodes', () => {
     ], { encoding: 'utf8' })
     assert(result.status === 0, result.stderr || `could not decode ${dir}/*.${extension}`)
   }
+})
+
+check('every campfire sitter matches its accepted source, manifest entry and export', () => {
+  const result = spawnSync('python3', ['scripts/art/campfire-sitters.py', 'check'], { cwd: repoRoot, encoding: 'utf8' })
+  assert(result.status === 0, result.stderr || result.stdout)
 })
 
 report('art bakes')

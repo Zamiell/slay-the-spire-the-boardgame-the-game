@@ -13,7 +13,7 @@ in their supplied order (`IMG_0894.jpeg`, `IMG_0893.jpeg`, `IMG_0892.webp`), has
 in `noncombat-style-references.json`; they are not redistributed. Identity means
 repaired Ironclad (`scripts/art/sources/monogatari/ironclad-idle-grip-repaired.png`)
 or initial Defect sheet (`defect-design-draft.png`); the later Defect merchant
-and seated outputs instead use the finalized single pose
+output instead uses the finalized single pose
 `scripts/animation/sources/monogatari/defect-idle.png`.
 
 | Source/prompt stem | Size | Ordered `--image` inputs |
@@ -22,12 +22,9 @@ and seated outputs instead use the finalized single pose
 | `{char}-treasure` | 1024x1536 | Identity, all 3 style samples, original treasure `hand-{char}.webp` |
 | `{char}-wallpaper` | 1536x1024 | Identity, all 3 style samples, original character wallpaper |
 | `{char}-merchant` | 1024x1536 | Identity, all 3 style samples, original merchant standing |
-| `{char}-seated` | 1536x1024 | Identity, all 3 style samples, original solo campfire |
-| `original-ironclad-silent-defect-seated` | 1536x1024 | Matching committed three-column reference JPG |
-| `original-hexaghost-hermit-kratos-seated` | 1536x1024 | Matching committed three-column reference JPG |
-| `original-watcher-slime_boss-guardian-seated-v2` | 1536x1024 | Original Watcher, Slime Boss, Guardian solo campfires in that order |
-| `original-watcher-seated` | 1024x1024 | Original Watcher solo campfire |
-| `original-guardian-seated` | 1024x1024 | Original Guardian solo campfire |
+
+The original solo campfire scenes used as `{char}-cutouts` inputs were removed with the per-party campfire catalogue;
+they remain in git history.
 
 Repeat a generation using:
 
@@ -46,29 +43,15 @@ The production **export** is deterministic and never needs another API call:
 python3 scripts/art/export-monogatari-noncombat.py
 ```
 
-The exporter produces ten menu/merchant/treasure files and 208 campfire scenes,
-all 3840x2161, for every set of 1–4 visual IDs containing an anime skin. It retains
-the project's existing rule that a base character and its skin cannot share a
-party scene, but includes Kratos + anime Ironclad combinations as required by
-the current multiplayer visual-set inventory. Existing original scenes are not
-modified. All source/output/reference/prompt hashes are in
+The exporter produces ten menu/merchant/treasure files. All source/output/reference/prompt hashes are in
 `noncombat-manifest.json`.
 
 ## Visual audit and repairs
 
 - Initial four-quadrant sheets have clean faces but standing boots crossed the
   panel boundary. They are used **only for cropped portraits**. Production
-  merchant and seated art were regenerated into dedicated images.
-- The first original-character trio changed Watcher's blindfold into an elf
-  face and made Guardian furry. Those variants were rejected. Watcher/Guardian
-  were regenerated separately against full-size solo originals; production
-  retains blindfold, human ears, and the thin articulated shield-arch robot.
+  merchant art was regenerated into dedicated images.
 - Native alpha was inspected numerically and each selected source was viewed.
-- Pair/full-party compositions were inspected at 1536x864: all pelvises sit on
-  logs, boots/feet are outside the fire, no substituted OG hero remains, no
-  intersecting silhouettes, stable face/body scale. The expanded contact sheet
-  covers solo, pair, triple, both anime skins with Watcher/Silent, Guardian/Kratos,
-  Slime Boss/Hexaghost, Hermit/Kratos and skin-with-skin parties.
 - Main thread owns actual desktop/horizontal-phone E2E screenshots and animation
   recordings; these source previews alone do not claim runtime validation.
 

@@ -1,0 +1,7 @@
+Paint the character from the first image seated by a campfire, alone on a fully transparent background.
+The first image is the character's true design. Copy its anatomy exactly: the same body parts, the same number of arms
+and legs (or none), the same shapes, costume, colours and art style. Never add limbs, muscles, seats or props it lacks.
+The second image shows only the pose, framing and light to use: seated on an invisible seat, three-quarter view facing
+right towards the fire, lit by green campfire glow from the right. Where the second image disagrees with the first
+image's design, follow the first image.
+Show the whole figure from head to feet with clean edges. No seat, log, floor, ground shadow, fire, outline or text.

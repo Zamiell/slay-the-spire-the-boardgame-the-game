@@ -50,7 +50,7 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: VITE_ASSET_CDN_ORIGIN="https://raw.githubusercontent.com/$GITHUB_REPOSITORY/$DEPLOY_SHA/public/assets" VITE_CAMPFIRE_BACKUP_ORIGIN="https://raw.githubusercontent.com/$GITHUB_REPOSITORY/$DEPLOY_SHA/public/assets" VITE_SINGLE_PLAYER=false VITE_HOSTED_SESSION=true pnpm build
+      - run: VITE_ASSET_CDN_ORIGIN="https://raw.githubusercontent.com/$GITHUB_REPOSITORY/$DEPLOY_SHA/public/assets" VITE_ASSET_BACKUP_ORIGIN="https://raw.githubusercontent.com/$GITHUB_REPOSITORY/$DEPLOY_SHA/public/assets" VITE_SINGLE_PLAYER=false VITE_HOSTED_SESSION=true pnpm build
       - name: Keep large media outside the Pages size limit
         run: |
           curl --fail --silent --show-error --retry 10 --retry-all-errors --retry-delay 2 --max-time 30 --head \
@@ -61,17 +61,13 @@ jobs:
             "https://raw.githubusercontent.com/$GITHUB_REPOSITORY/$DEPLOY_SHA/public/assets/combat/enemies/animated/reptomancer-attack.png" | grep -Eqi '^content-type: (image/png|application/octet-stream)'
           curl --fail --silent --show-error --retry 10 --retry-all-errors --retry-delay 2 --max-time 30 --head \
             "https://raw.githubusercontent.com/$GITHUB_REPOSITORY/$DEPLOY_SHA/public/assets/combat/rigged/hero-defect-idle.webp" | grep -Eqi '^content-type: (image/webp|application/octet-stream)'
-          curl --fail --silent --show-error --retry 10 --retry-all-errors --retry-delay 2 --max-time 30 --head \
-            "https://raw.githubusercontent.com/$GITHUB_REPOSITORY/$DEPLOY_SHA/public/assets/noncombat/campfire/ironclad_silent_firecamp.webp" | grep -qi '^content-type: image/webp'
           find dist/assets/combat/rigged -type f -name '*.mov' -delete
           find dist/assets/combat -type f -name '*-attack.png' -delete
           find dist/assets/combat/rigged -type f -name 'hero-*-idle.webp' -delete
           find dist/assets/bgm -type f -delete
-          find dist/assets/noncombat/campfire -type f -name '*_firecamp.webp' ! -name 'empty_firecamp.webp' -delete
           test "$(find dist -type f -name '*.mov' -print -quit)" = ''
           test "$(find dist/assets/bgm -type f -print -quit)" = ''
-          test "$(find dist/assets/noncombat/campfire -type f ! -name 'empty_firecamp.webp' ! -name 'rest.webp' ! -name 'smith.webp' -print -quit)" = ''
-          for file in empty_firecamp.webp rest.webp smith.webp; do test -s "dist/assets/noncombat/campfire/$file"; done
+          for file in camp.webp rest.webp smith.webp sitters/ironclad.webp; do test -s "dist/assets/noncombat/campfire/$file"; done
           # The published site may not exceed 1 GB (GitHub Pages); this cap keeps 100 MB of margin. It was 850 MB until the
           # fifth skin (about 18 MB each in dist; see docs/skins/README.md, "Pages package size").
           test "$(du -sb dist | cut -f1)" -le 900000000

@@ -70,7 +70,6 @@ const optionalRelicIconFiles = new Set(['hexaghost_starting_relic.png'])
 export const requiredRelicIconFiles = relicIconFiles.filter((file) => !optionalRelicIconFiles.has(file))
 export const potionIconFiles = listing(potionIconRoot, '.png')
 export const compendiumIconFiles = listing(compendiumIconRoot, '.webp')
-export const campfireSceneFiles = [...listing(campfireRoot, '_firecamp.png'), ...listing(campfireRoot, '_firecamp.webp')]
 
 export const SLIME_ASSET_SLUGS = [
   'armored', 'bruiser', 'evolution', 'leeching', 'massive', 'muscle', 'psychic',

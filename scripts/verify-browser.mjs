@@ -16534,23 +16534,16 @@ for (let mask = 1; mask < 16; mask += 1) {
     run.players = run.players.map((player, index) => ({ ...player, dead: !(livingMask & (1 << index)) }))
     debug.setRun(run)
   }, mask)
-  const expectedCount = expectedParty.split('_').length
-  await page.waitForFunction((count) => document.querySelector('.campfire')?.getAttribute('data-party-size') === String(count), expectedCount)
+  await page.waitForFunction((party) => [...document.querySelectorAll('.campfire__sitter')]
+    .map((sitter) => sitter.dataset.visual).join('_') === party, expectedParty)
   campfirePartyLayouts.push(await page.locator('.campfire').evaluate(async (campfire, { expected, decode }) => {
-    const background = getComputedStyle(campfire).backgroundImage
-    const url = background.match(/url\(["']?([^"')]+)["']?\)/)?.[1] ?? ''
-    let loaded = true
-    if (decode) {
-      const image = new Image()
-      image.src = url
-      await image.decode()
-      loaded = image.naturalWidth === 3840 && image.naturalHeight === 2161
-    }
+    const sitters = [...campfire.querySelectorAll('.campfire__sitter')]
+    if (decode) await Promise.all(sitters.map((sitter) => sitter.decode()))
     return {
       statusCards: campfire.querySelectorAll('.campfire__players, .campfire__seat').length,
       expected,
-      selected: url.endsWith(`/${expected}_firecamp.webp`),
-      loaded,
+      selected: sitters.map((sitter) => sitter.dataset.visual).join('_') === expected,
+      loaded: !decode || sitters.every((sitter) => sitter.naturalWidth === 1408 && sitter.naturalHeight === 1808),
       overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
     }
   }, { expected: expectedParty, decode: [1, 3, 7, 15].includes(mask) }))
@@ -16563,33 +16556,25 @@ await page.evaluate(() => {
 })
 await page.waitForFunction(() => document.querySelector('.campfire')?.getAttribute('data-party-size') === '4')
 const customCampfireLayouts = []
-for (const [characters, expected] of [
-  [['guardian', 'hermit', 'hexaghost', 'slime_boss'], 'slime_boss_guardian_hexaghost_hermit'],
-  [['ironclad', 'guardian', 'silent', 'hermit'], 'ironclad_silent_guardian_hermit'],
-]) {
+for (const characters of [['guardian', 'hermit', 'hexaghost', 'slime_boss'], ['ironclad', 'guardian', 'silent', 'hermit']]) {
   await page.evaluate((party) => {
     const debug = window.__STS_DEBUG__
     const run = structuredClone(debug.getRun())
     run.players = run.players.map((player, index) => ({ ...player, character: party[index], dead: false }))
     debug.setRun(run)
   }, characters)
-  await page.waitForFunction((name) => getComputedStyle(document.querySelector('.campfire'))
-    .backgroundImage.includes(`/${name}_firecamp.webp`), expected)
-  customCampfireLayouts.push(await page.locator('.campfire').evaluate(async (campfire) => {
-    const url = getComputedStyle(campfire).backgroundImage.match(/url\(["']?([^"')]+)["']?\)/)?.[1] ?? ''
-    const image = new Image()
-    image.src = url
-    await image.decode()
-    return {
-      scene: new URL(url).pathname,
-      decoded: image.naturalWidth === 3840 && image.naturalHeight === 2161,
-    }
+  await page.waitForFunction((party) => [...document.querySelectorAll('.campfire__sitter')]
+    .map((sitter) => sitter.dataset.visual).join() === party.join(), characters)
+  customCampfireLayouts.push(await page.locator('.campfire__sitter').evaluateAll(async (sitters) => {
+    await Promise.all(sitters.map((sitter) => sitter.decode()))
+    return sitters.map((sitter) => [sitter.dataset.visual, sitter.naturalWidth, sitter.naturalHeight])
   }))
 }
-check('Downfall-only and mixed parties select their complete baked campfire scenes', () => {
-  assert(customCampfireLayouts[0].scene.endsWith('/slime_boss_guardian_hexaghost_hermit_firecamp.webp'))
-  assert(customCampfireLayouts[1].scene.endsWith('/ironclad_silent_guardian_hermit_firecamp.webp'))
-  assert(customCampfireLayouts.every((layout) => layout.decoded), JSON.stringify(customCampfireLayouts))
+check('Downfall-only and mixed parties seat every hero at the campfire in party order', () => {
+  assertDeepEqual(customCampfireLayouts, [
+    [['guardian', 1408, 1808], ['hermit', 1408, 1808], ['hexaghost', 1408, 1808], ['slime_boss', 1408, 1808]],
+    [['ironclad', 1408, 1808], ['guardian', 1408, 1808], ['silent', 1408, 1808], ['hermit', 1408, 1808]],
+  ])
 })
 await page.evaluate(() => {
   const debug = window.__STS_DEBUG__
@@ -16598,7 +16583,7 @@ await page.evaluate(() => {
   run.players = run.players.map((player, index) => ({ ...player, character: characters[index] }))
   debug.setRun(run)
 })
-await page.waitForFunction(() => getComputedStyle(document.querySelector('.campfire')).backgroundImage.includes('/ironclad_silent_defect_watcher_firecamp.webp'))
+await page.waitForFunction(() => [...document.querySelectorAll('.campfire__sitter')].map((sitter) => sitter.dataset.visual).join() === 'ironclad,silent,defect,watcher')
 const campfireResponsiveLayouts = []
 for (const viewport of [{ width: 1440, height: 900 }, { width: 667, height: 375 }]) {
   await page.setViewportSize(viewport)
@@ -16611,9 +16596,11 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 667, height: 375 
     return {
       overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth ||
         document.documentElement.scrollHeight > document.documentElement.clientHeight,
-      sceneFits: (innerWidth <= innerHeight
-        ? getComputedStyle(campfire, '::after')
-        : getComputedStyle(campfire)).backgroundSize.split(',').at(-1)?.trim() === (innerWidth <= innerHeight ? 'contain' : 'cover'),
+      sceneFits: (() => {
+        const scene = campfire.querySelector('.campfire__scene').getBoundingClientRect()
+        const box = campfire.getBoundingClientRect()
+        return scene.left <= box.left + 0.5 && scene.right >= box.right - 0.5 && scene.top <= box.top + 0.5 && scene.bottom >= box.bottom - 0.5
+      })(),
       headingClearOfHeader: Boolean(header && heading && heading.top >= header.bottom - 1),
       switchers: [...campfire.querySelectorAll('.campfire__turn-nav button')].map((button) => {
         const box = button.getBoundingClientRect()

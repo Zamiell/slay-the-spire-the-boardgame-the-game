@@ -5246,20 +5246,15 @@ try {
   const deadCampfireStatus = await teammateGame.getByRole('status').textContent()
   const deadCampfireControls = await teammateGame.locator('.campfire__prompt button, .campfire__leave').count()
   const multiplayerCampfireStatusCards = await teammateGame.locator('.campfire__players, .campfire__seat').count()
-  const onlineCampfireScene = await teammateGame.locator('.campfire').evaluate(async (campfire) => {
-    const match = getComputedStyle(campfire).backgroundImage.match(/url\(["']?(.*?)["']?\)/)
-    const image = new Image()
-    image.src = match?.[1] ?? ''
-    await image.decode()
-    return { path: new URL(image.src).pathname, width: image.naturalWidth, height: image.naturalHeight }
-  })
+  await teammateGame.locator('.campfire__sitter').evaluateAll((sitters) => Promise.all(sitters.map((sitter) => sitter.decode())))
+  const onlineCampfireSitters = await teammateGame.locator('.campfire__sitter').evaluateAll((sitters) =>
+    sitters.map((sitter) => [new URL(sitter.currentSrc).pathname, sitter.naturalWidth, sitter.naturalHeight]))
   const ownerCampfireControls = await ownerGame.locator('.campfire__prompt button').count()
   check('a dead online viewer spectates the living Campfire without submitting a choice', () => {
     assert(deadCampfireStatus.includes('watching the surviving party'), deadCampfireStatus)
     assertEqual(deadCampfireControls, 0)
     assertEqual(multiplayerCampfireStatusCards, 0)
-    assertEqual(onlineCampfireScene.path, '/assets/noncombat/campfire/ironclad_firecamp.webp')
-    assertDeepEqual([onlineCampfireScene.width, onlineCampfireScene.height], [3840, 2161])
+    assertDeepEqual(onlineCampfireSitters, [['/assets/noncombat/campfire/sitters/ironclad.webp', 1408, 1808]])
     assert(ownerCampfireControls >= 2, 'the living player lost their Campfire controls')
   })
   await ownerGame.getByRole('button', { name: /Smith/ }).click()

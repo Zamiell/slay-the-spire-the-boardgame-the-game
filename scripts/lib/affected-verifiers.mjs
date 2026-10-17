@@ -36,9 +36,7 @@ const focusedEngineOwners = ownerMap([
   // test-skins.mjs appends a registration to the module text of these files, so a change there reruns its proof.
   ['src/game/coins.ts', ['verify-test-skins-browser.mjs']],
   ['src/skin-preference.ts', ['verify-skins.mjs', 'verify-wallet.mjs', 'verify-skin-browser.mjs', 'verify-skin-profile-browser.mjs', 'verify-shop-browser.mjs']],
-  ['src/game/assets.ts', ['verify-campfire-assets-browser.mjs', 'verify-art-scenes-browser.mjs', 'verify-skins.mjs', 'verify-skin-cards-browser.mjs']],
-  ['src/game/campfire-scene.ts', ['verify-skins.mjs', 'verify-campfire-assets-browser.mjs', 'verify-art-scenes-browser.mjs']],
-  ['src/game/campfire-scenes.ts', ['verify-assets.mjs', 'verify-campfire-assets-browser.mjs', 'verify-art-scenes-browser.mjs']],
+  ['src/game/assets.ts', ['verify-art-scenes-browser.mjs', 'verify-pages-deploy.mjs', 'verify-skins.mjs', 'verify-skin-cards-browser.mjs']],
   ['src/game/skin-card-faces.ts', ['verify-assets.mjs', 'verify-skin-cards-browser.mjs', 'verify-monogatari-skins-browser.mjs']],
   ['src/game/guardian-gems.ts', ['verify-boon-socket-browser.mjs', 'verify-loot-browser.mjs']],
   ['src/game/run/guardian-gems.ts', ['verify-boon-socket-browser.mjs', 'verify-loot-browser.mjs']],
@@ -61,7 +59,9 @@ const focusedEngineOwners = ownerMap([
 const focusedUiOwners = ownerMap([
   ['src/ui/App.tsx', ['verify-restricted-browser.mjs', 'verify-run-replay-browser.mjs', 'verify-replay-controls-browser.mjs', 'verify-courier-browser.mjs',
     'verify-combat-vfx-preload-browser.mjs', 'verify-tutorial-browser.mjs', 'verify-enemy-hover-browser.mjs', 'verify-skin-browser.mjs']],
-  ['src/ui/CampfireScreen.tsx', ['verify-campfire-assets-browser.mjs', 'verify-monogatari-skins-browser.mjs']],
+  ['src/ui/CampfireScene.tsx', ['verify-art-scenes-browser.mjs', 'verify-skin-browser.mjs']],
+  ['src/ui/campfire-seats.ts', ['verify-art-scenes-browser.mjs', 'verify-skin-browser.mjs']],
+  ['src/ui/CampfireScreen.tsx', ['verify-art-scenes-browser.mjs', 'verify-monogatari-skins-browser.mjs']],
   ['src/ui/CompendiumScreen.tsx', ['verify-compendium-browser.mjs', 'verify-skin-browser.mjs', 'verify-skin-cards-browser.mjs']],
   ['src/ui/StatsScreen.tsx', ['verify-stats-browser.mjs', 'verify-skin-cards-browser.mjs']],
   ['src/ui/skin-context.tsx', ['verify-skin-cards-browser.mjs', 'verify-card-rendering-browser.mjs']],
@@ -84,7 +84,7 @@ const focusedUiOwners = ownerMap([
   ['src/ui/EnemyCard.tsx', ['verify-elite-signatures-browser.mjs', 'verify-elite-intent-browser.mjs', 'verify-skin-attack-browser.mjs']],
   ['src/ui/combat-screen/hooks.ts', ['verify-card-damage-preview-browser.mjs', 'verify-skin-attack-browser.mjs']],
   ['src/ui/combat-screen/staged-attacks.ts', ['verify-assets.mjs', 'verify-skin-attack-browser.mjs']],
-  ['src/ui/chrome/campfire.css', ['verify-art-scenes-browser.mjs', 'verify-card-picker-browser.mjs', 'verify-campfire-assets-browser.mjs']],
+  ['src/ui/chrome/campfire.css', ['verify-art-scenes-browser.mjs', 'verify-card-picker-browser.mjs']],
   ['src/ui/styles/staged-attacks.css', ['verify-skin-attack-browser.mjs']],
   ['src/ui/styles/attack-timing.css', ['verify-defect-chan-evoke-browser.mjs']],
   ['src/ui/SettingsDialog.tsx', ['verify-card-damage-preview-browser.mjs']],
@@ -108,13 +108,12 @@ const focusedUiOwners = ownerMap([
   ['src/multiplayer/useRoomSession.ts', ['verify-combat-layout-reload-browser.mjs', 'verify-skin-browser.mjs', 'verify-skin-cards-browser.mjs', 'verify-start-turn-resync-browser.mjs', 'verify-monogatari-online-browser.mjs']],
   ['src/ui/RelicChip.tsx', ['verify-courier-browser.mjs']],
   ['src/ui/OnlineGame.tsx', ['verify-courier-browser.mjs', 'verify-skin-browser.mjs', 'verify-skin-cards-browser.mjs', 'verify-start-turn-resync-browser.mjs', 'verify-monogatari-online-browser.mjs']],
-  ['src/ui/OnlineCampfireScreen.tsx', ['verify-campfire-assets-browser.mjs', 'verify-monogatari-online-browser.mjs']],
+  ['src/ui/OnlineCampfireScreen.tsx', ['verify-art-scenes-browser.mjs', 'verify-monogatari-online-browser.mjs']],
   ['src/ui/StartMenu.tsx', ['verify-run-replay-browser.mjs', 'verify-title-menu-browser.mjs', 'verify-tutorial-browser.mjs', 'verify-skin-browser.mjs']],
   ['src/ui/ProfileScreen.tsx', ['verify-skin-profile-browser.mjs', 'verify-account-browser.mjs', 'verify-wallet-sync-browser.mjs', 'verify-restricted-browser.mjs']],
   ['src/profile.ts', ['verify-account-browser.mjs', 'verify-restricted-browser.mjs']],
   ['src/ui/styles/profile.css', ['verify-skin-profile-browser.mjs', 'verify-account-browser.mjs']],
   ['src/ui/sfx.ts', ['verify-run-replay-browser.mjs']],
-  ['src/ui/useCampfireScene.ts', ['verify-campfire-assets-browser.mjs']],
   ['src/ui/combat-screen/HermitTriggerChoice.tsx', [
     'verify-hermit-combo-browser.mjs', 'verify-hermit-online-staged-trigger-browser.mjs',
   ]],
@@ -133,11 +132,9 @@ const focusedOnlyUiOwners = ownerMap([
   ['.github/workflows/ci.yml', ['verify-assets.mjs', 'verify-pipeline.mjs']],
   ['scripts/audio/generate-combat-sfx.py', ['verify-assets.mjs', 'verify-safari-sound-browser.mjs', 'verify-rig-animation-browser.mjs']],
   ['scripts/lib/skin-attack-fixture.mjs', ['verify-skin-attack-browser.mjs', 'verify-monogatari-animation-browser.mjs', 'verify-monogatari-skins-browser.mjs', 'verify-defect-chan-evoke-browser.mjs']],
-  ['scripts/art/campfire_export.py', ['verify-art-bakes.mjs', 'verify-art-scenes-browser.mjs']],
-  ['scripts/art/campfire_references.py', ['verify-art-bakes.mjs']],
-  ['scripts/art/export-fresh-campfires.py', ['verify-art-bakes.mjs', 'verify-art-scenes-browser.mjs']],
+  ['scripts/art/campfire-sitters.py', ['verify-assets.mjs', 'verify-art-scenes-browser.mjs']],
   ['scripts/art/export-kratos-menu.py', ['verify-assets.mjs', 'verify-skin-browser.mjs']],
-  ['scripts/art/export-kratos-noncombat.py', ['verify-assets.mjs', 'verify-art-scenes-browser.mjs', 'verify-merchant-overflow-browser.mjs', 'verify-treasure-animation-browser.mjs']],
+  ['scripts/art/export-kratos-noncombat.py', ['verify-assets.mjs', 'verify-merchant-overflow-browser.mjs', 'verify-treasure-animation-browser.mjs']],
   ['scripts/calibrate-hero-head.py', ['verify-hero-potions-browser.mjs', 'verify-art-bakes.mjs']],
   ['scripts/animation/encode-safari-attacks.py', ['verify-assets.mjs', 'verify-rig-animation-browser.mjs']],
   ['scripts/animation/check-attack-parity.py', ['verify-rig-animation-browser.mjs']],
@@ -226,21 +223,20 @@ const ART_BAKE_INPUT = new RegExp('^(' + [
   // Combat art except folders no bake reads; of the character card art only the regeneration input the Watcher-chan
   // card manifest hashes (the hashed-path check in verify-pipeline.mjs catches a new one).
   'public/assets/combat/(?!(slimes|energy-orbs|enemies/props)/)', 'public/assets/card-art/watcher/tranquility\\.webp$',
-  'public/assets/noncombat/(campfire|merchant/characters)/', 'scripts/calibrate-(elite-intent|hero-head)\\.py$',
+  'public/assets/noncombat/campfire/', 'scripts/calibrate-(elite-intent|hero-head)\\.py$',
   // Menu and Shop icon prompts live beside the animation sources but no bake reads them.
   'scripts/animation/(?!sources/(menu-icons|shop-icons)/)',
-  // The scripts/art files the bakes run or whose sources the provenance manifests hash.
-  'scripts/art/(export-fresh-campfires|campfire_references|campfire_export)\\.py$', 'scripts/art/skin-cards/(masks/|([a-z]+-)?registration\\.json$)',
-  'scripts/art/sources/(campfire-original-references|guardian-campfire-repairs|mixed-skin-noncombat|multi-skin-noncombat'
-    + '|[^/]+-skin-cards|monogatari_[a-z]+-(char|noncombat))/', 'scripts/art/sources/monogatari/(cards/|ironclad-idle-grip-repaired\\.png$)',
+  // The scripts/art inputs the bakes run or whose sources the provenance manifests hash.
+  'scripts/art/campfire-sitters\\.py$', 'scripts/art/sources/campfire-sitters/(manifest\\.json|[^/]+\\.webp)$', 'scripts/art/skin-cards/(masks/|([a-z]+-)?registration\\.json$)', 'scripts/art/sources/([^/]+-skin-cards|monogatari_[a-z]+-char)/',
+  'scripts/art/sources/monogatari/(cards/|ironclad-idle-grip-repaired\\.png$)', 'scripts/art/sources/monogatari_[a-z]+-noncombat/identity\\.webp$',
   // The provenance the bakes hash.
-  'docs/skins/([^/]+-card-art|fresh-campfires)/', 'docs/skins/monogatari_[a-z]+-art/(attack-manifest\\.json|README\\.md)$',
+  'docs/skins/[^/]+-card-art/', 'docs/skins/monogatari_[a-z]+-art/(attack-manifest\\.json|README\\.md)$',
   'docs/skins/monogatari_silent-art/manifest\\.json$',
   'docs/skins/kratos-art\\.json$',
   'docs/monogatari-skins/cards/[a-z]+-catalogue\\.json$', 'docs/monogatari-skins/prompts/(cards|combat)/',
   'docs/monogatari-skins/combat-manifest\\.json$',
   'src/ui/(hero|elite)-art-head\\.json$', 'src/ui/rig-animation-metadata\\.json$', 'src/ui/combat-screen/staged-attacks\\.ts$',
-  'src/ui/styles/staged-attacks\\.css$', 'scripts/sync-campfire-scenes\\.mjs$',
+  'src/ui/styles/staged-attacks\\.css$',
   'scripts/verify-art-bakes\\.mjs$', 'scripts/lib/asset-inventory\\.mjs$',
 ].join('|') + ')')
 /** The only Markdown the bakes read: the audit-cap table of each staged skin's README. */
@@ -394,25 +390,23 @@ export function affectedVerifiers(root, changedFiles, scripts) {
       selected.add('verify-skin-cards-browser.mjs')
       covered = true
     }
-    // Monogatari skin exporters: character art feeds the skin browser; scene, merchant and treasure art feeds the scene verifiers.
+    // Monogatari skin exporters: character art feeds the skin browser; merchant and treasure art feeds their verifiers.
     if (/^scripts\/art\/(export|cutout)-[\w-]*monogatari[\w-]*-(char|idle)\.py$/.test(file)) {
       selected.add('verify-assets.mjs')
       selected.add('verify-skin-browser.mjs')
       covered = true
     }
-    if (file.startsWith('scripts/art/sources/campfire-original-references/')
-      || file.startsWith('scripts/art/sources/mixed-skin-noncombat/')
-      || file.startsWith('scripts/art/sources/guardian-campfire-repairs/')
-      || file.startsWith('docs/skins/fresh-campfires/') || file.startsWith('docs/skins/mixed-skin-noncombat/')) {
+    if (file.startsWith('scripts/art/sources/campfire-sitters/') || file.startsWith('public/assets/noncombat/campfire/')) {
+      selected.add('verify-assets.mjs')
       selected.add('verify-art-scenes-browser.mjs')
       covered = true
     }
-    if (/^scripts\/art\/export-[\w-]*(monogatari|multi-skin)[\w-]*-noncombat\.py$/.test(file)) {
-      for (const script of ['verify-assets.mjs', 'verify-art-scenes-browser.mjs', 'verify-merchant-overflow-browser.mjs', 'verify-treasure-animation-browser.mjs']) selected.add(script)
+    if (/^scripts\/art\/export-[\w-]*monogatari[\w-]*-noncombat\.py$/.test(file)) {
+      for (const script of ['verify-assets.mjs', 'verify-merchant-overflow-browser.mjs', 'verify-treasure-animation-browser.mjs']) selected.add(script)
       covered = true
     }
     if (file.startsWith('scripts/art/sources/kratos-noncombat/')) {
-      for (const script of ['verify-assets.mjs', 'verify-art-scenes-browser.mjs', 'verify-merchant-overflow-browser.mjs', 'verify-treasure-animation-browser.mjs']) selected.add(script)
+      for (const script of ['verify-assets.mjs', 'verify-merchant-overflow-browser.mjs', 'verify-treasure-animation-browser.mjs']) selected.add(script)
       covered = true
     }
     if (/^public\/assets\/skin-card(s|s-sm|-art)\//.test(file) || file.startsWith('docs/skins/kratos-card-art/')

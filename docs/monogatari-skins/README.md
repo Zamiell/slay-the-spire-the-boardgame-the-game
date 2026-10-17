@@ -19,10 +19,8 @@ the same style with a config-driven staged attack, are documented in [`../skins/
   names, rules, costs and frames are protected before encoding. See
   [card pipeline](cards/README.md) and the per-skin manifests in `docs/skins/`.
 - Portraits, character-select wallpapers, standing Merchant-arrival figures and
-  separate reach/grip treasure hands for both skins.
-- 208 new pre-rendered campfire scenes: every supported one-to-four-seat visual
-  combination containing either skin, including Kratos plus anime Ironclad.
-  Existing scenes are unchanged. See [noncombat pipeline](noncombat-pipeline.md).
+  separate reach/grip treasure hands for both skins. See [noncombat pipeline](noncombat-pipeline.md).
+  Their seated campfire sprites follow [`../skins/campfire-scenes.md`](../skins/campfire-scenes.md).
 
 ## Generation and provenance
 

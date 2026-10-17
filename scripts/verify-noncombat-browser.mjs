@@ -165,18 +165,15 @@ await page.evaluate(() => {
   run.players[0].character = 'guardian'
   debug.setRun(run)
 })
-await page.waitForFunction(() => getComputedStyle(document.querySelector('.campfire')).backgroundImage.includes('/guardian_firecamp.webp'))
-const downfallCampfireScene = await page.locator('.campfire').evaluate(async (campfire) => {
-  const url = getComputedStyle(campfire).backgroundImage.match(/url\(["']?([^"')]+)["']?\)/)?.[1] ?? ''
-  const image = new Image()
-  image.src = url
-  await image.decode()
-  return { url, width: image.naturalWidth, height: image.naturalHeight }
+await page.waitForFunction(() => {
+  const sitter = document.querySelector('.campfire__sitter[data-visual="guardian"]')
+  return sitter?.complete && sitter.naturalWidth > 0
 })
+const downfallCampfireSitters = await page.locator('.campfire__sitter').evaluateAll((sitters) =>
+  sitters.map((sitter) => [sitter.dataset.visual, sitter.naturalWidth, sitter.naturalHeight]))
 await page.screenshot({ path: join(outDir, 'campfire-guardian-desktop.png'), fullPage: true })
-check('a Downfall campfire renders its complete baked scene', () => {
-  assert(downfallCampfireScene.url.endsWith('/guardian_firecamp.webp'), downfallCampfireScene.url)
-  assertDeepEqual([downfallCampfireScene.width, downfallCampfireScene.height], [3840, 2161])
+check('a Downfall campfire seats its hero on the camp painting', () => {
+  assertDeepEqual(downfallCampfireSitters, [['guardian', 1408, 1808]])
 })
 const localNightTerrorsRestDisabled = await page.getByRole('button', { name: /^Rest/ }).evaluateAll((buttons) =>
   buttons.length > 0 && buttons.every((button) => button.disabled))

@@ -73,17 +73,11 @@ async function snapshot(page) {
 }
 
 async function campfire(page, skin) {
-  const filename = `silent_${skin}_firecamp.webp`
-  await page.waitForFunction(filename => getComputedStyle(document.querySelector('.campfire') ?? document.body)
-    .backgroundImage.includes(filename), filename)
-  return page.locator('.campfire').evaluate(async (element, filename) => {
-    const url = getComputedStyle(element).backgroundImage.match(/url\(["']?([^"')]+)/)[1]
-    if (!url.endsWith(filename)) throw new Error(`Wrong campfire: ${url}`)
-    const image = new Image()
-    image.src = url
-    await image.decode()
-    return { url, width: image.naturalWidth, height: image.naturalHeight }
-  }, filename)
+  await page.locator(`.campfire__sitter[data-visual="${skin}"]`).waitFor()
+  await page.locator('.campfire__sitter').evaluateAll((sitters) => Promise.all(sitters.map((image) => image.decode())))
+  // Seat order depends on the room; compare the party sorted by visual id.
+  return page.locator('.campfire__sitter').evaluateAll((sitters) =>
+    sitters.map((image) => [image.dataset.visual, image.naturalWidth, image.naturalHeight]).sort())
 }
 
 try {
@@ -183,17 +177,15 @@ try {
       room.version += 1
       rooms.publishRoom(code)
       for (const page of [owner, viewer]) {
-        const scene = await campfire(page, skin)
-        assert.deepEqual([scene.width, scene.height], [3840, 2161])
+        assert.deepEqual(await campfire(page, skin), [['silent', 1408, 1808], [skin, 1408, 1808]].sort())
       }
       await shot(viewer, `${prefix}-campfire`)
       entry.screenshots.push(`${prefix}-campfire.png`)
       await viewer.reload({ waitUntil: 'networkidle' })
-      const reloadedScene = await campfire(viewer, skin)
-      assert.deepEqual([reloadedScene.width, reloadedScene.height], [3840, 2161])
+      assert.deepEqual(await campfire(viewer, skin), [['silent', 1408, 1808], [skin, 1408, 1808]].sort())
       await shot(viewer, `${prefix}-campfire-reconnect`)
       entry.screenshots.push(`${prefix}-campfire-reconnect.png`)
-      entry.assertions.push('both seats decode complete skin-party campfire; reconnect retains exact scene')
+      entry.assertions.push('both seats see the skin party seated at the campfire; reconnect keeps it')
       const ownerVideo = owner.video(), viewerVideo = viewer.video()
       await ownerContext.close(); contexts.delete(ownerContext)
       await viewerContext.close(); contexts.delete(viewerContext)

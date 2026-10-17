@@ -125,11 +125,7 @@ try {
         const room = camp.map.rows[0][0]
         camp.phase = 'room'; camp.map.position = room; camp.map.rooms[room].kind = 'campfire'
         await page.evaluate(run => window.__STS_DEBUG__.setRun(run), camp)
-        await page.waitForFunction(skin => getComputedStyle(document.querySelector('.campfire') ?? document.body).backgroundImage.includes(`${skin}_firecamp.webp`), skin)
-        await page.evaluate(async () => {
-          const source = getComputedStyle(document.querySelector('.campfire')).backgroundImage.match(/url\(["']?(.*?)["']?\)/)[1]
-          const image = new Image(); image.src = source; await image.decode()
-        })
+        await page.locator(`.campfire__sitter[data-visual="${skin}"]`).evaluate(sitter => sitter.decode())
         await shot(page, `${screen}-${skin}-campfire`)
 
         const fight = structuredClone(base)

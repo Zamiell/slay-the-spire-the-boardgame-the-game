@@ -1,49 +1,56 @@
-/* Each living party combination has one baked scene so the character-select
-   designs keep a coherent seated pose around the fire. The prompt floats over
-   that scene instead of moving the painted party when a card picker opens. */
+/* One camp painting with each hero's seated sprite on its logs (CampfireScene).
+   The prompt floats over the scene instead of moving the party when a card picker opens. */
 .sts-scope .campfire {
   position: relative;
   isolation: isolate;
+  container-type: size;
   width: 100vw;
   margin: 0 calc(50% - 50vw);
   padding: 0;
   overflow: clip;
-  background:
-    linear-gradient(180deg, rgb(2 8 10 / 0.12), transparent 46%, rgb(1 5 6 / 0.45)),
-    var(--campfire-scene, url('/assets/noncombat/campfire/ironclad_firecamp.webp')) center / cover no-repeat;
-  box-shadow: inset 0 0 9rem rgb(0 0 0 / 0.9);
+  background: #06110c;
   flex: 1;
   min-height: 0;
 }
 
-/* A wide four-seat painting cannot both cover a portrait phone and keep its
-   outer heroes in frame. Keep the full painting as the foreground there and
-   derive the extra height from a dimmed, blurred copy of the same scene. */
-@media (max-aspect-ratio: 1 / 1) {
-  .sts-scope .campfire { background: #06110c; }
-
-  .sts-scope .campfire::before,
-  .sts-scope .campfire::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-  }
-
-  .sts-scope .campfire::before {
-    z-index: 0;
-    inset: -1rem;
-    background: var(--campfire-scene, url('/assets/noncombat/campfire/ironclad_firecamp.webp')) center / cover no-repeat;
-    filter: blur(1rem) brightness(0.38);
-  }
-
-  .sts-scope .campfire::after {
-    z-index: 1;
-    background:
-      linear-gradient(180deg, rgb(2 8 10 / 0.12), transparent 46%, rgb(1 5 6 / 0.45)),
-      var(--campfire-scene, url('/assets/noncombat/campfire/ironclad_firecamp.webp')) center / contain no-repeat;
-  }
+.sts-scope .campfire::after {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgb(2 8 10 / 0.12), transparent 46%, rgb(1 5 6 / 0.45));
+  box-shadow: inset 0 0 9rem rgb(0 0 0 / 0.9);
 }
+
+/* Sized like `background-size: cover` so seat percentages stay on the painted logs at every aspect ratio. */
+.sts-scope .campfire__scene {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100cqw, 100cqh * 3840 / 2161);
+  aspect-ratio: 3840 / 2161;
+  z-index: 0;
+  translate: -50% -50%;
+  pointer-events: none;
+}
+
+.sts-scope .campfire__camp {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* A sprite canvas is 1408x1808 with the hips at (704, 848) (scripts/art/campfire-sitters.py). A human hero's 620 canvas px
+   from seat to crown match 380 camp px, so the canvas spans 380 / 620 * 1408 / 3840 = 22.47% of the camp's width.
+   Right-log heroes are mirrored to face the fire. */
+.sts-scope .campfire__sitter {
+  position: absolute;
+  width: calc(22.47% * var(--seat-scale, 1));
+  translate: -50% -46.9%;
+}
+
+.sts-scope .campfire__sitter[data-facing='left'] { scale: -1 1; }
 
 .sts-scope .campfire__prompt {
   position: absolute;

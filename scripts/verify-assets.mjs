@@ -16,7 +16,6 @@ import {
   cardImagePath,
   cardThumbPath,
   enemyAnimationImagePath,
-  campfireScenePath,
   enemyImagePath,
   relicIconPath,
   CARD_ART_ROOT,
@@ -40,8 +39,6 @@ import { DOWNFALL_COLORLESS_CARD_DEFS } from '../src/game/downfall/items.ts'
 import { ENEMY_ART } from './lib/enemy-art.mjs'
 import { webpSize } from './lib/webp-size.mjs'
 import { skinCardFaces } from './sync-skin-card-faces.mjs'
-import { campfireScenes } from './sync-campfire-scenes.mjs'
-import { CAMPFIRE_SCENES } from '../src/game/campfire-scenes.ts'
 import { SKIN_CARD_FACES } from '../src/game/skin-card-faces.ts'
 import { STAGED_ATTACKS, STAGED_SOUND_VOLUMES } from '../src/ui/combat-screen/staged-attacks.ts'
 import { suite, check, assert, assertDeepEqual, assertEqual, report } from './lib/harness.mjs'
@@ -97,7 +94,6 @@ import {
   requiredRelicIconFiles,
   potionIconFiles,
   compendiumIconFiles,
-  campfireSceneFiles,
   SLIME_ASSET_SLUGS,
   cardIndex,
   PILE_ICON_EDGE,
@@ -125,33 +121,18 @@ check('every rigged animation has a Safari hardware-video companion', () => {
     'Safari animation video inventory')
 })
 
-check('every campfire party resolves to one complete wide scene', () => {
-  // A party is a set of visual ids (one to four): a hero's character id or its skin ids, never a character beside
-  // its own skin. Skins sort after the characters.
-  const heroOf = (id) => Object.entries(SKINS).find(([, list]) => list.includes(id))?.[0] ?? id
-  const choose = (pool, size) => size === 0 ? [[]]
-    : pool.flatMap((id, index) => choose(pool.slice(index + 1), size - 1).map((rest) => [id, ...rest]))
-  const parties = (pool, sizes) => sizes.flatMap((size) => choose(pool, size))
-    .filter((party) => party.every((id) => !SKIN_IDS.includes(id) || !party.includes(heroOf(id))))
-  const named = (party) => VISUAL_IDS.filter((id) => party.includes(id)).join('_')
-  const legal = new Map(parties(VISUAL_IDS, [1, 2, 3, 4]).map((party) => [named(party), party]))
-  const listed = campfireScenes()
-  assertDeepEqual(CAMPFIRE_SCENES, listed, 'src/game/campfire-scenes.ts is stale; run node scripts/sync-campfire-scenes.mjs')
-  assertDeepEqual(listed.filter((name) => !legal.has(name)), [], 'campfire scenes no party can use')
-  assertDeepEqual([...legal.keys()].filter((name) => !listed.includes(name)).sort(), [],
-    'campfire scenes missing for a registered party')
-  for (const [name, party] of legal) {
-    const scene = campfireScenePath(party).split('/').pop().replace(/_firecamp\.webp$/, '')
-    assert(scene === 'empty' || listed.includes(scene), `${name} resolves to a missing scene`)
-  }
-  const scenes = [...listed, 'empty'].map((name) => `${name}_firecamp.webp`)
-  assertDeepEqual(campfireSceneFiles.sort(), scenes.sort(), 'campfire scenes must be WebP files named <party>_firecamp.webp')
-  for (const file of scenes) assertDeepEqual(webpSize(join(campfireRoot, file)), [3840, 2161], `${file} is not 3840x2161 WebP`)
-  // A repository budget, not a hosting limit: Pages never carries these scenes (the deploy deletes them from dist and
-  // `assetPath` serves them from the SHA-pinned raw origin), so the cap only keeps clones and the raw origin lean.
-  // It keeps the original 227-scene catalogue's byte budget per scene as skins add parties.
-  assert(scenes.reduce((bytes, file) => bytes + statSync(join(campfireRoot, file)).size, 0) < 128 * 1024 * 1024 * scenes.length / 227,
-    'campfire scenes exceed the original per-scene byte budget')
+// The camp is one painting; CampfireScene seats each hero's sprite on its logs, so a new hero or skin needs one sprite.
+check('the campfire is one camp painting plus one seated sprite per visual id', () => {
+  assertDeepEqual(listing(campfireRoot, '.webp').sort(), ['camp.webp', 'rest.webp', 'smith.webp'], 'campfire art outside sitters/')
+  assertDeepEqual(webpSize(join(campfireRoot, 'camp.webp')), [3840, 2161], 'camp.webp size (CampfireScene aspect ratio)')
+  const expected = VISUAL_IDS.map((id) => `${id}.webp`).sort()
+  const sittersRoot = join(campfireRoot, 'sitters')
+  assertDeepEqual(listing(sittersRoot, '.webp').sort(), expected, 'one seated campfire sprite per visual id')
+  for (const file of expected) assertDeepEqual(webpSize(join(sittersRoot, file)), [1408, 1808], `${file} sprite canvas`)
+  const sources = join(repoRoot, 'scripts/art/sources/campfire-sitters')
+  const manifest = JSON.parse(readFileSync(join(sources, 'manifest.json'), 'utf8'))
+  assertDeepEqual(Object.keys(manifest).sort(), [...VISUAL_IDS].sort(), 'campfire-sitters manifest entries')
+  for (const id of VISUAL_IDS) assert(existsSync(join(sources, `${id}.webp`)), `${id} has no accepted campfire sprite source`)
 })
 
 check('sound effects are complete and compact', () => {
@@ -289,7 +270,7 @@ check('skin selected sources, prompts and ready-to-release menu exports match th
 })
 
 // Ironclad-chan and Defect-chan were produced as one batch: their combat, noncombat/menu and card manifests live in
-// docs/monogatari-skins and hash every source, prompt and output (campfire scenes included).
+// docs/monogatari-skins and hash every source, prompt and output.
 check('Ironclad-chan and Defect-chan provenance manifests match their committed sources, prompts and outputs', () => {
   const hash = (path) => createHash('sha256').update(readFileSync(join(repoRoot, path))).digest('hex')
   const safe = (path) => !path.startsWith('/') && !path.split('/').includes('..')
@@ -308,7 +289,7 @@ check('Ironclad-chan and Defect-chan provenance manifests match their committed 
     for (const [path, sha256] of Object.entries(group)) { assertEqual(hash(path), sha256, path); checked += 1 }
   }
   walk(JSON.parse(readFileSync(join(repoRoot, 'docs/monogatari-skins/noncombat-manifest.json'), 'utf8')))
-  assert(checked > 100, `only ${checked} hashes were checked`)
+  assert(checked >= 56, `only ${checked} hashes were checked`)
 })
 
 // Cards a skin does not have art for yet, as `<skin>:<cardId>`. Each entry is a promise to

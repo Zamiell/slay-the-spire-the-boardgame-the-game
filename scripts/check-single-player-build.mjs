@@ -17,7 +17,6 @@ if (!multiplayer) {
 }
 assert(!output.match(/["'`(]\/(?:assets\/|favicon\.png)/), 'single-player build contains a domain-root asset URL')
 assert(!output.match(/["']--combat-stage-image["']:/), 'combat background still resolves relative to the CSS bundle')
-assert(!output.match(/["']--campfire-scene["']:`url\("\$\{[\w$]+\(/), 'campfire scene still resolves relative to the CSS bundle')
 assert(readFileSync(join(dist, 'index.html'), 'utf8').includes('./assets/'), 'entry assets are not relative')
 assert(readFileSync(join(dist, 'index.html'), 'utf8').includes('./favicon.png'), 'favicon is not relative')
 assert(existsSync(join(dist, 'assets/cards/relics__boss__empty-cage.webp')), 'Empty Cage card is missing from Pages output')

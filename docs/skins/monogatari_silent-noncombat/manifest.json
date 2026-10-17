@@ -4,7 +4,6 @@
   "runtimeExporter": "scripts/art/export-monogatari_silent-noncombat.py",
   "skin": "monogatari_silent",
   "character": "silent",
-  "partyCount": 64,
   "entries": [
     {
       "id": "merchant",
@@ -31,26 +30,6 @@
         "path": "public/assets/noncombat/merchant/characters/monogatari_silent-standing.webp",
         "sha256": "3d36f12a3350c80cf980f3f14e6cf64a905066eb3b56f9ac51388a330b94e411",
         "bytes": 31426
-      }
-    },
-    {
-      "id": "seated-reference",
-      "prompt": {
-        "path": "docs/skins/monogatari_silent-noncombat/prompts/pose-seated.txt",
-        "sha256": "4e28162aa5ade4b3fa82c2c57793620d992a6c05a0efa7ee5e6c330601d9c732"
-      },
-      "references": [
-        {
-          "path": "scripts/art/sources/monogatari_silent-noncombat/identity.webp",
-          "sha256": "897c5be2663f45762e5c7ea8e6cd2c1be7db95d9a5778606ca80932b2c5432b1",
-          "bytes": 519100
-        }
-      ],
-      "modelOutputSha256": "508b82c36f8fb8165991947c12e7a495789ca86fffe3d70bc0161804be220c70",
-      "source": {
-        "path": "scripts/art/sources/monogatari_silent-noncombat/seated.webp",
-        "sha256": "78f672acb6f98450cbd206055ba046a60679f390774ad63dcfd2cf7a152548d7",
-        "bytes": 517146
       }
     },
     {
@@ -118,7 +97,5 @@
       }
     }
   ],
-  "poseModel": "gpt-image-2.5-sunburst",
-  "campfireManifest": "docs/skins/fresh-campfires/manifest.json",
-  "campfireCollection": "monogatari_silent-noncombat"
+  "poseModel": "gpt-image-2.5-sunburst"
 }

@@ -15,9 +15,6 @@ import { createRng } from '../src/game/rng.ts'
 import { createCampaignProgress, parseCampaignProgress } from '../src/game/campaign.ts'
 import { CARDS } from '../src/game/cards.ts'
 import { RELICS } from '../src/game/relics.ts'
-import { campfireScenePath } from '../src/game/assets.ts'
-import { campfireParty } from '../src/game/campfire-scene.ts'
-import { CAMPFIRE_SCENES } from '../src/game/campfire-scenes.ts'
 import { validateRunLog } from '../src/ui/run-log.ts'
 import { addLeaderboardRun } from './lib/leaderboard.mjs'
 import { createRoom, createStore, joinRoom, saveStore } from './lib/rooms.mjs'
@@ -90,52 +87,6 @@ check('skin traits are read by visual id; characters and prototype names have no
   assertEqual(skinTraits('kratos')?.energyOrb, true)
   assert(hasStagedAttack('kratos') && hasStagedAttack('hermit'), 'Kratos and Hermit stage their attacks')
   assert(!hasStagedAttack('ironclad') && !hasStagedAttack('constructor'))
-})
-
-check('campfire scenes are keyed by visual id, the skin after every character', () => {
-  assert(campfireScenePath([visualId('ironclad', 'kratos')]).endsWith('/noncombat/campfire/kratos_firecamp.webp'))
-  assert(campfireScenePath(['kratos', 'silent', 'defect']).endsWith('/noncombat/campfire/silent_defect_kratos_firecamp.webp'))
-  assert(campfireScenePath(['ironclad', 'silent']).endsWith('/noncombat/campfire/ironclad_silent_firecamp.webp'))
-})
-
-check('a party without its own campfire scene falls back to the nearest painted one', () => {
-  // A registry with all three skins, whatever is registered: kratos dresses ironclad, ms silent, mw watcher.
-  const registry = { order: ['ironclad', 'silent', 'watcher', 'defect', 'kratos', 'ms', 'mw'], heroOfSkin: { kratos: 'ironclad', ms: 'silent', mw: 'watcher' } }
-  const name = (party) => registry.order.filter((id) => party.includes(id)).join('_')
-  const hero = (id) => registry.heroOfSkin[id] ?? id
-  const choose = (pool, size) => size === 0 ? [[]] : pool.flatMap((id, i) => choose(pool.slice(i + 1), size - 1).map((rest) => [id, ...rest]))
-  const parties = [1, 2, 3, 4].flatMap((size) => choose(registry.order, size)).filter((p) => new Set(p.map(hero)).size === p.length)
-  const skinsIn = (scene) => scene.split('_').filter((id) => id in registry.heroOfSkin).length
-  const resolve = (party, scenes) => campfireParty(party, scenes, registry)
-  const all = parties.map(name)
-  const characters = parties.filter((p) => p.every((id) => !(id in registry.heroOfSkin))).map(name)
-  const oneSkin = parties.filter((p) => p.filter((id) => id in registry.heroOfSkin).length <= 1).map(name)
-  assertEqual(resolve(['kratos', 'ms', 'mw', 'defect'], all), 'defect_kratos_ms_mw', 'a painted party keeps its own scene')
-  assertEqual(resolve([], all), '', 'no party is the empty camp')
-  assertEqual(resolve(['kratos', 'ms', 'mw', 'defect'], []), '', 'no scenes is the empty camp')
-  assertEqual(resolve(['kratos', 'ms', 'mw'], characters), 'ironclad_silent_watcher', 'every skin dropped shows the heroes')
-  assertEqual(resolve(['kratos', 'ironclad'], all), 'ironclad', 'one hero in and out of its skin is that hero once')
-  assertEqual(resolve(['kratos'], characters), 'ironclad', 'a solo skin falls back to its hero')
-  assertEqual(resolve(['kratos', 'defect'], characters), 'ironclad_defect', 'the other heroes stay')
-  assertEqual(resolve(['kratos', 'ms', 'mw'], ['ironclad_ms_mw', 'silent_watcher_kratos']), 'ironclad_ms_mw', 'more skins kept beats the earlier skin')
-  const pair = ['watcher_kratos_ms', 'silent_kratos_mw', 'ironclad_ms_mw']
-  assertEqual(resolve(['kratos', 'ms', 'mw'], pair), 'watcher_kratos_ms', 'equal skin counts keep the earliest skins')
-  assertEqual(resolve(['kratos', 'ms', 'mw'], pair.slice(1)), 'silent_kratos_mw')
-  assertEqual(resolve(['kratos', 'ms', 'mw'], ['ironclad_silent_mw', 'ironclad_watcher_ms']), 'ironclad_watcher_ms')
-  assertEqual(resolve(['kratos', 'ms', 'mw', 'defect'], ['ironclad_silent_watcher']), '', 'the party never loses a hero')
-  assertEqual(resolve(['kratos'], ['ironclad_silent', 'silent']), '', 'a scene with a hero the party lacks is never used')
-  for (const party of parties) {
-    const own = name(party)
-    assertEqual(resolve(party, all), own, `${own} is painted`)
-    const single = resolve(party, oneSkin)
-    assert(single !== '' && skinsIn(single) === Math.min(1, skinsIn(own)), `${own} keeps one skin when only single-skin scenes exist: ${single}`)
-    assertEqual(resolve(party, characters), skinsIn(own) ? name(party.map(hero)) : own, `${own} without skins`)
-  }
-  // The shipped scenes: a skin-worn party is lit by a listed scene, as is its fallback.
-  for (const worn of [['kratos'], ['kratos', 'silent', 'defect', 'watcher'], ['guardian', 'hermit', 'kratos', 'hexaghost']]) {
-    const scene = campfireScenePath(worn).split('/').pop().replace(/_firecamp\.webp$/, '')
-    assert(CAMPFIRE_SCENES.includes(scene), `${worn} resolves to ${scene}`)
-  }
 })
 
 const party = (...members) => members.map(([character, skin], index) => ({ id: `p${index + 1}`, name: character, character, skin }))

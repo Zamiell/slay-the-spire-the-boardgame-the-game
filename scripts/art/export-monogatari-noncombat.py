@@ -2,20 +2,13 @@
 """Deterministically export approved Sunburst sources. Never calls generation API."""
 import hashlib
 import json
-from concurrent.futures import ThreadPoolExecutor
-from itertools import combinations
 from pathlib import Path
-from PIL import Image, ImageDraw, ImageOps
-from campfire_export import export_campfire
+from PIL import Image, ImageOps
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / 'scripts/art/sources/monogatari/noncombat'
 DOCS = ROOT / 'docs/monogatari-skins'
 PUBLIC = ROOT / 'public/assets'
-IDS = ['ironclad', 'silent', 'defect', 'watcher', 'slime_boss', 'guardian', 'hexaghost', 'hermit',
-       'kratos', 'monogatari_ironclad', 'monogatari_defect']
-SKINS = {'kratos': 'ironclad', 'monogatari_ironclad': 'ironclad', 'monogatari_defect': 'defect'}
-NEW = ['monogatari_ironclad', 'monogatari_defect']
 RESAMPLE = Image.Resampling.LANCZOS
 
 
@@ -108,98 +101,8 @@ def export_person(character):
     return outputs
 
 
-def seated_sources():
-    result = {}
-    first = native(SOURCE / 'original-ironclad-silent-defect-seated.png')
-    for char, box in [('ironclad', (0, 0, 550, 1024)), ('silent', (550, 0, 1030, 1024)),
-                      ('defect', (1030, 0, 1536, 1024))]:
-        result[char] = tight(first.crop(box))
-    for char in ['watcher']:
-        result[char] = tight(native(SOURCE / f'original-{char}-seated.png'))
-    slime = native(SOURCE / 'original-watcher-slime_boss-guardian-seated-v2.png')
-    result['slime_boss'] = tight(slime.crop((512, 280, 1035, 780)))
-    last = native(SOURCE / 'original-hexaghost-hermit-kratos-seated.png')
-    for index, char in enumerate(['hexaghost', 'hermit', 'kratos']):
-        result[char] = tight(last.crop((index * 512, 0, (index + 1) * 512, 1024)))
-    for char in ['ironclad', 'defect']:
-        sheet = native(SOURCE / f'{char}-seated.png')
-        assert sheet.size == (1536, 1024)
-        result[f'monogatari_{char}'] = tight(sheet.crop((0, 0, 768, 1024)))
-        result[f'monogatari_{char}-left'] = tight(sheet.crop((768, 0, 1536, 1024)))
-    return result
-
-
-# Each slot specifies pelvis x/y and full seated height on a 1536x864 working canvas.
-# Foreground seats touch the log, background seats sit further back; fire stays unobstructed.
-SLOTS = {
-    1: [(455, 596, 335, False)],
-    2: [(455, 596, 335, False), (1110, 596, 335, True)],
-    3: [(575, 550, 310, False), (1110, 596, 335, True), (380, 620, 335, False)],
-    4: [(575, 550, 310, False), (1035, 550, 310, True), (380, 620, 335, False), (1215, 620, 335, True)],
-}
-
-
-def compose(party, sources, background):
-    if 'guardian' in party:
-        return Image.open(ROOT / 'scripts/art/sources/guardian-campfire-repairs' /
-                          f'{"_".join(party)}_firecamp.webp').convert('RGB')
-    canvas = background.copy()
-    for visual, (cx, pelvis, height, left) in sorted(zip(party, SLOTS[len(party)]), key=lambda entry: entry[1][1]):
-        if left and visual in NEW:
-            cutout = sources[f'{visual}-left']
-        else:
-            cutout = ImageOps.mirror(sources[visual]) if left else sources[visual]
-        if visual == 'slime_boss':
-            height = round(height * .61)
-        cutout = cutout.resize((round(cutout.width * height / cutout.height), height), RESAMPLE)
-        # Humanoid hip is 56% down the seated silhouette; floating/gelatinous heroes have no hip.
-        hip = .56 if visual != 'slime_boss' else .88
-        x, y = round(cx - cutout.width / 2), round(pelvis - height * hip)
-        assert x >= 0 and y >= 0 and x + cutout.width <= 1536 and y + height <= 864, (party, visual, x, y)
-        canvas.alpha_composite(cutout, (x, y))
-    return canvas.convert('RGB')
-
-
-def parties():
-    return [party for size in range(1, 5) for party in combinations(IDS, size)
-            if any(visual in NEW for visual in party)
-            and not any(base in party for skin, base in SKINS.items() if skin in party)]
-
-
 def main():
     other = [item for char in ['ironclad', 'defect'] for item in export_person(char)]
-    sources = seated_sources()
-    background_path = PUBLIC / 'noncombat/campfire/empty_firecamp.webp'
-    background = Image.open(background_path).convert('RGBA').resize((1536, 864), RESAMPLE)
-    selected = parties()
-    assert len(selected) == 208 and all(1 <= len(p) <= 4 for p in selected)
-
-    def export(party):
-        path = PUBLIC / 'noncombat/campfire' / f'{"_".join(party)}_firecamp.webp'
-        if 'guardian' in party:
-            export_campfire(ROOT / 'scripts/art/sources/guardian-campfire-repairs' /
-                           path.name, path)
-            return {'party': list(party), 'output': record(path),
-                    'generationManifest': 'docs/skins/fresh-campfires/manifest.json'}
-        scene = compose(party, sources, background).resize((3840, 2161), RESAMPLE)
-        return {'party': list(party), 'output': save(scene, path, 50)}
-
-    with ThreadPoolExecutor(max_workers=4) as pool:
-        scenes = list(pool.map(export, selected))
-    preview_parties = [('monogatari_ironclad',), ('monogatari_defect',), tuple(NEW),
-                       ('defect', 'monogatari_ironclad'), ('ironclad', 'monogatari_defect'),
-                       ('silent', *NEW), ('silent', 'watcher', *NEW), ('guardian', 'kratos', *NEW),
-                       ('slime_boss', 'hexaghost', *NEW), ('hermit', 'kratos', *NEW),
-                       ('kratos', 'monogatari_ironclad'), ('defect', 'guardian', 'monogatari_ironclad')]
-    contact = Image.new('RGB', (1536, 4 * 325), '#181818')
-    draw = ImageDraw.Draw(contact)
-    for index, party in enumerate(preview_parties):
-        preview = compose(party, sources, background).resize((512, 288), RESAMPLE)
-        x, y = (index % 3) * 512, (index // 3) * 325
-        contact.paste(preview, (x, y + 30))
-        draw.text((x + 8, y + 8), ' + '.join(party).replace('monogatari_', 'anime_'), fill='white')
-    audit = DOCS / 'noncombat-contact-sheet.jpg'
-    contact.save(audit, quality=94)
     manifest = {'model': 'gpt-image-2.5-sunburst', 'quality': 'high', 'nativeAlphaPreserved': True,
                 'rebuild': 'python3 scripts/art/export-monogatari-noncombat.py',
                 'generation': 'Bundled imagegen skill CLI edit with persisted prompts and supplied references',
@@ -209,24 +112,15 @@ def main():
                     'scripts/art/sources/monogatari/ironclad-idle-grip-repaired.png',
                     'scripts/art/sources/monogatari/defect-design-draft.png',
                     'scripts/animation/sources/monogatari/defect-idle.png',
-                    *[f'public/assets/noncombat/campfire/{visual}_firecamp.webp' for visual in IDS[:9]],
                     *[f'public/assets/noncombat/merchant/characters/{char}-standing.webp' for char in ['ironclad', 'defect']],
                     *[f'public/assets/noncombat/treasure/hand-{char}.webp' for char in ['ironclad', 'defect']],
-                    *[f'public/assets/menu/character-select/character-{char}-wallpaper.webp' for char in ['ironclad', 'defect']],
-                    'scripts/art/sources/monogatari/noncombat/original-ironclad-silent-defect-reference.jpg',
-                    'scripts/art/sources/monogatari/noncombat/original-hexaghost-hermit-kratos-reference.jpg']],
+                    *[f'public/assets/menu/character-select/character-{char}-wallpaper.webp' for char in ['ironclad', 'defect']]]],
                 'styleReferences': json.loads((DOCS / 'noncombat-style-references.json').read_text()),
-                'background': record(background_path), 'seating': SLOTS,
                 'treasureGripCrop': {'sourceStripExcluded': [0, 0, 32, 1536],
                                     'mainSilhouettePreserved': True, 'nativeAlphaPreserved': True},
-                'otherAssets': other, 'campfireScenes': scenes, 'visualAudit': record(audit),
-                'guardianCampfireRepairs': {
-                    'count': 64, 'manifest': 'docs/skins/fresh-campfires/manifest.json',
-                    'generation': 'Original empty campfire and original character identities only; no seated references',
-                    'rebuild': 'python3 scripts/art/export-fresh-campfires.py'}}
+                'otherAssets': other}
     (DOCS / 'noncombat-manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
-    sizes = [s['output']['bytes'] for s in scenes]
-    print(f'Exported {len(other)} other assets and {len(scenes)} campfire scenes; mean={sum(sizes)//len(sizes)}, max={max(sizes)}, total={sum(sizes)} bytes')
+    print(f'Exported {len(other)} menu, merchant and treasure assets')
 
 
 if __name__ == '__main__':

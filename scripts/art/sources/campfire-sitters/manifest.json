@@ -1,0 +1,142 @@
+{
+ "ironclad": {
+  "seat": [
+   220,
+   880
+  ],
+  "crown": 90,
+  "prompt": "cutout",
+  "pose": "references/ironclad.webp",
+  "sourceSha256": "99fcc00a0967db5ed8947fdaef2dae7e5b09cabd7463eee29a947b6ee1c198c2"
+ },
+ "silent": {
+  "seat": [
+   300,
+   900
+  ],
+  "crown": 200,
+  "prompt": "cutout",
+  "pose": "references/silent.webp",
+  "sourceSha256": "9681badb25a0e3ce50dde6fb246ff0f86af4282064967d14ce6bf13a78dc5cda"
+ },
+ "defect": {
+  "seat": [
+   280,
+   830
+  ],
+  "crown": 180,
+  "prompt": "identity",
+  "pose": "references/defect.webp",
+  "sourceSha256": "7128254cf1c88106ac19968e205517a6c7c24cd18c518567f25b7a449b89899c",
+  "note": "Defect's hands are golden three-taloned claws like its feet, not human hands with five fingers. Its short cape is bright sky blue."
+ },
+ "watcher": {
+  "seat": [
+   380,
+   900
+  ],
+  "crown": 110,
+  "prompt": "cutout",
+  "pose": "references/watcher.webp",
+  "sourceSha256": "ef10f3ff5f8ea41b55ffea4b342d042ba21ffe689697ba040a00fee5dde58dcf"
+ },
+ "slime_boss": {
+  "seat": [
+   520,
+   1040
+  ],
+  "crown": 305,
+  "size": 1.15,
+  "prompt": "identity",
+  "pose": "references/slime_boss.webp",
+  "sourceSha256": "d6d43ba8abdb2e8668c7663051e1ad9556c77c89e7eeda23ddd0c8c837790dfe",
+  "note": "Slime Boss is only a slime: one soft gelatinous blob with its face and little bowler hat. It has no arms, hands, legs or feet and no limb-like bumps. Its smooth rounded bottom rests flat on the seat."
+ },
+ "guardian": {
+  "seat": [
+   500,
+   780
+  ],
+  "crown": 190,
+  "size": 0.85,
+  "prompt": "identity",
+  "pose": "references/guardian.webp",
+  "sourceSha256": "4d1a6a45c8721ac79b7277b9ca4f7d67c9b524ccae961c0ffbe280b52c027532",
+  "note": "The Guardian's only arms are the two chains of golden blades hanging from its blue shoulders. Below its blue spine it has exactly two thin golden skeletal bird legs. No other limbs, no torso, no ring."
+ },
+ "hexaghost": {
+  "seat": [
+   560,
+   1320
+  ],
+  "crown": 250,
+  "size": 0.95,
+  "shadow": false,
+  "prompt": "cutout",
+  "pose": "references/hexaghost.webp",
+  "sourceSha256": "fc8bc9a1e1e4590d8d153d2580c0c1a4a51203a88b6fd65832dbd70460ddf420",
+  "note": "Hexaghost has no body, cloak, arms or legs. It is only the swirling purple flame vortex around a glowing pale hexagon core, floating where a seated person's chest would be.",
+  "grade": false
+ },
+ "hermit": {
+  "seat": [
+   430,
+   900
+  ],
+  "crown": 150,
+  "prompt": "cutout",
+  "pose": "references/hermit.webp",
+  "sourceSha256": "6e8162de4abfc9e0fd93f34f524d66a1f59cdd1c8b571c58b11ddfd45cbffa19"
+ },
+ "kratos": {
+  "seat": [
+   220,
+   880
+  ],
+  "crown": 115,
+  "prompt": "cutout",
+  "pose": "references/kratos.webp",
+  "sourceSha256": "32955e1c98d4976dccc764de21f50459fb9f4783687033e7b7ed474360f54954"
+ },
+ "monogatari_ironclad": {
+  "seat": [
+   420,
+   840
+  ],
+  "crown": 190,
+  "prompt": "cutout",
+  "pose": "references/monogatari_ironclad.webp",
+  "sourceSha256": "ce37dd4f0f472eea7540541279ef8f4d751020de3d8be0c8772e785242f77de7"
+ },
+ "monogatari_silent": {
+  "seat": [
+   420,
+   830
+  ],
+  "crown": 120,
+  "prompt": "cutout",
+  "pose": "references/monogatari_silent.webp",
+  "sourceSha256": "012ea687ae68f3634ea90e35ac0b3d40009ee76925f72638dd0ee7f027151ed7"
+ },
+ "monogatari_defect": {
+  "seat": [
+   440,
+   840
+  ],
+  "crown": 140,
+  "prompt": "cutout",
+  "pose": "references/monogatari_defect.webp",
+  "sourceSha256": "68f30e5980f9b5a966ddc68efdcbd000a6b65a0e89c201618f5b86884838ffac"
+ },
+ "monogatari_watcher": {
+  "seat": [
+   430,
+   930
+  ],
+  "crown": 140,
+  "prompt": "identity",
+  "pose": "references/monogatari_watcher.webp",
+  "sourceSha256": "075e94a5ebebb5f8dac0f6510670988fd938c6f320fbb5c0f35170d5791c128c",
+  "grade": false
+ }
+}

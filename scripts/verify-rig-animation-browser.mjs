@@ -12,7 +12,7 @@ import { bossAttackMotionFor, bossProjectileImagePath, enemyProjectileImpactPath
 const hostedAttacks = process.argv.includes('--hosted-attacks')
 if (hostedAttacks) {
   process.env.VITE_ASSET_CDN_ORIGIN = 'https://cdn.animation.example/assets'
-  process.env.VITE_CAMPFIRE_BACKUP_ORIGIN = 'https://raw.animation.example/assets'
+  process.env.VITE_ASSET_BACKUP_ORIGIN = 'https://raw.animation.example/assets'
 }
 const root = resolve(import.meta.dirname, '..')
 const output = resolve(root, 'artifacts/rig-animation/browser')

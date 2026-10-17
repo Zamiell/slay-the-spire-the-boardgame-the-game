@@ -40,8 +40,8 @@ to the existing 384×1024 canvas, preserving native alpha and both pose anchors.
 Party scenes retain the existing pinned CDN/backup delivery and local empty-scene
 fallback, so only the compact merchant and treasure poses are added to the Pages package.
 
-Focused validation: `verify-assets.mjs` owns inventory, decoding, dimensions,
-transparency and size; `verify-art-scenes-browser.mjs` owns solo/party campfire
+Focused validation: `verify-assets.mjs` owns inventory, dimensions,
+transparency and size; `verify-art-bakes.mjs` decodes the campfire scenes; `verify-art-scenes-browser.mjs` owns solo/party campfire
 rendering; `verify-merchant-overflow-browser.mjs` checks the Kratos arrival image
 before entering the shop on desktop and horizontal phone.
 `verify-treasure-animation-browser.mjs` checks both Kratos hand poses during

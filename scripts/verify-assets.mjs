@@ -5,11 +5,10 @@
 // Publisher card scans and reference crops remain optional local syncs.
 // Runtime icons, illustrations, and combat cutouts are committed and required
 // by the unconditional inventories below.
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, statSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { spawnSync } from 'node:child_process'
-import { fileURLToPath } from 'node:url'
-import { dirname, join, resolve } from 'node:path'
+import { dirname, join } from 'node:path'
 import { CARDS, faceOf } from '../src/game/cards.ts'
 import '../src/game/downfall/slime-boss.ts'
 import {
@@ -26,7 +25,6 @@ import {
   SKIN_CARD_ART_ROOT,
   SKIN_CARD_ROOT,
   SKIN_CARD_THUMB_ROOT,
-  SOCKETED_CARD_THUMB_ROOT,
 } from '../src/game/assets.ts'
 import { ENEMIES } from '../src/game/enemies.ts'
 import { CHARACTER_IDS } from '../src/game/types.ts'
@@ -42,134 +40,82 @@ import { DOWNFALL_COLORLESS_CARD_DEFS } from '../src/game/downfall/items.ts'
 import { ENEMY_ART } from './lib/enemy-art.mjs'
 import { webpSize } from './lib/webp-size.mjs'
 import { skinCardFaces } from './sync-skin-card-faces.mjs'
-import { scratchDir } from './lib/test-skins.mjs'
 import { campfireScenes } from './sync-campfire-scenes.mjs'
 import { CAMPFIRE_SCENES } from '../src/game/campfire-scenes.ts'
 import { SKIN_CARD_FACES } from '../src/game/skin-card-faces.ts'
 import { STAGED_ATTACKS, STAGED_SOUND_VOLUMES } from '../src/ui/combat-screen/staged-attacks.ts'
 import { suite, check, assert, assertDeepEqual, assertEqual, report } from './lib/harness.mjs'
-
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const publicRoot = join(repoRoot, 'public')
-
-const listing = (dir, extension) =>
-  existsSync(dir) ? readdirSync(dir).filter((file) => file.endsWith(extension)) : []
-
-const cardRoot = join(publicRoot, 'assets/cards')
-const cardThumbRoot = join(publicRoot, 'assets/cards-sm')
-const socketedCardThumbRoot = join(publicRoot, 'assets/cards-socketed-sm')
-const cardArtRoot = join(publicRoot, 'assets/card-art')
-const iconRoot = join(publicRoot, 'assets/icons')
-const enemyRoot = join(publicRoot, 'assets/enemies')
-const combatEnemyRoot = join(publicRoot, 'assets/combat/enemies')
-const combatRiggedRoot = join(publicRoot, 'assets/combat/rigged')
-const bossAnimationRoot = join(combatEnemyRoot, 'animations')
-const bossProjectileRoot = join(combatEnemyRoot, 'projectiles')
-const combatCharacterRoot = join(publicRoot, 'assets/combat/characters')
-const combatSlimeRoot = join(publicRoot, 'assets/combat/slimes')
-const merchantCharacterRoot = join(publicRoot, 'assets/noncombat/merchant/characters')
-const combatVfxRoot = join(publicRoot, 'assets/combat/vfx')
-const combatActionVfxRoot = join(combatVfxRoot, 'actions')
-const combatPileRoot = join(publicRoot, 'assets/combat/piles')
-const combatStageRoot = join(publicRoot, 'assets/combat')
-const statusIconRoot = join(publicRoot, 'assets/status-icons')
-const powerIconRoot = join(publicRoot, 'assets/power-icons')
-const relicIconRoot = join(publicRoot, 'assets/relic-icons')
-const potionIconRoot = join(publicRoot, 'assets/potion-icons')
-const menuRoot = join(publicRoot, 'assets/menu')
-const compendiumIconRoot = join(menuRoot, 'compendium-icons')
-const campfireRoot = join(publicRoot, 'assets/noncombat/campfire')
-const fontRoot = join(publicRoot, 'assets/fonts')
-const sfxRoot = join(publicRoot, 'assets/sfx')
-
-const cardFiles = listing(cardRoot, '.webp')
-const cardThumbFiles = listing(cardThumbRoot, '.webp')
-const socketedCardThumbFiles = listing(socketedCardThumbRoot, '.webp')
-// Per-hero art is keyed by visual id (VISUAL_IDS): every character, plus every skin
-// (which wears a character's slot with its own art, named by the skin id).
-const CARD_ART_OWNERS = ['ironclad', 'silent', 'defect', 'watcher']
-const DOWNFALL_CARD_OWNERS = ['slime_boss', 'guardian', 'hexaghost', 'hermit']
-const cardArtFiles = CARD_ART_OWNERS.flatMap((owner) =>
-  listing(join(cardArtRoot, owner), '.webp').map((file) => `${owner}/${file}`))
-const iconFiles = listing(iconRoot, '.png')
-const enemyFiles = listing(enemyRoot, '.webp')
-const combatEnemyFiles = listing(combatEnemyRoot, '.webp')
-const combatRiggedFiles = listing(combatRiggedRoot, '.webp')
-const combatRiggedVideoFiles = listing(combatRiggedRoot, '.mov')
-const bossAnimationFiles = listing(bossAnimationRoot, '.webp')
-const bossProjectileFiles = listing(bossProjectileRoot, '.webp')
-const combatCharacterFiles = listing(combatCharacterRoot, '.webp')
-const combatSlimeFiles = listing(combatSlimeRoot, '.webp')
-const merchantCharacterFiles = listing(merchantCharacterRoot, '-standing.webp')
-const combatVfxFiles = listing(combatVfxRoot, '.webp')
-const combatActionVfxFiles = listing(combatActionVfxRoot, '.webp')
-const combatPileFiles = listing(combatPileRoot, '.webp')
-const statusIconFiles = listing(statusIconRoot, '.png')
-const powerIconFiles = listing(powerIconRoot, '.png')
-const relicIconFiles = listing(relicIconRoot, '.png')
-// The official prototype's Hexaghost starting component is unlabeled and has
-// no publisher icon. A locally generated placeholder may exist, but runtime
-// correctness and clean-clone verification must not depend on it.
-const optionalRelicIconFiles = new Set(['hexaghost_starting_relic.png'])
-const requiredRelicIconFiles = relicIconFiles.filter((file) => !optionalRelicIconFiles.has(file))
-const potionIconFiles = listing(potionIconRoot, '.png')
-const compendiumIconFiles = listing(compendiumIconRoot, '.webp')
-const campfireSceneFiles = [...listing(campfireRoot, '_firecamp.png'), ...listing(campfireRoot, '_firecamp.webp')]
-
-const SLIME_ASSET_SLUGS = [
-  'armored', 'bruiser', 'evolution', 'leeching', 'massive', 'muscle', 'psychic',
-  'royal', 'scrappy', 'spike', 'spreading', 'sticky', 'taunting',
-]
-
-const cardIndex = JSON.parse(readFileSync(join(repoRoot, 'data/card-index.json'), 'utf8'))
-
-/**
- * Longest-edge [floor, cap] in pixels for the runtime art below, as
- * `[floor, cap]` pairs.
- *
- * The cap matters as much as the floor. Decoded image memory is width x height
- * x 4 bytes regardless of how small the element is on screen, and iOS Safari
- * evicts and re-decodes under pressure — which is a stutter, not a slow load.
- * A 1326x1187 pile icon painted into a 41px box cost 6 MB of texture to draw
- * 41 pixels; the combat screen alone held 59 MB that way. Each cap below is
- * the widest CSS box the asset is ever painted into, times three for a
- * DPR-3 screen, rounded up to a power of two.
- *
- *   pile stacks / current deck  .pile__stack, 2.55rem       -> 41 CSS px
- *   enemy cutouts               .enemy__portrait             -> 146 CSS px
- *   die faces                   Icon size={26}               -> 26 CSS px
- *
- * The enemy figure is measured, not read off a rule: `.row__enemies` declares
- * `minmax(190px, 250px)` columns, but a later unconditional
- * `.row__enemies { display: contents }` takes the enemies out of that grid, so
- * the portrait is sized by `.enemy` under `.board` instead. Measured at 146 CSS
- * px across seven viewports from 900x600 to 3440x1440 and one to four enemies.
- *
- * Character cutouts keep their full resolution: the character-select hero
- * paints one at `max-height: 62vh`.
- */
-const PILE_ICON_EDGE = [160, 256]
-const ENEMY_CUTOUT_EDGE = [256, 1024]
-const BOSS_ELITE_CUTOUT_EDGE = [256, 1024]
-/** Only the `-hero` pair, painted by the character-select and Neow scenes. */
-const CHARACTER_HERO_EDGE = [700, 1536]
-/** Every other character cutout: combat seats, roster thumbs, lobby seats. */
-const CHARACTER_CUTOUT_EDGE = [256, 1024]
-const MERCHANT_CHARACTER_EDGE = [256, 576]
-const DIE_ICON_EDGE = 128
-/** Matches THUMB_WIDTH in scripts/sync-card-assets.mjs. */
-const CARD_THUMB_WIDTH = 448
-
-/** Every icon name Icon.tsx can render. */
-const REQUIRED_ICONS = [
-  'attack', 'block', 'strength', 'vulnerable', 'weak', 'poison', 'daze', 'burn',
-  'shiv', 'miracle', 'energy', 'potion', 'gold', 'relic', 'elite', 'monster',
-  'boss', 'aoe', 'die1', 'die2', 'die3', 'die4', 'die5', 'die6',
-]
+import {
+  repoRoot,
+  publicRoot,
+  listing,
+  cardRoot,
+  cardThumbRoot,
+  socketedCardThumbRoot,
+  cardArtRoot,
+  iconRoot,
+  enemyRoot,
+  combatEnemyRoot,
+  bossProjectileRoot,
+  combatCharacterRoot,
+  combatSlimeRoot,
+  merchantCharacterRoot,
+  combatVfxRoot,
+  combatActionVfxRoot,
+  combatPileRoot,
+  combatStageRoot,
+  statusIconRoot,
+  powerIconRoot,
+  relicIconRoot,
+  potionIconRoot,
+  menuRoot,
+  compendiumIconRoot,
+  campfireRoot,
+  fontRoot,
+  sfxRoot,
+  cardFiles,
+  cardThumbFiles,
+  socketedCardThumbFiles,
+  CARD_ART_OWNERS,
+  DOWNFALL_CARD_OWNERS,
+  cardArtFiles,
+  iconFiles,
+  enemyFiles,
+  combatEnemyFiles,
+  combatRiggedFiles,
+  combatRiggedVideoFiles,
+  bossAnimationFiles,
+  bossProjectileFiles,
+  combatCharacterFiles,
+  combatSlimeFiles,
+  merchantCharacterFiles,
+  combatVfxFiles,
+  combatActionVfxFiles,
+  combatPileFiles,
+  statusIconFiles,
+  powerIconFiles,
+  requiredRelicIconFiles,
+  potionIconFiles,
+  compendiumIconFiles,
+  campfireSceneFiles,
+  SLIME_ASSET_SLUGS,
+  cardIndex,
+  PILE_ICON_EDGE,
+  ENEMY_CUTOUT_EDGE,
+  BOSS_ELITE_CUTOUT_EDGE,
+  CHARACTER_HERO_EDGE,
+  CHARACTER_CUTOUT_EDGE,
+  MERCHANT_CHARACTER_EDGE,
+  DIE_ICON_EDGE,
+  CARD_THUMB_WIDTH,
+  REQUIRED_ICONS,
+  stagedSkins,
+  skinConfigs,
+} from './lib/asset-inventory.mjs'
 
 suite('assets')
 
-check('every rigged animation has a current Safari hardware-video companion', () => {
+check('every rigged animation has a Safari hardware-video companion', () => {
   const manifestPath = join(repoRoot, 'scripts/animation/safari-video-sources.json')
   assert(existsSync(manifestPath), 'missing Safari animation manifest; run pnpm sync:combat-video')
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
@@ -177,14 +123,6 @@ check('every rigged animation has a current Safari hardware-video companion', ()
   assertDeepEqual(Object.keys(manifest).sort(), expected, 'Safari animation source inventory')
   assertDeepEqual(combatRiggedVideoFiles.sort(), combatRiggedFiles.map((file) => file.replace(/\.webp$/, '.mov')).sort(),
     'Safari animation video inventory')
-  const hash = (path) => createHash('sha256').update(readFileSync(path)).digest('hex')
-  for (const relative of expected) {
-    const source = join(repoRoot, relative)
-    const video = source.replace(/\.webp$/, '.mov')
-    assertEqual(manifest[relative].encoder, 'hevc-alpha-vfr-q100-v1', `${relative} Safari encoder`)
-    assertEqual(manifest[relative].source, hash(source), `${relative} Safari source hash`)
-    assertEqual(manifest[relative].video, hash(video), `${relative} Safari video hash`)
-  }
 })
 
 check('every campfire party resolves to one complete wide scene', () => {
@@ -208,10 +146,7 @@ check('every campfire party resolves to one complete wide scene', () => {
   }
   const scenes = [...listed, 'empty'].map((name) => `${name}_firecamp.webp`)
   assertDeepEqual(campfireSceneFiles.sort(), scenes.sort(), 'campfire scenes must be WebP files named <party>_firecamp.webp')
-  for (const file of scenes) {
-    const info = spawnSync('webpinfo', ['-summary', join(campfireRoot, file)], { encoding: 'utf8' })
-    assert(info.status === 0 && /Width: 3840[\s\S]*Height: 2161/.test(info.stdout), `${file} is not 3840x2161 WebP`)
-  }
+  for (const file of scenes) assertDeepEqual(webpSize(join(campfireRoot, file)), [3840, 2161], `${file} is not 3840x2161 WebP`)
   // A repository budget, not a hosting limit: Pages never carries these scenes (the deploy deletes them from dist and
   // `assetPath` serves them from the SHA-pinned raw origin), so the cap only keeps clones and the raw origin lean.
   // It keeps the original 227-scene catalogue's byte budget per scene as skins add parties.
@@ -219,16 +154,7 @@ check('every campfire party resolves to one complete wide scene', () => {
     'campfire scenes exceed the original per-scene byte budget')
 })
 
-check('fresh campfires use original empty and character inputs and retain their native resolution', () => {
-  const manifest = JSON.parse(readFileSync(join(repoRoot, 'docs/skins/fresh-campfires/manifest.json'), 'utf8'))
-  const expected = campfireScenes().filter((name) => /(^|_)monogatari_(silent|watcher)($|_)/.test(name)
-    || /(^|_)guardian($|_)/.test(name) && /(^|_)monogatari_(ironclad|defect)($|_)/.test(name)).sort()
-  assertDeepEqual(manifest.scenes.map((entry) => entry.scene).sort(), expected, 'fresh campfire provenance inventory')
-  const result = spawnSync('python3', ['scripts/art/export-fresh-campfires.py', '--check'], { cwd: repoRoot, encoding: 'utf8' })
-  assert(result.status === 0, result.stderr || result.stdout)
-})
-
-check('sound effects are complete, compact, and decodable', () => {
+check('sound effects are complete and compact', () => {
   const expected = [
     'attack.ogg', 'block.ogg', 'card.ogg', 'defeat.ogg', 'draw.ogg', 'enemy-hit.ogg',
     'heal.ogg', 'magic.ogg', 'player-hit.ogg', 'ui.ogg', 'victory.ogg', 'weak.ogg',
@@ -239,12 +165,6 @@ check('sound effects are complete, compact, and decodable', () => {
   ].sort()
   assertDeepEqual([...listing(sfxRoot, '.ogg'), ...listing(sfxRoot, '.mp3')].sort(), expected)
   const files = expected.map((file) => join(sfxRoot, file))
-  for (const file of files) {
-    const result = spawnSync('ffprobe', [
-      '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', file,
-    ], { encoding: 'utf8' })
-    assert(result.status === 0 && Number(result.stdout) > 0, result.stderr || `${file} did not decode`)
-  }
   assert(files.reduce((bytes, file) => bytes + statSync(file).size, 0) < 512 * 1024,
     'sound effects exceed 512 KiB')
 })
@@ -426,7 +346,7 @@ check('every skin has a face, a thumbnail and an illustration for every card of 
   }
 })
 
-check('skin card images keep the audited dimensions and sizes, and the art matches its provenance manifest', () => {
+check('skin card images keep the audited dimensions and sizes', () => {
   for (const skin of SKIN_IDS) {
     assert(SKIN_CARD_FACES[skin], `${skin} has no skin-card-faces entry`)
     const dir = (name) => join(publicRoot, 'assets', name, skin)
@@ -443,22 +363,10 @@ check('skin card images keep the audited dimensions and sizes, and the art match
       assert(statSync(join(dir('skin-cards-sm'), `${key}.webp`)).size <= 80 * 1024, `${key} thumbnail exceeds 80 KiB`)
     }
     const artDir = dir('skin-card-art')
-    const manifest = JSON.parse(readFileSync(join(repoRoot, `docs/skins/${skin}-card-art/manifest.json`), 'utf8'))
-    assertEqual(manifest.cards.length, SKIN_CARD_FACES[skin].art.length, `${skin} manifest covers every illustration`)
-    const sha = (path) => createHash('sha256').update(readFileSync(join(repoRoot, path))).digest('hex')
-    // Grid skins record the shared inputs of their card pipeline once, at the top of the manifest.
-    for (const record of [manifest.catalogue, manifest.registration, ...(manifest.masks ?? [])].filter(Boolean)) {
-      assertEqual(sha(record.path), record.sha256, `${skin} manifest: ${record.path}`)
-    }
-    for (const card of manifest.cards) {
-      for (const record of [card.source, card.prompt, card.output,
-        ...(card.regeneration?.inputs ?? []).filter((input) => input.path)]) {
-        assert(!record.path.startsWith('/') && !record.path.split('/').includes('..'), `unsafe path ${record.path}`)
-        assertEqual(sha(record.path), record.sha256, record.path)
-      }
-      const file = join(artDir, card.output.path.split(`skin-card-art/${skin}/`)[1])
-      assertDeepEqual(webpSize(file), [748, 420], `${card.id} art size`)
-      assert(statSync(file).size <= 40 * 1024, `${card.id} art exceeds 40 KiB`)
+    for (const key of SKIN_CARD_FACES[skin].art) {
+      const file = join(artDir, `${key}.webp`)
+      assertDeepEqual(webpSize(file), [748, 420], `${skin} ${key} art size`)
+      assert(statSync(file).size <= 40 * 1024, `${skin} ${key} art exceeds 40 KiB`)
     }
   }
 })
@@ -777,6 +685,13 @@ check('every live enemy runtime image path exists', () => {
   assert(missing.length === 0, `missing runtime enemy images:\n    ${missing.join('\n    ')}`)
 })
 
+// The calibration itself (pixel measurement) runs in verify-art-bakes; this keeps its keys in step with the roster.
+check('every boss and elite has an intent calibration entry', () => {
+  const ids = [...new Set(Object.values(ENEMIES).filter((def) => def.isBoss || def.elite).map((def) => def.artId ?? def.id))]
+  const heads = JSON.parse(readFileSync(join(repoRoot, 'src/ui/elite-art-head.json'), 'utf8'))
+  assertDeepEqual(Object.keys(heads).sort(), [...ids, 'lagavulin_sleep'].sort(), 'run python3 scripts/calibrate-elite-intent.py')
+})
+
 check('every Downfall enemy asset maps to an official source', () => {
   const manifest = JSON.parse(readFileSync(join(repoRoot, 'docs/downfall-enemy-asset-provenance.json'), 'utf8'))
   assertEqual(manifest.upstream?.commit, '030ff7d4a7419a3e21c3075661550b1b479f3502',
@@ -838,20 +753,6 @@ check('every enemy resolves to the continuous rig inventory', () => {
     const relative = enemyAnimationImagePath(def, pose).replace(/^\/assets\//, '')
     assert(existsSync(join(publicRoot, 'assets', relative)), `${def.id}: missing ${pose} rig`)
   }
-  const result = spawnSync('python3', ['scripts/animation/review-rigs.py', '--check-only'], {
-    cwd: repoRoot, encoding: 'utf8',
-  })
-  assert(result.status === 0, result.stderr || result.stdout || 'rig audit requires Python and Pillow')
-})
-
-check('Elite and Boss intent placement matches their art', () => {
-  const result = spawnSync('python3', ['scripts/calibrate-elite-intent.py', '--check'], { cwd: repoRoot, encoding: 'utf8' })
-  assert(result.status === 0, result.stderr || 'run python3 scripts/calibrate-elite-intent.py')
-})
-
-check('held potions and Orbs sit on each hero\'s head', () => {
-  const result = spawnSync('python3', ['scripts/calibrate-hero-head.py', '--check'], { cwd: repoRoot, encoding: 'utf8' })
-  assert(result.status === 0, result.stderr || 'run python3 scripts/calibrate-hero-head.py')
 })
 
 check('every ranged Downfall boss has one complete transparent projectile', () => {
@@ -970,7 +871,7 @@ for path in sys.argv[1:]:
     'Slime Boss spawn does not use sixteen 90ms key frames')
 })
 
-check('bundled combat cutouts are sized for their render box, with transparency', () => {
+check('bundled combat cutouts are sized for their render box, with an alpha channel', () => {
   const expectedCharacters = [
     'defect-charge.webp', 'defect-hero.webp', 'defect-release.webp', 'defect.webp',
     'guardian-defense.webp', 'guardian-hero.webp', 'guardian-impact.webp', 'guardian-ready.webp',
@@ -1019,52 +920,6 @@ check('bundled combat cutouts are sized for their render box, with transparency'
   })
   assert(faults.length === 0, `invalid combat cutouts:\n    ${faults.join('\n    ')}`)
 
-  const probe = `
-import sys, json, re
-from PIL import Image
-faults = []
-for name in sys.argv[1:]:
-    im = Image.open(name).convert("RGBA")
-    alpha = im.getchannel("A")
-    w, h = im.size
-    corners = [alpha.getpixel((0, 0)), alpha.getpixel((w - 1, 0)),
-               alpha.getpixel((0, h - 1)), alpha.getpixel((w - 1, h - 1))]
-    label = name.rsplit("/", 1)[-1]
-    bbox = alpha.point(lambda value: 255 if value >= 16 else 0).getbbox()
-    if max(corners) > 8:
-        faults.append(f"{label}: corners are opaque {corners}")
-    elif sum(1 for value in alpha.getdata() if value < 16) / (w * h) < 0.05:
-        faults.append(f"{label}: less than 5% of its canvas is transparent")
-    elif bbox is None or min(bbox[2] - bbox[0], bbox[3] - bbox[1]) < 0.30 * min(w, h) or max(bbox[2] - bbox[0], bbox[3] - bbox[1]) < 0.55 * max(w, h):
-        faults.append(f"{label}: visible art is undersized ({bbox})")
-    heat = re.fullmatch(r"hexaghost-heat-(\d)\.webp", label)
-    if heat:
-        pixels = im.load()
-        green = {(x, y) for y in range(h) for x in range(w)
-                 if pixels[x, y][3] > 80 and pixels[x, y][1] > 170
-                 and pixels[x, y][1] > pixels[x, y][0] * 1.25
-                 and pixels[x, y][1] > pixels[x, y][2] * 1.25}
-        components = 0
-        while green:
-            stack = [green.pop()]
-            area = 0
-            while stack:
-                x, y = stack.pop()
-                area += 1
-                for point in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
-                    if point in green:
-                        green.remove(point)
-                        stack.append(point)
-            components += area > 500
-        if components != int(heat.group(1)):
-            faults.append(f"{label}: expected {heat.group(1)} visible flames, found {components}")
-print(json.dumps(faults))
-`
-  const pixelResult = spawnSync('python3', ['-c', probe, ...files], { encoding: 'utf8' })
-  assert(pixelResult.status === 0, pixelResult.stderr || 'combat cutout pixel audit requires python3 + Pillow')
-  const pixelFaults = JSON.parse(pixelResult.stdout.trim().split('\n').pop())
-  assert(pixelFaults.length === 0, `combat cutouts have opaque backgrounds:\n    ${pixelFaults.join('\n    ')}`)
-
   const flameIcon = readFileSync(join(iconRoot, 'hexaghost-flame.png'))
   assert(flameIcon.subarray(1, 4).toString() === 'PNG', 'Hexaghost flame action icon is not a PNG')
   assert(flameIcon.readUInt32BE(16) === 512 && flameIcon.readUInt32BE(20) === 512,
@@ -1090,85 +945,13 @@ print(json.dumps(faults))
   }
 })
 
-check('Kratos attack art provenance and measured pose shifts', () => {
-  const manifest = JSON.parse(readFileSync(join(repoRoot, 'docs/skins/kratos-art.json'), 'utf8'))
-  const digest = (path) => createHash('sha256').update(readFileSync(join(repoRoot, path))).digest('hex')
-  for (const entry of manifest.generated) {
-    assertEqual(digest(entry.source), entry.sha256, entry.source)
-    assertEqual(digest(entry.prompt), entry.promptSha256, entry.prompt)
-    for (const reference of entry.inputs) assertEqual(digest(reference.path), reference.sha256, reference.path)
-  }
-  for (const entry of manifest.runtime) assertEqual(digest(entry.path), entry.sha256, entry.path)
-  // The CSS rear-foot shifts and the travel's blade-tip reach in skins/kratos.json are measured from the drawings.
-  const measured = spawnSync('python3', ['scripts/animation/kratos.py', '--check'], { cwd: repoRoot, encoding: 'utf8' })
-  assert(measured.status === 0, measured.stderr || measured.stdout)
-})
-
-check('Silent-chan and Watcher-chan attack art provenance, and every Monogatari bake matches its sources', () => {
-  const digest = (path) => createHash('sha256').update(readFileSync(join(repoRoot, path))).digest('hex')
-  const read = (path) => JSON.parse(readFileSync(join(repoRoot, path), 'utf8'))
-  const generated = {
-    monogatari_silent: read('docs/skins/monogatari_silent-art/manifest.json').attack.generated,
-    monogatari_watcher: read('docs/skins/monogatari_watcher-art/attack-manifest.json').generated,
-  }
-  for (const [skin, entries] of Object.entries(generated)) {
-    const config = readFileSync(join(repoRoot, `scripts/animation/skins/${skin}.json`), 'utf8')
-    // One manifest entry per drawn pose of the animation clock (the idle key is the separate `ready` drawing).
-    const drawn = [...new Set(JSON.parse(config).keys.map(([, pose]) => pose))].filter((pose) => pose !== 'idle').sort()
-    assertDeepEqual(entries.map((entry) => entry.name).sort(), drawn, `${skin}: attack provenance entries vs the poses of its animation config`)
-    for (const entry of entries) {
-      for (const hashed of [entry.source, entry.prompt, entry.output, ...entry.inputs.filter((input) => input.path)]) {
-        assert(!hashed.path.startsWith('/') && !hashed.path.split('/').includes('..'), `${skin}: unsafe provenance path ${hashed.path}`)
-        assertEqual(digest(hashed.path), hashed.sha256, hashed.path)
-      }
-      assert(config.includes(`"${entry.name}"`), `${skin}: ${entry.name} is not a pose of the animation config`)
-    }
-  }
-  // Each bake step regenerates its runtime WebP from the committed sources and fails if any byte differs.
-  for (const script of ['monogatari.py', 'monogatari_silent.py', 'monogatari_watcher.py']) {
-    const baked = spawnSync('python3', [`scripts/animation/${script}`, '--check'], { cwd: repoRoot, encoding: 'utf8' })
-    assert(baked.status === 0, `${script} --check: ${baked.stderr || baked.stdout}`)
-  }
-})
-
-const stagedSkins = SKIN_IDS.filter((id) => SKIN_TRAITS[id].stagedAttack)
-const skinConfigs = Object.fromEntries(readdirSync(join(repoRoot, 'scripts/animation/skins')).filter((file) => file.endsWith('.json'))
-  .map((file) => [file.slice(0, -'.json'.length), JSON.parse(readFileSync(join(repoRoot, 'scripts/animation/skins', file), 'utf8'))]))
-
-check('every staged attack skin has its config, generated CSS and table; its drawings keep native alpha, planted feet and unclipped overscan', () => {
+check('every staged attack skin has its config, table, hit effects and sounds', () => {
   // Registering a skin with the stagedAttack trait needs scripts/animation/skins/<skin>.json and a regenerated table.
   // A config may exist before its skin is registered (the art is drawn first); the generated table always lists every config.
   assertDeepEqual(stagedSkins.filter((skin) => !(skin in skinConfigs)), [], 'stagedAttack skins without an animation config')
   assertDeepEqual(Object.keys(STAGED_ATTACKS).sort(), Object.keys(skinConfigs).sort(), 'staged attack table vs the animation configs')
-  const generated = spawnSync('python3', ['scripts/animation/skin-attack.py', '--check'], { cwd: repoRoot, encoding: 'utf8' })
-  assert(generated.status === 0, generated.stderr || generated.stdout)
   for (const skin of stagedSkins) {
     const config = skinConfigs[skin]
-    const poses = [...new Set(config.keys.map(([, pose]) => pose === 'idle' ? 'ready' : pose))]
-    const airborne = config.audit?.airborne ?? {}
-    const result = spawnSync('python3', ['-c', `
-from PIL import Image, ImageChops
-from pathlib import Path
-import json
-skin, poses, canvas, ground, airborne = json.loads(${JSON.stringify(JSON.stringify([skin, poses, config.canvas, config.ground, airborne]))})
-root = Path('public/assets/combat/characters/animated')
-idle = Image.open(root / f'{skin}-idle.webp')
-assert idle.info['loop'] == 0 and idle.n_frames > 1
-ready = Image.open(root / f'{skin}-ready.webp')
-assert ImageChops.difference(idle.getchannel('A'), ready.getchannel('A')).getbbox() is None
-images = [(idle, 0)] + [(Image.open(root / f'{skin}-{pose}.webp'), airborne.get(pose, 0)) for pose in poses]
-for image, lift in images:
-    assert image.size == (canvas, canvas), (image.filename, image.size)
-    for i in range(image.n_frames):
-        image.seek(i)
-        alpha = image.getchannel('A')
-        assert alpha.histogram()[0] > image.width * image.height / 2
-        box = alpha.point(lambda a: 255 if a > 32 else 0).getbbox()
-        assert box and min(box[0],box[1],image.width-box[2],image.height-box[3]) >= 4
-        assert abs(box[3] - (ground - lift)) <= 4, (image.filename, box)
-print('PASS')
-`], { cwd: repoRoot, encoding: 'utf8' })
-    assert(result.status === 0, `${skin}: ${result.stderr || result.stdout}`)
     for (const hit of config.hits) {
       assert(existsSync(join(combatActionVfxRoot, skin, `${hit.vfx}.webp`)), `${skin}: missing hit VFX ${hit.vfx}`)
     }
@@ -1197,210 +980,6 @@ for path in sys.argv[1:]:
     assert(Object.hasOwn(offsets, id), `merchant-arrival.css has no floor offset for ${id}`)
     assert(Math.abs(offsets[id] - gaps[index]) <= 0.06, `${id}: floor offset ${offsets[id]}% but its standing figure leaves ${gaps[index].toFixed(2)}% under the feet`)
   })
-})
-
-check('every attack drawing keeps the idle\'s head and prop scale, and the audit rejects an enlarged pose', () => {
-  // audit-poses.py reads each skin's audit block: head length and every prop within the config's tolerance of the idle's
-  // (default 10%), landmarks that still sit on the drawing, planted soles, no clipping, fringes or detached specks.
-  const audited = Object.entries(skinConfigs).filter(([skin, config]) => stagedSkins.includes(skin) && config.audit?.landmarks)
-  assertDeepEqual(audited.map(([skin]) => skin).sort(), stagedSkins.filter((skin) => skin !== 'kratos').sort(), 'audited staged skins')
-  for (const [skin] of audited) {
-    const audit = spawnSync('python3', ['scripts/animation/audit-poses.py', skin, '--no-sheet'], { cwd: repoRoot, encoding: 'utf8' })
-    assert(audit.status === 0, `${skin} attack audit:\n${audit.stdout.split('\n').filter((line) => line.startsWith('FAIL')).join('\n')}`)
-  }
-  // Mutation: a skin that caps the jump of its props between drawings (propStepPx) must fail when the cap shrinks to 20 px.
-  for (const [skin, config] of audited.filter(([, config]) => config.audit.tolerances?.propStepPx)) {
-    const audit = spawnSync('python3', ['scripts/animation/audit-poses.py', skin, '--no-sheet', '--tol', 'propStepPx=20'], { cwd: repoRoot, encoding: 'utf8' })
-    assert(audit.status !== 0 && /jumps \d+px between consecutive drawings/.test(audit.stdout), `${skin}: a 20px propStepPx cap passed the attack audit`)
-  }
-  // Mutation: the first contact drawing of each audited skin enlarged by 15% about its planted foot must fail the audit.
-  const scratch = scratchDir('attack-audit')
-  try {
-    for (const [skin, config] of audited) {
-      const pose = config.contactPoses[0]
-      const made = spawnSync('python3', ['-c', `
-import shutil, sys
-sys.path.insert(0, 'scripts/animation')
-from pathlib import Path
-from PIL import Image
-from skin_geometry import rear_foot_centre, solid_box
-skin, pose, out = sys.argv[1:4]
-source = Path('public/assets/combat/characters/animated')
-for file in source.glob(skin + '-*.webp'): shutil.copy(file, out)
-path = Path(out) / f'{skin}-{pose}.webp'
-image = Image.open(path).convert('RGBA')
-foot, ground = rear_foot_centre(image), solid_box(image)[3]
-big = image.resize((round(image.width * 1.15), round(image.height * 1.15)), Image.Resampling.LANCZOS)
-canvas = Image.new('RGBA', image.size)
-canvas.alpha_composite(big, (round(foot - foot * 1.15), round(ground - ground * 1.15)))
-canvas.save(path, quality=95)
-`, skin, pose, scratch.dir], { cwd: repoRoot, encoding: 'utf8' })
-      assert(made.status === 0, made.stderr)
-      const audit = spawnSync('python3', ['scripts/animation/audit-poses.py', skin, '--no-sheet', '--dir', scratch.dir], { cwd: repoRoot, encoding: 'utf8' })
-      assert(audit.status !== 0 && new RegExp(`FAIL ${pose}:`).test(audit.stdout), `${skin}: a ${pose} drawing enlarged by 15% passed the attack audit`)
-    }
-  } finally { scratch.remove() }
-})
-
-check('every attack audit cap is exercised by a mutation, equals the measured maximum its README table documents, and cannot be loosened', () => {
-  // Each audit cap is a number a person chose: shrinking it below the art must fail the real audit (so a check that was
-  // disabled or never wired up shows here), and it is held to the measured maximum recorded in the skin's README table
-  // (`### Audit caps`: cap | shipped | measured): the shipped cap may be tightened freely but never exceed the documented
-  // one, and may not sit more than 10% above what the art measures, so there is no slack to hide a regression in.
-  const DEFAULTS = { headRatio: 0.1, propRatio: 0.1, soleRatio: 0.2 }
-  const MUTATIONS = {
-    headStepPx: [['headStepPx=10'], /the head jumps \d+px between consecutive drawings/],
-    propStepPx: [['propStepPx=10'], /the \w+ (tip|butt) jumps \d+px between consecutive drawings/],
-    headRatio: [['headRatio=0.001'], /FAIL \w+: head \d/],
-    propRatio: [['propRatio=0.001'], /FAIL \w+: prop "\w+" \d/],
-    soleRatio: [['soleRatio=0.001'], /FAIL \w+: rear sole .* body scale drift/],
-  }
-  const scratch = scratchDir('attack-caps')
-  try {
-    for (const skin of stagedSkins.filter((id) => skinConfigs[id].audit?.landmarks)) {
-      const config = skinConfigs[skin]
-      const tolerances = config.audit.tolerances ?? {}
-      const report = join(scratch.dir, `${skin}.json`)
-      const clean = spawnSync('python3', ['scripts/animation/audit-poses.py', skin, '--no-sheet', '--report', report], { cwd: repoRoot, encoding: 'utf8' })
-      assert(clean.status === 0, `${skin}: ${clean.stdout}`)
-      const measured = JSON.parse(readFileSync(report, 'utf8')).measured
-      const readme = readFileSync(join(repoRoot, `docs/skins/${skin}-art/README.md`), 'utf8')
-      const table = Object.fromEntries([...readme.split('### Audit caps')[1]?.split(/\n#{1,3} /)[0].matchAll(/^\| `(\w+)` \| ([\d.]+) \| ([\d.]+) \|$/gm) ?? []]
-        .map(([, name, shipped, maximum]) => [name, { shipped: Number(shipped), maximum: Number(maximum) }]))
-      const hold = config.minHoldMs ?? 45
-      const holds = config.keys.slice(1).map(([time, pose], index) => [pose, (config.keys[index + 2]?.[0] ?? config.durationMs) - time])
-        .filter(([pose]) => !(pose in (config.shortHolds ?? {}))).map(([, ms]) => ms)
-      const rows = {
-        ...Object.fromEntries(Object.keys(MUTATIONS).map((name) => [name, { cap: tolerances[name] ?? DEFAULTS[name], actual: measured[name] }])),
-        groundSpeedPxPerMs: { cap: tolerances.groundSpeedPxPerMs },
-        minHoldMs: { cap: hold, actual: Math.min(...holds), floor: true },
-      }
-      for (const [name, { cap, actual, floor }] of Object.entries(rows)) {
-        assert(cap !== undefined, `${skin}: audit.tolerances.${name} is not set`)
-        const doc = table[name]
-        assert(doc, `${skin}: docs/skins/${skin}-art/README.md has no "| \`${name}\` | shipped | measured |" row under "### Audit caps"`)
-        if (floor) {
-          assert(cap >= doc.shipped && doc.shipped <= doc.maximum, `${skin}: ${name} ${cap} is below the documented ${doc.shipped}`)
-          assert(actual >= doc.maximum, `${skin}: the shortest hold ${actual}ms is below the documented ${doc.maximum}ms`)
-          continue
-        }
-        assert(cap <= doc.shipped, `${skin}: ${name} cap ${cap} exceeds the documented ${doc.shipped}: tighten the config, or justify a looser cap in the README table`)
-        assert(doc.shipped <= doc.maximum * 1.1 + 1e-9, `${skin}: documented ${name} cap ${doc.shipped} is more than 10% above its documented maximum ${doc.maximum}`)
-        assert(cap <= doc.maximum * 1.1 + 1e-9, `${skin}: ${name} cap ${cap} leaves more than 10% slack over the documented maximum ${doc.maximum}`)
-        if (actual !== undefined) assert(actual <= doc.maximum + 1e-9, `${skin}: measured ${name} ${actual} exceeds the documented maximum ${doc.maximum}`)
-      }
-      for (const [name, [flags, expected]] of Object.entries(MUTATIONS)) {
-        const run = spawnSync('python3', ['scripts/animation/audit-poses.py', skin, '--no-sheet', ...flags.flatMap((flag) => ['--tol', flag])], { cwd: repoRoot, encoding: 'utf8' })
-        assert(run.status !== 0 && expected.test(run.stdout), `${skin}: shrinking ${name} did not fail the attack audit with ${expected}\n${run.stdout.split('\n').slice(-4).join('\n')}`)
-      }
-    }
-    // The minimum hold: every shipped clock passes, and a clock with a shorter hold, an unlisted short drawing, a short drawing
-    // with no reason, a non-flight shortHolds entry or a flight drawing under 20ms fails both the audit and the generator.
-    const result = spawnSync('python3', ['-c', `
-import importlib.util, json, sys
-sys.path.insert(0, 'scripts/animation')
-def load(name, path):
-    spec = importlib.util.spec_from_file_location(name, path)
-    module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
-    return module
-attack, audit = load('skin_attack', 'scripts/animation/skin-attack.py'), load('audit_poses', 'scripts/animation/audit-poses.py')
-for skin in sys.argv[1:]:
-    config = json.load(open(f'scripts/animation/skins/{skin}.json'))
-    assert not attack.hold_problems(config), config
-    keys = config['keys']
-    def shorten(c, index, hold):
-        c['keys'] = [[time - (keys[index + 1][0] - keys[index][0] - hold) * (i > index), pose] for i, (time, pose) in enumerate(keys)]
-        c['durationMs'] -= keys[index + 1][0] - keys[index][0] - hold
-        return c
-    grounded = next(i for i, (_, pose) in enumerate(keys) if 0 < i < len(keys) - 1 and pose not in config.get('shortHolds', {}) and pose not in config['audit'].get('airborne', {}))
-    cases = {
-        'a grounded drawing held 30ms': shorten(json.loads(json.dumps(config)), grounded, 30),
-        'minHoldMs raised past every hold': {**config, 'minHoldMs': 1000},
-        'an unreasoned shortHolds entry': {**config, 'shortHolds': {**config.get('shortHolds', {}), 'nope': ''}},
-        'a non-flight shortHolds entry': {**config, 'shortHolds': {**config.get('shortHolds', {}), keys[grounded][1]: 'because'}},
-    }
-    flight = next((i for i, (_, pose) in enumerate(keys) if pose in config.get('shortHolds', {})), None)
-    if flight is not None:
-        cases['a flight drawing held 10ms'] = shorten(json.loads(json.dumps(config)), flight, 10)
-        unlisted = json.loads(json.dumps(config)); unlisted['shortHolds'].pop(keys[flight][1])
-        cases['a short flight drawing with no shortHolds entry'] = unlisted
-    for label, bad in cases.items():
-        assert attack.hold_problems(bad), f'{skin}: {label} passed the hold check'
-        assert any('holds' in e or 'shortHolds' in e for e in audit.audit(bad, attack.CHARACTERS / 'animated')[0]), f'{skin}: {label} passed the audit'
-        try: attack.validate({**bad, 'contactReach': 0})
-        except AssertionError as error:
-            assert any(word in str(error) for word in ('holds', 'shortHolds', 'shorter than 20ms')), f'{skin}: {label} failed the generator for another reason: {error}'
-            continue
-        raise SystemExit(f'{skin}: {label} passed the generator')
-print('PASS')
-`, ...stagedSkins.filter((id) => skinConfigs[id].audit?.landmarks)], { cwd: repoRoot, encoding: 'utf8' })
-    assert(result.status === 0, result.stderr.trim().split('\n').at(-1) || result.stdout)
-  } finally { scratch.remove() }
-})
-
-check('stored poseShift and contactReach match a fresh measurement of every Monogatari attack drawing, and drift fails', () => {
-  // Kratos is held to the same by kratos.py --check above. --measure --check is read-only.
-  const measured = stagedSkins.filter((skin) => skin !== 'kratos')
-  for (const skin of measured) {
-    const result = spawnSync('python3', ['scripts/animation/skin-attack.py', '--measure', skin, '--check'], { cwd: repoRoot, encoding: 'utf8' })
-    assert(result.status === 0, `${skin}: ${result.stderr.trim().split('\n').at(-1) || result.stdout}`)
-  }
-  // Mutations: a pose shifted by 60 canvas px (either way) or a contact reach off by 0.3 must be reported stale by the
-  // measurement check, and a 60px shift of a contact drawing must fail the planted-sole audit.
-  const mutated = spawnSync('python3', ['-c', `
-import importlib.util, json, sys
-sys.path.insert(0, 'scripts/animation')
-def load(name, path):
-    spec = importlib.util.spec_from_file_location(name, path)
-    module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
-    return module
-attack, audit = load('skin_attack', 'scripts/animation/skin-attack.py'), load('audit_poses', 'scripts/animation/audit-poses.py')
-for skin in sys.argv[1:]:
-    config = json.load(open(f'scripts/animation/skins/{skin}.json'))
-    shifts, reach, _ = attack.measure(config, attack.baked({**config, 'contactReach': 0}))
-    assert not attack.stale_measurements(config, shifts, reach), f'{skin}: unmutated config reported stale'
-    pose = config['contactPoses'][0]
-    for delta in (60, -60):
-        bad = {**config, 'poseShift': {**config.get('poseShift', {}), pose: config.get('poseShift', {}).get(pose, 0) + delta}}
-        assert attack.stale_measurements(bad, shifts, reach), f'{skin}: a {delta:+d}px poseShift on {pose} passed the measurement check'
-        errors = audit.audit(bad, attack.CHARACTERS / 'animated')[0]
-        assert any(error.startswith(f'{pose}: planted rear sole') for error in errors), f'{skin}: a {delta:+d}px poseShift on {pose} passed the planted-sole audit'
-    assert attack.stale_measurements({**config, 'contactReach': config['contactReach'] + 0.3}, shifts, reach), f'{skin}: a +0.3 contactReach passed'
-print('PASS')
-`, ...measured], { cwd: repoRoot, encoding: 'utf8' })
-  assert(mutated.status === 0, mutated.stderr.trim().split('\n').at(-1) || mutated.stdout)
-})
-
-check('the staged attack generator rejects malformed configs and accepts the test skins', () => {
-  const result = spawnSync('python3', ['-c', `
-import importlib.util, json, sys
-sys.path.insert(0, 'scripts/animation')
-spec = importlib.util.spec_from_file_location('skin_attack', 'scripts/animation/skin-attack.py')
-module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
-for name in ('test_combo', 'test_strike'):
-    config = json.load(open(f'scripts/animation/test-skins/{name}.json')); config['contactReach'] = 1
-    module.validate(config)
-good = json.load(open('scripts/animation/test-skins/test_combo.json')); good['contactReach'] = 1
-cases = {
-    'hit weights that do not add up': lambda c: c['hits'][0].update(weight=.5),
-    'unknown hit style': lambda c: c['hits'][0].update(style='zap'),
-    'hit sound without a volume': lambda c: c['hits'][0].update(sound='nope'),
-    'hit on an unknown pose': lambda c: c['hits'][0].update(at='nope'),
-    'hits out of time order': lambda c: c['hits'].reverse(),
-    'clock that does not end idle': lambda c: c['keys'][-1].__setitem__(1, 'slam'),
-    'travel back before out': lambda c: c['travel'].update(back=[10, 20]),
-    'too many keys': lambda c: c['keys'].__setitem__(slice(1, 1), [[i + 1, 'slam'] for i in range(20)]),
-    'contact pose that is not drawn': lambda c: c.update(contactPoses=['nope']),
-    'shift for an unknown pose': lambda c: c.update(poseShift={'nope': 1}),
-}
-for label, mutate in cases.items():
-    bad = json.loads(json.dumps(good)); mutate(bad)
-    try: module.validate(bad)
-    except AssertionError: continue
-    raise SystemExit(f'accepted: {label}')
-print('PASS')
-`], { cwd: repoRoot, encoding: 'utf8' })
-  assert(result.status === 0, result.stderr || result.stdout)
 })
 
 check('every character and skin has its combat, menu and merchant art', () => {
@@ -1476,7 +1055,7 @@ check('combat pile and current-deck icons are HUD-sized transparent images', () 
   }
 })
 
-check('combat animation effects are complete, transparent, and compact', () => {
+check('combat animation effects are complete, warmed, alpha WebPs and compact', () => {
   const expected = [
     'death-ash.webp', 'death-ring.webp', 'enemy-motes.webp', 'hero-motes.webp', 'hit-burst.webp',
   ]
@@ -1535,31 +1114,6 @@ check('combat animation effects are complete, transparent, and compact', () => {
     assert(dimensions.test(block), `${file} has incorrect dimensions`)
     assert(/Alpha:\s+1/.test(block), `${file} has no alpha channel`)
   }
-  const probe = `
-import sys, json
-from PIL import Image
-faults = []
-for name in sys.argv[1:]:
-    alpha = Image.open(name).convert("RGBA").getchannel("A")
-    w, h = alpha.size
-    values = list(alpha.getdata())
-    label = name.rsplit("/", 1)[-1]
-    corners = [alpha.getpixel((0, 0)), alpha.getpixel((w - 1, 0)),
-               alpha.getpixel((0, h - 1)), alpha.getpixel((w - 1, h - 1))]
-    transparent = sum(value < 16 for value in values) / len(values)
-    visible = sum(value >= 16 for value in values) / len(values)
-    if max(corners) > 8:
-        faults.append(f"{label}: corners are opaque {corners}")
-    elif transparent < 0.5:
-        faults.append(f"{label}: only {transparent * 100:.1f}% transparent")
-    elif visible < 0.005:
-        faults.append(f"{label}: only {visible * 100:.1f}% visible")
-print(json.dumps(faults))
-`
-  const pixelResult = spawnSync('python3', ['-c', probe, ...files], { encoding: 'utf8' })
-  assert(pixelResult.status === 0, pixelResult.stderr || 'combat VFX pixel audit requires python3 + Pillow')
-  assertDeepEqual(JSON.parse(pixelResult.stdout.trim().split('\n').pop()), [],
-    'combat VFX must be visible effects on transparent canvases')
   assert(expected.map((file) => join(combatVfxRoot, file))
     .reduce((bytes, file) => bytes + statSync(file).size, 0) < 320 * 1024,
     'base combat VFX exceed 320 KiB')
@@ -1608,95 +1162,6 @@ check('bundled stage and generated icon inventories are complete and decodable',
   }
 })
 
-check('generated status, relic, and potion icons have transparent backgrounds', () => {
-  const files = [
-    ...statusIconFiles.map((name) => join(statusIconRoot, name)),
-    ...requiredRelicIconFiles.map((name) => join(relicIconRoot, name)),
-    ...potionIconFiles.map((name) => join(potionIconRoot, name)),
-    join(iconRoot, 'hexaghost-flame.png'),
-    join(iconRoot, 'hermit-chamber.png'),
-    join(iconRoot, 'hermit-chamber-loaded.png'),
-  ]
-  const probe = `
-import sys, json
-from PIL import Image
-faults = []
-restored_relics = {
-    "battle_buddies.png", "black_powder.png", "chronometer.png", "clasped_locket.png",
-    "dented_plate.png", "dueling_glove.png", "forbidden_fruit.png", "fuel_canister.png",
-    "greed_ooze.png", "knowing_skull.png", "kunai.png", "makeshift_battery.png",
-    "pantograph.png", "potion_belt.png", "sack_of_gems.png", "shot_glass.png",
-    "shuriken.png", "snecko_egg.png", "straight_razor.png", "teleportation_stone.png",
-    "the_broken_seal.png", "thimble_helm.png", "unceasing_top.png", "wheel_of_change.png",
-}
-for name in sys.argv[1:]:
-    alpha = Image.open(name).convert("RGBA").getchannel("A")
-    w, h = alpha.size
-    corners = [alpha.getpixel((0, 0)), alpha.getpixel((w - 1, 0)),
-               alpha.getpixel((0, h - 1)), alpha.getpixel((w - 1, h - 1))]
-    visible = sum(1 for value in alpha.getdata() if value > 32) / (w * h)
-    bbox = alpha.point(lambda value: 255 if value > 32 else 0).getbbox()
-    if max(corners) > 8 or visible < 0.01:
-        faults.append(f"{name}: corners={corners}, visible={visible:.3f}")
-    elif "/potion-icons/" in name.replace("\\\\", "/") and bbox and min(bbox[0], bbox[1], w - bbox[2], h - bbox[3]) < 8:
-        faults.append(f"{name}: alpha bounds {bbox} still contain the old inventory tile")
-    elif name.replace("\\\\", "/").split("/")[-1] in restored_relics and (visible > 0.5 or not bbox or min(bbox[0], bbox[1], w - bbox[2], h - bbox[3]) < 8):
-        faults.append(f"{name}: visible={visible:.3f}, alpha bounds={bbox}; relic still looks like a framed tile")
-print(json.dumps(faults))
-`
-  const result = spawnSync('python3', ['-c', probe, ...files], { encoding: 'utf8' })
-  assert(result.status === 0, result.stderr || 'generated icon audit requires python3 + Pillow')
-  const faults = JSON.parse(result.stdout.trim().split('\n').pop())
-  assertDeepEqual(faults, [], 'generated icons need transparent corners and visible art')
-})
-
-// Bytes are not pixels. Every broken conversion this pipeline can produce —
-// keying disabled, luminance inverted, alpha left faint — yields a file well
-// over any size threshold while rendering as a white tile or as nothing at
-// all. An invisible icon does not look broken, and this pass removed the text
-// captions that used to cover for one.
-check('every icon is a symbol on transparent paper, not a tile', () => {
-  if (iconFiles.length === 0) return // not synced
-
-  // Measured with Pillow, which this pipeline already requires to build the
-  // icons in the first place. Hand-rolling a PNG decoder here would be more
-  // code than the check.
-  const probe = `
-import sys, json
-from PIL import Image
-faults = []
-for name in sys.argv[1:]:
-    im = Image.open(name).convert("RGBA")
-    w, h = im.size
-    px = im.load()
-    corners = [px[0, 0][3], px[w - 1, 0][3], px[0, h - 1][3], px[w - 1, h - 1][3]]
-    label = name.rsplit("/", 1)[-1]
-    if max(corners) > 8:
-        faults.append(f"{label}: corners are opaque {corners} - the paper was not keyed out")
-        continue
-    opaque = [px[x, y] for y in range(h) for x in range(w) if px[x, y][3] > 200]
-    fraction = len(opaque) / (w * h)
-    if fraction < 0.02:
-        faults.append(f"{label}: only {fraction * 100:.1f}% opaque - effectively invisible")
-        continue
-    # The paper is white, so ANY opaque near-white pixel means it survived the
-    # keying. Measured: a correctly keyed icon has none at all; leaving the
-    # paper in gives 50-67%. The corners alone cannot catch this, because the
-    # extracted images already have transparent margins.
-    paper = sum(1 for p in opaque if min(p[0], p[1], p[2]) > 230) / len(opaque)
-    if paper > 0.15:
-        faults.append(f"{label}: {paper * 100:.0f}% of the symbol is white paper - it renders as a tile")
-print(json.dumps(faults))
-`
-  const files = REQUIRED_ICONS.map((name) => join(iconRoot, `${name}.png`)).filter((file) =>
-    existsSync(file),
-  )
-  const result = spawnSync('python3', ['-c', probe, ...files], { encoding: 'utf8' })
-  assert(result.status === 0, result.stderr || result.error?.message || 'icon pixel audit requires python3 + Pillow')
-  const faults = JSON.parse(result.stdout.trim().split('\n').pop())
-  assert(faults.length === 0, `icon conversion is wrong:\n    ${faults.join('\n    ')}`)
-})
-
 check('synced artwork is never truncated', () => {
   for (const [dir, files] of [
     [iconRoot, iconFiles],
@@ -1705,31 +1170,6 @@ check('synced artwork is never truncated', () => {
     for (const file of files) {
       assert(statSync(join(dir, file)).size > 512, `${file} looks truncated; re-sync it`)
     }
-  }
-})
-
-check('every artwork file fully decodes', () => {
-  for (const [dir, extension, count] of [
-    [cardRoot, 'webp', cardFiles.length],
-    [enemyRoot, 'webp', enemyFiles.length],
-    [combatEnemyRoot, 'webp', combatEnemyFiles.length],
-    [combatCharacterRoot, 'webp', combatCharacterFiles.length],
-    [combatVfxRoot, 'webp', combatVfxFiles.length],
-    [combatPileRoot, 'webp', combatPileFiles.length],
-    [combatStageRoot, 'webp', existsSync(join(combatStageRoot, 'stage-act-1.webp')) ? 1 : 0],
-    [iconRoot, 'png', iconFiles.length],
-    [statusIconRoot, 'png', statusIconFiles.length],
-    [powerIconRoot, 'png', powerIconFiles.length],
-    [relicIconRoot, 'png', relicIconFiles.length],
-    [potionIconRoot, 'png', potionIconFiles.length],
-    [campfireRoot, 'png', listing(campfireRoot, '.png').length],
-    [campfireRoot, 'webp', listing(campfireRoot, '.webp').length],
-  ]) {
-    if (count === 0) continue
-    const result = spawnSync('ffmpeg', [
-      '-v', 'error', '-pattern_type', 'glob', '-i', join(dir, `*.${extension}`), '-f', 'null', '-',
-    ], { encoding: 'utf8' })
-    assert(result.status === 0, result.stderr || `could not decode ${dir}/*.${extension}`)
   }
 })
 

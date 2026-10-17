@@ -25,6 +25,7 @@ python3 scripts/art/export-monogatari_watcher-noncombat.py
 python3 scripts/art/export-fresh-campfires.py --check
 ```
 
-`verify-assets.mjs` checks inventory, dimensions, transparency, size and original-input provenance.
+`verify-assets.mjs` checks inventory, dimensions, transparency and size; `verify-art-bakes.mjs` checks original-input
+provenance.
 `verify-art-scenes-browser.mjs`, `verify-merchant-overflow-browser.mjs` and `verify-treasure-animation-browser.mjs`
 check campfire rendering, merchant arrival and treasure pickup on desktop and horizontal phone.

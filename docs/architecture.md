@@ -58,7 +58,8 @@ cycle, so they stay together and the file says so at the top.
 `scripts/lib/affected-verifiers.mjs` knows about the barrels: a change inside
 `src/game/combat/` selects exactly the suites a change to `combat.ts` would, so
 `pnpm verify:changed` does not quietly stop running the browser checks. A file nothing
-imports yet still falls back to running everything.
+imports yet still falls back to running everything except the slow art bakes, which only an art pipeline input
+selects (`artBakeInput`).
 
 The same shape appears in the client. `src/ui/styles.css` and `src/ui/chrome.css` are
 index files of `@import`ed partials in cascade order, and `src/ui/CombatScreen.tsx` keeps

@@ -14,8 +14,8 @@ src/ui/styles/staged-attacks.css       clock, travel, pose opacity, row layering
 src/ui/combat-screen/staged-attacks.ts poses, cues, hits and sound volumes (all skins)
 ```
 
-`node scripts/verify-all.mjs` (through `verify-assets.mjs`) fails when either generated file
-is stale, when a skin has the `stagedAttack` trait without a config, or the reverse.
+`node scripts/verify-all.mjs` fails when either generated file is stale (through `verify-art-bakes.mjs`), when a skin has
+the `stagedAttack` trait without a config, or the reverse (through `verify-assets.mjs`).
 `verify-skin-attack-browser.mjs` plays every such skin (and two synthetic test skins) on
 desktop and a horizontal phone in Chromium and WebKit.
 
@@ -48,7 +48,7 @@ desktop and a horizontal phone in Chromium and WebKit.
   skipped and the cut pops (a 20 ms draw-down once made a staff end jump 120-173 px). The first key is the idle drawing already on
   screen, so its length is exempt. A flight drawing (listed in `audit.airborne`) may be shorter, never under 20 ms, only when
   `"shortHolds": {"<pose>": "<reason>"}` names it with a reason. `skin-attack.py` (validate, run by `--check`) and `audit-poses.py`
-  (both through `hold_problems` in `skin_geometry.py`) fail a clock with a shorter hold; `verify-assets.mjs` proves both.
+  (both through `hold_problems` in `skin_geometry.py`) fail a clock with a shorter hold; `verify-art-bakes.mjs` proves both.
 - **Travel.** The actor leaves its seat between `out[0]` and `out[1]`, stays at the target until
   `back[0]`, and returns by `back[1]`.
   By default one ease-in-out curve spans each leg. A skin whose drawings do not all have a foot planted adds
@@ -65,7 +65,7 @@ desktop and a horizontal phone in Chromium and WebKit.
   idle and of the other drawings (default 22), and the drawings `--measure` leaves out of `poseShift`. `foot_runs` skips runs
   thinner than 9 px, so a weapon butt is never taken for a foot.
   A drawing that is deliberately lifted off the ground (a leap, a hop) is listed in `audit.airborne` as `{pose: lift in canvas px}`:
-  the bake (`monogatari_watcher.py`) places its lowest row that far above `ground`, `audit-poses.py` and `verify-assets.mjs` expect
+  the bake (`monogatari_watcher.py`) places its lowest row that far above `ground`, `audit-poses.py` and `verify-art-bakes.mjs` expect
   exactly that, and the browser verifier treats it as a flight drawing (below).
 - **Hits.** `at` is a pose (the first moment it is shown) or a time in ms. `weight` is that hit's share of the
   damage (all weights add up to 1); the visible HP drop and the damage number of each hit wait for its beat, and a
@@ -104,7 +104,7 @@ drawings with `skin-attack.py --measure`.
 ## Pose audit
 
 `python3 scripts/animation/audit-poses.py <skin> [--no-sheet]` holds a skin's drawings to its config's `audit` block, which
-`verify-assets.mjs` runs for every skin that has one (Kratos predates it). Per drawing it checks, against the idle: head length
+`verify-art-bakes.mjs` runs for every skin that has one (Kratos predates it). Per drawing it checks, against the idle: head length
 (default tolerance 0.10) and every prop's length (default 0.10, or the config's stated `propRatio` where a weapon is foreshortened
 in the idle), the rear sole's width and drift (relaxable per skin), the lowest row against the ground (a declared `airborne`
 lift for leaps), canvas margins, pale alpha fringes and detached specks. It also checks that the recorded landmarks still lie on
@@ -112,7 +112,7 @@ the drawing: a prop's endpoints touch solid pixels and the hood tip sits on the 
 cloak covers it), so a drawing enlarged after its landmarks were inspected fails. Between consecutive drawings it limits the
 head's jump (`headStepPx`; a vertical head landmark `[crownY, chinY]` needs `headX`, the crown column), how far either end of any prop
 moves (`propStepPx`, applied to the tip and the butt: the staff is gripped by the hands, so a capped tip also caps the hands' swing),
-luminance changes and cross-fades of nearly disjoint silhouettes shown too briefly. `verify-assets.mjs`
+luminance changes and cross-fades of nearly disjoint silhouettes shown too briefly. `verify-art-bakes.mjs`
 also proves the gate by enlarging each skin's first contact drawing by 15% about its planted foot and requiring the audit to fail.
 The filmstrip (`--sheet`, default `artifacts/skin-art/<skin>-filmstrip.png`) is for looking at every frame; the numbers
 supplement it, never replace it.

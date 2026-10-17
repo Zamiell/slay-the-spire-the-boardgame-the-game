@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generic attack-animation pose audit (config-driven); verify-assets.mjs runs it for every skin with an `audit` block.
+"""Generic attack-animation pose audit (config-driven); verify-art-bakes.mjs runs it for every skin with an `audit` block.
 
   python3 audit-poses.py SKIN [--root REPO] [--sheet OUT.png] [--no-sheet] [--report OUT.json]
 
@@ -194,7 +194,7 @@ def audit(config, directory, tolerances=None):
     poses = list(dict.fromkeys(pose for _, pose in keys))
     images = {pose: Image.open(directory / f'{skin}-{"ready" if pose == "idle" else pose}.webp').convert('RGBA') for pose in poses}
     errors, rows = hold_problems(config), {}
-    worst = {}  # the largest value measured against each cap (the documented maxima verify-assets ratchets), by tolerance name
+    worst = {}  # the largest value measured against each cap (the documented maxima verify-art-bakes ratchets), by tolerance name
 
     def note(name, value):
         worst[name] = max(worst.get(name, 0), round(value, 3))

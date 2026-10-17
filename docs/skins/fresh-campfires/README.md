@@ -17,6 +17,7 @@ python3 scripts/art/export-fresh-campfires.py --check
 ```
 
 The check covers every source, runtime export, exact prompt and original input hash and verifies the reference pixels
-against the original empty camp/character assets through `campfire_references.py`. The catalogue inventory is derived
-independently from the live skin registry by `verify-assets.mjs`. Visual review covers complete rosters, anatomy, props,
+against the original empty camp/character assets through `campfire_references.py`. The catalogue's coverage of every party
+is derived independently from the live skin registry by `verify-assets.mjs`; `verify-art-bakes.mjs` checks this manifest's
+scene list against the committed scenes. Visual review covers complete rosters, anatomy, props,
 seat support, relative scale, and background/linework sharpness; hashes alone do not prove those properties.

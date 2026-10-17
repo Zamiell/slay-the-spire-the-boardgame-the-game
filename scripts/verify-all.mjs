@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { spawn, spawnSync } from 'node:child_process'
 import { cpus } from 'node:os'
-import { affectedVerifiers, browserScript, changedPaths, mergeBase, needsTypecheck, requiresFullSuite } from './lib/affected-verifiers.mjs'
+import { affectedVerifiers, browserScript, changedPaths, gateArtBakes, mergeBase, needsTypecheck, requiresFullSuite } from './lib/affected-verifiers.mjs'
 
 const scriptsDir = dirname(fileURLToPath(import.meta.url))
 const args = process.argv.slice(2)
@@ -88,7 +88,9 @@ if (changedArg) {
     process.exit(2)
   }
   changedFiles = [...new Set([...changedPaths(diff.stdout), ...untracked.stdout.split('\0').filter(Boolean)])]
-  scripts = requiresFullSuite(diff.stdout) ? scripts : affectedVerifiers(root, changedFiles, scripts)
+  scripts = requiresFullSuite(diff.stdout)
+    ? gateArtBakes(scripts, changedFiles)
+    : affectedVerifiers(root, changedFiles, scripts)
   console.log(changedFiles.length ? `changed: ${changedFiles.join(', ')}` : 'no changed files')
 }
 

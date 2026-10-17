@@ -1,10 +1,10 @@
 """Generate the staged attack animation of every skin from scripts/animation/skins/<skin>.json.
 
   python3 scripts/animation/skin-attack.py                  write the CSS and the TypeScript table
-  python3 scripts/animation/skin-attack.py --check          fail when either is stale (verify-assets runs this)
+  python3 scripts/animation/skin-attack.py --check          fail when either is stale (verify-art-bakes runs this)
   python3 scripts/animation/skin-attack.py --measure SKIN   print the pose shifts and contact reach of its baked drawings
                                                             (--write stores them in the config; --check fails when the stored
-                                                            poseShift/contactReach differ, read-only; verify-assets runs it)
+                                                            poseShift/contactReach differ, read-only; verify-art-bakes runs it)
   python3 scripts/animation/skin-attack.py --bake-rest SKIN idle loop, reduced-motion hero and list icon from <skin>-ready.webp
   python3 scripts/animation/skin-attack.py --fixture DIR    synthetic test skins (scripts/animation/test-skins/*.json),
                                                             drawn as solid shapes, for the browser verifier; nothing is registered

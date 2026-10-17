@@ -37,12 +37,12 @@ A new skin needs exactly these edits; nothing else enumerates skins by hand.
 - [ ] `scripts/verify-assets.mjs`: `MENU_ART_MANIFESTS` (the skin's menu-art provenance manifest). It is asserted
   complete, so registration fails until the entry exists. Merchant figures need a floor offset line in
   `src/ui/chrome/merchant-arrival.css` (checked against the image's bottom margin). A staged skin's bake and its
-  attack manifest (`generated` entries: prompt, source and output hashes) are checked there too; the bake scripts
-  (`monogatari*.py --check`) must pass.
+  attack manifest (`generated` entries: prompt, source and output hashes) are checked by `scripts/verify-art-bakes.mjs`;
+  the bake scripts (`monogatari*.py --check`) must pass.
 - [ ] Attack animation, one of two kinds. **Staged** (Kratos, Silent-chan, Watcher-chan): set the `stagedAttack` trait,
   write `scripts/animation/skins/<skin>.json` and run `python3 scripts/animation/skin-attack.py`. One generic
   implementation plays it (`docs/skins/attack-animation.md`); no code or class names the skin, and
-  `scripts/animation/audit-poses.py` (run by `verify-assets.mjs`) holds every drawing of Silent-chan and Watcher-chan to the idle's head and prop scale
+  `scripts/animation/audit-poses.py` (run by `verify-art-bakes.mjs`) holds every drawing of Silent-chan and Watcher-chan to the idle's head and prop scale
   (Kratos is excluded: it has no `audit` landmarks, and `kratos.py --check` measures its pose shifts and reach instead).
   **Pose pair** (Ironclad-chan, Defect-chan): no `stagedAttack` trait; the hero's own attack clock, travel and hit logic
   play, and `CombatScreen.tsx` (`isMonogatariVisual`, `MonogatariAttackPose`) steps two complete drawings
@@ -68,7 +68,7 @@ skin's art exists.
    `sync-campfire-scenes.mjs`; `hero-art-head.json`; `MENU_ART_MANIFESTS`.
 4. `ATTACK_CARDS` in `verify-skin-attack-browser.mjs` names each character's attack cards (Ironclad, Silent and
    Watcher exist); a hero with a second skin (Ironclad) is seated in a second round of the treasure and merchant verifiers.
-5. `npx tsc -b`, `verify-architecture`, `verify-assets`, `verify-skins`, `verify-ui-helpers`, then the browser
+5. `npx tsc -b`, `verify-architecture`, `verify-assets`, `verify-art-bakes`, `verify-skins`, `verify-ui-helpers`, then the browser
    verifiers of section 4. Docs: `docs/skins/<skin>-*`, `ATTRIBUTION.md`.
 
 ## 2. Art every skin must ship
@@ -114,7 +114,10 @@ cursed/status art, enemy art.
 Most of these iterate `SKINS` already, so registering a skin extends them; they fail loudly until the art exists.
 
 - `scripts/verify-skins.mjs` (registry, pairs, `visualId`, runs/rooms carry a valid skin only, campfire fallback).
-- `scripts/verify-assets.mjs` (inventories for every path above, dimensions, alpha, hashes, generated tables).
+- `scripts/verify-assets.mjs` (inventories for every path above, dimensions, alpha, generated tables, menu-art and
+  Ironclad-chan/Defect-chan provenance hashes).
+- `scripts/verify-art-bakes.mjs` (attack and card-art provenance hashes, re-run bakes and pose audits, frame and pixel audits; slow, so
+  `verify-all --changed` selects it only when an art pipeline input changes).
 - `scripts/verify-skin-browser.mjs`, `verify-skin-cards-browser.mjs`, `verify-skin-profile-browser.mjs`
   (what a skinned hero shows in solo and in an online room; the Profile picker).
 - `scripts/verify-skin-attack-browser.mjs` (timing, contact line, planted feet, reduced motion) for every skin with

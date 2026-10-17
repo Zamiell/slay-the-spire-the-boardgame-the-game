@@ -85,7 +85,7 @@ const focusedUiOwners = ownerMap([
   ['src/ui/combat-screen/hooks.ts', ['verify-card-damage-preview-browser.mjs', 'verify-skin-attack-browser.mjs']],
   ['src/ui/combat-screen/staged-attacks.ts', ['verify-assets.mjs', 'verify-skin-attack-browser.mjs']],
   ['src/ui/chrome/campfire.css', ['verify-art-scenes-browser.mjs', 'verify-card-picker-browser.mjs', 'verify-campfire-assets-browser.mjs']],
-  ['src/ui/styles/staged-attacks.css', ['verify-assets.mjs', 'verify-skin-attack-browser.mjs']],
+  ['src/ui/styles/staged-attacks.css', ['verify-skin-attack-browser.mjs']],
   ['src/ui/styles/attack-timing.css', ['verify-defect-chan-evoke-browser.mjs']],
   ['src/ui/SettingsDialog.tsx', ['verify-card-damage-preview-browser.mjs']],
   ['src/ui/game-settings.ts', ['verify-card-damage-preview-browser.mjs']],
@@ -133,16 +133,16 @@ const focusedOnlyUiOwners = ownerMap([
   ['.github/workflows/ci.yml', ['verify-assets.mjs', 'verify-pipeline.mjs']],
   ['scripts/audio/generate-combat-sfx.py', ['verify-assets.mjs', 'verify-safari-sound-browser.mjs', 'verify-rig-animation-browser.mjs']],
   ['scripts/lib/skin-attack-fixture.mjs', ['verify-skin-attack-browser.mjs', 'verify-monogatari-animation-browser.mjs', 'verify-monogatari-skins-browser.mjs', 'verify-defect-chan-evoke-browser.mjs']],
-  ['scripts/art/campfire_export.py', ['verify-assets.mjs', 'verify-art-scenes-browser.mjs']],
-  ['scripts/art/campfire_references.py', ['verify-assets.mjs']],
-  ['scripts/art/export-fresh-campfires.py', ['verify-assets.mjs', 'verify-art-scenes-browser.mjs']],
+  ['scripts/art/campfire_export.py', ['verify-art-bakes.mjs', 'verify-art-scenes-browser.mjs']],
+  ['scripts/art/campfire_references.py', ['verify-art-bakes.mjs']],
+  ['scripts/art/export-fresh-campfires.py', ['verify-art-bakes.mjs', 'verify-art-scenes-browser.mjs']],
   ['scripts/art/export-kratos-menu.py', ['verify-assets.mjs', 'verify-skin-browser.mjs']],
   ['scripts/art/export-kratos-noncombat.py', ['verify-assets.mjs', 'verify-art-scenes-browser.mjs', 'verify-merchant-overflow-browser.mjs', 'verify-treasure-animation-browser.mjs']],
-  ['scripts/calibrate-hero-head.py', ['verify-hero-potions-browser.mjs', 'verify-assets.mjs']],
+  ['scripts/calibrate-hero-head.py', ['verify-hero-potions-browser.mjs', 'verify-art-bakes.mjs']],
   ['scripts/animation/encode-safari-attacks.py', ['verify-assets.mjs', 'verify-rig-animation-browser.mjs']],
   ['scripts/animation/check-attack-parity.py', ['verify-rig-animation-browser.mjs']],
-  ['scripts/calibrate-elite-intent.py', ['verify-elite-intent-browser.mjs', 'verify-assets.mjs']],
-  ['scripts/animation/elite_signatures.py', ['verify-assets.mjs', 'verify-elite-signatures-browser.mjs']],
+  ['scripts/calibrate-elite-intent.py', ['verify-elite-intent-browser.mjs', 'verify-art-bakes.mjs']],
+  ['scripts/animation/elite_signatures.py', ['verify-art-bakes.mjs', 'verify-elite-signatures-browser.mjs']],
   ['src/mail.ts', ['verify-mail-browser.mjs']],
   ['src/ui/useWebMcp.ts', ['verify-webmcp-browser.mjs']],
   ['src/ui/TutorialCoach.tsx', ['verify-tutorial-browser.mjs']],
@@ -214,6 +214,44 @@ export function requiresFullSuite(status) {
   }
   return false
 }
+
+/**
+ * verify-art-bakes.mjs re-runs every bake and pixel audit; it takes far longer than every other light check together.
+ * Only a change to one of its art pipeline inputs selects it, never the import graph, an owner entry or the
+ * run-everything fallback: gateArtBakes drops it otherwise, so an owner entry naming it is documentation only.
+ */
+export const ART_BAKES = 'verify-art-bakes.mjs'
+const ART_BAKE_INPUT = new RegExp('^(' + [
+  'public/assets/(sfx|skin-card-art|cards|enemies|icons|status-icons|relic-icons|potion-icons|power-icons)/',
+  // Combat art except folders no bake reads; of the character card art only the regeneration input the Watcher-chan
+  // card manifest hashes (the hashed-path check in verify-pipeline.mjs catches a new one).
+  'public/assets/combat/(?!(slimes|energy-orbs|enemies/props)/)', 'public/assets/card-art/watcher/tranquility\\.webp$',
+  'public/assets/noncombat/(campfire|merchant/characters)/', 'scripts/calibrate-(elite-intent|hero-head)\\.py$',
+  // Menu and Shop icon prompts live beside the animation sources but no bake reads them.
+  'scripts/animation/(?!sources/(menu-icons|shop-icons)/)',
+  // The scripts/art files the bakes run or whose sources the provenance manifests hash.
+  'scripts/art/(export-fresh-campfires|campfire_references|campfire_export)\\.py$', 'scripts/art/skin-cards/(masks/|([a-z]+-)?registration\\.json$)',
+  'scripts/art/sources/(campfire-original-references|guardian-campfire-repairs|mixed-skin-noncombat|multi-skin-noncombat'
+    + '|[^/]+-skin-cards|monogatari_[a-z]+-(char|noncombat))/', 'scripts/art/sources/monogatari/(cards/|ironclad-idle-grip-repaired\\.png$)',
+  // The provenance the bakes hash.
+  'docs/skins/([^/]+-card-art|fresh-campfires)/', 'docs/skins/monogatari_[a-z]+-art/(attack-manifest\\.json|README\\.md)$',
+  'docs/skins/monogatari_silent-art/manifest\\.json$',
+  'docs/skins/kratos-art\\.json$',
+  'docs/monogatari-skins/cards/[a-z]+-catalogue\\.json$', 'docs/monogatari-skins/prompts/(cards|combat)/',
+  'docs/monogatari-skins/combat-manifest\\.json$',
+  'src/ui/(hero|elite)-art-head\\.json$', 'src/ui/rig-animation-metadata\\.json$', 'src/ui/combat-screen/staged-attacks\\.ts$',
+  'src/ui/styles/staged-attacks\\.css$', 'scripts/sync-campfire-scenes\\.mjs$',
+  'scripts/verify-art-bakes\\.mjs$', 'scripts/lib/asset-inventory\\.mjs$',
+].join('|') + ')')
+/** The only Markdown the bakes read: the audit-cap table of each staged skin's README. */
+const AUDIT_CAP_TABLE = /^docs\/skins\/monogatari_[a-z]+-art\/README\.md$/
+export const artBakeInput = (file) => {
+  const path = cleanPath(file)
+  return ART_BAKE_INPUT.test(path) && (!path.endsWith('.md') || AUDIT_CAP_TABLE.test(path))
+}
+/** `scripts` without verify-art-bakes unless a changed file is one of its art inputs. */
+export const gateArtBakes = (scripts, changedFiles) =>
+  scripts.filter((script) => script !== ART_BAKES || changedFiles.some(artBakeInput))
 
 export const needsTypecheck = (files) => files.some((file) => /^(src\/|package\.json$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|tsconfig)/.test(cleanPath(file)))
 
@@ -319,7 +357,9 @@ export function affectedVerifiers(root, changedFiles, scripts) {
       || file === 'scripts/animation/audit-poses.py' || /^scripts\/animation\/(monogatari[\w]*|measure-[\w-]+)\.py$/.test(file)
       || file.startsWith('scripts/animation/sources/monogatari_')
       || file.startsWith('scripts/animation/skins/') || file.startsWith('scripts/animation/test-skins/')) {
-      selected.add('verify-assets.mjs')
+      // The bakes and audits run in verify-art-bakes (artBakeInput). verify-assets reads the skin configs and hashes the
+      // Kratos idle source as a menu-art reference.
+      if (file.startsWith('scripts/animation/skins/') || file.startsWith('scripts/animation/sources/kratos/')) selected.add('verify-assets.mjs')
       selected.add('verify-skin-attack-browser.mjs')
       covered = true
     }
@@ -364,7 +404,6 @@ export function affectedVerifiers(root, changedFiles, scripts) {
       || file.startsWith('scripts/art/sources/mixed-skin-noncombat/')
       || file.startsWith('scripts/art/sources/guardian-campfire-repairs/')
       || file.startsWith('docs/skins/fresh-campfires/') || file.startsWith('docs/skins/mixed-skin-noncombat/')) {
-      selected.add('verify-assets.mjs')
       selected.add('verify-art-scenes-browser.mjs')
       covered = true
     }
@@ -378,7 +417,8 @@ export function affectedVerifiers(root, changedFiles, scripts) {
     }
     if (/^public\/assets\/skin-card(s|s-sm|-art)\//.test(file) || file.startsWith('docs/skins/kratos-card-art/')
       || file === 'scripts/sync-skin-card-faces.mjs') {
-      selected.add('verify-assets.mjs')
+      // The card-art manifest's hashes are checked by verify-art-bakes (artBakeInput).
+      if (!file.startsWith('docs/')) selected.add('verify-assets.mjs')
       selected.add('verify-skin-cards-browser.mjs')
       covered = true
     } else if (file.startsWith('public/assets/')) {
@@ -390,6 +430,18 @@ export function affectedVerifiers(root, changedFiles, scripts) {
           : sharedBrowserOwners
       for (const script of owners) selected.add(script)
       for (const script of browserMentioning([file])) selected.add(script)
+      covered = true
+    }
+    // Menu and Shop icon prompts document how public/assets/menu art was made; verify-assets owns that inventory.
+    if (/^scripts\/animation\/sources\/(menu-icons|shop-icons)\//.test(file)) {
+      selected.add('verify-assets.mjs')
+      covered = true
+    }
+    // Menu-art and Ironclad-chan/Defect-chan provenance (the manifests and the prompts and sources they hash) is checked by
+    // verify-assets.
+    if (/^docs\/(monogatari-skins|skins\/(kratos-menu-art|monogatari_[a-z]+-art))\//.test(file)
+      || /^scripts\/(animation\/sources\/monogatari|art\/sources\/monogatari(_[a-z]+-char)?)\//.test(file)) {
+      selected.add('verify-assets.mjs')
       covered = true
     }
     if (file.startsWith('data/')) {
@@ -468,5 +520,7 @@ export function affectedVerifiers(root, changedFiles, scripts) {
     if (file.startsWith('src/')) selected.add('verify-architecture.mjs')
   }
 
-  return scripts.filter((script) => selected.has(script))
+  // Include the bakes exactly when an art input changed, whatever selected (or did not select) them above.
+  selected.add(ART_BAKES)
+  return gateArtBakes(scripts.filter((script) => selected.has(script)), [...changed])
 }

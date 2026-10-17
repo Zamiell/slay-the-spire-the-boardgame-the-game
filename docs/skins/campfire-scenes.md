@@ -21,8 +21,8 @@ node scripts/sync-campfire-scenes.mjs
 ```
 
 The sync command regenerates `src/game/campfire-scenes.ts`; `--check` rejects a stale catalogue. `verify-assets.mjs`
-derives the catalogue inventory independently from the live registry and requires exact coverage. It also verifies native
-source/runtime dimensions, byte hashes, accepted prompts and original-reference pixels. Browser checks cover desktop
+derives the catalogue inventory independently from the live registry and requires exact coverage. `verify-art-bakes.mjs`
+verifies native source/runtime dimensions, byte hashes, accepted prompts and original-reference pixels. Browser checks cover desktop
 and horizontal-phone rendering, solo/online skins and remote-asset failure handling.
 
 `campfireParty(visuals, scenes)` selects the exact party when available. For a partial or synthetic catalogue it tries

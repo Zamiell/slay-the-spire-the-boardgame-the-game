@@ -1,9 +1,12 @@
-import { readFileSync } from 'node:fs'
+import { closeSync, openSync, readSync } from 'node:fs'
 
 /** Pixel size of a WebP, read from its header rather than by shelling out. */
 export function webpSize(file) {
-  const bytes = readFileSync(file)
-  if (bytes.length < 30) return [0, 0]
+  const bytes = Buffer.alloc(30)
+  const fd = openSync(file, 'r')
+  let read
+  try { read = readSync(fd, bytes, 0, bytes.length, 0) } finally { closeSync(fd) }
+  if (read < bytes.length) return [0, 0]
   const chunk = bytes.subarray(12, 16).toString()
   if (chunk === 'VP8X') {
     return [(bytes.readUIntLE(24, 3) & 0xffffff) + 1, (bytes.readUIntLE(27, 3) & 0xffffff) + 1]

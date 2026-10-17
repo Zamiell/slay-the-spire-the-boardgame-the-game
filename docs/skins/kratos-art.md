@@ -70,7 +70,7 @@ and while he is out he draws in front of every enemy, bosses included, so his bl
 stay visible on the target and he covers the enemy he stands over (and its intent) for
 that moment rather than vanishing behind it. A cold play
 keeps the idle fallback and its box-edge travel. `python3 scripts/animation/kratos.py
---check` and `python3 scripts/animation/skin-attack.py --check`, run by `verify-assets.mjs`, fail when any generated value is stale. The
+--check` and `python3 scripts/animation/skin-attack.py --check`, run by `verify-art-bakes.mjs`, fail when any generated value is stale. The
 ground anchor is 1136px; reduced-motion static art reverses the overscan.
 
 Light hits use two painted flame crescents; the slam uses a larger twin flame / rock
@@ -107,6 +107,6 @@ phone: real engine single/row plays, weighted HP/numbers, queued lethal cards/Sh
 sound cues, cold art, all seventeen pose beats on the registered clock, a planted rear
 sole while he is out, one blade line for the three hits that lands inside the target,
 exact idle return, reduced motion and restoration. Its composited skin-mask check catches invisible WebKit cutouts.
-Asset verification owns native alpha, fixed canvases, ground, clipping, prompt/hash
+The art bake audits (`verify-art-bakes.mjs`) own native alpha, fixed canvases, ground, clipping, prompt/hash
 provenance and sound decoding. Hero-potion browser coverage checks head calibration.
 The skin is available in solo and online play, including Daily and Custom runs.

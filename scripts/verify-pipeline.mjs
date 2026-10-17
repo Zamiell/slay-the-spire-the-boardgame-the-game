@@ -1,10 +1,10 @@
-import { cpSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import {
-  affectedVerifiers, browserScript, changedPaths, drivesABrowser, mergeBase, needsTypecheck, ownerMap, requiresFullSuite,
+  ART_BAKES, affectedVerifiers, artBakeInput, browserScript, changedPaths, gateArtBakes, drivesABrowser, mergeBase, needsTypecheck, ownerMap, requiresFullSuite,
 } from './lib/affected-verifiers.mjs'
 import { suite, check, assert, assertDeepEqual, assertEqual, assertThrows, report } from './lib/harness.mjs'
 
@@ -13,6 +13,8 @@ const scripts = readdirSync(resolve(root, 'scripts'))
   .filter((file) => file.startsWith('verify-') && file.endsWith('.mjs') && file !== 'verify-all.mjs')
   .sort()
 const affected = (...files) => affectedVerifiers(root, files, scripts)
+/** The run-everything fallback: every check except the slow art bakes, which only their own inputs select. */
+const everyRoutineCheck = scripts.filter((script) => script !== ART_BAKES)
 const affectedBrowser = (...files) => affected(...files).filter((script) => script.includes('browser'))
 const includesEvery = (actual, expected, context) => {
   for (const script of expected) assert(actual.includes(script), `${context}: missing ${script}`)
@@ -143,8 +145,8 @@ check('an engine submodule selects what its barrel selects', () => {
     'Guardian socket resolution selected unrelated focused browser suites')
   // Answering for the barrel must not make an unimported new module look
   // covered: a file no script reaches still runs everything.
-  assertDeepEqual(affected('src/game/combat/not-imported-yet.ts'), scripts)
-  assertDeepEqual(affected('src/game/run/not-imported-yet.ts'), scripts)
+  assertDeepEqual(affected('src/game/combat/not-imported-yet.ts'), everyRoutineCheck)
+  assertDeepEqual(affected('src/game/run/not-imported-yet.ts'), everyRoutineCheck)
 })
 check('skin attack and art tooling selects the skin verifiers rather than the whole suite', () => {
   const owned = (file, owners) => {
@@ -154,12 +156,13 @@ check('skin attack and art tooling selects the skin verifiers rather than the wh
   }
   for (const file of ['src/ui/combat-vfx.ts', 'src/ui/combat-sfx.ts']) includesEvery(affected(file), ['verify-skin-attack-browser.mjs', 'verify-skin-browser.mjs'], file)
   for (const file of ['scripts/animation/audit-poses.py', 'scripts/animation/monogatari.py', 'scripts/animation/monogatari_silent.py',
-    'scripts/animation/monogatari_watcher.py', 'scripts/animation/measure-monogatari_watcher.py']) owned(file, ['verify-assets.mjs', 'verify-skin-attack-browser.mjs'])
+    'scripts/animation/monogatari_watcher.py', 'scripts/animation/measure-monogatari_watcher.py']) owned(file, [ART_BAKES, 'verify-skin-attack-browser.mjs'])
   // The generator, its shared geometry and the skin configs own the attack verifiers; the generated stylesheet reruns only the
   // attack verifiers and the skin registry the skin-registration proofs.
   for (const file of ['scripts/animation/skin-attack.py', 'scripts/animation/skin_geometry.py', 'scripts/animation/skins/monogatari_silent.json',
-    'scripts/animation/test-skins/test_combo.json']) owned(file, ['verify-assets.mjs', 'verify-skin-attack-browser.mjs'])
-  includesEvery(affected('src/ui/styles/staged-attacks.css'), ['verify-assets.mjs', 'verify-skin-attack-browser.mjs'], 'the generated attack stylesheet')
+    'scripts/animation/test-skins/test_combo.json']) owned(file, [ART_BAKES, 'verify-skin-attack-browser.mjs'])
+  includesEvery(affected('scripts/animation/skins/monogatari_silent.json'), ['verify-assets.mjs'], 'verify-assets reads the skin configs')
+  includesEvery(affected('src/ui/styles/staged-attacks.css'), [ART_BAKES, 'verify-skin-attack-browser.mjs'], 'the generated attack stylesheet')
   includesEvery(affected('src/game/skins.ts'), ['verify-test-skins-browser.mjs'], 'src/game/skins.ts registers the test skins')
   for (const file of ['scripts/art/export-monogatari_silent-char.py', 'scripts/art/export-monogatari_watcher-char.py', 'scripts/art/cutout-monogatari_watcher-idle.py']) {
     owned(file, ['verify-assets.mjs', 'verify-skin-browser.mjs'])
@@ -229,13 +232,70 @@ check('assets and the selector itself keep focused checks', () => {
   ], 'Card.tsx owners')
   assertDeepEqual(affected('scripts/lib/affected-verifiers.mjs'), ['verify-pipeline.mjs'])
   assertDeepEqual(affected('scripts/verify-all.mjs'), ['verify-pipeline.mjs'])
-  assertDeepEqual(affected('scripts/verify-deleted.mjs'), scripts)
+  assertDeepEqual(affected('scripts/verify-deleted.mjs'), everyRoutineCheck)
   assertDeepEqual(affected('scripts/lib/browser-screen-audit.mjs').filter((script) => script.includes('browser')), [
     'verify-browser.mjs', 'verify-hover-overflow-browser.mjs', 'verify-neow-viewport-browser.mjs',
     'verify-noncombat-browser.mjs', 'verify-online-browser.mjs', 'verify-viewport-browser.mjs',
   ])
-  assertDeepEqual(affected('src/game/new-system.ts'), scripts)
-  assertDeepEqual(affected('src/ui/CombatScreen.tsx', 'src/game/new-system.ts'), scripts)
+  assertDeepEqual(affected('src/game/new-system.ts'), everyRoutineCheck)
+  assertDeepEqual(affected('src/ui/CombatScreen.tsx', 'src/game/new-system.ts'), everyRoutineCheck)
+})
+check('only an art pipeline input selects the slow art bakes', () => {
+  for (const file of ['scripts/animation/kratos.py', 'public/assets/combat/rigged/hero-defect-idle.webp', 'public/assets/sfx/ui.ogg',
+    'docs/skins/kratos-card-art/manifest.json', 'docs/skins/monogatari_watcher-art/README.md', 'docs/skins/kratos-art.json',
+    'docs/monogatari-skins/prompts/combat/ironclad-ready.txt', 'docs/skins/kratos-card-art/prompts/slayer_bash.txt',
+    'src/ui/hero-art-head.json', 'scripts/art/export-fresh-campfires.py', 'public/assets/noncombat/campfire/empty_firecamp.webp',
+    'public/assets/noncombat/merchant/characters/ironclad-standing.webp', 'scripts/art/sources/kratos-skin-cards/slayer_bash.webp',
+    'scripts/art/skin-cards/masks/attack.png', 'scripts/art/sources/campfire-original-references/empty-campfire.png',
+    'scripts/verify-art-bakes.mjs']) {
+    assert(affected(file).includes(ART_BAKES), `${file} selects ${ART_BAKES}`)
+  }
+  for (const file of ['src/game/enemies.ts', 'src/game/skins.ts', 'src/game/new-system.ts', 'public/assets/noncombat/merchant/test.webp',
+    'public/assets/skin-cards/kratos/x.webp', 'index.html', 'docs/skins/attack-animation.md', 'scripts/calibrate-enemy-size.py', 'docs/skins/kratos-noncombat/README.md',
+    'docs/monogatari-skins/validation.md', 'docs/skins/kratos-noncombat/prompts/merchant.txt',
+    'docs/monogatari-skins/prompts/noncombat/defect-seated.txt', 'docs/skins/kratos-card-art/README.md',
+    'scripts/art/export-kratos-menu.py', 'scripts/art/sources/kratos-noncombat/merchant.webp', 'scripts/audio/generate-combat-sfx.py',
+    'scripts/animation/sources/menu-icons/stats.txt', 'scripts/animation/README.md', 'docs/monogatari-skins/cards/README.md',
+    'scripts/lib/test-skins.mjs', 'docs/skins/monogatari_silent-art/prompts/select-portrait.txt',
+    'public/assets/card-art/ironclad/bash.webp', 'public/assets/combat/energy-orbs/kratos.webp', 'public/assets/combat/slimes/spike.webp',
+    'docs/skins/monogatari_watcher-art/manifest.json', 'docs/monogatari-skins/cards/defect-coverage.json',
+    'scripts/verify-assets.mjs',
+    'scripts/verify-deleted.mjs']) {
+    assert(!affected(file).includes(ART_BAKES), `${file} must not select ${ART_BAKES}`)
+  }
+  for (const file of [
+    'docs/skins/kratos-menu-art/prompts/portrait.txt', 'docs/skins/monogatari_silent-art/manifest.json',
+    'docs/monogatari-skins/noncombat-manifest.json', 'scripts/animation/sources/kratos/idle.webp',
+    'scripts/animation/sources/monogatari/ironclad-idle.webp', 'scripts/art/sources/monogatari_silent-char/identity.webp',
+    'scripts/art/sources/monogatari/noncombat/defect-seated.png',
+  ]) assert(affected(file).includes('verify-assets.mjs'), `${file} selects verify-assets`)
+  // verify-all's full-suite path (a deletion) applies the same gate.
+  assertDeepEqual(gateArtBakes(scripts, ['src/game/deleted.ts']), everyRoutineCheck)
+  assertDeepEqual(gateArtBakes(scripts, ['src/game/deleted.ts', 'public/assets/sfx/ui.ogg']), scripts)
+})
+check('every file the art bakes hash selects them', () => {
+  // The same records verify-art-bakes.mjs hashes; a new provenance folder must extend artBakeInput or this fails.
+  const read = (path) => JSON.parse(readFileSync(resolve(root, path), 'utf8'))
+  const hashed = Object.keys(read('scripts/animation/safari-video-sources.json'))
+    .flatMap((source) => [source, source.replace(/\.webp$/, '.mov')])
+  const kratos = read('docs/skins/kratos-art.json')
+  for (const entry of kratos.generated) hashed.push(entry.source, entry.prompt, ...entry.inputs.map((input) => input.path))
+  for (const entry of kratos.runtime) hashed.push(entry.path)
+  for (const entry of [...read('docs/skins/monogatari_silent-art/manifest.json').attack.generated,
+    ...read('docs/skins/monogatari_watcher-art/attack-manifest.json').generated]) {
+    hashed.push(...[entry.source, entry.prompt, entry.output, ...entry.inputs].filter((record) => record.path).map((record) => record.path))
+  }
+  for (const skin of readdirSync(resolve(root, 'docs/skins')).filter((dir) => dir.endsWith('-card-art'))) {
+    const manifest = read(`docs/skins/${skin}/manifest.json`)
+    for (const record of [manifest.catalogue, manifest.registration, ...(manifest.masks ?? [])].filter(Boolean)) hashed.push(record.path)
+    for (const card of manifest.cards) {
+      hashed.push(...[card.source, card.prompt, card.output, ...(card.regeneration?.inputs ?? [])].filter((record) => record.path)
+        .map((record) => record.path))
+    }
+  }
+  assert(hashed.length > 1000, `only ${hashed.length} hashed paths found`)
+  // affectedVerifiers ends in gateArtBakes, so artBakeInput alone decides; calling affected() per path would take minutes.
+  assertDeepEqual(hashed.filter((path) => !artBakeInput(path)), [], 'hashed paths that do not select the art bakes')
 })
 check('browser lane detection handles formatting and wrappers', () => {
   assert(drivesABrowser('verify-example.mjs', 'import {\n  chromium,\n} from "playwright"'))

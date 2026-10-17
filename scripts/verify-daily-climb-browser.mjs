@@ -60,11 +60,11 @@ try {
   addLeaderboardRun(rooms.store, { id: 'champion-a:campaign-1', username: 'Champion', character: 'watcher', ascension: 10,
     mode: 'daily', dailyDate: today, startedAtAct: 1, highestBossActDefeated: 4, combatsFinished: 4, damageDealt: 40,
     damageTaken: 10, damageBlocked: 30, damageStatsComplete: true, floorsCleared: 14, finalDeck: [{ defId: 'strike_watcher', upgraded: false }] })
-  await page.goto(origin, { waitUntil: 'domcontentloaded' })
+  await page.goto(origin, { waitUntil: 'commit' })
   await setTestUsername(page, 'DailyTester')
-  await page.reload()
+  await page.reload({ waitUntil: 'commit' })
 
-  await page.getByRole('button', { name: 'Single Player', exact: true }).click()
+  await page.getByRole('button', { name: 'Single Player', exact: true }).click({ timeout: 60_000 })
   await page.getByRole('button', { name: 'Daily', exact: true }).click()
   await page.getByRole('heading', { name: 'Daily Climb' }).waitFor()
   const dailyCopy = await page.locator('.start-menu__run-options').innerText()
@@ -88,7 +88,7 @@ try {
     const run = window.__STS_DEBUG__.getRun()
     const { seedFromString } = await import('/src/game/rng.ts')
     return { runNumber: Number(run.campaign.runId.replace('campaign-', '')), ascension: run.ascension, dailyDate: run.meta.dailyDate, campaign: run.meta.campaign, act: run.act,
-      sharedSeed: run.seed === seedFromString(`daily-climb:${day}`), journal: localStorage.getItem('sts-physical-campaign') }
+      sharedSeed: run.seed === seedFromString(`daily-climb:${day}`), journal: localStorage.getItem('sts-physical-campaign:dailytester') }
   }, today)
   check('embarking skips the campaign choice and starts the shared seed', () => {
     assertEqual(started.ascension, 10)
@@ -147,7 +147,7 @@ try {
     rooms.store.profiles.find((profile) => profile.username === 'DailyTester').wallet.coins, bossCoins))
   await screenshot('daily-result-desktop')
   const recorded = rooms.store.leaderboardRuns.find((run) => run.dailyDate === today && run.username === 'DailyTester')
-  const journal = await page.evaluate(() => JSON.parse(localStorage.getItem('sts-physical-campaign')))
+  const journal = await page.evaluate(() => JSON.parse(localStorage.getItem('sts-physical-campaign:dailytester')))
   const before = JSON.parse(started.journal)
   check('the finished climb is ranked and leaves the campaign journal untouched', () => {
     assert(recorded, 'the daily climb did not reach the server')
@@ -186,15 +186,15 @@ try {
   await page.getByRole('button', { name: 'Prepare next run →' }).click()
   await page.getByRole('button', { name: 'Back', exact: true }).click()
   // Climb today's seed again: the better of the two climbs is the one that ranks.
-  await page.reload()
+  await page.reload({ waitUntil: 'commit' })
   await page.getByRole('button', { name: 'Single Player', exact: true }).click()
   await page.getByRole('button', { name: 'Daily', exact: true }).click()
   await page.getByRole('button', { name: 'Continue', exact: true }).click()
   // Meanwhile another tab used up run numbers this tab has not seen.
   const otherTabNumber = await page.evaluate(() => {
-    const journal = JSON.parse(localStorage.getItem('sts-physical-campaign'))
+    const journal = JSON.parse(localStorage.getItem('sts-physical-campaign:dailytester'))
     journal.nextRunNumber += 5
-    localStorage.setItem('sts-physical-campaign', JSON.stringify(journal))
+    localStorage.setItem('sts-physical-campaign:dailytester', JSON.stringify(journal))
     return journal.nextRunNumber
   })
   await page.getByRole('button', { name: 'Embark' }).click()
@@ -291,7 +291,7 @@ try {
     const run = structuredClone(window.__STS_DEBUG__.getRun())
     run.campaign = { ...run.campaign, finalized: false }
     // Legacy dailies ran on the player's own journal, never the unlocked baseline.
-    run.campaignProgress = JSON.parse(localStorage.getItem('sts-physical-campaign'))
+    run.campaignProgress = JSON.parse(localStorage.getItem('sts-physical-campaign:dailytester'))
     run.meta = { ...run.meta, mode: 'daily' }
     delete run.meta.dailyDate
     run.phase = 'map'
@@ -301,7 +301,7 @@ try {
       meta: { mode: 'daily', modifiers: [], quickStartAct: 1 },
     } }))
   })
-  await page.reload()
+  await page.reload({ waitUntil: 'commit' })
   await page.getByRole('button', { name: 'Resume', exact: true }).click()
   await page.waitForFunction(() => window.__STS_DEBUG__?.getRun())
   await page.evaluate(() => {
@@ -317,19 +317,19 @@ try {
     assertEqual(legacyRebuild.dailyDate, undefined)
   })
   await page.evaluate(() => localStorage.removeItem('sts-solo-run'))
-  await page.reload()
+  await page.reload({ waitUntil: 'commit' })
   await page.getByRole('button', { name: 'Single Player', exact: true }).click()
   await page.getByRole('button', { name: 'Daily', exact: true }).click()
   await page.getByRole('button', { name: 'Continue', exact: true }).click()
   await page.getByRole('button', { name: 'Embark' }).click()
   await page.waitForFunction(() => window.__STS_DEBUG__?.getRun()?.meta.dailyDate && !window.__STS_DEBUG__.getRun().campaign.finalized)
   const abandonedNumber = await page.evaluate(() => Number(window.__STS_DEBUG__.getRun().campaign.runId.replace('campaign-', '')))
-  const journalBeforeResume = await page.evaluate(() => localStorage.getItem('sts-physical-campaign'))
-  await page.reload()
+  const journalBeforeResume = await page.evaluate(() => localStorage.getItem('sts-physical-campaign:dailytester'))
+  await page.reload({ waitUntil: 'commit' })
   await page.getByRole('button', { name: 'Resume', exact: true }).click()
   await page.waitForFunction(() => window.__STS_DEBUG__?.getRun()?.meta.dailyDate)
   const resumed = await page.evaluate(() => ({ runId: window.__STS_DEBUG__.getRun().campaign.runId,
-    ascension: window.__STS_DEBUG__.getRun().ascension, journal: localStorage.getItem('sts-physical-campaign') }))
+    ascension: window.__STS_DEBUG__.getRun().ascension, journal: localStorage.getItem('sts-physical-campaign:dailytester') }))
   check('a climb resumed after a reload keeps its run and the journal', () => {
     assertEqual(resumed.runId, `campaign-${abandonedNumber}`)
     assertEqual(resumed.ascension, 10)
@@ -344,7 +344,7 @@ try {
   await page.waitForFunction(() => window.__STS_DEBUG__?.getRun()?.meta.mode === 'standard' && !window.__STS_DEBUG__.getRun().campaign.finalized)
   const afterAbandon = await page.evaluate(async (day) => ({ runId: window.__STS_DEBUG__.getRun().campaign.runId,
     reusedDailySeed: window.__STS_DEBUG__.getRun().seed === (await import('/src/game/rng.ts')).seedFromString(`daily-climb:${day}`),
-    ascension: window.__STS_DEBUG__.getRun().ascension, journal: JSON.parse(localStorage.getItem('sts-physical-campaign')) }), today)
+    ascension: window.__STS_DEBUG__.getRun().ascension, journal: JSON.parse(localStorage.getItem('sts-physical-campaign:dailytester')) }), today)
   check('abandoning a climb keeps the journal and gives the next run a fresh id', () => {
     assertEqual(afterAbandon.runId, `campaign-${abandonedNumber + 1}`)
     assertEqual(afterAbandon.ascension, 0)

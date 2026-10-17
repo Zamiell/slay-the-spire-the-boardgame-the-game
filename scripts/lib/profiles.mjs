@@ -1,3 +1,5 @@
+import { MAX_ASCENSION } from '../../src/game/campaign.ts'
+import { legacyRuns } from './coin-grants.mjs'
 import { randomBytes, scrypt, timingSafeEqual } from 'node:crypto'
 import { promisify } from 'node:util'
 
@@ -72,4 +74,23 @@ export async function loginProfile(profiles, value) {
   }
   if (!profile || !ok) invalid('Wrong username or password.', 401)
   return profile
+}
+
+/** Import a browser unlock once and keep the account's highest level across devices. */
+export function syncAscension(profile, runs, highestAscension) {
+  if (!Number.isInteger(highestAscension) || highestAscension < 0 || highestAscension > MAX_ASCENSION) {
+    invalid(`Ascension must be an integer from 0 to ${MAX_ASCENSION}`)
+  }
+  let stored = profile.highestAscension
+  if (stored === undefined) {
+    stored = 0
+    // Co-op records do not say whether the level was borrowed from a stronger party.
+    for (const run of legacyRuns(runs, profile.username, Infinity)) {
+      if (run.characters.length === 1 && run.highestBossActDefeated >= 3) {
+        stored = Math.max(stored, Math.min(MAX_ASCENSION, run.ascension + 1))
+      }
+    }
+  }
+  profile.highestAscension = Math.max(stored, highestAscension)
+  return { highestAscension: profile.highestAscension }
 }

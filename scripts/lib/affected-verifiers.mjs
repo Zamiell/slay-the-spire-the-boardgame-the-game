@@ -57,7 +57,7 @@ const focusedEngineOwners = ownerMap([
   ['src/game/run/rewards.ts', ['verify-loot-browser.mjs', 'verify-tiny-house-browser.mjs']],
 ])
 const focusedUiOwners = ownerMap([
-  ['src/ui/App.tsx', ['verify-restricted-browser.mjs', 'verify-run-replay-browser.mjs', 'verify-replay-controls-browser.mjs', 'verify-courier-browser.mjs',
+  ['src/ui/App.tsx', ['verify-ascension-sync-browser.mjs', 'verify-restricted-browser.mjs', 'verify-run-replay-browser.mjs', 'verify-replay-controls-browser.mjs', 'verify-courier-browser.mjs',
     'verify-combat-vfx-preload-browser.mjs', 'verify-tutorial-browser.mjs', 'verify-enemy-hover-browser.mjs', 'verify-skin-browser.mjs']],
   ['src/ui/CampfireScene.tsx', ['verify-art-scenes-browser.mjs', 'verify-skin-browser.mjs']],
   ['src/ui/campfire-seats.ts', ['verify-art-scenes-browser.mjs', 'verify-skin-browser.mjs']],
@@ -105,13 +105,14 @@ const focusedUiOwners = ownerMap([
   ['src/ui/chrome/room-stages.css', ['verify-event-panels-browser.mjs']],
   ['src/ui/styles/non-combat-rooms.css', ['verify-event-panels-browser.mjs']],
   ['src/ui/chrome/mailbox.css', ['verify-mail-browser.mjs']],
-  ['src/multiplayer/useRoomSession.ts', ['verify-combat-layout-reload-browser.mjs', 'verify-skin-browser.mjs', 'verify-skin-cards-browser.mjs', 'verify-start-turn-resync-browser.mjs', 'verify-monogatari-online-browser.mjs']],
+  ['src/multiplayer/useRoomSession.ts', ['verify-ascension-sync-browser.mjs', 'verify-combat-layout-reload-browser.mjs', 'verify-skin-browser.mjs', 'verify-skin-cards-browser.mjs', 'verify-start-turn-resync-browser.mjs', 'verify-monogatari-online-browser.mjs']],
   ['src/ui/RelicChip.tsx', ['verify-courier-browser.mjs']],
   ['src/ui/OnlineGame.tsx', ['verify-courier-browser.mjs', 'verify-skin-browser.mjs', 'verify-skin-cards-browser.mjs', 'verify-start-turn-resync-browser.mjs', 'verify-monogatari-online-browser.mjs']],
   ['src/ui/OnlineCampfireScreen.tsx', ['verify-art-scenes-browser.mjs', 'verify-monogatari-online-browser.mjs']],
   ['src/ui/StartMenu.tsx', ['verify-run-replay-browser.mjs', 'verify-title-menu-browser.mjs', 'verify-tutorial-browser.mjs', 'verify-skin-browser.mjs']],
   ['src/ui/ProfileScreen.tsx', ['verify-skin-profile-browser.mjs', 'verify-account-browser.mjs', 'verify-wallet-sync-browser.mjs', 'verify-restricted-browser.mjs']],
-  ['src/profile.ts', ['verify-account-browser.mjs', 'verify-restricted-browser.mjs']],
+  ['src/profile.ts', ['verify-account-browser.mjs', 'verify-restricted-browser.mjs', 'verify-ascension-sync-browser.mjs']],
+  ['src/campaign-storage.ts', ['verify-ascension-sync-browser.mjs', 'verify-daily-climb-browser.mjs', 'verify-multiplayer-resume-browser.mjs']],
   ['src/ui/styles/profile.css', ['verify-skin-profile-browser.mjs', 'verify-account-browser.mjs']],
   ['src/ui/sfx.ts', ['verify-run-replay-browser.mjs']],
   ['src/ui/combat-screen/HermitTriggerChoice.tsx', [

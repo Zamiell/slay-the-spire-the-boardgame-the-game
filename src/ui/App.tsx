@@ -67,7 +67,7 @@ import { hasRoomSession, validRoomSessions } from '../multiplayer/useRoomSession
 import { isActIVUnlocked } from '../game/campaign.ts'
 import { allocateSharedMarks, canEnterActIV } from '../game/campaign.ts'
 import type { CampaignProgress } from '../game/campaign.ts'
-import { CAMPAIGN_KEY, savedCampaign } from '../campaign-storage.ts'
+import { CAMPAIGN_EVENT, campaignKey, savedCampaign, saveCampaign, syncAccountAscension } from '../campaign-storage.ts'
 import { dailySeedText } from '../game/daily.ts'
 import { useUtcDay } from './useUtcDay.ts'
 import { eventCanStartCombat } from '../game/events.ts'
@@ -274,15 +274,11 @@ function newRun(playerCount: number, seedText: string, ascension = 0, progress =
   return createRun(seedFromString(seedText), party, Math.min(ascension, progress.highestAscension), progress, chooseYourRelic, lastStand, meta)
 }
 
-// The last journal whose storage write failed; storage stays the source of truth otherwise,
-// so another tab's newer journal is never overwritten from memory.
-let unsavedJournal: CampaignProgress | null = null
-
 /** The player's own journal; a Daily Climb runs on a shared baseline instead. */
 function campaignBeforeCurrentRun(run: RunState): CampaignProgress {
   if (run.meta.dailyDate !== undefined) {
     // The climb still used a run number, so the next run must not reuse its id.
-    const journal = unsavedJournal ?? savedCampaign()
+    const journal = savedCampaign()
     return { ...journal, nextRunNumber: Math.max(journal.nextRunNumber, run.campaignProgress.nextRunNumber) }
   }
   return {
@@ -300,27 +296,40 @@ function campaignBeforePendingRun(run: RunState): CampaignProgress {
 
 export function App() {
   useWebMcp()
-  // Refresh the shared account wallet on visits, account changes and reconnects.
+  const [account, setAccount] = useState(() => savedProfile()?.token)
+  // Refresh account coins and Ascension on visits, account changes and reconnects.
   useEffect(() => {
     let active = true
-    const settle = () => { if (active && document.visibilityState !== 'hidden') void syncAccountWallet().catch(() => {}) }
+    const settle = () => {
+      if (active && document.visibilityState !== 'hidden') {
+        void syncAccountWallet().catch(() => {})
+        void syncAccountAscension().catch(() => {})
+      }
+    }
     if (!ACCOUNT_WALLETS) return () => { active = false }
     settle()
-    const stop = onProfileChange(settle)
-    const storage = (event: StorageEvent) => { if (event.key === 'sts-profile' || event.key === null) settle() }
+    const changedAccount = () => {
+      const next = savedProfile()?.token
+      if (next !== account) { setLocalOpen(false); setAccount(next) }
+      settle()
+    }
+    const stop = onProfileChange(changedAccount)
+    const storage = (event: StorageEvent) => { if (event.key === PROFILE_KEY || event.key === null) changedAccount(); else if (event.key === campaignKey()) settle() }
     const timer = window.setInterval(settle, 15_000)
+    window.addEventListener(CAMPAIGN_EVENT, settle)
     window.addEventListener('focus', settle)
     window.addEventListener('online', settle)
     window.addEventListener('storage', storage)
     document.addEventListener('visibilitychange', settle)
     return () => {
       active = false; stop(); window.clearInterval(timer)
+      window.removeEventListener(CAMPAIGN_EVENT, settle)
       window.removeEventListener('focus', settle)
       window.removeEventListener('online', settle)
       window.removeEventListener('storage', storage)
       document.removeEventListener('visibilitychange', settle)
     }
-  }, [])
+  }, [account])
   const [online, setOnline] = useState<boolean | null>(() => !SINGLE_PLAYER_ONLY && hasRoomSession() ? null : false)
   useEffect(() => {
     if (SINGLE_PLAYER_ONLY || online !== null) return
@@ -585,7 +594,7 @@ export function App() {
     <Suspense fallback={<main className="app-loading" role="status">Loading…</main>}>
       {online === null ? <main className="app-loading" role="status">Loading…</main> : <>
       <div className="game-mode" hidden={online}>
-        <LocalGame open={localOpen} onOpen={() => setLocalOpen(true)} onClose={() => setLocalOpen(false)} onOnline={SINGLE_PLAYER_ONLY ? undefined : () => setOnline(true)}
+        <LocalGame key={account} open={localOpen} onOpen={() => setLocalOpen(true)} onClose={() => setLocalOpen(false)} onOnline={SINGLE_PLAYER_ONLY ? undefined : () => setOnline(true)}
           settings={settings} onSettings={setSettings} active={!online} />
       </div>
       {online && OnlineGame ? <OnlineGame onLocal={() => setOnline(false)} settings={settings} onSettings={setSettings} /> : null}
@@ -613,6 +622,7 @@ function LocalGame({ open, onOpen, onClose, onOnline, settings, onSettings, acti
   const [customModifierIds, setCustomModifierIds] = useState<DailyModifierId[]>([])
   const [quickStartAct, setQuickStartAct] = useState<1 | 2 | 3 | 4>(1)
   const [run, setRun] = useState<RunState>(() => newRun(1, crypto.randomUUID()))
+  const [journalAscension, setJournalAscension] = useState(() => savedCampaign().highestAscension)
   const [resume, setResume] = useState<SoloRunSave | null>(savedSoloRun)
   // Play in progress belongs to the account that started it: profile.ts clears the
   // saved run on an account change, so the Resume offered here follows the save.
@@ -687,7 +697,7 @@ function LocalGame({ open, onOpen, onClose, onOnline, settings, onSettings, acti
   // Set when Embark found the UTC day had turned since the menu was drawn.
   const [dailyTurned, setDailyTurned] = useState(false)
   // For a Daily Climb this reads the stored journal, which only the persist effect writes, from `run`.
-  const playerProgress = useMemo(() => campaignBeforeCurrentRun(run), [run.campaignProgress, run.campaign.finalized, run.meta.dailyDate, active])
+  const playerProgress = useMemo(() => campaignBeforeCurrentRun(run), [run.campaignProgress, run.campaign.finalized, run.meta.dailyDate, active, journalAscension])
   // The engine fixes a Daily Climb's seed, Ascension and setup from its day.
   const metaOptions: RunMetaOptions = mode === 'daily' ? { mode, dailyDate: today } : { mode, modifiers: customModifierIds, quickStartAct }
   const canGiveUp = canGiveUpRun(run, run.campaignProgress)
@@ -796,7 +806,7 @@ function LocalGame({ open, onOpen, onClose, onOnline, settings, onSettings, acti
     // Every climb shares the day's seed, so its run number alone keeps it distinct on the
     // leaderboard; another tab may already have used this tab's next number.
     const progress = nextMeta.mode === 'daily'
-      ? { ...journal, nextRunNumber: Math.max(journal.nextRunNumber, (unsavedJournal ?? savedCampaign()).nextRunNumber) }
+      ? { ...journal, nextRunNumber: Math.max(journal.nextRunNumber, savedCampaign().nextRunNumber) }
       : journal
     const legalAscension = Math.min(nextAscension, progress.highestAscension)
     // The public day seed must never become the random seed of a later Standard run.
@@ -1028,24 +1038,18 @@ function LocalGame({ open, onOpen, onClose, onOnline, settings, onSettings, acti
     if (!replayLog) setAscension((current) => Math.min(current, playerProgress.highestAscension))
   }, [replayLog, playerProgress.highestAscension])
 
-  // Guarded, like the read at `savedCampaign`. `setItem` throws on a full quota
-  // and on blocked storage (Chrome's "block all cookies", enterprise policy, a
-  // shared-origin dev host at the 5MB cap) — and thrown from a mount effect with
-  // no error boundary above it, React unmounts the root and the whole app goes
-  // white. Losing the campaign journal is a bad outcome; losing the game is a
-  // worse one.
   useEffect(() => {
-    if (replayLog || tutorial) return
-    const progress = open ? campaignBeforePendingRun(run) : campaignBeforeCurrentRun(run)
-    const journal = { ...progress, highestAscension: Math.max(progress.highestAscension, savedCampaign().highestAscension) }
-    try {
-      localStorage.setItem(CAMPAIGN_KEY, JSON.stringify(journal))
-      unsavedJournal = null
-    } catch {
-      // Storage is unavailable; the run continues in memory.
-      unsavedJournal = journal
-    }
+    if (!replayLog && !tutorial) saveCampaign(open ? campaignBeforePendingRun(run) : campaignBeforeCurrentRun(run))
   }, [open, replayLog, run.campaignProgress, run.campaign.finalized, tutorial])
+
+  useEffect(() => {
+    const refresh = () => setJournalAscension(savedCampaign().highestAscension)
+    const storage = (event: StorageEvent) => { if (event.key === campaignKey() || event.key === null) refresh() }
+    window.addEventListener(CAMPAIGN_EVENT, refresh)
+    window.addEventListener('storage', storage)
+    refresh()
+    return () => { window.removeEventListener(CAMPAIGN_EVENT, refresh); window.removeEventListener('storage', storage) }
+  }, [])
 
   ownership.current = { open, built, playing: !tutorial && !replayLog }
   // A bounty toast belongs to the screen it was raised on; leaving the run drops it.

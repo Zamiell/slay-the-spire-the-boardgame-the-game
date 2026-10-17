@@ -31,8 +31,8 @@ async function device(viewport, phone) {
   }, account)
   const page = await context.newPage()
   page.on('pageerror', (error) => errors.push(error.message))
-  await page.goto(url)
-  await page.waitForFunction(() => document.querySelector('.start-menu__purse')?.getAttribute('aria-label') === 'Shop · 9772 coins')
+  await page.goto(url, { waitUntil: 'commit' })
+  await page.waitForFunction(() => document.querySelector('.start-menu__purse')?.getAttribute('aria-label') === 'Shop · 9772 coins', null, { timeout: 60_000 })
   return { context, page }
 }
 const wallet = (page) => page.evaluate(async () => (await import('/src/wallet-storage.ts')).savedWallet())

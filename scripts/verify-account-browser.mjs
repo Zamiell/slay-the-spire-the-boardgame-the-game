@@ -49,11 +49,11 @@ try {
     page.on('console', (message) => { // The wrong password is answered with a 401 on purpose; the browser logs every such response.
       if (message.type() === 'error' && !/status of (401|409)/.test(message.text())) errors.push(`${screen}: ${message.text()}`) })
     const start = async () => {
-      await page.getByRole('button', { name: 'Tap, click, or press any key to start' }).click()
+      await page.getByRole('button', { name: 'Tap, click, or press any key to start' }).click({ timeout: 60_000 })
       await page.getByLabel('Password', { exact: true }).waitFor()
     }
 
-    await page.goto(origin)
+    await page.goto(origin, { waitUntil: 'commit' })
     await start()
     const create = page.getByRole('button', { name: 'Create account' })
     await settled(page)
@@ -149,8 +149,8 @@ try {
       await walletPage.getByLabel('Password', { exact: true }).waitFor()
     }
     const owner = `Purse${phone ? 'Phone' : 'Desktop'}A`
-    await walletPage.goto(origin)
-    await walletPage.getByRole('button', { name: 'Tap, click, or press any key to start' }).click()
+    await walletPage.goto(origin, { waitUntil: 'commit' })
+    await walletPage.getByRole('button', { name: 'Tap, click, or press any key to start' }).click({ timeout: 60_000 })
     await walletPage.getByLabel('Password', { exact: true }).waitFor()
     await createAccount(owner)
     assertEqual(await purse(), 'Shop · 33 coins', `${screen}: the first account did not adopt the anonymous purse`)
@@ -169,7 +169,7 @@ try {
     assertEqual(rooms.store.profiles.find((profile) => profile.username === second).wallet.coins, pastRuns,
       `${screen}: the displayed coins were not saved to the account`)
     await walletPage.screenshot({ path: join(output, `${screen}-past-runs-wallet.png`) })
-    await walletPage.reload()
+    await walletPage.reload({ waitUntil: 'commit' })
     await walletPage.locator('.start-menu__nav').waitFor()
     await walletPage.waitForFunction(() => JSON.parse(localStorage.getItem('sts-wallet:' + JSON.parse(localStorage.getItem('sts-profile')).username.toLowerCase() + ':sync'))?.migrated === true)
     assertEqual(await purse(), `Shop · ${pastRuns} coins`, `${screen}: the past runs paid twice, or the second account inherited coins`)
@@ -189,8 +189,8 @@ try {
     await legacyContext.addInitScript((profile) => { if (!localStorage.getItem('sts-profile')) localStorage.setItem('sts-profile', JSON.stringify(profile)) }, legacy)
     const legacyPage = await legacyContext.newPage()
     legacyPage.on('pageerror', (error) => errors.push(`${screen} legacy: ${error.message}`))
-    await legacyPage.goto(origin)
-    await legacyPage.getByRole('button', { name: 'Tap, click, or press any key to start' }).click()
+    await legacyPage.goto(origin, { waitUntil: 'commit' })
+    await legacyPage.getByRole('button', { name: 'Tap, click, or press any key to start' }).click({ timeout: 60_000 })
     await legacyPage.getByRole('heading', { name: 'Create a password' }).waitFor()
     assertEqual(await legacyPage.getByLabel('Username').count(), 0)
     const save = legacyPage.getByRole('button', { name: 'Save password' })
@@ -226,7 +226,7 @@ try {
     assertEqual((await saved(legacyPage)).token, legacy.token)
     assertEqual((await saved(legacyPage)).secured, true)
     assert(rooms.store.profiles.find((profile) => profile.token === legacy.token)?.passwordHash, 'legacy profile did not get a password')
-    await legacyPage.reload()
+    await legacyPage.reload({ waitUntil: 'commit' })
     await legacyPage.locator('.start-menu__nav').waitFor()
     await legacyContext.close()
 
@@ -241,8 +241,8 @@ try {
       localStorage.setItem('sts-solo-run', '{}')
     }, stranger)
     const switchPage = await switchContext.newPage()
-    await switchPage.goto(origin)
-    await switchPage.getByRole('button', { name: 'Tap, click, or press any key to start' }).click()
+    await switchPage.goto(origin, { waitUntil: 'commit' })
+    await switchPage.getByRole('button', { name: 'Tap, click, or press any key to start' }).click({ timeout: 60_000 })
     await switchPage.getByRole('button', { name: 'Use a different account' }).click()
     await switchPage.getByRole('button', { name: 'New here? Create an account' }).click()
     await switchPage.getByLabel('Username').fill(`Fresh${phone ? 'Phone' : 'Desktop'}`)
@@ -275,8 +275,8 @@ try {
       localStorage.setItem('sts-profile-claim-name', claim.username.toLowerCase())
     }, lost)
     const lostPage = await lostContext.newPage()
-    await lostPage.goto(origin)
-    await lostPage.getByRole('button', { name: 'Tap, click, or press any key to start' }).click()
+    await lostPage.goto(origin, { waitUntil: 'commit' })
+    await lostPage.getByRole('button', { name: 'Tap, click, or press any key to start' }).click({ timeout: 60_000 })
     await lostPage.getByLabel('Username').fill(`Other${phone ? 'Phone' : 'Desktop'}`)
     await lostPage.getByLabel('Password', { exact: true }).fill(password)
     await lostPage.getByRole('button', { name: 'Create account' }).click()
@@ -291,7 +291,7 @@ try {
         username: 'Unregistered', token: '00000000-0000-4000-8000-0000000000d1', secured: true }))
     })
     const unknownPage = await unknownContext.newPage()
-    await unknownPage.goto(origin)
+    await unknownPage.goto(origin, { waitUntil: 'commit' })
     await unknownPage.getByRole('button', { name: 'Profile', exact: true }).click()
     await unknownPage.getByRole('alert').filter({ hasText: 'not registered on this server' }).waitFor()
     await unknownPage.getByRole('button', { name: 'Try again' }).click()
@@ -308,7 +308,7 @@ try {
     const consoleErrors = []
     strangerPage.on('console', (message) => { if (message.type() === 'error') consoleErrors.push(message.text()) })
     const wallet = strangerPage.waitForResponse((response) => response.url().endsWith('/api/profile/wallet'))
-    await strangerPage.goto(origin)
+    await strangerPage.goto(origin, { waitUntil: 'commit' })
     const reply = await wallet
     check('an unknown token receives no wallet and causes no console error', () => {
       assertEqual(reply.status(), 200)

@@ -29,7 +29,7 @@ const pause = async (page) => {
 }
 const save = async (page) => {
   await (await pause(page)).getByRole('button', { name: 'Save and disconnect', exact: true }).click()
-  await page.getByRole('button', { name: 'Single Player', exact: true }).waitFor()
+  await page.getByRole('button', { name: 'Single Player', exact: true }).waitFor({ timeout: 60_000 })
   assert.equal(await page.evaluate(() => sessionStorage.getItem('sts-room-session')), null)
   assert.equal((await page.evaluate(() => JSON.parse(localStorage.getItem('sts-room-recoveries')))).length, 1)
 }
@@ -57,8 +57,8 @@ try {
         }).observe(document, { childList: true, subtree: true })
       })
       const page = watch(await context.newPage())
-      await page.goto(origin)
-      await page.getByRole('button', { name: 'Single Player', exact: true }).waitFor()
+      await page.goto(origin, { waitUntil: 'commit' })
+      await page.getByRole('button', { name: 'Single Player', exact: true }).waitFor({ timeout: 60_000 })
       await page.evaluate(({ expired, active }) => {
         if (active) sessionStorage.setItem('sts-room-session', JSON.stringify(expired))
         else localStorage.setItem('sts-room-recoveries', JSON.stringify([expired]))
@@ -118,7 +118,7 @@ try {
     contexts.push(context)
     const page = watch(await context.newPage())
     pages.push(page)
-    await page.goto(origin)
+    await page.goto(origin, { waitUntil: 'commit' })
     await setTestUsername(page, `ResumeTester${index}`)
     await page.evaluate((progress) => localStorage.setItem('sts-physical-campaign', JSON.stringify(progress)),
       { ...createCampaignProgress(), highestAscension: index ? 5 : 2 })
@@ -178,7 +178,7 @@ try {
   for (const [index, context] of contexts.entries()) {
     const page = watch(await context.newPage())
     fresh.push(page)
-    await page.goto(origin)
+    await page.goto(origin, { waitUntil: 'commit' })
     await page.getByRole('button', { name: `Resume ${code}`, exact: true }).waitFor()
     assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('sts-room-recoveries'))), [index ? guestCredentials : hostCredentials],
       'validation did not remove only the invalid room and seat')

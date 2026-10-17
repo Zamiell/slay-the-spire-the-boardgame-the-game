@@ -9,7 +9,7 @@ import type { CampaignProgress, SpireKeys } from '../game/campaign.ts'
 import type { BossCoinAward } from '../game/coins.ts'
 import type { NeowCard, NeowRewardOffer } from '../game/neow.ts'
 import type { CardInstance, CharacterId, Enemy, Player } from '../game/types.ts'
-import { savedCampaign, saveAscensionUnlock } from '../campaign-storage.ts'
+import { CAMPAIGN_EVENT, campaignKey, savedCampaign, saveAscensionUnlock } from '../campaign-storage.ts'
 import type { CardPackId } from '../game/packs.ts'
 import { enabledCardPacks } from '../wallet.ts'
 import type { SkinId } from '../game/skins.ts'
@@ -794,12 +794,13 @@ export function useRoomSession() {
         })
       } else {
         endpoint = await roomUrl(`/api/rooms/${credentials.code}/${operation}`)
-        next = await json(await fetch(endpoint, {
+        const reply: RoomSnapshot | { snapshot: RoomSnapshot } = await json(await fetch(endpoint, {
           method: 'POST',
           headers: { 'content-type': 'application/json', 'x-room-token': credentials.token },
           body: JSON.stringify(body),
           signal: AbortSignal.timeout(ACTION_TIMEOUT_MS),
-        })) as RoomSnapshot
+        }))
+        next = 'snapshot' in reply ? reply.snapshot : reply
       }
       if (generation.current === actionGeneration) {
         accept(next)
@@ -993,6 +994,32 @@ export function useRoomSession() {
   useEffect(() => {
     if (seatOwnsCoins && snapshot?.earnedAscension !== undefined) saveAscensionUnlock(snapshot.earnedAscension)
   }, [seatOwnsCoins, snapshot?.earnedAscension])
+
+  useEffect(() => {
+    if (!credentials || connection !== 'connected' || snapshot?.phase !== 'lobby') return
+    let reported = -1
+    const refresh = () => {
+      if (!claimSeatOwner(credentials.token)) return
+      const progress = savedCampaign()
+      if (progress.highestAscension === reported) return
+      reported = progress.highestAscension
+      void enqueue('join', { campaignProgress: progress }).then((outcome) => {
+        if (outcome.status !== 'accepted') reported = -1
+      })
+    }
+    const storage = (event: StorageEvent) => { if (event.key === campaignKey() || event.key === null) refresh() }
+    refresh()
+    window.addEventListener(CAMPAIGN_EVENT, refresh)
+    window.addEventListener('storage', storage)
+    window.addEventListener('focus', refresh)
+    window.addEventListener('online', refresh)
+    return () => {
+      window.removeEventListener(CAMPAIGN_EVENT, refresh)
+      window.removeEventListener('storage', storage)
+      window.removeEventListener('focus', refresh)
+      window.removeEventListener('online', refresh)
+    }
+  }, [credentials, connection, snapshot?.phase, enqueue])
 
   return {
     snapshot,

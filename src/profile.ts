@@ -14,6 +14,9 @@ export const syncProfileWallet = (profile: Profile, migration: WalletMigration |
       return reply
     })
 
+export const syncProfileAscension = (profile: Profile, highestAscension: number) =>
+  post<{ highestAscension: number }>('/api/profile/ascension', { token: profile.token, highestAscension }, 'Could not sync your Ascension. Please try again.')
+
 /** Where the signed-in profile is stored; other modules listen for it in `storage` events. */
 export const PROFILE_KEY = 'sts-profile'
 const KEY = PROFILE_KEY

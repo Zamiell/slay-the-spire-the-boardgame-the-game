@@ -12,12 +12,16 @@ import type { IconName } from './Icon.tsx'
 import { TokenRow } from './TokenRow.tsx'
 import { splitAttackAnimationPending } from './combat-screen/vfx.tsx'
 import { healthBand } from './board-signals.ts'
-import { animationSfxRecipe } from './combat-sfx.ts'
+import { animationSfxRecipe, bossHeavySfxRecipe } from './combat-sfx.ts'
 import { playCombatSound } from './sfx.ts'
 import { CardKeywordHelp, cardRuleDescription, revealDecodedImage } from './Card.tsx'
 import {
   bossAttackContactLeftFor,
   bossAttackDurationFor,
+  BOSS_CONTACT_MS,
+  BOSS_HEAVY_HIT_GAP_MS,
+  bossHeavyArtFor,
+  bossHeavyAttackFor,
   enemyArtScaleFor,
   enemyAttackAnimationFor,
   enemyAttackArrivalMsFor,
@@ -205,6 +209,10 @@ function intentParts(action: EnemyAction, swing: (printed: number) => number): I
  * for players. The intent especially: it is the one thing choosing a target
  * depends on, and it was not being announced at all.
  */
+function withTargets(heavy: ReturnType<typeof bossHeavyAttackFor>, targets: readonly string[]) {
+  return heavy && { ...heavy, targets }
+}
+
 function describeEnemy(
   enemy: Enemy,
   label: string,
@@ -330,6 +338,8 @@ export function EnemyCard({
     art: string
     artId: string
     source: string
+    /** Captured with the swing: resolution advances the rotation and empties the live target list. */
+    heavy?: NonNullable<ReturnType<typeof bossHeavyAttackFor>> & { targets: readonly string[] }
   } | null>(null)
   const [awaitingNextEnemyPhase, setAwaitingNextEnemyPhase] = useState(acting)
   const displayBeat = useRef(0)
@@ -617,7 +627,8 @@ export function EnemyCard({
         useWebKitCombatRendering) ? currentBossAttackArt : currentIdleArt
     if (currentBossArtId === 'cultist') onThrowPrepared?.(enemy.uid, 1800)
     else if (enemyAttackArrivalMsFor(currentBossArtId) !== undefined) onThrowPrepared?.(enemy.uid, 730)
-    setPresentedBossAttack({ art, artId: currentBossArtId, source: currentBossAttackArt })
+    setPresentedBossAttack({ art, artId: currentBossArtId, source: currentBossAttackArt,
+      heavy: visibleEnemy.isBoss ? withTargets(bossHeavyAttackFor(def.id, actions), rangedTargetPlayerIds) : undefined })
     if (bossAttackTimer.current) clearTimeout(bossAttackTimer.current)
     bossAttackTimer.current = null
     setBossAttackReady(false)
@@ -737,7 +748,20 @@ export function EnemyCard({
     }
     return () => { active = false }
   }, [currentBossArtId, currentBossProjectileArt, currentProjectileImpact])
+  useEffect(() => {
+    if (!animatedEnemy || !visibleEnemy.isBoss) return
+    for (const path of bossHeavyArtFor(def.id)) {
+      const preload = new Image()
+      preload.src = path
+      void preload.decode().catch(() => undefined)
+    }
+  }, [animatedEnemy, def.id, visibleEnemy.isBoss])
   const demonAttacking = bossAttackPlaying && bossArtId === 'downfall_demon'
+  const heavy = bossAttackPlaying ? presentedBossAttack?.heavy : undefined
+  useEffect(() => {
+    if (!heavy) return
+    return playCombatSound(bossHeavySfxRecipe(heavy.kind, heavy.hits))
+  }, [heavy?.kind, heavy?.hits])
   const bossAttackMotion = animatedEnemy ? bossAttackMotionFor(bossArtId) : 'ranged'
   const bossAttackContactLeft = bossAttackContactLeftFor(bossArtId)
   const bossProjectileArt = bossAttackMotion === 'ranged' ? bossProjectileImagePath(bossArtId) : undefined
@@ -794,7 +818,7 @@ export function EnemyCard({
   }, [art, bossArtId, bossAttacking, bossAttackContactLeft, bossAttackMotion])
   useLayoutEffect(() => {
     const card = cardRef.current
-    if (!card || !bossAttackPlaying || !bossProjectileArt && bossArtId !== 'gremlin_leader') return
+    if (!card || !bossAttackPlaying || !bossProjectileArt && !heavy && bossArtId !== 'gremlin_leader') return
     const initialBoss = card.querySelector<CombatArtElement>('.enemy__art--cutout[data-animation-layer="attack"]')
     const board = card.closest('.board')
     if (!initialBoss || !board) return
@@ -827,7 +851,18 @@ export function EnemyCard({
         : bossRect.bottom - bodyHeight * .52
       const rem = Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16
       const groundImpact = projectileImpact?.endsWith('/turn-poison-impact.webp')
-      for (const projectile of card.querySelectorAll<HTMLElement>('.boss-projectile, .enemy-projectile-impact')) {
+      // Charge effects wrap the painted body at rest; later measures would include the dash.
+      const portrait = card.querySelector<HTMLElement>('.enemy__portrait')
+      const heavyCharge = portrait?.querySelector<HTMLElement>('.boss-heavy-charge')
+      if (portrait && heavyCharge && !heavyCharge.dataset.anchored) {
+        const painted = combatArtBounds(portrait)
+        const frame = portrait.getBoundingClientRect()
+        for (const [name, value] of Object.entries({
+          left: painted.left - frame.left, top: painted.top - frame.top, width: painted.width, height: painted.height,
+        })) heavyCharge.style.setProperty(`--body-${name}`, `${value / rem}rem`)
+        heavyCharge.dataset.anchored = 'true'
+      }
+      for (const projectile of card.querySelectorAll<HTMLElement>('.boss-projectile, .enemy-projectile-impact, .boss-heavy-target')) {
         const playerId = projectile.dataset.targetPlayer
         const target = playerId
           ? board.querySelector<HTMLElement>(`.seat[data-player-id="${CSS.escape(playerId)}"] .seat__portrait`)
@@ -861,6 +896,8 @@ export function EnemyCard({
         projectile.style.setProperty('--boss-projectile-start-y', `${(startY - cardRect.top) / rem}rem`)
         projectile.style.setProperty('--boss-projectile-x', `${(body.x - startX) / rem}rem`)
         projectile.style.setProperty('--boss-projectile-y', `${((groundImpact ? targetRect.bottom : body.y) - startY) / rem}rem`)
+        projectile.style.setProperty('--boss-heavy-length', `${Math.hypot(body.x - startX, body.y - startY) / rem}rem`)
+        projectile.style.setProperty('--boss-heavy-angle', `${Math.atan2(body.y - startY, body.x - startX)}rad`)
       }
     }
     measure()
@@ -884,7 +921,7 @@ export function EnemyCard({
       removeReady()
       card.removeEventListener('animationstart', onLaunch)
     }
-  }, [art, bossArtId, bossAttackPlaying, bossProjectileArt, enemy.uid, onThrowPrepared, projectileImpact, rangedTargetKey])
+  }, [art, bossArtId, bossAttackPlaying, bossProjectileArt, enemy.uid, heavy?.kind, onThrowPrepared, projectileImpact, rangedTargetKey])
   const abilities = enemyAbilities(def)
   const mods = attackerModsOfEnemy(visibleEnemy)
   const intent = actions.flatMap((action) => intentParts(action, (printed) => swingDamage(
@@ -947,6 +984,8 @@ export function EnemyCard({
       data-normal-size={normalSize ? true : undefined}
       data-projectile-impact={projectileImpact ? true : undefined}
       data-cultist-cover={timedCultist && bossAttackPlaying && cultistCoverReady || undefined}
+      data-heavy-attack={heavy?.kind}
+      data-heavy-hits={heavy?.hits}
       data-animation={animatedEnemy ? bossAttacking ? 'attack' : restTransition ? 'transition' : 'idle' : 'static'}
       data-sleeping={sleeping || undefined}
       data-webmcp-pending={stageVisualDamage && visualSignature !== JSON.stringify(visibleEnemy) || undefined}
@@ -962,6 +1001,8 @@ export function EnemyCard({
         '--elite-art-aspect': eliteHead?.[sizeOffset],
         '--elite-art-top': eliteHead?.[sizeOffset + 1],
         '--boss-attack-duration': `${bossAttackDurationFor(bossArtId)}ms`,
+        '--heavy-contact': `${BOSS_CONTACT_MS}ms`,
+        '--heavy-gap': `${BOSS_HEAVY_HIT_GAP_MS}ms`,
       } as CSSProperties}
       disabled={enemy.dead || disabled}
       onClick={() => { if (!enemy.dead) onClick?.(enemy) }}
@@ -1021,6 +1062,19 @@ export function EnemyCard({
           <span>{faceOf(cardDef(entry.card.defId), entry.card.upgraded).name}</span>
         </span>
       ))}
+      {heavy ? heavy.targets.map(playerId => (
+        <span className="boss-heavy-target" data-target-player={playerId} key={playerId} aria-hidden="true">
+          <span className="boss-heavy-target__beam" />
+          <span className="boss-heavy-target__flight" />
+          <span className="boss-heavy-target__impact">
+            <span className="boss-heavy-target__ring" />
+            <span className="boss-heavy-target__burst" />
+            <span className="boss-heavy-target__burst boss-heavy-target__burst--echo" />
+            <span className="boss-heavy-target__debris" />
+          </span>
+        </span>
+      )) : null}
+
       {visibleEnemy.corpseExplosion ? (
         <span className="enemy__attachment" title={`Corpse Explosion · ${visibleEnemy.corpseExplosion.damage} row damage on death`}>
           <img src={cardThumbPath(cardDef(visibleEnemy.corpseExplosion.card.defId), visibleEnemy.corpseExplosion.card.upgraded,
@@ -1051,6 +1105,11 @@ export function EnemyCard({
         </> : null}
         {bossAttackPlaying && bossArtId === 'reptomancer' ?
           <span className="reptomancer-sigil" aria-hidden="true" /> : null}
+        {heavy ? <span className="boss-heavy-charge" aria-hidden="true">
+          <span className="boss-heavy-charge__aura" />
+          <span className="boss-heavy-charge__ring" />
+          <span className="boss-heavy-charge__sparks" />
+        </span> : null}
         {demonAttacking ? <>
           <span className="boss-demon-ground-splat boss-demon-ground-splat--origin" aria-hidden="true" />
           <span className="boss-demon-ground-splat boss-demon-ground-splat--target" aria-hidden="true" />

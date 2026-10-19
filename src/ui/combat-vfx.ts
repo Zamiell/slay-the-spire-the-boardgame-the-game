@@ -1,5 +1,5 @@
 import { CARDS, faceOf, type CardDef, type Effect } from '../game/cards.ts'
-import { actionsForEnemy } from '../game/enemies.ts'
+import { actionsForEnemy, type EnemyAction } from '../game/enemies.ts'
 import { playersInRowOf } from '../game/combat/board.ts'
 import { assetPath } from '../game/assets.ts'
 import rigMetadata from './rig-animation-metadata.json' with { type: 'json' }
@@ -44,6 +44,61 @@ export function enemyAttackTargetPlayerIds(state: CombatState, enemy: Enemy): st
     return action.kind === 'attackSequence' && action.hits.some(hit =>
       hit.aoe || rowTargets.includes(player))
   })).map(player => player.id)
+}
+
+/** One signature per boss turn that hits hardest; Donu and Deca have no such turn. */
+export type BossHeavyAttack =
+  | 'slime-crush' | 'hexaghost-inferno' | 'automaton-beam' | 'guardian-bash' | 'collector-fireball'
+  | 'champ-execute' | 'champ-flurry' | 'awakened-rend' | 'awakened-eruption' | 'time-crush' | 'heart-pulse'
+
+const HEAVY_ATTACK_RULES: Readonly<Record<string, Readonly<{ kind: BossHeavyAttack; min: number; times?: number }>>> = {
+  slime_boss: { kind: 'slime-crush', min: 6 },
+  hexaghost: { kind: 'hexaghost-inferno', min: 3, times: 2 },
+  bronze_automaton: { kind: 'automaton-beam', min: 7 },
+  guardian_defensive: { kind: 'guardian-bash', min: 4 },
+  the_collector: { kind: 'collector-fireball', min: 5 },
+  the_champ: { kind: 'champ-execute', min: 5 },
+  the_champ_fury: { kind: 'champ-flurry', min: 4, times: 2 },
+  awakened_one_phase_1: { kind: 'awakened-rend', min: 5 },
+  awakened_one_phase_2: { kind: 'awakened-eruption', min: 6 },
+  time_eater: { kind: 'time-crush', min: 6 },
+  corrupt_heart: { kind: 'heart-pulse', min: 5 },
+}
+
+const HEAVY_ATTACK_ART: Readonly<Record<BossHeavyAttack, readonly string[]>> = {
+  'slime-crush': ['combat/vfx/actions/turn-poison-impact.webp'],
+  'hexaghost-inferno': ['combat/vfx/actions/hexaghost-flame.webp', 'combat/vfx/actions/hexaghost-flame-impact.webp'],
+  'automaton-beam': ['combat/vfx/hit-burst.webp'],
+  'guardian-bash': ['combat/vfx/actions/ironclad-bash.webp'],
+  'collector-fireball': ['combat/vfx/actions/hexaghost-flame.webp', 'combat/vfx/actions/ironclad-bash.webp',
+    'combat/vfx/actions/hexaghost-flame-impact.webp'],
+  'champ-execute': ['combat/vfx/actions/ironclad-strike.webp'],
+  'champ-flurry': ['combat/vfx/actions/ironclad-strike.webp', 'combat/vfx/actions/speed-trail.webp'],
+  'awakened-rend': ['combat/vfx/actions/awakened-claw-scratch.webp'],
+  'awakened-eruption': ['combat/vfx/actions/awakened-blue-fire.webp'],
+  'time-crush': ['combat/vfx/actions/turn-countdown-impact.webp', 'combat/vfx/hit-burst.webp'],
+  'heart-pulse': ['combat/vfx/actions/turn-damage-impact.webp'],
+}
+
+/** Artwork the boss's big-hit effect paints, so no frame of it waits on the network. */
+export function bossHeavyArtFor(defId: string): string[] {
+  const rule = HEAVY_ATTACK_RULES[defId]
+  return rule ? HEAVY_ATTACK_ART[rule.kind].map(path => assetPath(path)) : []
+}
+
+/** The baked boss swing lands at 730ms; each extra hit follows after this gap. */
+export const BOSS_CONTACT_MS = 730
+export const BOSS_HEAVY_HIT_GAP_MS = 320
+
+/** The printed rotation decides it, so Strength changes the number but never the spectacle. */
+export function bossHeavyAttackFor(
+  defId: string,
+  actions: readonly EnemyAction[],
+): Readonly<{ kind: BossHeavyAttack; hits: number }> | undefined {
+  const rule = HEAVY_ATTACK_RULES[defId]
+  const heavy = rule && actions.find((action): action is Extract<EnemyAction, { kind: 'attack' }> =>
+    action.kind === 'attack' && action.amount >= rule.min && (action.times ?? 1) >= (rule.times ?? 1))
+  return rule && heavy ? { kind: rule.kind, hits: heavy.times ?? 1 } : undefined
 }
 
 export function bossAttackMotionFor(artId: string): 'melee' | 'ranged' {

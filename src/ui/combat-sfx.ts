@@ -5,7 +5,10 @@ import type { SkinId } from '../game/skins.ts'
 import { CARDS } from '../game/cards.ts'
 import { POTIONS } from '../game/relics.ts'
 import { STAGED_SOUND_VOLUMES } from './combat-screen/staged-attacks.ts'
-import { cardVfxRecipe, potionVfxRecipe, type VfxFamily, type VfxRecipe } from './combat-vfx.ts'
+import {
+  BOSS_CONTACT_MS, BOSS_HEAVY_HIT_GAP_MS, cardVfxRecipe, potionVfxRecipe,
+  type BossHeavyAttack, type VfxFamily, type VfxRecipe,
+} from './combat-vfx.ts'
 
 export const ANIMATION_SOUND_VOLUMES = {
   ...STAGED_SOUND_VOLUMES,
@@ -195,4 +198,24 @@ export function potionSfxRecipe(potionId: string): CombatSfxRecipe {
 export function animationSfxRecipe(sound: AnimationSound, voices = 1): CombatSfxRecipe {
   return { cue: `animation:${sound}`, layers: [{ sound, rate: .99,
     volume: ANIMATION_SOUND_VOLUMES[sound] / Math.sqrt(Math.max(1, voices)), delayMs: 0 }] }
+}
+
+const HEAVY_RATE: Readonly<Record<BossHeavyAttack, number>> = {
+  'slime-crush': .66, 'hexaghost-inferno': .84, 'automaton-beam': .72, 'guardian-bash': .62,
+  'collector-fireball': .8, 'champ-execute': .7, 'champ-flurry': .92, 'awakened-rend': .76,
+  'awakened-eruption': .68, 'time-crush': .6, 'heart-pulse': .58,
+}
+
+/** A low charge swell, then a deep impact at every hit's contact beat. */
+export function bossHeavySfxRecipe(kind: BossHeavyAttack, hits: number): CombatSfxRecipe {
+  const rate = HEAVY_RATE[kind]
+  const contacts = Array.from({ length: Math.min(hits, 3) }, (_, hit) => BOSS_CONTACT_MS + hit * BOSS_HEAVY_HIT_GAP_MS)
+  return { cue: `boss-heavy:${kind}`, layers: [
+    { sound: 'magic', rate: rate * .9, volume: .2, delayMs: 90 },
+    ...contacts.flatMap((delayMs, hit): CombatSfxLayer[] => [
+      { sound: 'attack', rate, volume: .36 - hit * .06, delayMs },
+      { sound: 'block', rate: Math.max(.6, rate * .85), volume: .3, delayMs },
+      { sound: 'enemy', rate: rate * 1.05, volume: .24, delayMs: delayMs + 40 },
+    ]),
+  ] }
 }

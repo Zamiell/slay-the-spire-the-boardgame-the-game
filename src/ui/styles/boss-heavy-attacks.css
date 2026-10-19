@@ -1,0 +1,656 @@
+/* Boss big-hit signatures.
+   Every Boss rotation has one turn that hits hardest. EnemyCard names it
+   (`data-heavy-attack`, from bossHeavyAttackFor) and mounts three layers while
+   the baked swing plays: a charge on the Boss (`.boss-heavy-charge`), a path
+   and landing for each struck hero (`.boss-heavy-target`), and board-wide
+   weather (`.board:has(...)`: vignette, flash, camera shake, hero recoil).
+   The swing itself is the existing 1830ms clock; contact lands at 730ms, the
+   instant the enemy phase resolves, and a second hit follows one gap later.
+   Only opacity, transform and gradients animate, so low-power devices cope. */
+
+:root {
+  /* combat-vfx.ts BOSS_CONTACT_MS, BOSS_HEAVY_HIT_GAP_MS and bossAttackDurationFor. */
+  --heavy-contact: 730ms;
+  --heavy-gap: 320ms;
+  --heavy-total: 1830ms;
+}
+
+/* tone: the signature colour. shake/recoil: how hard the camera and heroes react. */
+:is(.enemy[data-heavy-attack='slime-crush'], .board:has(.enemy.enemy--acting[data-heavy-attack='slime-crush'])) {
+  --heavy-tone: 123 209 92; --heavy-shake: 1.1; --heavy-recoil: .55rem; --heavy-squash: .84;
+}
+:is(.enemy[data-heavy-attack='hexaghost-inferno'], .board:has(.enemy.enemy--acting[data-heavy-attack='hexaghost-inferno'])) {
+  --heavy-tone: 150 238 120; --heavy-shake: .85; --heavy-recoil: .5rem; --heavy-squash: .94;
+}
+:is(.enemy[data-heavy-attack='automaton-beam'], .board:has(.enemy.enemy--acting[data-heavy-attack='automaton-beam'])) {
+  --heavy-tone: 255 190 96; --heavy-shake: 1.35; --heavy-recoil: .9rem; --heavy-squash: .92;
+}
+:is(.enemy[data-heavy-attack='guardian-bash'], .board:has(.enemy.enemy--acting[data-heavy-attack='guardian-bash'])) {
+  --heavy-tone: 231 164 58; --heavy-shake: 1.6; --heavy-recoil: .8rem; --heavy-squash: .88;
+}
+:is(.enemy[data-heavy-attack='collector-fireball'], .board:has(.enemy.enemy--acting[data-heavy-attack='collector-fireball'])) {
+  --heavy-tone: 255 122 42; --heavy-shake: .95; --heavy-recoil: .6rem; --heavy-squash: .93;
+}
+:is(.enemy[data-heavy-attack='champ-execute'], .board:has(.enemy.enemy--acting[data-heavy-attack='champ-execute'])) {
+  --heavy-tone: 220 50 66; --heavy-shake: 1.4; --heavy-recoil: .85rem; --heavy-squash: .9;
+}
+:is(.enemy[data-heavy-attack='champ-flurry'], .board:has(.enemy.enemy--acting[data-heavy-attack='champ-flurry'])) {
+  --heavy-tone: 255 138 50; --heavy-shake: .8; --heavy-recoil: .45rem; --heavy-squash: .94;
+}
+:is(.enemy[data-heavy-attack='awakened-rend'], .board:has(.enemy.enemy--acting[data-heavy-attack='awakened-rend'])) {
+  --heavy-tone: 126 190 255; --heavy-shake: 1; --heavy-recoil: .6rem; --heavy-squash: .93;
+}
+:is(.enemy[data-heavy-attack='awakened-eruption'], .board:has(.enemy.enemy--acting[data-heavy-attack='awakened-eruption'])) {
+  --heavy-tone: 74 168 255; --heavy-shake: 1.3; --heavy-recoil: .75rem; --heavy-squash: .9;
+}
+:is(.enemy[data-heavy-attack='time-crush'], .board:has(.enemy.enemy--acting[data-heavy-attack='time-crush'])) {
+  --heavy-tone: 232 205 96; --heavy-shake: 1.5; --heavy-recoil: .9rem; --heavy-squash: .87;
+}
+:is(.enemy[data-heavy-attack='heart-pulse'], .board:has(.enemy.enemy--acting[data-heavy-attack='heart-pulse'])) {
+  --heavy-tone: 214 38 62; --heavy-shake: 1.5; --heavy-recoil: .85rem; --heavy-squash: .89;
+}
+
+/* ---- Board weather -------------------------------------------------------- */
+
+.board:has(.enemy.enemy--acting[data-heavy-attack]) {
+  animation: boss-heavy-shake 620ms var(--heavy-contact) linear;
+}
+.board:has(.enemy.enemy--acting[data-heavy-attack][data-heavy-hits='2']) {
+  animation:
+    boss-heavy-shake 560ms var(--heavy-contact) linear,
+    boss-heavy-shake 560ms calc(var(--heavy-contact) + var(--heavy-gap)) linear;
+}
+
+.board:has(.enemy.enemy--acting[data-heavy-attack])::before,
+.board:has(.enemy.enemy--acting[data-heavy-attack])::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 140;
+  pointer-events: none;
+  opacity: 0;
+}
+
+/* Edges darken and tint through the windup, then release after the landing. */
+.board:has(.enemy.enemy--acting[data-heavy-attack])::before {
+  background:
+    radial-gradient(ellipse 75% 85% at 50% 58%, transparent 35%, rgb(var(--heavy-tone) / .22) 78%, rgb(var(--heavy-tone) / .4) 100%),
+    radial-gradient(ellipse 75% 85% at 50% 58%, transparent 38%, rgb(3 4 8 / .66) 100%);
+  animation: boss-heavy-vignette var(--heavy-total) ease-out both;
+}
+
+/* The white-hot landing frame. */
+.board:has(.enemy.enemy--acting[data-heavy-attack])::after {
+  background: radial-gradient(ellipse 60% 80% at 38% 62%, rgb(255 255 255 / .92), rgb(var(--heavy-tone) / .6) 38%, transparent 76%);
+  animation: boss-heavy-flash 300ms var(--heavy-contact) ease-out;
+}
+.board:has(.enemy.enemy--acting[data-heavy-attack][data-heavy-hits='2'])::after {
+  animation:
+    boss-heavy-flash 260ms var(--heavy-contact) ease-out,
+    boss-heavy-flash 260ms calc(var(--heavy-contact) + var(--heavy-gap)) ease-out;
+}
+
+@keyframes boss-heavy-vignette {
+  0% { opacity: 0; }
+  36%, 52% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes boss-heavy-flash {
+  0% { opacity: 0; }
+  12% { opacity: .85; }
+  100% { opacity: 0; }
+}
+/* Whole-stage punch: heavy first frames, then the shake decays. */
+@keyframes boss-heavy-shake {
+  0%, 100% { translate: 0 0; }
+  8% { translate: calc(var(--heavy-shake, 1) * -9px) calc(var(--heavy-shake, 1) * 5px); }
+  18% { translate: calc(var(--heavy-shake, 1) * 8px) calc(var(--heavy-shake, 1) * -6px); }
+  30% { translate: calc(var(--heavy-shake, 1) * -6px) calc(var(--heavy-shake, 1) * 4px); }
+  44% { translate: calc(var(--heavy-shake, 1) * 4px) calc(var(--heavy-shake, 1) * -3px); }
+  60% { translate: calc(var(--heavy-shake, 1) * -2px) calc(var(--heavy-shake, 1) * 2px); }
+  80% { translate: calc(var(--heavy-shake, 1) * 1px) 0; }
+}
+
+/* Every living hero is knocked back at the landing, then settles. */
+.board:has(.enemy.enemy--acting[data-heavy-attack]) .seat:not(.seat--dead) .seat__portrait {
+  transform-origin: 50% 100%;
+  animation: boss-heavy-recoil 640ms var(--heavy-contact) cubic-bezier(.2, .75, .3, 1) forwards;
+}
+.board:has(.enemy.enemy--acting[data-heavy-attack][data-heavy-hits='2']) .seat:not(.seat--dead) .seat__portrait {
+  animation:
+    boss-heavy-recoil 500ms var(--heavy-contact) cubic-bezier(.2, .75, .3, 1) forwards,
+    boss-heavy-recoil 560ms calc(var(--heavy-contact) + var(--heavy-gap)) cubic-bezier(.2, .75, .3, 1) forwards;
+}
+@keyframes boss-heavy-recoil {
+  0% { translate: 0 0; scale: 1 1; }
+  14% { translate: calc(var(--heavy-recoil, .6rem) * -1) 0; scale: 1.04 var(--heavy-squash, .92); }
+  38% { translate: calc(var(--heavy-recoil, .6rem) * -.55) 0; scale: .99 1.03; }
+  100% { translate: 0 0; scale: 1 1; }
+}
+
+/* The damage that lands is the headline. */
+.board:has(.enemy.enemy--acting[data-heavy-attack]) .seat .hit-vfx {
+  width: 6.4rem;
+  height: 6.4rem;
+  margin: -1.1rem 0 0 -1.1rem;
+}
+.board:has(.enemy.enemy--acting[data-heavy-attack]) .seat .hit-vfx strong {
+  font-size: 2.7rem;
+  color: #fff6d8;
+  text-shadow: 0 3px 0 #641817, 0 0 14px rgb(var(--heavy-tone) / .95), 0 0 5px #000;
+}
+
+/* ---- Charge on the Boss --------------------------------------------------- */
+
+.enemy[data-heavy-attack] .enemy__portrait { animation: boss-heavy-tremble var(--heavy-contact) linear; }
+@keyframes boss-heavy-tremble {
+  0%, 18% { translate: 0 0; }
+  26% { translate: -1.2px 1px; }
+  32% { translate: 1.5px -1px; }
+  38% { translate: -2px 1.4px; }
+  44% { translate: 2.4px -1.4px; }
+  50% { translate: -2.8px 1px; }
+  56% { translate: 3px -1px; }
+  62% { translate: -3px 1px; }
+  68% { translate: 3px 0; }
+  76% { translate: -2px 0; }
+  100% { translate: 0 0; }
+}
+
+.boss-heavy-charge {
+  position: absolute;
+  /* EnemyCard writes the painted body's box; until then the charge hugs the portrait. */
+  left: var(--body-left, 0);
+  top: var(--body-top, 0);
+  width: var(--body-width, 100%);
+  height: var(--body-height, 100%);
+  pointer-events: none;
+}
+.boss-heavy-charge > * { position: absolute; pointer-events: none; opacity: 0; }
+
+.boss-heavy-charge__aura {
+  left: 50%;
+  top: 52%;
+  width: max(210%, 100% + 7rem);
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(255 255 255 / .55) 0, rgb(var(--heavy-tone) / .6) 26%, rgb(var(--heavy-tone) / .22) 52%, transparent 70%);
+  animation: boss-heavy-aura var(--heavy-total) ease-in-out both;
+}
+/* The charge peaks before a melee Boss leaves its mark, then lets go. */
+@keyframes boss-heavy-aura {
+  0% { opacity: 0; scale: .35; }
+  26% { opacity: 1; scale: 1; }
+  40% { opacity: .5; scale: 1.25; }
+  58% { opacity: 0; scale: 1.5; }
+  100% { opacity: 0; scale: 1.7; }
+}
+
+/* A ground sigil that winds in while the Boss gathers itself. */
+.boss-heavy-charge__ring {
+  left: 50%;
+  bottom: 0;
+  width: max(190%, 100% + 5rem);
+  aspect-ratio: 4.4;
+  translate: -50% 50%;
+  border-radius: 50%;
+  border: .22rem solid rgb(var(--heavy-tone) / .95);
+  box-shadow: 0 0 1.2rem rgb(var(--heavy-tone) / .85), inset 0 0 1rem rgb(var(--heavy-tone) / .7);
+  animation: boss-heavy-sigil var(--heavy-total) cubic-bezier(.3, .6, .3, 1) both;
+}
+.boss-heavy-charge__ring::after {
+  content: '';
+  position: absolute;
+  inset: 16%;
+  border-radius: 50%;
+  border: .12rem dashed rgb(var(--heavy-tone) / .8);
+}
+@keyframes boss-heavy-sigil {
+  0% { opacity: 0; scale: 1.7 1.7; }
+  24% { opacity: .95; }
+  32% { opacity: 1; scale: .85 .85; }
+  50% { opacity: 0; scale: 1.5 1.5; }
+  100% { opacity: 0; }
+}
+
+/* Motes of the Boss's power pulled into its body. */
+.boss-heavy-charge__sparks {
+  inset: -20% -25%;
+  z-index: 4;
+  background:
+    radial-gradient(circle at 10% 24%, rgb(var(--heavy-tone)) 0 1.8%, transparent 2.6%),
+    radial-gradient(circle at 24% 8%, #fff 0 1.3%, transparent 2%),
+    radial-gradient(circle at 42% 14%, rgb(var(--heavy-tone)) 0 2.1%, transparent 3%),
+    radial-gradient(circle at 66% 6%, #fff 0 1.4%, transparent 2.1%),
+    radial-gradient(circle at 88% 20%, rgb(var(--heavy-tone)) 0 2%, transparent 2.8%),
+    radial-gradient(circle at 94% 52%, #fff 0 1.3%, transparent 2%),
+    radial-gradient(circle at 80% 84%, rgb(var(--heavy-tone)) 0 2%, transparent 2.9%),
+    radial-gradient(circle at 54% 94%, #fff 0 1.4%, transparent 2.1%),
+    radial-gradient(circle at 26% 88%, rgb(var(--heavy-tone)) 0 2.1%, transparent 3%),
+    radial-gradient(circle at 6% 62%, #fff 0 1.3%, transparent 2%);
+  transform-origin: 50% 58%;
+  animation: boss-heavy-converge calc(var(--heavy-contact) * .78) cubic-bezier(.5, 0, .9, .5) both;
+}
+@keyframes boss-heavy-converge {
+  0% { opacity: 0; scale: 1.35; rotate: 0deg; }
+  25% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { opacity: 0; scale: .22; rotate: var(--heavy-spin, 70deg); }
+}
+
+/* ---- Struck hero: path and landing --------------------------------------- */
+
+/* Anchored on the Boss's attack origin; EnemyCard measures the vector to each hero. */
+.boss-heavy-target {
+  position: absolute;
+  z-index: 22;
+  left: var(--boss-projectile-start-x, 25%);
+  top: var(--boss-projectile-start-y, 50%);
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  --size: var(--stage-scale, 1);
+}
+.boss-heavy-target > *,
+.boss-heavy-target__impact > * { position: absolute; pointer-events: none; }
+.boss-heavy-target > :not(.boss-heavy-target__impact),
+.boss-heavy-target__impact > * { opacity: 0; }
+.boss-heavy-target__impact {
+  left: var(--boss-projectile-x, -8rem);
+  top: var(--boss-projectile-y, 0);
+  width: 0;
+  height: 0;
+}
+
+.boss-heavy-target__beam {
+  left: 0;
+  top: 0;
+  width: var(--boss-heavy-length, 12rem);
+  height: calc(2.6rem * var(--size));
+  transform-origin: 0 50%;
+  rotate: var(--boss-heavy-angle, 3.14rad);
+  translate: 0 -50%;
+}
+.boss-heavy-target__flight {
+  left: 0;
+  top: 0;
+  width: calc(4.5rem * var(--size));
+  aspect-ratio: 1;
+  background: var(--flight-art, none) center / contain no-repeat;
+}
+
+/* Ground shock where the blow lands: an ellipse on the floor plane. */
+.boss-heavy-target__ring {
+  width: calc(7rem * var(--size));
+  height: calc(2.6rem * var(--size));
+  translate: -50% -10%;
+  border-radius: 50%;
+  border: calc(.34rem * var(--size)) solid rgb(var(--heavy-tone) / .95);
+  box-shadow: 0 0 1.4rem rgb(var(--heavy-tone) / .9), inset 0 0 1rem rgb(var(--heavy-tone) / .55);
+  animation: boss-heavy-shock 620ms var(--heavy-contact) cubic-bezier(.1, .7, .25, 1) both;
+}
+@keyframes boss-heavy-shock {
+  0% { opacity: 0; scale: .15 .15; }
+  10% { opacity: 1; }
+  100% { opacity: 0; scale: 2.3 2.3; }
+}
+
+.boss-heavy-target__burst {
+  width: calc(9.5rem * var(--size));
+  aspect-ratio: 1;
+  translate: -50% -58%;
+  background: var(--burst-art, none) center / contain no-repeat;
+  animation: boss-heavy-burst 620ms var(--heavy-contact) cubic-bezier(.1, .75, .2, 1) both;
+}
+.boss-heavy-target__burst--echo {
+  background-image: var(--echo-art, var(--burst-art, none));
+  rotate: var(--echo-rotate, 0deg);
+  animation-delay: var(--echo-delay, calc(var(--heavy-contact) + var(--heavy-gap)));
+  animation-duration: 560ms;
+}
+@keyframes boss-heavy-burst {
+  0% { opacity: 0; scale: .2; }
+  10% { opacity: 1; scale: 1.05; }
+  34% { opacity: 1; scale: 1.2; }
+  100% { opacity: 0; scale: 1.5; }
+}
+
+/* A spray of fragments thrown out from the point of impact. */
+.boss-heavy-target__debris {
+  left: calc(-5.5rem * var(--size));
+  top: calc(-6.5rem * var(--size));
+  width: calc(11rem * var(--size));
+  height: calc(9rem * var(--size));
+  background:
+    radial-gradient(circle at 12% 56%, rgb(var(--heavy-tone)) 0 3%, transparent 4%),
+    radial-gradient(circle at 26% 22%, #fff 0 2%, transparent 3%),
+    radial-gradient(circle at 40% 8%, rgb(var(--heavy-tone)) 0 3.4%, transparent 4.4%),
+    radial-gradient(circle at 60% 14%, #fff 0 2%, transparent 3%),
+    radial-gradient(circle at 78% 6%, rgb(var(--heavy-tone)) 0 3%, transparent 4%),
+    radial-gradient(circle at 90% 34%, #fff 0 2.2%, transparent 3.2%),
+    radial-gradient(circle at 96% 62%, rgb(var(--heavy-tone)) 0 2.6%, transparent 3.6%),
+    radial-gradient(circle at 4% 30%, #fff 0 2%, transparent 3%);
+  transform-origin: 50% 80%;
+  animation: boss-heavy-debris 900ms var(--heavy-contact) cubic-bezier(.12, .7, .3, 1) both;
+}
+@keyframes boss-heavy-debris {
+  0% { opacity: 0; scale: .25; translate: 0 1.2rem; }
+  12% { opacity: 1; }
+  60% { opacity: .85; }
+  100% { opacity: 0; scale: 1.5; translate: 0 -1.2rem; }
+}
+
+/* ==== Signatures ============================================================ */
+
+/* Slime Boss — Goo Crush: it rears up, then drops its whole mass on the party. */
+.enemy[data-heavy-attack='slime-crush'] {
+  --burst-art: url('/assets/combat/vfx/actions/turn-poison-impact.webp');
+  --heavy-spin: -40deg;
+}
+.enemy[data-heavy-attack='slime-crush'] .boss-heavy-target__burst { width: calc(12rem * var(--size)); translate: -50% -70%; }
+.enemy[data-heavy-attack='slime-crush'] .boss-heavy-target__burst--echo {
+  width: calc(8rem * var(--size));
+  --echo-delay: calc(var(--heavy-contact) + 150ms);
+  translate: -92% -52%;
+}
+.enemy[data-heavy-attack='slime-crush'] .boss-heavy-target__ring {
+  height: calc(3.4rem * var(--size));
+  border: 0;
+  background: radial-gradient(ellipse, rgb(142 232 88 / .9) 0 40%, rgb(40 110 40 / .7) 62%, transparent 70%);
+  box-shadow: none;
+}
+.enemy[data-heavy-attack='slime-crush'] .boss-heavy-charge__sparks { animation-name: boss-heavy-bubbles; animation-timing-function: ease-in; }
+@keyframes boss-heavy-bubbles {
+  0% { opacity: 0; translate: 0 18%; scale: 1; }
+  30%, 85% { opacity: 1; }
+  100% { opacity: 0; translate: 0 -24%; scale: .8; }
+}
+
+/* Hexaghost — Inferno: six flames orbit and converge, then fly to every hero. */
+.enemy[data-heavy-attack='hexaghost-inferno'] {
+  --burst-art: url('/assets/combat/vfx/actions/hexaghost-flame-impact.webp');
+  --flight-art: url('/assets/combat/vfx/actions/hexaghost-flame.webp');
+  --echo-rotate: 38deg;
+  --heavy-spin: 300deg;
+}
+.enemy[data-heavy-attack='hexaghost-inferno'] .boss-heavy-charge__sparks {
+  inset: -4% -10% 4%;
+  background:
+    url('/assets/combat/vfx/actions/hexaghost-flame.webp') 50% 0 / 20% auto no-repeat,
+    url('/assets/combat/vfx/actions/hexaghost-flame.webp') 93% 25% / 20% auto no-repeat,
+    url('/assets/combat/vfx/actions/hexaghost-flame.webp') 93% 75% / 20% auto no-repeat,
+    url('/assets/combat/vfx/actions/hexaghost-flame.webp') 50% 100% / 20% auto no-repeat,
+    url('/assets/combat/vfx/actions/hexaghost-flame.webp') 7% 75% / 20% auto no-repeat,
+    url('/assets/combat/vfx/actions/hexaghost-flame.webp') 7% 25% / 20% auto no-repeat;
+  animation-name: boss-heavy-orbit;
+}
+@keyframes boss-heavy-orbit {
+  0% { opacity: 0; scale: 1.5; rotate: 0deg; }
+  22%, 82% { opacity: 1; }
+  100% { opacity: 0; scale: .3; rotate: 360deg; }
+}
+.enemy[data-heavy-attack='hexaghost-inferno'] .boss-heavy-target__flight {
+  animation: boss-heavy-straight 400ms calc(var(--heavy-contact) - 400ms) cubic-bezier(.5, 0, .85, .6) both;
+  translate: -50% -50%;
+}
+.enemy[data-heavy-attack='hexaghost-inferno'][data-heavy-hits='2'] .boss-heavy-target__flight {
+  animation:
+    boss-heavy-straight 400ms calc(var(--heavy-contact) - 400ms) cubic-bezier(.5, 0, .85, .6) both,
+    boss-heavy-straight 380ms var(--heavy-contact) cubic-bezier(.4, 0, .8, .6) forwards;
+}
+/* A second animation on one element must not fill backwards: it would mask the first. */
+@keyframes boss-heavy-straight {
+  0% { opacity: 0; translate: -50% -50%; scale: .5; }
+  12% { opacity: 1; }
+  88% { opacity: 1; scale: 1.5; }
+  100% { opacity: 0; translate: calc(var(--boss-projectile-x, -8rem) - 50%) calc(var(--boss-projectile-y, 0px) - 50%); scale: 1.7; }
+}
+.enemy[data-heavy-attack='hexaghost-inferno'] .boss-heavy-target__burst { width: calc(10.5rem * var(--size)); }
+.enemy[data-heavy-attack='hexaghost-inferno'] .boss-heavy-target__ring { box-shadow: 0 0 1.4rem rgb(150 238 120 / .95), inset 0 0 1rem rgb(120 90 255 / .7); }
+
+/* Bronze Automaton — Hyper Beam: its core overloads and one lance sweeps the row.
+   It fires from where it stands, so the melee dash becomes a firing recoil. */
+.enemy--boss.enemy--acting[data-heavy-attack='automaton-beam'] .enemy__portrait > .enemy__art--cutout {
+  animation: boss-heavy-recoil-stance var(--boss-attack-duration, 1830ms) cubic-bezier(.3, 0, .2, 1) both;
+}
+@keyframes boss-heavy-recoil-stance {
+  0%, 36% { translate: 0 0; }
+  42% { translate: .9rem 0; }
+  70%, 100% { translate: 0 0; }
+}
+.enemy[data-heavy-attack='automaton-beam'] {
+  --burst-art: url('/assets/combat/vfx/hit-burst.webp');
+  --heavy-spin: 0deg;
+}
+.enemy[data-heavy-attack='automaton-beam'] .boss-heavy-target__beam {
+  background:
+    linear-gradient(0deg, transparent 0, rgb(255 140 50 / .75) 14%, #fff4cf 40%, #fff 50%, #fff4cf 60%, rgb(255 140 50 / .75) 86%, transparent 100%);
+  border-radius: 1.3rem;
+  box-shadow: 0 0 1.6rem rgb(255 170 80 / .95), 0 0 .5rem #fff;
+  animation: boss-heavy-beam 640ms calc(var(--heavy-contact) - 90ms) cubic-bezier(.1, .8, .2, 1) both;
+}
+@keyframes boss-heavy-beam {
+  0% { opacity: 0; scale: 0 .08; }
+  10% { opacity: 1; scale: 1 .45; }
+  22% { opacity: 1; scale: 1 1.15; }
+  62% { opacity: 1; scale: 1 .85; }
+  100% { opacity: 0; scale: 1 .05; }
+}
+.enemy[data-heavy-attack='automaton-beam'] .boss-heavy-charge__aura {
+  background: radial-gradient(circle, #fff 0, rgb(255 238 190 / .85) 12%, rgb(255 150 60 / .55) 30%, rgb(255 120 40 / .2) 50%, transparent 68%);
+}
+.enemy[data-heavy-attack='automaton-beam'] .boss-heavy-charge__sparks { animation-name: boss-heavy-core; }
+@keyframes boss-heavy-core {
+  0% { opacity: 0; scale: 1.4; }
+  30%, 90% { opacity: 1; }
+  100% { opacity: 0; scale: .15; }
+}
+.enemy[data-heavy-attack='automaton-beam'] .boss-heavy-target__burst { width: calc(11rem * var(--size)); }
+
+/* The Guardian — Fierce Bash: a stone-cracking slam that rolls through the floor. */
+.enemy[data-heavy-attack='guardian-bash'] {
+  --burst-art: url('/assets/combat/vfx/actions/ironclad-bash.webp');
+  --echo-delay: calc(var(--heavy-contact) + 130ms);
+  --heavy-spin: 0deg;
+}
+.enemy[data-heavy-attack='guardian-bash'] .boss-heavy-target__burst { width: calc(11.5rem * var(--size)); }
+.enemy[data-heavy-attack='guardian-bash'] .boss-heavy-target__burst--echo { width: calc(7rem * var(--size)); translate: -20% -30%; }
+.enemy[data-heavy-attack='guardian-bash'] .boss-heavy-target__ring {
+  border-color: rgb(236 190 100 / .95);
+  box-shadow: 0 0 1rem rgb(231 164 58 / .9), inset 0 -.4rem .8rem rgb(95 55 20 / .8);
+  animation-duration: 760ms;
+}
+.enemy[data-heavy-attack='guardian-bash'] .boss-heavy-target__debris {
+  background:
+    radial-gradient(circle at 12% 56%, #8a6a40 0 4.5%, transparent 5.5%),
+    radial-gradient(circle at 26% 22%, #d9b878 0 3.2%, transparent 4.2%),
+    radial-gradient(circle at 40% 8%, #6a5130 0 5%, transparent 6%),
+    radial-gradient(circle at 60% 14%, #d9b878 0 3%, transparent 4%),
+    radial-gradient(circle at 78% 6%, #8a6a40 0 4.6%, transparent 5.6%),
+    radial-gradient(circle at 90% 34%, #d9b878 0 3.2%, transparent 4.2%),
+    radial-gradient(circle at 96% 62%, #6a5130 0 4%, transparent 5%),
+    radial-gradient(circle at 4% 30%, #d9b878 0 3%, transparent 4%);
+}
+.enemy[data-heavy-attack='guardian-bash'] .boss-heavy-charge__sparks { animation-name: boss-heavy-dust; }
+@keyframes boss-heavy-dust {
+  0% { opacity: 0; translate: 0 22%; scale: 1.1; }
+  35%, 85% { opacity: .9; }
+  100% { opacity: 0; translate: 0 -12%; scale: .6; }
+}
+
+/* The Collector — Fireball: a conjured sun is lobbed in a high arc. */
+.enemy[data-heavy-attack='collector-fireball'] {
+  --burst-art: url('/assets/combat/vfx/actions/ironclad-bash.webp');
+  --echo-art: url('/assets/combat/vfx/actions/hexaghost-flame-impact.webp');
+  --flight-art: url('/assets/combat/vfx/actions/hexaghost-flame.webp');
+  --echo-delay: calc(var(--heavy-contact) + 110ms);
+  --heavy-spin: 220deg;
+}
+.enemy[data-heavy-attack='collector-fireball'] .boss-heavy-target__flight {
+  width: calc(6.5rem * var(--size));
+  filter: hue-rotate(-72deg) saturate(1.6) drop-shadow(0 0 .8rem rgb(255 120 40 / .95));
+  animation: boss-heavy-lob 560ms calc(var(--heavy-contact) - 560ms) linear both;
+}
+@keyframes boss-heavy-lob {
+  0% { opacity: 0; translate: -50% -50%; scale: .5; }
+  10% { opacity: 1; }
+  50% { opacity: 1; translate: calc(var(--boss-projectile-x, -8rem) * .5 - 50%) calc(var(--boss-projectile-y, 0px) * .5 - 50% - 6rem); scale: 1.2; }
+  92% { opacity: 1; scale: 1.5; }
+  100% { opacity: 0; translate: calc(var(--boss-projectile-x, -8rem) - 50%) calc(var(--boss-projectile-y, 0px) - 50%); scale: 1.6; }
+}
+.enemy[data-heavy-attack='collector-fireball'] .boss-heavy-target__burst { width: calc(11rem * var(--size)); filter: hue-rotate(-8deg) saturate(1.3); }
+.enemy[data-heavy-attack='collector-fireball'] .boss-heavy-target__burst--echo {
+  width: calc(10rem * var(--size));
+  filter: hue-rotate(-72deg) saturate(1.5);
+}
+.enemy[data-heavy-attack='collector-fireball'] .boss-heavy-charge__sparks { animation-name: boss-heavy-bubbles; }
+
+/* The Champ — Execute: one crushing X cut. */
+.enemy[data-heavy-attack='champ-execute'] {
+  --burst-art: url('/assets/combat/vfx/actions/ironclad-strike.webp');
+  --echo-rotate: -90deg;
+  --echo-delay: calc(var(--heavy-contact) + 90ms);
+  --heavy-spin: -90deg;
+}
+.enemy[data-heavy-attack='champ-execute'] .boss-heavy-target__burst,
+.enemy[data-heavy-attack='champ-execute'] .boss-heavy-target__burst--echo {
+  width: calc(15rem * var(--size));
+  filter: hue-rotate(-18deg) saturate(1.6) drop-shadow(0 0 1rem rgb(220 50 66 / .9));
+}
+.enemy[data-heavy-attack='champ-execute'] .boss-heavy-target__burst--echo { transform: scaleX(-1); }
+
+/* The Champ in Fury — Flurry: two blindingly fast cuts, a streak ahead of each. */
+.enemy[data-heavy-attack='champ-flurry'] {
+  --burst-art: url('/assets/combat/vfx/actions/ironclad-strike.webp');
+  --flight-art: url('/assets/combat/vfx/actions/speed-trail.webp');
+  --echo-rotate: -90deg;
+  --echo-delay: calc(var(--heavy-contact) + var(--heavy-gap));
+  --heavy-spin: 140deg;
+}
+.enemy[data-heavy-attack='champ-flurry'] .boss-heavy-target__burst,
+.enemy[data-heavy-attack='champ-flurry'] .boss-heavy-target__burst--echo {
+  width: calc(11.5rem * var(--size));
+  filter: hue-rotate(-12deg) saturate(1.5) drop-shadow(0 0 .8rem rgb(255 138 50 / .9));
+}
+.enemy[data-heavy-attack='champ-flurry'] .boss-heavy-target__burst--echo { transform: scaleX(-1); }
+.enemy[data-heavy-attack='champ-flurry'] .boss-heavy-target__flight {
+  width: calc(9rem * var(--size));
+  height: calc(4.5rem * var(--size));
+  aspect-ratio: auto;
+  animation:
+    boss-heavy-dash 230ms calc(var(--heavy-contact) - 230ms) cubic-bezier(.5, 0, .9, .6) both,
+    boss-heavy-dash 230ms calc(var(--heavy-contact) + var(--heavy-gap) - 230ms) cubic-bezier(.5, 0, .9, .6) forwards;
+}
+@keyframes boss-heavy-dash {
+  0% { opacity: 0; translate: -50% -50%; }
+  15% { opacity: 1; }
+  100% { opacity: 0; translate: calc(var(--boss-projectile-x, -8rem) - 50%) calc(var(--boss-projectile-y, 0px) - 50%); }
+}
+
+/* Awakened One — Rend: three huge claws, the world cut dark around them. */
+.enemy[data-heavy-attack='awakened-rend'] {
+  --burst-art: url('/assets/combat/vfx/actions/awakened-claw-scratch.webp');
+  --echo-rotate: 14deg;
+  --echo-delay: calc(var(--heavy-contact) + 120ms);
+  --heavy-spin: 200deg;
+}
+.enemy[data-heavy-attack='awakened-rend'] .boss-heavy-target__burst,
+.enemy[data-heavy-attack='awakened-rend'] .boss-heavy-target__burst--echo {
+  width: calc(14rem * var(--size));
+  filter: drop-shadow(0 0 1rem rgb(126 190 255 / .95));
+}
+.board:has(.enemy--boss.enemy--acting[data-heavy-attack='awakened-rend']) .seat:not(.seat--dead) .seat__portrait::before {
+  animation: none;
+  opacity: 0;
+}
+
+/* Awakened One, Reborn — Eruption: blue fire bursts upward under the party. */
+.enemy[data-heavy-attack='awakened-eruption'] {
+  --burst-art: url('/assets/combat/vfx/actions/awakened-blue-fire.webp');
+  --echo-art: url('/assets/combat/vfx/actions/awakened-blue-fire.webp');
+  --echo-delay: calc(var(--heavy-contact) + 100ms);
+  --heavy-spin: -200deg;
+}
+.enemy[data-heavy-attack='awakened-eruption'] .boss-heavy-target__burst {
+  width: calc(15rem * var(--size));
+  translate: -50% -88%;
+  rotate: -90deg;
+  filter: drop-shadow(0 0 1.1rem rgb(74 168 255 / .95));
+  animation-name: boss-heavy-pillar;
+}
+.enemy[data-heavy-attack='awakened-eruption'] .boss-heavy-target__burst--echo {
+  width: calc(10rem * var(--size));
+  translate: -130% -74%;
+  rotate: -82deg;
+  animation-name: boss-heavy-pillar;
+}
+@keyframes boss-heavy-pillar {
+  0% { opacity: 0; scale: .1 .5; }
+  14% { opacity: 1; scale: 1.25 1.05; }
+  50% { opacity: 1; scale: 1.45 1.15; }
+  100% { opacity: 0; scale: 1.7 1.25; }
+}
+.enemy[data-heavy-attack='awakened-eruption'] .boss-heavy-charge__sparks { animation-name: boss-heavy-bubbles; }
+
+/* Time Eater — Time Crush: a clock closes on every hero, then strikes. */
+.enemy[data-heavy-attack='time-crush'] {
+  --burst-art: url('/assets/combat/vfx/hit-burst.webp');
+  --heavy-spin: -360deg;
+}
+.enemy[data-heavy-attack='time-crush'] .boss-heavy-target__flight {
+  left: var(--boss-projectile-x, -8rem);
+  top: var(--boss-projectile-y, 0);
+  width: calc(12rem * var(--size));
+  background: url('/assets/combat/vfx/actions/turn-countdown-impact.webp') center / contain no-repeat;
+  animation: boss-heavy-clock var(--heavy-contact) cubic-bezier(.35, 0, .6, 1) both;
+  translate: -50% -52%;
+}
+@keyframes boss-heavy-clock {
+  0% { opacity: 0; scale: 2.6; rotate: 0deg; }
+  25% { opacity: .95; }
+  94% { opacity: 1; scale: .78; rotate: 345deg; }
+  100% { opacity: 0; scale: .7; rotate: 360deg; }
+}
+.enemy[data-heavy-attack='time-crush'] .boss-heavy-target__burst { width: calc(12rem * var(--size)); }
+.enemy[data-heavy-attack='time-crush'] .boss-heavy-charge__aura {
+  background: radial-gradient(circle, rgb(255 250 220 / .6) 0, rgb(232 205 96 / .5) 26%, rgb(120 100 40 / .22) 52%, transparent 70%);
+}
+
+/* Corrupt Heart — Blood Pulse: the whole room beats once, twice, and breaks. */
+.enemy[data-heavy-attack='heart-pulse'] {
+  --burst-art: url('/assets/combat/vfx/actions/turn-damage-impact.webp');
+  --echo-art: url('/assets/combat/vfx/actions/turn-damage-impact.webp');
+  --echo-delay: calc(var(--heavy-contact) + 140ms);
+  --heavy-spin: 0deg;
+}
+.board:has(.enemy.enemy--acting[data-heavy-attack='heart-pulse'])::before {
+  animation: boss-heavy-heartbeat var(--heavy-total) ease-out both;
+}
+@keyframes boss-heavy-heartbeat {
+  0% { opacity: 0; }
+  10% { opacity: .9; }
+  18% { opacity: .3; }
+  27% { opacity: 1; }
+  36%, 50% { opacity: .55; }
+  100% { opacity: 0; }
+}
+.enemy[data-heavy-attack='heart-pulse'] .boss-heavy-charge__aura { animation-name: boss-heavy-throb; }
+@keyframes boss-heavy-throb {
+  0% { opacity: 0; scale: .5; }
+  10% { opacity: 1; scale: 1.05; }
+  18% { opacity: .55; scale: .85; }
+  27% { opacity: 1; scale: 1.2; }
+  40% { opacity: 1; scale: 1.05; }
+  45% { opacity: 1; scale: 1.5; }
+  100% { opacity: 0; scale: 1.8; }
+}
+.enemy[data-heavy-attack='heart-pulse'] .boss-heavy-target__burst { width: calc(13rem * var(--size)); }
+.enemy[data-heavy-attack='heart-pulse'] .boss-heavy-target__burst--echo { width: calc(8rem * var(--size)); rotate: 25deg; }
+.enemy[data-heavy-attack='heart-pulse'] .boss-heavy-target__ring {
+  width: calc(9rem * var(--size));
+  height: calc(3.4rem * var(--size));
+  border-width: calc(.5rem * var(--size));
+  animation-duration: 760ms;
+}
+.enemy[data-heavy-attack='heart-pulse'] .boss-heavy-charge__sparks { animation-name: boss-heavy-core; }

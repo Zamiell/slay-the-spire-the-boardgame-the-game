@@ -943,9 +943,9 @@ check('every staged attack skin has its config, table, hit effects and sounds', 
 check('every hero and skin has a merchant figure offset that lands its feet on the party floor line', () => {
   // merchant-arrival.css pushes each standing sprite down by its transparent bottom margin (translateY in % of its height).
   const css = readFileSync(join(repoRoot, 'src/ui/chrome/merchant-arrival.css'), 'utf8')
-  const offsets = Object.fromEntries([...css.matchAll(/figure\[data-character='([a-z_]+)'\] img \{ transform: translateY\(([\d.]+)%\); \}/g)]
+  const offsets = Object.fromEntries([...css.matchAll(/figure\[data-character='([a-z_]+)'\] img \{[^}]*transform: translateY\(([\d.]+)%\); \}/g)]
     .map(([, id, percent]) => [id, Number(percent)]))
-  const ids = [...CHARACTER_IDS.slice(0, 4), ...SKIN_IDS]
+  const ids = [...CHARACTER_IDS.filter((id) => !['slime_boss', 'hexaghost'].includes(id)), ...SKIN_IDS]
   const probe = `
 import json, sys
 from PIL import Image

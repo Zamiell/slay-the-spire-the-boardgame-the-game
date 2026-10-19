@@ -10,7 +10,7 @@ import { CHARACTER_LABEL } from '../src/ui/run-summary-data.ts'
 const root = fileURLToPath(new URL('../', import.meta.url))
 const output = `${root}artifacts/merchant-overflow-browser`
 mkdirSync(output, { recursive: true })
-const server = await createServer({ root, logLevel: 'silent', server: { port: 0 } })
+const server = await createServer({ root, logLevel: 'silent', server: { host: '127.0.0.1', port: 0, hmr: false, watch: null } })
 await server.listen()
 const browser = await chromium.launch()
 const errors = []
@@ -23,10 +23,17 @@ const rounds = Array.from({ length: Math.max(...['silent', 'ironclad', 'watcher'
     return { id: `p${index + 1}`, name: CHARACTER_LABEL[character], character, ...(skin ? { skin } : {}) }
   }))
 const [seats] = rounds
+const standingParties = [
+  ...rounds,
+  ['ironclad', 'guardian', 'hermit', 'watcher'].map((character, index) => ({ id: `p${index + 1}`, name: CHARACTER_LABEL[character], character })),
+  ['silent', 'defect'].map((character, index) => ({ id: `p${index + 1}`, name: CHARACTER_LABEL[character], character })),
+  [rounds[0][3], rounds[0][2], rounds[0][0]],
+  [rounds[0][3]],
+]
 const visualOf = (seat) => seat.skin ?? seat.character
 assert.deepEqual(SKIN_IDS.filter((skin) => !rounds.flat().some((seat) => seat.skin === skin)), [],
   'every registered skin needs a seat in some round')
-/** Where every standing figure's painted feet are, against the party's floor line, in CSS pixels. */
+/** Measure painted bounds, including the transparent padding that differs between standing assets. */
 const feetAgainstFloor = (page) => page.locator('.merchant-arrival__party').evaluate(async (party) => {
   const floor = party.getBoundingClientRect().bottom
   return Promise.all([...party.querySelectorAll('[data-character] img')].map(async (image) => {
@@ -36,11 +43,21 @@ const feetAgainstFloor = (page) => page.locator('.merchant-arrival__party').eval
     const context = canvas.getContext('2d')
     context.drawImage(image, 0, 0)
     const data = context.getImageData(0, 0, canvas.width, canvas.height).data
-    let bottom = 0
+    let bottom = 0, top = canvas.height
     for (let y = canvas.height - 1; y >= 0 && !bottom; y--) {
       for (let x = 0; x < canvas.width; x++) if (data[(y * canvas.width + x) * 4 + 3] > 32) { bottom = y + 1; break }
     }
+    for (let y = 0; y < canvas.height && top === canvas.height; y++) {
+      for (let x = 0; x < canvas.width; x++) if (data[(y * canvas.width + x) * 4 + 3] > 32) { top = y; break }
+    }
     const rect = image.getBoundingClientRect()
+    const slot = image.closest('figure').getBoundingClientRect()
+    const height = (bottom - top) * rect.height / canvas.height
+    const id = image.closest('[data-character]').getAttribute('data-character')
+    if (Math.abs(height - slot.width * 1.5) > 1) throw new Error(`${id}: painted height ${height} must match the common standing height ${slot.width * 1.5}`)
+    if (rect.top + top * rect.height / canvas.height < 0 || rect.bottom > document.documentElement.clientHeight || rect.left < 0 || rect.right > document.documentElement.clientWidth) {
+      throw new Error(`${id}: standing sprite extends outside the viewport`)
+    }
     const feet = rect.bottom - (canvas.height - bottom) * (rect.height / canvas.height)
     return [image.closest('[data-character]').getAttribute('data-character'), Math.round((feet - floor) * 10) / 10]
   }))
@@ -50,10 +67,10 @@ try {
     ['desktop', { width: 1440, height: 900 }],
     ['horizontal-phone', { width: 844, height: 390 }],
   ]) {
-    const page = await browser.newPage({ viewport })
+    const page = await browser.newPage({ viewport, ...(name === 'horizontal-phone' ? { isMobile: true, hasTouch: true } : {}) })
     page.setDefaultTimeout(15_000)
     page.on('pageerror', (error) => (errors.push(String(error)), console.error(String(error))))
-    await page.goto(`http://localhost:${server.httpServer.address().port}`, { waitUntil: 'networkidle' })
+    await page.goto(`http://127.0.0.1:${server.httpServer.address().port}`, { waitUntil: 'domcontentloaded' })
     await page.getByRole('button', { name: 'Single Player', exact: true }).click()
     await page.getByRole('button', { name: 'Standard', exact: true }).click()
     await page.getByRole('button', { name: 'Embark', exact: true }).click()
@@ -74,12 +91,15 @@ try {
         [image.closest('[data-character]').getAttribute('data-character'), image.getAttribute('src').split('/').pop()])),
       partySeats.map((seat) => [visualOf(seat), `${visualOf(seat)}-standing.webp`]),
       `${label}: every merchant arrival seat stands as its own visual id`)
+      await page.locator('[data-webmcp-pending="true"]').waitFor({ state: 'detached' })
+      await page.waitForFunction(() => !document.documentElement.dataset.mapTransition)
       const feet = await feetAgainstFloor(page)
       assert.deepEqual(feet.filter(([, offset]) => Math.abs(offset) > 2), [], `${label}: every figure's feet sit within 2px of the party's floor line`)
       return feet
     }
     const merchantRun = (partySeats) => {
       const fixture = postNeowRun('merchant-overflow', partySeats)
+      fixture.campaign.runId = `merchant-overflow-${partySeats.map(visualOf).join('-')}`
       fixture.players.forEach((player) => { player.gold = 30 })
       Object.assign(fixture.players[0], { hp: 6, maxHp: 9 })
       fixture.players[0].deck[0] = { ...fixture.players[0].deck[0], defId: 'parasite' }
@@ -94,7 +114,7 @@ try {
       }
       return fixture
     }
-    for (const [round, partySeats] of rounds.entries()) {
+    for (const [round, partySeats] of standingParties.entries()) {
       const feet = await arrivalChecks(partySeats, `${name} round ${round + 1}`)
       console.log(`${name} round ${round + 1} feet vs floor px:`, JSON.stringify(feet))
       if (round > 0) await page.screenshot({ path: `${output}/${name}-skins-arrival-${round + 1}.png` })
@@ -156,7 +176,7 @@ try {
     await page.close()
   }
   assert.deepEqual(errors, [])
-  console.log('✓ Merchant overflow: removal animation and settled layout passed on desktop and horizontal phone')
+  console.log('✓ Merchant equal standing heights, aligned feet and overflow: removal animation and settled layout passed on desktop and horizontal phone')
 } finally {
   await browser.close()
   await server.close()

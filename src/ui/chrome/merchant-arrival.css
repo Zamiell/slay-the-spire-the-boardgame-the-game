@@ -112,19 +112,25 @@
   filter: drop-shadow(0 1rem 0.8rem rgb(0 0 0 / 0.7));
 }
 
-.sts-scope .merchant-arrival__party img { display: block; width: 100%; }
-/* Each standing asset leaves a different transparent gap under its feet; pushing
-   every sprite down by its own gap lands the whole party on one floor line. A hero or skin has a line here
-   (verify-assets.mjs measures the gap of every standing file and fails on a missing or stale offset). */
-.sts-scope .merchant-arrival__party figure[data-character='ironclad'] img { transform: translateY(1.39%); }
-.sts-scope .merchant-arrival__party figure[data-character='silent'] img { transform: translateY(4.86%); }
-.sts-scope .merchant-arrival__party figure[data-character='defect'] img { transform: translateY(2.6%); }
-.sts-scope .merchant-arrival__party figure[data-character='watcher'] img { transform: translateY(2.26%); }
-.sts-scope .merchant-arrival__party figure[data-character='kratos'] img { transform: translateY(3.12%); }
-.sts-scope .merchant-arrival__party figure[data-character='monogatari_ironclad'] img { transform: translateY(0.17%); }
-.sts-scope .merchant-arrival__party figure[data-character='monogatari_silent'] img { transform: translateY(3.12%); }
-.sts-scope .merchant-arrival__party figure[data-character='monogatari_defect'] img { transform: translateY(0.17%); }
-.sts-scope .merchant-arrival__party figure[data-character='monogatari_watcher'] img { transform: translateY(0.35%); }
+.sts-scope .merchant-arrival__party img {
+  display: block;
+  width: calc(100% * var(--standing-scale, 1));
+  max-width: none;
+  margin-inline: calc((1 - var(--standing-scale, 1)) * 50%);
+}
+/* Match visible standing heights to 1.5 party slots, excluding transparent padding,
+   and offset each asset by its bottom gap to keep feet on the carpet. */
+.sts-scope .merchant-arrival__party figure[data-character='ironclad'] img { --standing-scale: 1.02857; transform: translateY(1.39%); }
+.sts-scope .merchant-arrival__party figure[data-character='silent'] img { --standing-scale: 1.07063; transform: translateY(4.86%); }
+.sts-scope .merchant-arrival__party figure[data-character='defect'] img { --standing-scale: 1.03971; transform: translateY(2.60%); }
+.sts-scope .merchant-arrival__party figure[data-character='watcher'] img { --standing-scale: 1.04159; transform: translateY(2.26%); }
+.sts-scope .merchant-arrival__party figure[data-character='guardian'] img { --standing-scale: 1.09040; transform: translateY(4.17%); }
+.sts-scope .merchant-arrival__party figure[data-character='hermit'] img { --standing-scale: 1.22495; transform: translateY(10.07%); }
+.sts-scope .merchant-arrival__party figure[data-character='kratos'] img { --standing-scale: 1.08499; transform: translateY(3.12%); }
+.sts-scope .merchant-arrival__party figure[data-character='monogatari_ironclad'] img { --standing-scale: 0.92509; transform: translateY(0.17%); }
+.sts-scope .merchant-arrival__party figure[data-character='monogatari_silent'] img { --standing-scale: 1.05109; transform: translateY(3.12%); }
+.sts-scope .merchant-arrival__party figure[data-character='monogatari_defect'] img { --standing-scale: 0.67422; transform: translateY(0.17%); }
+.sts-scope .merchant-arrival__party figure[data-character='monogatari_watcher'] img { --standing-scale: 0.89423; transform: translateY(0.35%); }
 .sts-scope .merchant-arrival__merchant {
   position: absolute;
   z-index: 3;

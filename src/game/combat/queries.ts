@@ -1230,6 +1230,7 @@ export function effectEvokePlan(
   effects: readonly Effect[],
   actor: Pick<Player, 'orbs'> & CountablePlayer,
   slots: readonly number[],
+  die: number,
   energySpent = 0,
 ) {
   const orbs = [...actor.orbs]
@@ -1271,7 +1272,8 @@ export function effectEvokePlan(
       for (let count = 0; count < amount; count++) {
         if (orbs.every((orb) => orb !== null) && !evoke()) return { chosen, index, next, invalid, orbs }
         const open = orbs.indexOf(null)
-        if (open >= 0) orbs[open] = effect.kind === 'channel' ? effect.orb : 'lightning'
+        if (open >= 0) orbs[open] = effect.kind === 'channel' ? effect.orb
+          : die <= 2 ? 'lightning' : die <= 4 ? 'frost' : 'dark'
       }
     } else if (effect.kind === 'evokeAll') {
       // Slayer Pack: Aggregate: every Orb, in the order chosen, `times` each.
@@ -1305,13 +1307,14 @@ export function evokePlan(
   def: CardDef,
   actor: Pick<Player, 'orbs'> & CountablePlayer,
   slots: readonly number[],
+  die: number,
   mode?: number,
   energySpent = 0,
 ) {
   const effects = def.type === 'power' && def.resolvesOnPlay !== true
     ? []
     : def.modes ? def.modes[mode ?? -1]?.effects ?? [] : def.effects
-  return effectEvokePlan(effects, actor, slots, energySpent)
+  return effectEvokePlan(effects, actor, slots, die, energySpent)
 }
 
 /** The next Orb choice a staged card needs, after its earlier choices. */
@@ -1319,10 +1322,11 @@ export function nextEvokeChoice(
   def: CardDef,
   actor: Pick<Player, 'orbs'> & CountablePlayer,
   slots: readonly number[],
+  die: number,
   mode?: number,
   energySpent = 0,
 ): EvokeChoice | null {
-  return evokePlan(def, actor, slots, mode, energySpent).next
+  return evokePlan(def, actor, slots, die, mode, energySpent).next
 }
 
 /** Orb types already chosen by a staged play, including slots filled earlier in that same card. */
@@ -1330,10 +1334,11 @@ export function chosenEvokeOrbs(
   def: CardDef,
   actor: Pick<Player, 'orbs'> & CountablePlayer,
   slots: readonly number[],
+  die: number,
   mode?: number,
   energySpent = 0,
 ): OrbType[] {
-  return evokePlan(def, actor, slots, mode, energySpent).chosen
+  return evokePlan(def, actor, slots, die, mode, energySpent).chosen
 }
 
 function cardRequiresChosenEnemy(

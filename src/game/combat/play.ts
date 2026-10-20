@@ -370,7 +370,7 @@ function cardResolutionChoicesAreValid(
       chosen.some((uid) => !eligible.some((card) => card.uid === uid))) return false
   }
 
-  const plan = evokePlan(def, player, context.evokeSlots ?? [], context.mode, energySpent)
+  const plan = evokePlan(def, player, context.evokeSlots ?? [], state.die, context.mode, energySpent)
   if (plan.invalid || plan.next || plan.index !== (context.evokeSlots?.length ?? 0)) return false
   if (plan.chosen.length > 0 && (!context.evokeSlots || !context.evokeEnemyUids)) return false
   if (context.evokeEnemyUids) {
@@ -1991,13 +1991,13 @@ function deterministicForcedCardContext(
 
   const evokeSlots: number[] = []
   for (;;) {
-    const next = nextEvokeChoice({ ...def, modes: undefined, effects: [...effects] }, player, evokeSlots, undefined, 0)
+    const next = nextEvokeChoice({ ...def, modes: undefined, effects: [...effects] }, player, evokeSlots, state.die, undefined, 0)
     if (!next) break
     if (next.options.length !== 1) return null
     evokeSlots.push(next.options[0]!.slot)
   }
   const evokeDef = { ...def, modes: undefined, effects: [...effects] }
-  const chosenOrbs = evokePlan(evokeDef, player, evokeSlots, undefined, 0).chosen
+  const chosenOrbs = evokePlan(evokeDef, player, evokeSlots, state.die, undefined, 0).chosen
   const evokeEnemyUids: (string | null)[] = []
   for (const orb of chosenOrbs) {
     if (orb === 'frost') {

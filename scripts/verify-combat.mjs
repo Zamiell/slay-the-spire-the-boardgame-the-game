@@ -4265,7 +4265,7 @@ check('Force Field discounts for Powers and Tempest channels once per X Energy',
   const overflowState = combat([
     makePlayer({ hand: [overflowTempest], energy: 3, orbs: ['frost', 'lightning', 'dark'] }),
   ], [makeEnemy({ hp: 10, maxHp: 10 })])
-  assertEqual(nextEvokeChoice(CARDS.tempest, overflowState.players[0], [], undefined, 2)?.options.length, 3)
+  assertEqual(nextEvokeChoice(CARDS.tempest, overflowState.players[0], [], overflowState.die, undefined, 2)?.options.length, 3)
   assertEqual(playCard(overflowState, 'p1', overflowTempest.uid, {
     enemyUid: null, playerId: null, energySpent: 2,
   }), overflowState, 'Tempest cannot choose full-slot evocations for the player')
@@ -4536,7 +4536,7 @@ check('playing Storm does not stage its start-of-turn channels immediately', () 
       character: 'defect', hand: [storm], orbs: ['frost', 'dark', 'lightning'],
     })], [makeEnemy({ hp: 10, maxHp: 10 })])
     const def = faceOf(CARDS.storm, upgraded)
-    assertEqual(nextEvokeChoice(def, state.players[0], []), null)
+    assertEqual(nextEvokeChoice(def, state.players[0], [], state.die), null)
 
     const played = playCard(state, 'p1', storm.uid)
     assertDeepEqual(played.players[0].orbs, ['frost', 'dark', 'lightning'])
@@ -6900,7 +6900,7 @@ check('Electrodynamics channels its printed Orbs and sends every Lightning effec
   const repeatedState = combat([makePlayer({
     character: 'defect', hand: [repeatedSlot], energy: 2, orbs: ['frost', 'dark', 'dark'],
   })], enemies())
-  assertDeepEqual(chosenEvokeOrbs(faceOf(CARDS.electrodynamics, false), repeatedState.players[0], [0, 0]),
+  assertDeepEqual(chosenEvokeOrbs(faceOf(CARDS.electrodynamics, false), repeatedState.players[0], [0, 0], repeatedState.die),
     ['frost', 'lightning'], 'the staged UI lost an Orb channelled earlier by the same card')
   const repeated = playCard(repeatedState, 'p1', repeatedSlot.uid, {
     enemyUid: null, playerId: 'p1', evokeSlots: [0, 0],
@@ -7028,7 +7028,7 @@ check('Fission removes or Evokes every chosen Orb, then pays once per Orb', () =
     makeEnemy({ uid: 'lightning-target', hp: 20, maxHp: 20 }),
     makeEnemy({ uid: 'dark-target', row: 1, hp: 20, maxHp: 20 }),
   ])
-  assertDeepEqual(nextEvokeChoice(faceOf(CARDS.fission, true), state.players[0], [0, 1]).options,
+  assertDeepEqual(nextEvokeChoice(faceOf(CARDS.fission, true), state.players[0], [0, 1], state.die).options,
     [{ slot: 2, orb: 'dark' }])
   assertEqual(playCard(state, 'p1', upgraded.uid, {
     enemyUid: null, playerId: null, evokeSlots: [0, 1], evokeEnemyUids: ['lightning-target', null],
@@ -7081,7 +7081,7 @@ check('Multi-Cast removes one Orb and repeats only that Orb X or X+1 times', () 
     makeEnemy({ uid: 'second', row: 1, hp: 20, maxHp: 20 }),
   ])
   assertEqual(cardNeedsEnemy(CARDS.multi_cast, state.players[0], true, 3), true)
-  assertDeepEqual(chosenEvokeOrbs(CARDS.multi_cast, state.players[0], [0], undefined, 3),
+  assertDeepEqual(chosenEvokeOrbs(CARDS.multi_cast, state.players[0], [0], state.die, undefined, 3),
     ['dark', 'dark', 'dark'])
   const repeated = playCard(state, 'p1', base.uid, {
     enemyUid: null, playerId: null, energySpent: 3, evokeSlots: [0],
@@ -7095,7 +7095,7 @@ check('Multi-Cast removes one Orb and repeats only that Orb X or X+1 times', () 
   const upgradedState = combat([makePlayer({
     character: 'defect', hand: [upgraded], energy: 0, orbs: ['frost', null, null],
   })], [makeEnemy()])
-  assert(nextEvokeChoice(faceOf(CARDS.multi_cast, true), upgradedState.players[0], [], undefined, 0))
+  assert(nextEvokeChoice(faceOf(CARDS.multi_cast, true), upgradedState.players[0], [], upgradedState.die, undefined, 0))
   const plusOne = playCard(upgradedState, 'p1', upgraded.uid, {
     enemyUid: null, playerId: null, energySpent: 0, evokeSlots: [0], evokeEnemyUids: [null],
   })

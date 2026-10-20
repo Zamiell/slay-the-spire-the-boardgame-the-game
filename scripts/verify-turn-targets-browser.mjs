@@ -40,7 +40,7 @@ try {
           ...(boss ? [{ ...enemy, uid: 'boss', defId: 'donu', isBoss: true, hp: 50, maxHp: 50 }] : [])],
         `turn-targets-${fixtureId++}`)
       Object.assign(run.combat.players[0], {
-        hand: [], draw: [], discard: [], exhaust: [], powers: [], relics: [], potions: [], energy: 3,
+        hand: [c('idle', 'deflect')], draw: [], discard: [], exhaust: [], powers: [], relics: [], potions: [], energy: 3,
         orbs: [null, null, null], ...player,
       })
       if (teammate) {

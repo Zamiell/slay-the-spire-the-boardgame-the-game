@@ -1,7 +1,7 @@
 // A long four-player Gremlin Leader fight must not block every room while
 // deriving start-turn targets. Synthetic state only; no player saves/tokens.
 import assert from 'node:assert/strict'
-import { createRoom, createStore, joinRoom, snapshotFor, startRun } from './lib/rooms.mjs'
+import { apply, createRoom, createStore, joinRoom, snapshotFor, startRun } from './lib/rooms.mjs'
 import { createCombat } from '../src/game/combat/create.ts'
 
 const room = createRoom(createStore(), { code: 'LATENC' })
@@ -92,4 +92,63 @@ for (const entry of silent.hand) assert(!JSON.stringify(observer).includes(entry
 assert.deepEqual(snapshotFor(room, room.seats[0].token).startTurnAbilities
   .find((ability) => ability.id === sacrifice.id).exhaustCards, undefined)
 
+// Hello World + Storm+, Fumes+ and Pen Nib used to exhaust the exact ordering
+// replay budget both after changing the die and after staging the Orb picks.
+const orbRoom = createRoom(createStore(), { code: 'ORBCPU' })
+for (const character of ['defect', 'silent', 'watcher']) joinRoom(orbRoom, { name: character, character })
+startRun(orbRoom, orbRoom.seats[0].token, { seed: 7 })
+orbRoom.run.phase = 'combat'
+orbRoom.run.neow = null
+orbRoom.run.combat = createCombat(orbRoom.run.rng, orbRoom.run.players,
+  [0, 1, 2, 1, 0].map((row, index) => ({ ...enemies[0], uid: `orb-e${index}`, row,
+    defId: index === 4 ? 'slime_boss' : 'cultist', isBoss: index === 4, hp: 50, maxHp: 50 })), 'orb-cpu')
+Object.assign(orbRoom.run.combat, { phase: 'start', turn: 2, die: 4, startTurnStage: 'effects' })
+const [orbDefect, orbSilent, orbWatcher] = orbRoom.run.combat.players
+Object.assign(orbDefect, { orbs: ['lightning', 'frost', 'dark'], relics: [], potions: [],
+  powers: [card('cpu-hello', 'slayer_hello_world'), card('cpu-storm', 'storm', true)] })
+Object.assign(orbSilent, { powers: [card('cpu-fumes', 'noxious_fumes', true)], potions: [],
+  relics: [{ defId: 'pen_nib', spent: false }] })
+Object.assign(orbWatcher, { powers: [], relics: [], potions: ['gamblers_brew'] })
+function orbChoices(sample, picks = {}) {
+  const view = snapshotFor(sample, sample.seats[1].token)
+  const stored = new Map((view.startTurnChoices ?? []).map((choice) => [choice.id, choice]))
+  return view.startTurnAbilities.map((ability) => ({
+    id: ability.id, shivEnemyUids: [], evokeSlots: [], evokeEnemyUids: [],
+    ...stored.get(ability.id),
+    enemyUid: view.startTurnEnemyTargets?.[ability.id] ?? stored.get(ability.id)?.enemyUid,
+    ...picks[ability.id],
+  }))
+}
+const orbCpu = []
+for (let index = 0; index < 5; index++) {
+  const sample = structuredClone(orbRoom)
+  const decisions = [
+    [2, () => ({ kind: 'usePotion', potionId: 'gamblers_brew', die: 5 })],
+    [0, () => ({ kind: 'resolveStartTurn', choices: orbChoices(sample, {
+      'p1/power:cpu-hello': { evokeSlots: [1], evokeEnemyUids: [null] },
+      'p1/power:cpu-storm': { evokeSlots: [1, 1], evokeEnemyUids: ['orb-e1', 'orb-e1'] },
+    }) })],
+    [1, () => ({ kind: 'resolveStartTurn', choices: orbChoices(sample) })],
+    [1, () => ({ kind: 'resolveStartTurn', choices: orbChoices(sample, {
+      'p2/power:cpu-fumes': { enemyUid: 'orb-e1' },
+    }) })],
+    [1, () => ({ kind: 'resolveStartTurn', choices: orbChoices(sample, {
+      'p2/relic:0:0': { enemyUid: 'orb-e1' },
+    }) })],
+  ]
+  for (const [seat, decision] of decisions) {
+    const action = decision()
+    let result
+    const used = cpuMilliseconds(() => { result = apply(sample, sample.seats[seat].token, action) })
+    assert(result.changed, 'the performance sample skipped an action')
+    assert(used < 2_000, `Orb party ${action.kind} consumed ${used.toFixed(1)} ms CPU (budget 2000)`)
+    orbCpu.push(used)
+  }
+  assert.equal(sample.run.combat.phase, 'player', 'the performance sample did not finish the turn')
+  assert.equal(sample.run.combat.die, 5)
+  const target = sample.run.combat.enemies[1]
+  assert.deepEqual([target.hp, target.poison, target.vulnerable], [43, 1, 1])
+}
+
 console.log(`✓ four-player room planning: cold ${median(cold).toFixed(1)} ms CPU, repeated ${median(repeated).toFixed(1)} ms CPU; targets, invalidation and private cards verified`)
+console.log(`✓ Orb party transactions: max ${Math.max(...orbCpu).toFixed(1)} ms CPU; five start-of-turn sequences and their target effects verified`)

@@ -3927,7 +3927,7 @@ function startTurnAbilityNeedsChoice(ability, saved, stored = new Set()) {
 function validStartTurnChoice(ability, choice) {
   return !startTurnChoicePending(ability, choice) &&
     (ability.targets
-      ? ability.targets.some((target) => target.uid === choice.enemyUid)
+      ? ability.targets.length === 0 || ability.targets.some((target) => target.uid === choice.enemyUid)
       : choice.enemyUid === undefined) &&
     (ability.players
       ? ability.players.some((player) => player.id === choice.targetPlayerId)

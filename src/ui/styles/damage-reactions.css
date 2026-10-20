@@ -576,13 +576,13 @@
 }
 
 /* The list can sit over the right-hand enemy on short screens. Once a
-   start-of-turn source is picked up — armed by a tap or mid-drag — fold it to
+   start-of-turn source is picked up or an Evoke needs a target, fold it to
    its heading so every target is visible and reachable. */
-.combat:has(.end-turn-target-arrow, .end-turn-effect[aria-pressed='true']) .start-turn-order > :not(summary) {
+.combat:has(.end-turn-target-arrow, .end-turn-effect[aria-pressed='true'], .evoke-target-effect) .start-turn-order > :not(summary) {
   display: none;
 }
 
-.combat:has(.end-turn-target-arrow, .end-turn-effect[aria-pressed='true']) .start-turn-order > summary::before {
+.combat:has(.end-turn-target-arrow, .end-turn-effect[aria-pressed='true'], .evoke-target-effect) .start-turn-order > summary::before {
   transform: none;
 }
 

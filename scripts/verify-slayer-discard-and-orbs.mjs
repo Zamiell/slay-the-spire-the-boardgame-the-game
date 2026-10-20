@@ -579,14 +579,17 @@ check('Hello World with full slots Evokes the Orb its owner picks to make room',
   const state = combat([player({
     character: 'defect', powers: [card('slayer_hello_world')], draw: strikes(10), orbs: ['frost', 'lightning', 'frost'],
   })])
-  const prepared = startWithDie(state, 6)
-  const [ability] = startTurnAbilities(prepared)
-  assert(ability.evokeChoice, 'a full row asks which Orb to Evoke')
-  const started = resolveStartPlayerTurn(prepared, [{
-    id: ability.id, shivEnemyUids: [], evokeSlots: [1], evokeEnemyUids: ['e1'],
-  }])
-  assertDeepEqual(who(started).orbs, ['frost', 'dark', 'frost'], 'the Lightning was Evoked, then Dark channelled')
-  assertEqual(hpOf(started), 28, 'its Evoke dealt 2')
+  for (const [die, orb] of [[1, 'lightning'], [2, 'lightning'], [3, 'frost'], [4, 'frost'], [5, 'dark'], [6, 'dark']]) {
+    const prepared = startWithDie(state, die)
+    const [ability] = startTurnAbilities(prepared)
+    assert(ability.evokeChoice, 'a full row asks which Orb to Evoke')
+    const choices = [{ id: ability.id, shivEnemyUids: [], evokeSlots: [1], evokeEnemyUids: ['e1'] }]
+    assertDeepEqual(startTurnAbilities(prepared, undefined, choices)[0].evokePlanOrbs,
+      ['frost', orb, 'frost'], `die ${die}: the preview must show the Orb actually channelled`)
+    const started = resolveStartPlayerTurn(prepared, choices)
+    assertDeepEqual(who(started).orbs, ['frost', orb, 'frost'], `die ${die}: Lightning was Evoked, then ${orb} channelled`)
+    assertEqual(hpOf(started), 28, 'its Evoke dealt 2')
+  }
 })
 
 check('Biased Cognition\'s +3 Evoke counts in the Start-of-Turn plan: a lethal first Evoke needs no second pick, and the submit that stops there is valid', () => {

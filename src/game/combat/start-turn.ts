@@ -912,7 +912,7 @@ function startTurnAbilitiesFor(
     let evokeEndedCombat = false
     let evokePlanOrbs: (OrbType | null)[] | undefined
     if (!planningBlocked) {
-      const plan = effectEvokePlan(entry.source.effects, planningPlayer, choice?.evokeSlots ?? [])
+      const plan = effectEvokePlan(entry.source.effects, planningPlayer, choice?.evokeSlots ?? [], simulationState.die)
       evokeOrbs = plan.chosen
       if (plan.chosen.length > 0 || plan.next) evokePlanOrbs = plan.orbs
       for (let index = 0; index < plan.chosen.length; index++) {
@@ -1130,7 +1130,7 @@ function validStartTurnEvokeChoice(
   const slots = choice.evokeSlots ?? []
   const targets = choice.evokeEnemyUids ?? []
   if (!source) return slots.length === 0 && targets.length === 0
-  const plan = effectEvokePlan(source.effects, player, slots)
+  const plan = effectEvokePlan(source.effects, player, slots, state.die)
   if (plan.invalid || plan.index !== slots.length || targets.length > plan.chosen.length) {
     return false
   }
@@ -1713,6 +1713,7 @@ export function startTurnOrderChoicePlayerId(
   const sources = new Map(entries.map((entry) => [entry.ability.id, entry.source]))
   const candidateIds = new Set<string>()
   let definiteOrderOwner: string | undefined
+  let hasOrbChoice = false
   for (const entry of entries) if (!entry.source) candidateIds.add(entry.ability.id)
   const effectKinds = (effects: readonly Effect[]): string[] => effects.flatMap((effect): string[] => [
     effect.kind,
@@ -1760,6 +1761,7 @@ export function startTurnOrderChoicePlayerId(
       const source = sources.get(ability.id)
       return ability.playerId === player.id && source ? [{ id: ability.id, source }] : []
     })
+    hasOrbChoice ||= effectEvokePlan(owned.flatMap(({ source }) => source.effects), player, [], state.die).next !== null
     const kinds = owned.map(({ source }) => new Set(effectKinds(source.effects)))
     const distinct = (left: (kind: string) => boolean, right: (kind: string) => boolean) =>
       kinds.some((first, index) => [...first].some(left) &&
@@ -1895,11 +1897,11 @@ export function startTurnOrderChoicePlayerId(
   if (sourceSignatures.every((signature) => signature !== null) && new Set(sourceSignatures).size === 1) {
     return undefined
   }
-  // Replaying a draw beside multiple aimed effects is especially expensive:
-  // each hypothetical order can reveal more trigger/target work. The safe
-  // answer is already known (the table must choose), so nominate an involved
-  // owner without proving which permutation differs.
-  if (abilities.length > 2 && drawing.length > 0 && enemyAffecting.length > 1) {
+  // Draws and Evokes can reveal new targets in every replay.
+  // Beside multiple aimed effects, ask an involved owner to choose the order
+  // before expanding those branching plans through the exact simulation budget.
+  if (abilities.length > 2 && enemyAffecting.length > 1 &&
+    (drawing.length > 0 || hasOrbChoice)) {
     return abilities.find((ability) => candidateIds.has(ability.id))?.playerId
   }
   // Even one replay can become expensive when many queued sources recursively
@@ -1978,7 +1980,7 @@ export function startTurnNeedsChoice(
 }
 
 export function startTurnChoicePending(ability: StartTurnAbility, choice?: StartTurnChoice): boolean {
-  return Boolean(ability.targets && (!choice?.enemyUid || ability.enemyTargetStale)) ||
+  return Boolean(ability.targets?.length && (!choice?.enemyUid || ability.enemyTargetStale)) ||
     Boolean(ability.guardianModeShift && typeof choice?.guardianModeShift !== 'boolean') ||
     Boolean(ability.players && !ability.players.some((player) => player.id === choice?.targetPlayerId)) ||
     Boolean(ability.exhaustCards && (choice?.exhaustUids?.length !== 1 ||

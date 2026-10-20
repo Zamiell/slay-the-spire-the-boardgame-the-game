@@ -4,7 +4,7 @@ import { createStore, createRoom, joinRoom, startRun, apply, snapshotFor, markDi
 import { createCombat } from '../src/game/combat/create.ts'
 import { defaultStartTurnChoices, preparePlayerTurn, resolveStartPlayerTurn, startTurnAbilities } from '../src/game/combat/start-turn.ts'
 import { enemyDef, startingHp } from '../src/game/enemies.ts'
-import { suite, check, assert, assertEqual, report } from './lib/harness.mjs'
+import { suite, check, assert, assertDeepEqual, assertEqual, report } from './lib/harness.mjs'
 
 suite('start-of-turn protocol')
 
@@ -247,6 +247,29 @@ check('a disconnected owner is defaulted through a Start of Turn left with only 
   assertEqual(room.run.combat.phase, 'start')
   markDisconnected(room, token(room, 0))
   assertEqual(room.run.combat.phase, 'player', 'the absent owner stranded the window')
+})
+
+check('Fumes and Pen Nib become targetless when earlier Evokes kill every enemy with Summons pending', () => {
+  const room = makeRoom(['defect', 'silent', 'watcher'], [
+    (player) => {
+      player.powers = [card('world', 'slayer_hello_world'), { ...card('storm', 'storm'), upgraded: true }]
+      player.orbs = ['lightning', 'lightning', 'lightning']
+    },
+    (player) => {
+      player.powers = [{ ...card('fumes', 'noxious_fumes'), upgraded: true }]
+      player.relics = [{ defId: 'pen_nib', spent: false }]
+    },
+    (player) => { player.relics = [] },
+  ], (count) => [enemy('boss', 'slime_boss', 0, count, { hp: 1, isBoss: true }),
+    enemy('minion', 'cultist', 1, count, { hp: 1 })], { die: 5 })
+  submit(room, 0, {
+    'p1/power:world': { evokeSlots: [0], evokeEnemyUids: ['boss'] },
+    'p1/power:storm': { evokeSlots: [0, 0], evokeEnemyUids: ['minion', null] },
+  })
+  submit(room, 1)
+  assertEqual(room.run.combat.phase, 'player', 'moot enemy targets stranded the Start of Turn')
+  assert(room.run.combat.enemies.every((target) => target.dead))
+  assertDeepEqual(room.run.combat.pendingSummons.map((summon) => [summon.row, summon.turn]), [[0, 3], [1, 3], [2, 3]])
 })
 
 report('start-of-turn protocol')

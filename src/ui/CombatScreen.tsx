@@ -2082,7 +2082,7 @@ function CombatScreenView({
       const evokeSlots = invalidEvokeTarget ? [] : current.evokeSlots
       const evokeEnemyUids = invalidEvokeTarget ? [] : current.evokeEnemyUids
       if (overflowChanged && !needsEnemy && !current.needsAlly && !needsSwitch && !current.choice &&
-        !nextEvokeChoice(def, viewer, evokeSlots, current.mode ?? undefined, current.effectEnergy ?? 0) &&
+        !nextEvokeChoice(def, viewer, evokeSlots, state.die, current.mode ?? undefined, current.effectEnergy ?? 0) &&
         !evokeEnemyUids.some((target) => target === undefined)) return null
       if (
         overflowShivs === current.overflowShivs &&
@@ -2562,7 +2562,9 @@ function CombatScreenView({
   const fumesOwnerId = startTurnChoiceId
     ? orderedStartAbilities.find((ability) => ability.id === startTurnChoiceId)?.playerId
     : undefined
-  const canResolveStartTurn = !onAction || Boolean(requiredStartTurnPlayerIds?.includes(viewer.id) &&
+  const viewerStartTurnDecided = Boolean(onAction && startTurnDecidedPlayerIds?.includes(viewer.id))
+  const canResolveStartTurn = !onAction || Boolean(!viewerStartTurnDecided &&
+    requiredStartTurnPlayerIds?.includes(viewer.id) &&
     (viewer.id === startTurnCoordinatorId || viewer.id !== fumesOwnerId))
   const canCommitStartTurnOrder = canResolveStartTurn &&
     (!partyStartTurnOrderPending || viewer.id === startTurnCoordinatorId)
@@ -2585,7 +2587,7 @@ function CombatScreenView({
   const pendingStartChoice = canResolveStartTurn
     ? startChoiceAbilities
       .flatMap<PendingStartChoice>((ability) => {
-      if (ability.targets &&
+      if (ability.targets?.length &&
         (startTurnEnemyTargets[ability.id] === undefined || ability.enemyTargetStale)) {
         return [{ kind: 'enemy', ability }]
       }
@@ -2635,9 +2637,8 @@ function CombatScreenView({
     !ability.exhaustCards.some((card) => card.uid === startTurnExhaustUids[ability.id])) : undefined
   // Once every choice is made (and not yet sent), the hand keeps offering the
   // latest Exhaust picked from it, so tapping another card changes the pick.
-  const viewerStartTurnDecided = Boolean(onAction && startTurnDecidedPlayerIds?.includes(viewer.id))
   const handStartExhaust = pendingStartExhaust ?? (canResolveStartTurn && !pendingStartChoice &&
-    !viewerStartTurnDecided && !sendingStartTurn
+    !sendingStartTurn
     ? [...startChoiceAbilities].reverse().find((ability) => ability.playerId === viewer.id &&
       (ability.exhaustCards?.length ?? 0) > 1 &&
       ability.exhaustCards!.some((card) => card.uid === startTurnExhaustUids[ability.id] &&
@@ -2865,7 +2866,7 @@ function CombatScreenView({
     modeShifts = startTurnModeShifts,
     ready = startTurnReady,
   ) {
-    if (!ready || !canResolveStartTurn) return
+    if (!ready || !canResolveStartTurn || sendingStartTurn) return
     const choices: StartTurnChoice[] = abilities.map((ability) => ({
       id: ability.id,
       enemyUid: startTurnEnemyTargets[ability.id],
@@ -3578,7 +3579,7 @@ function CombatScreenView({
       false, pending?.card.attachedGemId, pending?.card.uid, undefined, pending?.card.hermitDeadOn === true)
     : false
   const pendingEvokeChoice = pendingDef && pending
-    ? nextEvokeChoice(pendingDef, viewer, pending.evokeSlots, pending.mode ?? undefined, pending.effectEnergy ?? 0)
+    ? nextEvokeChoice(pendingDef, viewer, pending.evokeSlots, state.die, pending.mode ?? undefined, pending.effectEnergy ?? 0)
     : null
   const pendingEvokeTarget = pending?.evokeEnemyUids.findIndex((target) => target === undefined) ?? -1
   const pendingEvokeTargetOptions = pendingDef && pending && viewer
@@ -3589,7 +3590,7 @@ function CombatScreenView({
     : []
   const pendingEvokeTargetUids = new Set(pendingEvokeTargetOptions.map((option) => option.uid))
   const pendingEvokeUsesRows = Boolean(pending && pendingEvokeTarget >= 0 &&
-    chosenEvokeOrbs(pendingDef!, viewer, pending.evokeSlots,
+    chosenEvokeOrbs(pendingDef!, viewer, pending.evokeSlots, state.die,
       pending.mode ?? undefined, pending.effectEnergy ?? 0)[pendingEvokeTarget] === 'lightning' &&
     lightningTargetsRows(viewer, pending.card.defId))
   const evokeChoicesDone = pendingEvokeChoice === null && pendingEvokeTarget < 0
@@ -3608,7 +3609,7 @@ function CombatScreenView({
   const evokeTargetOrb = pendingStartEvokeTarget
     ? pendingStartEvokeTarget.ability.evokeOrbs?.[pendingStartEvokeTarget.index]
     : pending && pendingDef && pendingEvokeTarget >= 0 && choiceSatisfied
-      ? chosenEvokeOrbs(pendingDef, viewer, pending.evokeSlots, pending.mode ?? undefined,
+      ? chosenEvokeOrbs(pendingDef, viewer, pending.evokeSlots, state.die, pending.mode ?? undefined,
         pending.effectEnergy ?? 0)[pendingEvokeTarget]
       : undefined
   const evokeChoiceOptions = pendingStartEvoke?.evokeChoice?.options ??
@@ -3619,7 +3620,7 @@ function CombatScreenView({
   // are chosen and aimed, the owner's Orb row shows the slots that plan leaves.
   const evokePlannedOrbs = pendingStartEvoke?.evokePlanOrbs ?? pendingStartEvokeTarget?.ability.evokePlanOrbs ??
     (pending && pendingDef && choiceSatisfied && (pendingEvokeChoice || pendingEvokeTarget >= 0)
-      ? evokePlan(pendingDef, viewer, pending.evokeSlots, pending.mode ?? undefined, pending.effectEnergy ?? 0).orbs
+      ? evokePlan(pendingDef, viewer, pending.evokeSlots, state.die, pending.mode ?? undefined, pending.effectEnergy ?? 0).orbs
       : undefined)
   const evokeTargetSource: EndTurnAbility | undefined = evokeTargetOrb ? {
     id: 'evoke-target',
@@ -3913,7 +3914,7 @@ function CombatScreenView({
             authoritative.combat.players.filter((player) => !player.dead).length > 1
           setMiracleOnCard(usingMiracle)
           if (needsEnemy || needsAlly || playerChoices > 0 || needsSwitch || def.modes || next.choice ||
-            nextEvokeChoice(def, pendingPlayer, [], undefined, effectEnergy ?? 0)) {
+            nextEvokeChoice(def, pendingPlayer, [], authoritative.combat.die, undefined, effectEnergy ?? 0)) {
             setPending({
               ...next,
               energySpent,
@@ -4007,7 +4008,7 @@ function CombatScreenView({
       (next.choice?.kind !== 'discardAny' && next.choice?.kind !== 'exhaustAny' && next.choice?.kind !== 'loadAny' &&
         next.choice?.kind !== 'bottomdeck' || next.choiceConfirmed) && downfallChoicesReady(next) &&
       (!def.modes || next.mode !== null) &&
-      !nextEvokeChoice(def, viewer!, next.evokeSlots, next.mode ?? undefined, next.effectEnergy ?? 0) &&
+      !nextEvokeChoice(def, viewer!, next.evokeSlots, state.die, next.mode ?? undefined, next.effectEnergy ?? 0) &&
       !next.evokeEnemyUids.some((target) => target === undefined) &&
       (def.cost !== 'X' || next.energySpent !== null) &&
       (def.id !== 'slayer_metamorphosis' || next.metamorphosisPowerUid !== undefined) &&
@@ -4968,7 +4969,7 @@ function CombatScreenView({
     const option = pendingEvokeChoice.options.find((candidate) => candidate.slot === slot)
     if (!option) return
     const evokeSlots = [...pending.evokeSlots, slot]
-    const orbs = chosenEvokeOrbs(pendingDef!, viewer!, evokeSlots,
+    const orbs = chosenEvokeOrbs(pendingDef!, viewer!, evokeSlots, state.die,
       pending.mode ?? undefined, pending.effectEnergy ?? 0)
     stageOrCommit({
       ...pending,
@@ -5119,11 +5120,11 @@ function CombatScreenView({
   const startTurnChoicesOpen = startTurnOpen && !stagedStartTurnTriggerPending && !activeStartTurnScry &&
     orderedStartTurnScries.length === 0
   const visibleStartModeShift = startTurnChoicesOpen ? pendingStartModeShift : undefined
-  // A required, undecided seat whose Resolve button is disabled or missing, with
+  // A required seat whose Resolve button is disabled or missing, with
   // no private prompt to answer, has no way forward. Another seat may just be
   // slow, so this only offers a manual re-sync after a long pause.
   const startTurnLooksStuck = Boolean(onAction && onResync && startTurnChoicesOpen &&
-    requiredStartTurnPlayerIds?.includes(viewer.id) && !viewerStartTurnDecided && !activeStartTurnDiscard &&
+    requiredStartTurnPlayerIds?.includes(viewer.id) && !activeStartTurnDiscard &&
     !dieRelicPending && !visibleStartModeShift && (resolvingStartTurnMode || !canResolveStartTurn))
   const [startTurnStuck, setStartTurnStuck] = useState(false)
   const [resyncing, setResyncing] = useState(false)
@@ -5731,7 +5732,7 @@ function CombatScreenView({
                   return {
                     ...ability,
                     badges: [
-                      ...ability.targets ? [{ text: targetChosen ? 'Target set' : 'Choose target', done: targetChosen }]
+                      ...ability.targets?.length ? [{ text: targetChosen ? 'Target set' : 'Choose target', done: targetChosen }]
                         : ability.exhaustCards ? [ability.playerId === viewer.id || exhaustChosen
                           ? { text: exhaustChosen ? 'Exhaust set' : 'Choose a card to Exhaust', done: exhaustChosen }
                           : { text: `Waiting for ${state.players.find((player) => player.id === ability.playerId)?.name ??
@@ -5780,11 +5781,13 @@ function CombatScreenView({
                   Reset start choices
                 </button>
               ) : null}
-              {!visibleStartModeShift && !resolvingStartTurnMode &&
-                !viewerStartTurnDecided
+              {!visibleStartModeShift && !resolvingStartTurnMode
                 ? <button type="button" className="combat__end-turn" onClick={() => finishStartTurn()}
-                disabled={!startTurnReady || !canResolveStartTurn}>
-                {canResolveStartTurn
+                disabled={!startTurnReady || !canResolveStartTurn || sendingStartTurn}>
+                {viewerStartTurnDecided
+                  ? `Waiting for ${startTurnCoordinator?.name ?? 'the party'}${startTurnCount ? ` (${startTurnCount})` : ''}`
+                  : sendingStartTurn ? 'Confirming…'
+                  : canResolveStartTurn
                   ? partyStartTurnOrderPending && viewer.id === startTurnCoordinatorId ? 'Confirm start-of-turn order'
                     : startTurnChoiceId && viewer.id === fumesOwnerId ? 'Confirm Noxious Fumes target'
                       : startTurnCount ? `Resolve start turn ${startTurnCount}` : 'Resolve start of turn'

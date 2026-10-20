@@ -2,6 +2,7 @@
 // with fallback picks gets its prompt back, and a seat left with only a disabled
 // button can re-sync without a hard refresh. Desktop and horizontal phone.
 import assert from 'node:assert/strict'
+import { mkdirSync } from 'node:fs'
 import { createServer as createViteServer } from 'vite'
 import { chromium, setTestUsername } from './lib/profile-browser.mjs'
 import { createRoomServer } from './room-server.mjs'
@@ -9,6 +10,8 @@ import { apply, startRun } from './lib/rooms.mjs'
 import { createCombat } from '../src/game/combat/create.ts'
 import { enemyDef, startingHp } from '../src/game/enemies.ts'
 
+const out = 'artifacts/start-turn-resync'
+mkdirSync(out, { recursive: true })
 const rooms = createRoomServer()
 const roomAddress = await rooms.listen(0)
 const roomOrigin = `http://127.0.0.1:${roomAddress.port}`
@@ -110,6 +113,7 @@ try {
   await phone.goto(origin)
   await phone.evaluate((session) => sessionStorage.setItem('sts-room-session', JSON.stringify(session)), phoneSession)
   await phone.goto(origin, { waitUntil: 'networkidle' })
+  await phone.locator('.connection--connected').waitFor({ timeout: 60_000 })
   await resolveButton(phone).waitFor()
   assert(!(await snapshot(code, phoneSession.token)).startTurnDecided?.includes('p2'),
     'the returning seat stayed decided on the server')
@@ -126,6 +130,10 @@ try {
         const frame = JSON.parse(value)
         const abilities = frame.snapshot?.startTurnAbilities
         if (frame.type !== 'snapshot' || !abilities) return value
+        if (window.__desyncStartTurn === 'ready') {
+          frame.snapshot.startTurnDecided = [...(frame.snapshot.startTurnDecided ?? []), frame.snapshot.you.playerId]
+          return JSON.stringify(frame)
+        }
         const own = abilities.find((ability) => ability.playerId === frame.snapshot.you.playerId)
         const foreign = abilities.find((ability) => ability.playerId !== frame.snapshot.you.playerId)
         frame.snapshot.startTurnChoiceId = own?.id
@@ -139,6 +147,8 @@ try {
     const response = await route.fetch()
     if (!desynced || route.request().method() !== 'GET') return route.fulfill({ response })
     const body = await response.json()
+    if (desynced === 'ready') return route.fulfill({ response, json: { ...body,
+      startTurnDecided: [...(body.startTurnDecided ?? []), body.you.playerId] } })
     const own = body.startTurnAbilities?.find((ability) => ability.playerId === body.you.playerId)
     const foreign = body.startTurnAbilities?.find((ability) => ability.playerId !== body.you.playerId)
     return route.fulfill({ response, json: { ...body, startTurnChoiceId: own?.id, startTurnCoordinatorId: foreign?.playerId } })
@@ -171,6 +181,26 @@ try {
   await resync.click()
   await resolveButton(phone).waitFor()
   assert.equal(await phone.getByRole('button', { name: /Re-sync start of turn/ }).count(), 0)
+
+  // A stale ready flag used to hide both Resolve and Re-sync, forcing a hard refresh.
+  desynced = 'ready'
+  await phone.evaluate(() => { window.__desyncStartTurn = 'ready' })
+  room.version += 1
+  rooms.publishRoom(code)
+  await phone.getByRole('button', { name: /^Waiting for / }).waitFor()
+  await resync.waitFor({ timeout: 25_000 })
+  for (const [screen, width, height] of [['desktop', 1440, 900], ['phone', 844, 390]]) {
+    await phone.setViewportSize({ width, height })
+    const readyBox = await resync.boundingBox()
+    assert(readyBox && readyBox.x >= 0 && readyBox.y >= 0 &&
+      readyBox.x + readyBox.width <= width && readyBox.y + readyBox.height <= height)
+    await phone.screenshot({ path: `${out}/${screen}-ready.png` })
+  }
+  desynced = false
+  await phone.evaluate(() => { window.__desyncStartTurn = false })
+  await resync.click()
+  await resolveButton(phone).waitFor()
+  assert(!(await snapshot(code, phoneSession.token)).startTurnDecided?.includes('p2'), 'the recovered seat is still marked ready')
 
   assert.deepEqual(errors.filter((error) => !error.includes('ERR_CONNECTION_RESET')), [])
   console.log('Start-of-turn re-sync passed: returning seats get their prompt back and a stuck seat can re-sync.')

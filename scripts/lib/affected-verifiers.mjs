@@ -72,6 +72,7 @@ const focusedUiOwners = ownerMap([
   ['src/ui/LeaderboardScreen.tsx', ['verify-leaderboard-browser.mjs']],
   ['src/ui/CombatScreen.tsx', [
     'verify-unload-shivs-browser.mjs',
+    'verify-start-turn-party-browser.mjs',
     'verify-start-turn-resync-browser.mjs',
     'verify-die-relic-browser.mjs',
     'verify-courier-browser.mjs', 'verify-hermit-combo-browser.mjs', 'verify-hermit-load-reconnect-browser.mjs',

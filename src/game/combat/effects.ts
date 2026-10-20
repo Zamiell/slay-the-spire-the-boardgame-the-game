@@ -3943,7 +3943,7 @@ export function evokeTargetProgress(
   mode?: number,
   energySpent = 0,
 ): { index: number; options: { uid: string; label: string }[]; complete: boolean } {
-  const chosen = evokePlan(def, actor, slots, mode, energySpent).chosen
+  const chosen = evokePlan(def, actor, slots, state.die, mode, energySpent).chosen
   const simulation = clone(state)
   const simulationActor = findPlayer(simulation, actor.id)
   if (!simulationActor) return { index: 0, options: [], complete: false }

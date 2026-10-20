@@ -318,23 +318,29 @@ html[data-mobile-performance='true'] .sts-scope .run-summary__coins-note { font-
 .shop-pack__owned-icon { width: 2.3rem; height: 2.3rem; margin: -0.5rem 0 -0.5rem -0.4rem; filter: drop-shadow(0 2px 1px rgb(0 0 0 / 0.5)); }
 
 /* ---- Skins ---------------------------------------------------------------- */
-.shop-skins { display: grid; grid-template-rows: minmax(0, 1fr); min-height: 0; overflow: hidden; }
+.shop-skins { display: grid; grid-template-rows: minmax(0, 1fr); min-width: 0; min-height: 0; overflow: hidden; }
 .shop-skins__racks {
   display: grid;
-  grid-template-columns: repeat(var(--skin-rack-count, 4), minmax(0, 15rem));
-  grid-auto-rows: minmax(0, 1fr);
-  justify-content: center;
+  grid-auto-flow: column;
+  grid-auto-columns: clamp(16rem, 22vw, 20rem);
+  grid-template-rows: minmax(0, 1fr);
+  justify-content: start;
   gap: clamp(0.7rem, 2vw, 1.8rem);
   min-height: 0;
   margin: 0;
   padding: 1rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
   list-style: none;
+  scrollbar-color: #7a5b36 transparent;
 }
+.shop-skins__racks:focus-visible { outline: 2px solid #ffdc60; outline-offset: -2px; }
 /* A rack is a portrait over its name and its price (or Wear); the portrait takes whatever height is left. */
 .shop-skin {
   --pack-accent: #a3a7ad;
   position: relative;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr) auto auto;
   gap: 0.4rem;
   min-height: 0;
@@ -354,13 +360,6 @@ html[data-mobile-performance='true'] .sts-scope .run-summary__coins-note { font-
 .shop-skin h3 small { display: flex; align-items: center; justify-content: center; gap: 0.25rem; color: #e7d7b0; font-size: 0.85rem; font-weight: 400; letter-spacing: 0.06em; text-shadow: 0 1px 1px #000; }
 .shop-skin__crest { width: 1.4rem; height: 1.4rem; object-fit: contain; }
 .shop-skin__buy { min-height: 2.9rem; font-size: 1.3rem; }
-/* Six racks side by side on a small desktop window leave less than a price button's width: the name and the price tighten to fit their rack. */
-.shop-skin { container-type: inline-size; grid-template-columns: minmax(0, 1fr); }
-@container (max-width: 7.2rem) {
-  .shop-skin h3 { font-size: 1.2rem; }
-  .shop-skin__buy { padding-inline: 0.25rem; font-size: 1.05rem; }
-  .shop-skin__buy .coin-icon { width: 1.35rem; height: 1.35rem; }
-}
 .shop-skin__buy:disabled {
   color: #d9ccb4;
   background:
@@ -529,7 +528,6 @@ html[data-mobile-performance='true'] .shop-pack__count { font-size: 1.3rem; }
 html[data-mobile-performance='true'] .shop-pack__zoom { width: 2.8rem; height: 2.8rem; opacity: 1; }
 html[data-mobile-performance='true'] .shop-button { min-height: 3.1rem; font-size: 1.15rem; }
 html[data-mobile-performance='true'] :is(.shop-pack__buy, .shop-pack__owned) { min-height: 3.3rem; font-size: 1.45rem; }
-html[data-mobile-performance='true'] .shop-skins__racks { grid-template-columns: repeat(var(--skin-rack-count, 4), minmax(0, 1fr)); }
 html[data-mobile-performance='true'] .shop-skin h3 { font-size: 1.7rem; }
 html[data-mobile-performance='true'] .shop-skin h3 small { font-size: 1.05rem; }
 html[data-mobile-performance='true'] :is(.shop-skin__buy, .shop-skin__wear, .shop-skin__soon) { min-height: 3.3rem; font-size: 1.45rem; }

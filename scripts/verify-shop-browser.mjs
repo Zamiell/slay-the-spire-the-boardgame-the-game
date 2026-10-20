@@ -48,7 +48,7 @@ const storedWallet = (page) => page.evaluate(async () => {
 })
 
 async function open(viewport, phone, seed, { engine = browser, base = url } = {}) {
-  const context = await engine.newContext({ viewport, isMobile: phone, hasTouch: phone })
+  const context = await engine.newContext({ viewport, deviceScaleFactor: 1, isMobile: phone, hasTouch: phone })
   if (seed) await context.addInitScript((value) => {
     // Seeded once per browser, not per tab: a second tab must not reset the wallet.
     if (!localStorage.getItem('seeded-wallet')) {
@@ -156,6 +156,35 @@ async function assertUnclipped(page, selector, label) {
     return out
   }))
   assert.deepEqual(faults, [], `${label}: ${faults.join('; ')}`)
+}
+
+async function assertSkinRacks(page, label) {
+  const shelf = page.getByRole('list', { name: 'Skins on display' })
+  const scale = page.viewportSize().width / await page.evaluate(() => innerWidth)
+  for (const rack of await shelf.locator('.shop-skin').all()) {
+    await rack.evaluate((element) => element.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' }))
+    const art = await rack.locator('.shop-skin__art').boundingBox()
+    assert(art.width * scale >= 120 && art.height * scale >= 120, `${label}: the skin portrait is too small to see its face`)
+    const reachable = await rack.evaluate((element) => {
+      const box = element.getBoundingClientRect()
+      const shelf = element.parentElement.getBoundingClientRect()
+      return { skin: element.dataset.skin, box: box.toJSON(), shelf: shelf.toJSON(), children:
+        [...element.querySelectorAll('h3, .shop-button, .shop-skin__soon')].map((child) => {
+          const own = child.getBoundingClientRect()
+          return { box: own.toJSON(), width: child.clientWidth, scroll: child.scrollWidth }
+        }) }
+    })
+    const inside = (inner, outer) => inner.left >= outer.left - 1 && inner.right <= outer.right + 1 &&
+      inner.top >= outer.top - 1 && inner.bottom <= outer.bottom + 1
+    assert(inside(reachable.box, reachable.shelf) && reachable.children.every((child) =>
+      inside(child.box, reachable.box) && child.scroll <= child.width + 1),
+    `${label}: a skin cannot be scrolled fully into view: ${JSON.stringify(reachable)}`)
+  }
+  await shelf.evaluate((element) => { element.scrollLeft = 0 })
+  await shelf.focus()
+  await page.keyboard.press('ArrowRight')
+  await page.waitForFunction(() => document.querySelector('.shop-skins__racks').scrollLeft > 0)
+  await shelf.evaluate((element) => { element.scrollLeft = 0 })
 }
 
 /** Every pack tile shows its whole content, and each button sits inside its tile. */
@@ -328,7 +357,7 @@ try {
     assert(await short.isDisabled(), `${screen}: Kratos is not for sale below its price`)
     assert.match(await short.innerText(), /2,500/)
     await settledImages(page, '.shop-skin__portrait')
-    await assertUnclipped(page, '.shop-skin, .shop-skin h3, .shop-button', `${screen} skins`)
+    await assertSkinRacks(page, `${screen} skins`)
     await paintedShot(page, `${screen}-skins.png`)
 
     // Escape with no dialog open returns to the main menu, whose purse caught up.
@@ -360,7 +389,7 @@ try {
     assert.equal(await rack.getAttribute('data-owned'), null)
     const buy = rack.getByRole('button', { name: `Buy the Kratos skin for Ironclad, ${SKIN_PRICE.toLocaleString('en-US')} coins` })
     assert(await buy.isEnabled(), `${screen}: the price is covered`)
-    await assertUnclipped(page, '.shop-skin, .shop-skin h3, .shop-button', `${screen} skins`)
+    await assertSkinRacks(page, `${screen} skins`)
     await paintedShot(page, `${screen}-skins-offer.png`)
     await press(buy)
     const dialog = page.getByRole('dialog', { name: 'Buy the Kratos skin for Ironclad?' })
@@ -399,7 +428,7 @@ try {
     assert.equal(await rack.locator('.shop-skin__buy').count(), 0, 'an owned skin can be bought again')
     const worn = rack.getByRole('button', { name: /^Worn: Kratos/ })
     assert.equal(await worn.getAttribute('aria-pressed'), 'true')
-    await assertUnclipped(page, '.shop-skin, .shop-skin h3, .shop-button', `${screen} skin owned`)
+    await assertSkinRacks(page, `${screen} skin owned`)
     if (phone) {
       const scale = viewport.width / await page.evaluate(() => innerWidth)
       assert.deepEqual(await page.locator('.shop-skin .shop-button').evaluateAll((controls, factor) =>
@@ -977,17 +1006,17 @@ try {
     ['anime_slime_boss', 'Rimuru Tempest', 'Slime Boss'],
   ]
   assert.deepEqual(OFFERS.map(([id]) => id), offeredSkins, 'the Shop test lists every registered skin in catalogue order')
-  const webkitBrowser = await webkit.launch()
-  try {
-    for (const [engineName, engine] of [['chromium', browser], ['webkit', webkitBrowser]]) {
-      for (const [screen, viewport, phone] of [
-        ['desktop-1366x650', { width: 1366, height: 650 }, false],
-        ['desktop-1280x643', { width: 1280, height: 643 }, false],
-        ['desktop-1280x720', { width: 1280, height: 720 }, false],
-        ['desktop-1920x1080', { width: 1920, height: 1080 }, false],
-        ['phone-844x390', { width: 844, height: 390 }, true],
-        ['phone-932x430', { width: 932, height: 430 }, true],
-      ]) {
+  for (const engineName of ['chromium', 'webkit']) {
+    for (const [screen, viewport, phone] of [
+      ['desktop-1366x650', { width: 1366, height: 650 }, false],
+      ['desktop-1280x643', { width: 1280, height: 643 }, false],
+      ['desktop-1280x720', { width: 1280, height: 720 }, false],
+      ['desktop-1920x1080', { width: 1920, height: 1080 }, false],
+      ['phone-844x390', { width: 844, height: 390 }, true],
+      ['phone-932x430', { width: 932, height: 430 }, true],
+    ]) {
+      const engine = engineName === 'webkit' ? await webkit.launch() : browser
+      try {
         const label = `${engineName} ${screen}`
         // Six offers (one owned, so Wear shows beside five prices) and no locked rack.
         const { context, page, errors } = await open(viewport, phone, wallet(3000, [], { skins: ['kratos'] }), { engine })
@@ -996,7 +1025,11 @@ try {
         await page.getByRole('button', { name: 'Shop', exact: true }).click()
         // The Shop is a lazy chunk: on a busy machine WebKit paints "Loading" for a while before the tabs settle.
         await page.locator('.shop').waitFor({ timeout: 60_000 })
-        await press(page.getByRole('tab', { name: /^Skins/ }))
+        if (phone) await press(page.getByRole('tab', { name: /^Skins/ }))
+        else {
+          await page.getByRole('tab', { name: /^Card Packs/ }).focus()
+          await page.keyboard.press('ArrowDown')
+        }
         const racks = page.locator('.shop-skin')
         await racks.first().waitFor()
         await settledImages(page, '.shop-skin__portrait')
@@ -1020,7 +1053,7 @@ try {
           }
         }
         assert.equal(await page.getByRole('button', { name: /^Buy the ((Ironclad|Silent|Defect|Watcher)-chan|Rimuru Tempest) skin/ }).count(), 5, `${label}: all five -chan and Rimuru Tempest offers`)
-        await assertUnclipped(page, '.shop-skin, .shop-skin h3, .shop-button', `${label} skins`)
+        await assertSkinRacks(page, `${label} skins`)
         const reach = await page.evaluate(() => {
           const scroll = (selector) => { const element = document.querySelector(selector); return element.scrollHeight - element.clientHeight }
           const faults = []
@@ -1035,7 +1068,7 @@ try {
           return { faults, racks: scroll('.shop-skins__racks'), rail: scroll('.shop__rail'), stock: scroll('#shop-panel-skins'), page: document.documentElement.scrollHeight - innerHeight }
         })
         assert.deepEqual(reach.faults, [], `${label}: ${reach.faults.join('; ')}`)
-        assert(reach.racks <= 1 && reach.rail <= 1 && reach.stock <= 1 && reach.page <= 1, `${label}: the skins shelf scrolls: ${JSON.stringify(reach)}`)
+        assert(reach.racks <= 1 && reach.rail <= 1 && reach.stock <= 1 && reach.page <= 1, `${label}: the skins shelf scrolls vertically: ${JSON.stringify(reach)}`)
         if (phone) {
           const scale = viewport.width / await page.evaluate(() => innerWidth)
           assert.deepEqual(await page.locator('.shop-skin .shop-button').evaluateAll((controls, factor) =>
@@ -1045,10 +1078,10 @@ try {
         await page.screenshot({ path: join(output, `multi-${engineName}-${screen}-skins.png`), timeout: 90_000 })
         assert.deepEqual(errors, [], `${label}: page errors`)
         await context.close()
-        console.log(`${label}: six skin offers fit`)
-      }
+        console.log(`${label}: six skin offers scroll with readable portraits`)
+      } finally { if (engineName === 'webkit') await engine.close() }
     }
-  } finally { await webkitBrowser.close() }
+  }
 
   for (const [screen, viewport, phone] of [
     ['desktop-1280x720', { width: 1280, height: 720 }, false],
@@ -1109,7 +1142,7 @@ try {
     assert.deepEqual(await storedSkins(page), { silent: 'monogatari_silent', watcher: 'monogatari_watcher' },
       `${screen}: one skin worn per hero`)
     await settledImages(page, '.shop-skin__portrait')
-    await assertUnclipped(page, '.shop-skin, .shop-skin h3, .shop-button', `${screen} -chan owned`)
+    await assertSkinRacks(page, `${screen} -chan owned`)
     await page.screenshot({ path: join(output, `multi-${screen}-owned.png`), timeout: 90_000 })
     // Wear toggles are per hero: taking one off leaves the other worn, and Kratos (unowned) stays on sale.
     await press(silent.getByRole('button', { name: 'Worn: Silent-chan, Silent skin' }))

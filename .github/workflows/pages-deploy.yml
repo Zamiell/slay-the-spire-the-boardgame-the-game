@@ -56,7 +56,7 @@ jobs:
           curl --fail --silent --show-error --retry 10 --retry-all-errors --retry-delay 2 --max-time 30 --head \
             "https://raw.githubusercontent.com/$GITHUB_REPOSITORY/$DEPLOY_SHA/public/assets/combat/rigged/hero-defect-idle.mov" | grep -qi '^content-type: video/quicktime'
           curl --fail --silent --show-error --retry 10 --retry-all-errors --retry-delay 2 --max-time 30 --head \
-            "https://raw.githubusercontent.com/$GITHUB_REPOSITORY/$DEPLOY_SHA/public/assets/combat/rigged-webm/hero-defect-idle.webm" | grep -Eqi '^content-type: (video/webm|application/octet-stream)'
+            "https://raw.githubusercontent.com/$GITHUB_REPOSITORY/$DEPLOY_SHA/public/assets/combat/rigged-webm/hero-defect-idle.webm" | grep -Eqi '^content-type: ((audio|video)/webm|application/octet-stream)'
           curl --fail --silent --show-error --retry 10 --retry-all-errors --retry-delay 2 --max-time 30 --head \
             "https://raw.githubusercontent.com/$GITHUB_REPOSITORY/$DEPLOY_SHA/public/assets/bgm/exordium.mp3" | grep -qi '^content-type: audio/mpeg'
           curl --fail --silent --show-error --retry 10 --retry-all-errors --retry-delay 2 --max-time 30 --head \

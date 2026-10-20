@@ -9,13 +9,25 @@ import { GAME_SETTINGS_KEY } from '../src/ui/game-settings.ts'
 const out = 'artifacts/combat-video'
 mkdirSync(out, { recursive: true })
 const server = await preview({ logLevel: 'silent', preview: { host: '127.0.0.1', port: 0 } })
+server.httpServer.prependListener('request', (request, response) => {
+  if (!request.url?.split('?')[0].endsWith('.webm')) return
+  const writeHead = response.writeHead.bind(response)
+  response.writeHead = (...args) => {
+    const headerIndex = typeof args[1] === 'string' ? 2 : 1
+    args[headerIndex] = { ...args[headerIndex], 'Content-Type': 'audio/webm' }
+    return writeHead(...args)
+  }
+})
 const browser = await chromium.launch({ headless: true })
 try {
   for (const [screen, options] of [['desktop', { viewport: { width: 1440, height: 900 } }],
     ['horizontal-phone', devices['Pixel 7 landscape']]]) {
     const context = await browser.newContext({ ...options, recordVideo: { dir: `${out}/recordings` } })
     await context.addInitScript(key => localStorage.setItem(key, JSON.stringify({ bgmVolume: 0, sfxVolume: 0 })), GAME_SETTINGS_KEY)
-    const page = await context.newPage(), errors = []
+    const page = await context.newPage(), errors = [], webmTypes = []
+    page.on('response', response => {
+      if (response.url().endsWith('.webm') && response.ok()) webmTypes.push(response.headers()['content-type'])
+    })
     page.on('pageerror', error => errors.push(String(error)))
     const origin = `http://127.0.0.1:${server.httpServer.address().port}`
     await page.goto(origin)
@@ -106,8 +118,9 @@ try {
       await context.unroute(routePattern)
     }
     assert.deepEqual(errors, [])
+    assert(webmTypes.length > 0 && webmTypes.every(type => type === 'audio/webm'), `${screen}: GitHub MIME fixture was not applied`)
     await context.close()
-    console.log(`${screen}: native idle playback, transparent frames and missing-media recovery passed`)
+    console.log(`${screen}: native idle playback with GitHub audio/webm headers, transparent frames and missing-media recovery passed`)
   }
 } catch (error) {
   for (const context of browser.contexts()) for (const page of context.pages()) {

@@ -114,7 +114,7 @@ cursed/status art, enemy art.
   `ATTRIBUTION.md`.
 - Availability: skins are bought, then worn from Profile or the Shop. See section 5.
 
-- A skin of a Downfall hero (Slime Boss is the first): hero-dependent code reads the *character*, never the visual id. The
+- A skin of a Downfall hero (Slime Boss is the first; see section 6 for how these heroes differ from the base heroes): hero-dependent code reads the *character*, never the visual id. The
   Slime formation (`.slime-party`, `data-slime-formation`) follows `occupant.character === 'slime_boss'`; the skin must be
   `stagedAttack` (a skinned hero has no rig, so its idle is `animated/<skin>-idle.webp`); the skin's `energyOrb` replaces the
   Downfall orb layers (`CombatScreen.tsx`); while a Slime card resolves the seat shows `<skin>-spawn.webp` (row 2a), falling back to
@@ -167,3 +167,43 @@ Every skin costs coins from the account's wallet (docs/shop.md). Adding a skin n
   windows), `verify-skin-profile-browser.mjs` (locked tile with price opens the Shop, owned tile
   selectable, unowned choice ignored), `verify-wallet.mjs`, `verify-account-wallets.mjs` and
   `verify-wallet-sync-browser.mjs` for anything price- or ownership-specific.
+
+## 6. Skins of a Downfall hero
+
+The registration steps above were written for the base heroes (Ironclad, Silent, Defect, Watcher). The Downfall heroes
+(`DOWNFALL_CHARACTER_IDS` in `src/game/types.ts`: `slime_boss`, `guardian`, `hexaghost`, `hermit`) keep their rules, cards and art in
+different places, so a skin of one needs the extra care below. Slime Boss (Rimuru Tempest, `anime_slime_boss`) is the only one so
+far; its commit is the worked example.
+
+| What | Base hero | Downfall hero |
+|---|---|---|
+| Card definitions | `CARDS` in `src/game/cards.ts` | `src/game/downfall/<hero>.ts`. Guardian, Hexaghost and Hermit are imported by `cards.ts`. `slime-boss.ts` registers itself with `registerCardDefinitions` and is imported by `state.ts`, `acquisition.ts` and `run/setup.ts`, not by `cards.ts`, so a script that imports `cards.ts` alone sees no Slime Boss card (`dump-cards.mjs` imports the module on purpose) |
+| Starter deck and rewards | `STARTER_DECKS` lists card ids and `characterRewardDeck` reads `CARDS` by owner | Slime Boss, Guardian and Hermit build their decks in their own module (`SLIME_BOSS_STARTER_DECK`, `GUARDIAN_PHYSICAL_DECKS`, `HERMIT_PHYSICAL_DECKS`; `slime-boss.ts` assigns `STARTER_DECKS.slime_boss` when it loads, and `characterRewardDeck` special-cases these three). Hexaghost uses the shared paths like a base hero |
+| Card faces | `Card` shows the card's scan; a worn skin shows its composited face from `skin-cards*` | the same: a skin's composited scan is what players see. Only the CSS fallback face (`CardFace.tsx`, used when a card has no scan) paints no illustration for Downfall cards, so `skin-card-art/<skin>/` is a provenance and fallback inventory, never shown today. Scan names come from `cardAssetKey`/`tierOf` in `src/game/assets.ts` (`slime_boss__normal__goop-armor`, a filing tier, not the physical deck name), and `sync-downfall-card-assets.mjs` syncs them |
+| Combat art | one rig entry per hero (`hero-<id>` in `scripts/animation/rigs.json`) | the hero's rig entry (Hexaghost has none: its seven `hero-hexaghost-heat-0..6` rigs replace it) plus hero-specific states: Slime Boss `slime_boss-spawn.webp` (16 frames) and a six-layer Energy orb (`combat/energy-orbs/slime_boss/layer1-6`; Guardian has seven), Guardian's defense stance (`guardian-defense`) and Hexaghost's heat stages (`hexaghost-heat-0..6`). `CombatScreen.tsx` hard-codes those state rig ids (and their head calibration in `hero-art-head.json`), and Guardian's stance portrait requires the unskinned visual id, while a staged skin overrides the idle and attack images. Guardian's turn-start mode chooser also loads `guardian.webp` and `guardian-defense.webp` directly, so it keeps showing the original Guardian. Art for such a state is therefore unused until the renderer and the head lookup are made skin-aware, so a skin of Guardian or Hexaghost needs code changes, not just more drawings |
+| Skin verifiers | `CORE_HEROES` and `BASE_CHARACTER_IDS` in the skin verifiers list only the four base heroes, and a base hero is the "other" hero of a fixture | the generic `CORE_HEROES` partner selection never picks a Downfall hero (some verifiers still seat one on purpose, such as `verify-skins.mjs` pairing a skinned Slime Boss with Guardian); its own skin is found through `characterOfSkin`, and `ATTACK_CARDS` in `verify-skin-attack-browser.mjs` needs that hero's attack cards. `verify-ui-helpers.mjs` enumerates every skin and builds `strike_<hero>`/`defend_<hero>` card ids, special-casing only Slime Boss: Guardian and Hermit name theirs `<hero>_strike`/`<hero>_defend`, so both the expectation and the id rule need updating. `verify-skin-cards-browser.mjs` builds a fixture deck of the starter cards plus a curse, a partner card, and a Slayer Pack and a `slime` card only where the hero has them, then waits for `starterSize + 3` cards in the deck viewer: for Guardian, Hexaghost and Hermit the count must come from the fixture, not the constant. `verify-skin-profile-browser.mjs` lists heroes and skins explicitly (`ROW_IDS`, `ALL_DEFAULT`, `OWNS_ALL`), and the first skin of Guardian, Hexaghost or Hermit adds a Profile row that those lists must name |
+| Shop | a base hero without a skin gets a locked "Coming soon" rack (`LOCKED_HEROES` is `BASE_CHARACTER_IDS` without a skin) | no locked rack: Guardian, Hexaghost and Hermit have none today; a skin adds a rack through `SKINS`, but `HERO_ACCENT` in `ShopScreen.tsx` has an entry only for Slime Boss among them: the first skin of any other Downfall hero needs its accent added, or the rack falls back to Colorless grey |
+
+Steps that differ from section 1:
+
+- **Card pipeline owner.** `SKIN_OWNERS` (`scripts/art/skin-cards/skincards.py`) maps a skin id to its hero. `build_masks.py --owner`
+  lists its allowed owners (today ironclad, silent, watcher and slime_boss), so a new hero has to be added there, and
+  `registration_file()` in `skincards.py` routes scan keys by prefix: add the hero's prefix and its own registration file next to
+  `defect-registration.json` and `slime-boss-registration.json`, otherwise the keys fall into the shared `registration.json`, whose
+  hash the Ironclad-chan manifest records, and `verify-art-bakes.mjs` fails. Run `dump-cards.mjs <hero>` for the catalogue.
+- **Cards that need a policy.** `dump-cards.mjs` keeps attack, skill and power cards only. `verify-assets.mjs` still wants a face for every
+  card of the hero unless `UNSKINNED_CARD_TYPES` exempts its type (Slime Boss's `slime` creature cards). Hermit's curse-type cards
+  (Scorn, Horror, Fatal Desire and others) must be either exempted deliberately or supported by the pipeline, which today has no `curse` case: the mask builder picks references only for attack, skill and power cards and `WINDOW_BOX` in `skincards.py` has no `curse` window.
+  Guardian's Gems, Guardian's Golden Ticket and Hermit's Golden Ticket have no upgraded scan, while the mask builder, `composite.py` and
+  `verify-assets.mjs` all ask for both faces (Guardian's are typed `attack`, so the catalogue includes them): they need pipeline support or
+  a selective exemption (an `attack` entry in `UNSKINNED_CARD_TYPES` would exempt every ordinary attack too).
+- **Hero-dependent code.** The Slime formation follows `occupant.character`, the footer's Energy orb layers follow the viewing player's character (`downfallCharacter`, which matters in multiplayer); the staged-attack lifetime follows
+  the skin's `stagedAttack` trait through `hasStagedAttack(playerVisualId(player))`. Check the same split for the hero's own special
+  state. Hermit's volley is handled before the skin is consulted (`HERMIT_VOLLEYS` weights in `combat-screen/vfx.tsx`, its duration in
+  `combat-screen/hooks.ts`), so a Hermit skin has to reconcile that clock with its staged one rather than copy Slime Boss's setup. The volley's bullets are not inherited either: `hermitEvent` requires `occupantVisual === 'hermit'`, staged poses bypass that component, and the muzzle coordinates in `vfx.tsx` are tied to Hermit's own rig, so keeping the bullets means making that path skin-aware and recalibrating it, and dropping them for staged impacts is an explicit choice. Hexaghost's flame projectiles have the same gate (`occupantVisual === 'hexaghost'` in `CombatScreen.tsx`), so a Hexaghost skin must either make that path skin-aware or replace the flames with staged impacts on purpose.
+- **Energy orb.** A skin with the `energyOrb` trait also needs its glow colour: a rule in `src/ui/styles/damage-reactions.css` and an
+  `ORB_GLOW` entry in `verify-skin-browser.mjs`; registration does not add either.
+- **Merchant standing figure.** The merchant arrival equalises every standing figure's painted height (`--standing-scale` in
+  `src/ui/chrome/merchant-arrival.css`), so the new figure needs a scale and a floor `translateY` computed from its own painted rows,
+  as the existing lines are.
+- **Pages budget.** Six skins leave about 17 MB of `dist` headroom (`docs/skins/README.md`): check the build before art generation, not after.

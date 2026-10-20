@@ -2286,7 +2286,7 @@ function CombatScreenView({
       // Painted actors scale; the readable status/intent bands keep fixed gutters.
       const heightRem = board.clientHeight / rem
       const compact = matchMedia('(orientation: landscape) and (max-height: 26.25rem)').matches
-      const heroGutter = compact ? (largestSlimeParty ? 12.5 : 7.5) : (largestSlimeParty ? 1.5 : 2.75)
+      const heroGutter = compact ? (largestSlimeParty ? 12.5 : 7.5) : (largestSlimeParty ? 4.5 : 2.75)
       const heroFloor = largestSlimeParty ? (compact ? 1.25 : 7.1) : 4.1
       const heroFit = (heightRem - heroGutter - (stageHasOrbs ? 7 : 0)) / ((STAGE_GAP_REM - 1) * 1.2 + heroFloor)
       const enemyFit = stageHasTallEnemy
@@ -7243,7 +7243,9 @@ function CombatScreenView({
                               role="listitem"
                               tabIndex={0}
                               onMouseEnter={(event) => showSlimeCard(slime.card, event.currentTarget)}
-                              onMouseLeave={hideSlimeCard}
+                              onMouseLeave={(event) => {
+                                if (document.activeElement !== event.currentTarget) hideSlimeCard()
+                              }}
                               onFocus={(event) => showSlimeCard(slime.card, event.currentTarget)}
                               onBlur={hideSlimeCard}
                               onAnimationEnd={(event) => {

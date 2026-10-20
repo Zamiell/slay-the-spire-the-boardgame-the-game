@@ -902,8 +902,10 @@
   transform-origin: center bottom;
 }
 
+/* Keep statuses above the Slimes without moving the summons off their ground. */
 @media (min-height: 26.251rem) {
-  .row__seat:has(.slime-party) { bottom: calc(4.1rem * var(--stage-scale) + 1.5rem); }
+  .row__seat:has(.slime-party) { bottom: calc(4.1rem * var(--stage-scale) + 4.5rem); }
+  .slime-party { bottom: calc(-3rem * var(--stage-scale) - 3rem); }
 }
 
 .seat__interactive:has(.slime-party) .seat__portrait > :is(img, video) { min-height: 0; min-width: 0; }

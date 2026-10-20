@@ -86,6 +86,7 @@ try {
     ['horizontal-phone-os-reduced', { width: 844, height: 390 }, 'reduce']]) {
     const page = await browser.newPage({ viewport, reducedMotion, recordVideo: { dir: output, size: viewport },
       ...(name !== 'desktop' ? { isMobile: true, hasTouch: true } : {}) })
+    await page.clock.install()
     page.on('pageerror', (error) => errors.push(String(error)))
     await page.goto(`http://localhost:${server.httpServer.address().port}`)
     await page.evaluate(() => {
@@ -345,6 +346,9 @@ try {
         time: node.getAnimations().find(a => a.animationName === 'slime-party-command').currentTime }
     })
     const beforeGrowth = await targetGeometry()
+    // Geometry reads can outlast contact on a busy renderer. Control the HP
+    // timer as well as the CSS animation before checking either side of impact.
+    await page.clock.pauseAt(new Date(await page.evaluate(() => Date.now()) + 1000))
     await page.evaluate(() => {
       const f = window.fixture, player = f.state.players[0]
       for (let i = 0; i < 3; i++) {
@@ -355,8 +359,7 @@ try {
       f.state.enemies[0].hp = 80
       f.state.presentationEvents.push(f.command(1001, 'new-0')); f.render()
     })
-    await page.waitForFunction(() => window.fixture.state.players[0].slimes.length === 4 &&
-      !document.querySelector('[data-slime-uid="party-0-1"]'))
+    await page.locator('[data-slime-uid="party-0-1"]').waitFor({ state: 'detached' })
     await page.locator('[data-command-seq="1001"]').waitFor()
     const afterGrowth = await targetGeometry()
     assert.equal(afterGrowth.time, beforeGrowth.time, 'party changes restarted the active command')
@@ -372,10 +375,16 @@ try {
       `a newcomer changed ${dimension} during an existing command`)
     assert(await page.locator('.enemy .bar').innerText().then(text => text.includes('100/100')),
       'newcomer damage appeared before its contact phase')
-    await newcomer.evaluate(node => node.getAnimations().find(a => a.animationName === 'slime-party-command').play())
+    await page.clock.runFor(849)
+    assert(await page.locator('.enemy .bar').innerText().then(text => text.includes('100/100')),
+      'newcomer damage appeared before its 850ms contact deadline')
+    await newcomer.evaluate(node => { node.getAnimations().find(a => a.animationName === 'slime-party-command').currentTime = 850 })
+    await page.clock.runFor(1)
+    await page.clock.resume()
     await page.waitForFunction(() => document.querySelector('.enemy .bar').textContent.includes('80/100'))
     assert.equal(await page.locator('[data-command-seq="1001"]').count(), 1, 'newcomer damage must accompany its visible command')
     await page.screenshot({ path: resolve(output, `${name}-summoned-during-command.png`) })
+    await newcomer.evaluate(node => node.getAnimations().find(a => a.animationName === 'slime-party-command').play())
     await attacker.evaluate(node => node.getAnimations().find(a => a.animationName === 'slime-party-command').finish())
     await page.waitForFunction(() => !document.querySelector('.slime-party__actor--commanding'))
     await page.waitForFunction(() => document.querySelectorAll('.slime-party__art').length === 10 &&

@@ -1,4 +1,4 @@
-"""Export the committed Slimeboss-chan noncombat artwork into the existing noncombat asset formats (no API calls)."""
+"""Export the committed Rimuru Tempest noncombat artwork into the existing noncombat asset formats (no API calls)."""
 from pathlib import Path
 
 import numpy as np

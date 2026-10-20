@@ -1,4 +1,4 @@
-"""Measure the landmarks of the Slimeboss-chan attack drawings into sources/anime_slime_boss/attack-registration.json.
+"""Measure the landmarks of the Rimuru Tempest attack drawings into sources/anime_slime_boss/attack-registration.json.
 
 Run with python3 scripts/animation/measure-anime_slime_boss.py (Pillow, numpy and scipy); anime_slime_boss.py then bakes from the file.
 Per drawing (sources/anime_slime_boss/attack/<pose>.webp, 1536x1024, native alpha, drawn on the layout canvas that holds the registered

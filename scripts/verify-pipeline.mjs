@@ -241,7 +241,7 @@ check('assets and the selector itself keep focused checks', () => {
   assertDeepEqual(affected('src/game/new-system.ts'), everyRoutineCheck)
   assertDeepEqual(affected('src/ui/CombatScreen.tsx', 'src/game/new-system.ts'), everyRoutineCheck)
 })
-check('every Slimeboss-chan file family selects its focused art owners, never the whole suite', () => {
+check('every Rimuru Tempest file family selects its focused art owners, never the whole suite', () => {
   const skin = 'anime_slime_boss'
   const families = [
     [`scripts/animation/${skin}.py`, [ART_BAKES, 'verify-skin-attack-browser.mjs']],

@@ -215,7 +215,7 @@ export function requiresFullSuite(status) {
   return false
 }
 
-/** The skins drawn as named characters (Monogatari-style and Slimeboss-chan) share one folder, script and manifest naming. */
+/** The skins drawn as named characters (Monogatari-style and Rimuru Tempest) share one folder, script and manifest naming. */
 const SKIN_FAMILY = '(?:monogatari|anime)'
 const NAMED_SKIN = `${SKIN_FAMILY}_[a-z_]+`
 /**

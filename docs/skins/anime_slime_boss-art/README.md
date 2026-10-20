@@ -1,9 +1,9 @@
-# Slimeboss-chan skin: character art
+# Rimuru Tempest skin: character art
 
-Skin id `anime_slime_boss` (the Slime Boss hero's "Slimeboss-chan" skin, 2,500 coins like every skin). An original anime
-heroine: the human form of the Slime Boss (lime-green slime in a small bowler hat), designed from the user's own reference
-image and generated with `gpt-image-2.5-sunburst` at high quality through the bundled imagegen CLI. No copyrighted style
-reference is used; `manifest.json` records the user's reference and the in-repo format references by description and
+Skin id `anime_slime_boss` (the Slime Boss hero's "Rimuru Tempest" skin, 2,500 coins like every skin). A fan
+illustration named after Rimuru Tempest (*That Time I Got Reincarnated as a Slime*): the human form of the Slime Boss (lime-green
+slime in a small bowler hat), drawn from the user's own reference image (a private generation reference, not committed) and
+generated with `gpt-image-2.5-sunburst` at high quality through the bundled imagegen CLI. `manifest.json` records the user's reference and the in-repo format references by description and
 SHA-256 (none committed).
 
 - Identity: the approved idle (`scripts/art/sources/anime_slime_boss-char/idle-identity.webp`, `prompts/idle.txt`): very long

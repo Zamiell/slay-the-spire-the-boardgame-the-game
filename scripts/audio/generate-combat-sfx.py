@@ -183,7 +183,7 @@ render('monogatari_watcher-chime', .35, lambda t: band(len(t), 1500, 8000) * np.
        + tone(t, 360, 300, .35) * np.exp(-t * 75) * .3
        + ring(t, [(2794, 11, .24), (2798, 13, .12), (4186, 14, .18), (6272, 20, .09)]), [(.06, .2)])
 
-# Slimeboss-chan (anime_slime_boss): a gooey dash whoosh, a heavy wet gauntlet punch and a slime splash.
+# Rimuru Tempest (anime_slime_boss): a gooey dash whoosh, a heavy wet gauntlet punch and a slime splash.
 # Own random stream, so every sound above stays byte-identical. Each file starts on its animation beat.
 rng = np.random.default_rng(20261019)
 

@@ -1,4 +1,4 @@
-# Slimeboss-chan noncombat artwork
+# Rimuru Tempest noncombat artwork
 
 Skin id `anime_slime_boss`. The treasure arms, the merchant figure and the campfire sprite, all the same character as the
 idle (`../anime_slime_boss-art/README.md`): very long lime-green hair, tiny black bowler, gold eyes, black coat with white

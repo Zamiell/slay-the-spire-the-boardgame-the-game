@@ -24,7 +24,7 @@ export const SKIN_LABELS: Record<SkinId, string> = {
   monogatari_silent: 'Silent-chan',
   monogatari_defect: 'Defect-chan',
   monogatari_watcher: 'Watcher-chan',
-  anime_slime_boss: 'Slimeboss-chan',
+  anime_slime_boss: 'Rimuru Tempest',
 }
 
 /** Presentation facts of a skin. Code reads them by visual id instead of testing for a literal skin id. */

@@ -175,7 +175,7 @@ check('Kratos attack art provenance and measured pose shifts', () => {
   assert(measured.status === 0, measured.stderr || measured.stdout)
 })
 
-check('Silent-chan, Watcher-chan and Slimeboss-chan attack art provenance, and every anime skin bake matches its sources', () => {
+check('Silent-chan, Watcher-chan and Rimuru Tempest attack art provenance, and every anime skin bake matches its sources', () => {
   const digest = (path) => createHash('sha256').update(readFileSync(join(repoRoot, path))).digest('hex')
   const read = (path) => JSON.parse(readFileSync(join(repoRoot, path), 'utf8'))
   const generated = {

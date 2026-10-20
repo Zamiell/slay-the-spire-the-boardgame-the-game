@@ -1,4 +1,4 @@
-"""Bake the Sunburst attack drawings of the Slimeboss-chan skin onto the runtime canvas.
+"""Bake the Sunburst attack drawings of the Rimuru Tempest skin onto the runtime canvas.
 
 Run from any directory with python3 scripts/animation/anime_slime_boss.py (Pillow only); --check verifies without writing.
 Each drawing (sources/anime_slime_boss/attack/<pose>.webp, native alpha, 1536x1024, drawn on the layout canvas that holds the registered
@@ -98,7 +98,7 @@ def main(argv):
         write_webp(OUT / f'{SKIN}-spawn.webp', spawn_drawing(registration), check=check, quality=92, method=6)
     if check:
         assert config.get('audit', {}).get('landmarks') == marks, 'audit landmarks are stale; run anime_slime_boss.py'
-        print('PASS: Slimeboss-chan drawings match their sources')
+        print('PASS: Rimuru Tempest drawings match their sources')
         return
     config['audit'] = audit
     CONFIG_PATH.write_text(dump_config(config))

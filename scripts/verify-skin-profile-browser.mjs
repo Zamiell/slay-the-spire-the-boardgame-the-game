@@ -358,7 +358,7 @@ try {
       for (const [screen, viewport, phoneScreen] of SCREENS) {
         const phone = phoneScreen && engineName === 'webkit' ? 'dom' : phoneScreen
         const label = `${engineName} ${screen}`
-        // Kratos, Silent-chan and Defect-chan owned, Ironclad-chan, Watcher-chan and Slimeboss-chan locked: five rows, owned and unowned tiles.
+        // Kratos, Silent-chan and Defect-chan owned, Ironclad-chan, Watcher-chan and Rimuru Tempest locked: five rows, owned and unowned tiles.
         const { context, page } = await open(viewport, phoneScreen, undefined, OWNS_SOME, { engine })
         await openSkins(page, phone)
         assert.deepEqual(await page.getByRole('radiogroup').evaluateAll((groups) => groups.map((group) => group.getAttribute('aria-labelledby'))),
@@ -369,7 +369,7 @@ try {
         assert.equal(await page.getByRole('radiogroup', { name: 'Silent' }).getByRole('radio').count(), 2, `${label}: Silent has Default and Silent-chan`)
         assert.equal(await page.getByRole('radiogroup', { name: 'Watcher' }).getByRole('radio').count(), 1, `${label}: Watcher owns nothing yet`)
         assert.equal(await lockedTile(page, 'Watcher', 'Watcher-chan').count(), 1, `${label}: Watcher-chan is a locked tile`)
-        assert.equal(await lockedTile(page, 'Slime Boss', 'Slimeboss-chan').count(), 1, `${label}: Slimeboss-chan is a locked tile`)
+        assert.equal(await lockedTile(page, 'Slime Boss', 'Rimuru Tempest').count(), 1, `${label}: Rimuru Tempest is a locked tile`)
         assert.equal(await page.getByRole('radiogroup', { name: 'Slime Boss' }).getByRole('radio').count(), 1, `${label}: Slime Boss owns nothing yet`)
         assert.equal(await page.getByRole('button', { name: /locked/ }).count(), 3, `${label}: only those three are locked`)
         assert.deepEqual(await checked(page), ALL_DEFAULT, `${label}: Default is worn on every hero`)
@@ -431,7 +431,7 @@ try {
 
     // The next solo run wears the chosen look of the hero picked: Silent-chan.
     await press(radio(page, 'Silent', 'Silent-chan'), phone)
-    await press(radio(page, 'Slime Boss', 'Slimeboss-chan'), phone)
+    await press(radio(page, 'Slime Boss', 'Rimuru Tempest'), phone)
     await page.getByRole('button', { name: 'Back to main menu' }).click()
     await page.getByRole('button', { name: 'Single Player', exact: true }).click()
     await page.getByRole('button', { name: 'Standard', exact: true }).click()

@@ -974,7 +974,7 @@ try {
   const OFFERS = [
     ['kratos', 'Kratos', 'Ironclad'], ['monogatari_ironclad', 'Ironclad-chan', 'Ironclad'], ['monogatari_silent', 'Silent-chan', 'Silent'],
     ['monogatari_defect', 'Defect-chan', 'Defect'], ['monogatari_watcher', 'Watcher-chan', 'Watcher'],
-    ['anime_slime_boss', 'Slimeboss-chan', 'Slime Boss'],
+    ['anime_slime_boss', 'Rimuru Tempest', 'Slime Boss'],
   ]
   assert.deepEqual(OFFERS.map(([id]) => id), offeredSkins, 'the Shop test lists every registered skin in catalogue order')
   const webkitBrowser = await webkit.launch()
@@ -1019,7 +1019,7 @@ try {
             assert.match(await buy.innerText(), /2,500/)
           }
         }
-        assert.equal(await page.getByRole('button', { name: /^Buy the (Ironclad|Silent|Defect|Watcher|Slimeboss)-chan skin/ }).count(), 5, `${label}: all five -chan offers`)
+        assert.equal(await page.getByRole('button', { name: /^Buy the ((Ironclad|Silent|Defect|Watcher)-chan|Rimuru Tempest) skin/ }).count(), 5, `${label}: all five -chan and Rimuru Tempest offers`)
         await assertUnclipped(page, '.shop-skin, .shop-skin h3, .shop-button', `${label} skins`)
         const reach = await page.evaluate(() => {
           const scroll = (selector) => { const element = document.querySelector(selector); return element.scrollHeight - element.clientHeight }

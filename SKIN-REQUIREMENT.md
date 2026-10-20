@@ -3,9 +3,10 @@
 A skin changes how one hero looks and sounds, never how it plays. Rules, RNG, saves and
 hashes never read a skin. Six skins ship, one or more for every base hero and one for Slime Boss: Kratos (Ironclad's, id `kratos`),
 Ironclad-chan (`monogatari_ironclad`), Silent-chan (`monogatari_silent`), Defect-chan (`monogatari_defect`),
-Watcher-chan (`monogatari_watcher`) and Slimeboss-chan (`anime_slime_boss`, Slime Boss's), the four "-chan" skins before her drawn in
-the style of the Monogatari anime series. Slimeboss-chan is the first skin of a Downfall hero, an original design from the user's
-own reference image. Kratos, Silent-chan, Watcher-chan and Slimeboss-chan are the references for a skin with a staged attack
+Watcher-chan (`monogatari_watcher`) and Rimuru Tempest (`anime_slime_boss`, Slime Boss's), the four "-chan" skins before her drawn in
+the style of the Monogatari anime series. Rimuru Tempest is the first skin of a Downfall hero: a fan illustration named after
+Rimuru Tempest (*That Time I Got Reincarnated as a Slime*), the human form of Slime Boss, drawn from the user's own reference
+image. Kratos, Silent-chan, Watcher-chan and Rimuru Tempest are the references for a skin with a staged attack
 (below); Ironclad-chan and Defect-chan
 (`docs/monogatari-skins/`) are the references for a pose-pair attack. Copy their file names and checks when you add the next one.
 Every skin's provenance and pipeline docs are indexed in `docs/skins/README.md`.
@@ -42,10 +43,10 @@ A new skin needs exactly these edits; nothing else enumerates skins by hand.
   `src/ui/chrome/merchant-arrival.css` (checked against the image's bottom margin). A staged skin's bake and its
   attack manifest (`generated` entries: prompt, source and output hashes) are checked by `scripts/verify-art-bakes.mjs`;
   the bake scripts (`monogatari*.py --check`, `anime_slime_boss.py --check`) must pass.
-- [ ] Attack animation, one of two kinds. **Staged** (Kratos, Silent-chan, Watcher-chan, Slimeboss-chan): set the `stagedAttack` trait,
+- [ ] Attack animation, one of two kinds. **Staged** (Kratos, Silent-chan, Watcher-chan, Rimuru Tempest): set the `stagedAttack` trait,
   write `scripts/animation/skins/<skin>.json` and run `python3 scripts/animation/skin-attack.py`. One generic
   implementation plays it (`docs/skins/attack-animation.md`); no code or class names the skin, and
-  `scripts/animation/audit-poses.py` (run by `verify-art-bakes.mjs`) holds every drawing of Silent-chan, Watcher-chan and Slimeboss-chan to the idle's head and prop scale
+  `scripts/animation/audit-poses.py` (run by `verify-art-bakes.mjs`) holds every drawing of Silent-chan, Watcher-chan and Rimuru Tempest to the idle's head and prop scale
   (Kratos is excluded: it has no `audit` landmarks, and `kratos.py --check` measures its pose shifts and reach instead).
   **Pose pair** (Ironclad-chan, Defect-chan): no `stagedAttack` trait; the hero's own attack clock, travel and hit logic
   play, and `CombatScreen.tsx` (`isMonogatariVisual`, `MonogatariAttackPose`) steps two complete drawings
@@ -65,7 +66,7 @@ skin's art exists.
 
 1. Art in place per section 2 (including `animated/<skin>-*.webp`, `sfx/*.mp3`, hit VFX, the campfire sprite).
 2. `src/game/skins.ts`: `SKINS`, `SKIN_LABELS`, `SKIN_TRAITS`; `src/game/coins.ts`: `SKIN_PRICES`.
-3. `skin-attack.py --measure <skin> --write` (Silent-chan's, Watcher-chan's and Slimeboss-chan's bake scripts, `monogatari_silent.py`,
+3. `skin-attack.py --measure <skin> --write` (Silent-chan's, Watcher-chan's and Rimuru Tempest's bake scripts, `monogatari_silent.py`,
    `monogatari_watcher.py` and `anime_slime_boss.py`, plant the drawings themselves, so their `poseShift` stays empty and `--measure` is read-only
    for them), then `skin-attack.py` (CSS and table); `sync-skin-card-faces.mjs`;
    `campfire-sitters.py export`; `hero-art-head.json`; `MENU_ART_MANIFESTS`.

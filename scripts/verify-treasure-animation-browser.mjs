@@ -6,6 +6,7 @@ import { chromium, webkit } from './lib/profile-browser.mjs'
 import { postNeowRun } from './lib/post-neow-run.mjs'
 import { chooseRelicReward } from '../src/game/run.ts'
 import { SKIN_IDS, SKIN_LABELS, skinsOf } from '../src/game/skins.ts'
+import { CHARACTER_IDS } from '../src/game/types.ts'
 import { CHARACTER_LABEL } from '../src/ui/run-summary-data.ts'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
@@ -14,15 +15,20 @@ mkdirSync(output, { recursive: true })
 const server = await createServer({ root, logLevel: 'silent', server: { port: 0 } })
 await server.listen()
 const errors = []
-// Round N seats every hero in its Nth skin (a hero with fewer skins keeps its last look), so the party shows every skin's
-// hand model in some round. The animation checks below run for round 1; later rounds check each seat's hand and grip files.
-const heroes = ['ironclad', 'silent', 'defect', 'watcher']
-const rounds = Array.from({ length: Math.max(...heroes.map((character) => skinsOf(character).length)) }, (_, round) =>
-  heroes.map((character, index) => {
-    const skins = skinsOf(character)
-    const skin = skins[Math.min(round, skins.length - 1)]
-    return { id: `p${index + 1}`, name: `${'ABCD'[index]} · ${skin ? SKIN_LABELS[skin] : CHARACTER_LABEL[character]}`, character, ...(skin ? { skin } : {}) }
-  }))
+// Round N seats every base hero in its Nth skin (a hero with fewer skins keeps its last look), so the party shows every skin's
+// hand model in some round; a skinned hero of another ruleset (Slime Boss) joins three plain base heroes, once per skin.
+// The animation checks below run for round 1; later rounds check each seat's hand and grip files.
+const BASE_HEROES = ['ironclad', 'silent', 'defect', 'watcher']
+const seat = (character, index, skin) => ({ id: `p${index + 1}`, name: `${'ABCD'[index]} · ${skin ? SKIN_LABELS[skin] : CHARACTER_LABEL[character]}`, character, ...(skin ? { skin } : {}) })
+const guests = CHARACTER_IDS.filter((character) => !BASE_HEROES.includes(character) && skinsOf(character).length > 0)
+const rounds = [
+  ...Array.from({ length: Math.max(...BASE_HEROES.map((character) => skinsOf(character).length)) }, (_, round) =>
+    BASE_HEROES.map((character, index) => {
+      const skins = skinsOf(character)
+      return seat(character, index, skins[Math.min(round, skins.length - 1)])
+    })),
+  ...guests.flatMap((guest) => skinsOf(guest).map((skin) => [seat(guest, 0, skin), ...BASE_HEROES.slice(0, 3).map((character, index) => seat(character, index + 1))])),
+]
 const [seats] = rounds
 const visualOf = (seat) => seat.skin ?? seat.character
 assert.deepEqual(SKIN_IDS.filter((skin) => !rounds.flat().some((seat) => seat.skin === skin)), [],

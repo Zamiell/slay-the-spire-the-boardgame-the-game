@@ -6,7 +6,7 @@ for **2,500 coins each** through the existing Shop and account-wallet pipeline.
 Visual IDs: `monogatari_ironclad` and `monogatari_defect`. They are cosmetic skins,
 not new playable characters: cards, rules, RNG, progression and multiplayer seat
 ownership remain those of their original hero. Kratos remains available, and Silent-chan and Watcher-chan, built later in
-the same style with a config-driven staged attack, are documented in [`../skins/`](../skins/README.md), which indexes all five.
+the same style with a config-driven staged attack, are documented in [`../skins/`](../skins/README.md), which indexes all six (Slimeboss-chan, an original design for Slime Boss, included).
 
 ## Complete asset pipeline
 

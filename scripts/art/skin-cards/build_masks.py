@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Derive scan registrations and art-window masks from the committed scans (a one-off build step: the
-outputs, registration.json and masks/*.png, are committed; compositing needs only Pillow and numpy).
+outputs, registration.json (slime-boss-registration.json for Slime Boss) and masks/*.png, are committed; compositing needs only Pillow and numpy).
 This step additionally needs opencv-python-headless for the affine ECC alignment.
 
 Why registration: the scans are not pixel-registered. Most sit within +-2px of each other, ten are
@@ -14,7 +14,7 @@ the pixels deviating from the group median on any card are the art window plus t
 title strip is cut away, holes filled, the window component kept, grown 1px so no old art survives at
 the edge, and feathered ~1px.
 
-Every owner (ironclad, silent, watcher, ...) is derived from its own scans, because the frames differ in
+Every owner (ironclad, silent, watcher, slime_boss, ...) is derived from its own scans, because the frames differ in
 colour and may differ a few pixels in geometry: masks go to masks/<owner>/, and only that owner's keys of the
 shared registration.json are replaced.
 
@@ -30,7 +30,7 @@ import numpy as np
 from scipy.optimize import minimize
 from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
-from skincards import CARDS, HERE, MASKS, REF_SIZE, family, load_catalogue, registration, scan_key
+from skincards import CARDS, HERE, MASKS, REF_SIZE, family, load_catalogue, registration, registration_file, scan_key
 
 THRESHOLD = 14      # max channel deviation from the group median
 TITLE_CUT = 186     # rows above this belong to the banner/title, never the window
@@ -173,7 +173,7 @@ def build_masks(cards, matrices, report):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('--owner', choices=['ironclad', 'silent', 'watcher'], default='ironclad',
+    parser.add_argument('--owner', choices=['ironclad', 'silent', 'watcher', 'slime_boss'], default='ironclad',
                         help='Defect uses its specialized registration and masks in monogatari.py')
     parser.add_argument('--reuse', action='store_true')
     args = parser.parse_args()
@@ -183,7 +183,7 @@ def main():
     reference = references(owner, cards)
     keys = [(scan_key(card, up), card['type'], up) for card in cards for up in (False, True)]
     matrices, scores = {}, {}
-    cache = HERE / 'registration.json'
+    cache = HERE / registration_file(f'{owner}__')   # slime_boss keeps its own file; the others share registration.json
     if args.reuse and cache.exists():
         matrices = {key: registration(key) for key, _, _ in keys}
         scores = {k: 1.0 for k in matrices}
@@ -208,7 +208,7 @@ def main():
     table = {key: [round(float(v), 4) for v in matrix.flatten()] for key, matrix in sorted(matrices.items())}
     previous = json.loads(cache.read_text()) if cache.exists() else {}
     table = dict(sorted({**previous, **table}.items()))
-    (HERE / 'registration.json').write_text(json.dumps(table, indent=0) + '\n')
+    cache.write_text(json.dumps(table, indent=0) + '\n')
     print(len(table), 'registered scans; worst scores:', sorted(scores.items(), key=lambda kv: kv[1])[:8])
 
 

@@ -5,6 +5,7 @@ import { createServer } from 'vite'
 import { chromium } from './lib/profile-browser.mjs'
 import { postNeowRun } from './lib/post-neow-run.mjs'
 import { SKIN_IDS, skinsOf } from '../src/game/skins.ts'
+import { CHARACTER_IDS } from '../src/game/types.ts'
 import { CHARACTER_LABEL } from '../src/ui/run-summary-data.ts'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
@@ -14,14 +15,20 @@ const server = await createServer({ root, logLevel: 'silent', server: { host: '1
 await server.listen()
 const browser = await chromium.launch()
 const errors = []
-// A hero with several skins needs several rounds: round N seats every hero in its Nth skin (a hero with fewer
-// skins keeps its last look), so the arrival party stands as every registered skin in some round.
-const rounds = Array.from({ length: Math.max(...['silent', 'ironclad', 'watcher', 'defect'].map((character) => skinsOf(character).length)) }, (_, round) =>
-  ['silent', 'ironclad', 'watcher', 'defect'].map((character, index) => {
-    const skins = skinsOf(character)
-    const skin = skins[Math.min(round, skins.length - 1)]
-    return { id: `p${index + 1}`, name: CHARACTER_LABEL[character], character, ...(skin ? { skin } : {}) }
-  }))
+// A hero with several skins needs several rounds: round N seats every base hero in its Nth skin (a hero with fewer
+// skins keeps its last look), so the arrival party stands as every registered skin in some round. A skinned hero of
+// another ruleset (Slime Boss) joins three plain base heroes, once per skin.
+const BASE_HEROES = ['silent', 'ironclad', 'watcher', 'defect']
+const seat = (character, index, skin) => ({ id: `p${index + 1}`, name: CHARACTER_LABEL[character], character, ...(skin ? { skin } : {}) })
+const guests = CHARACTER_IDS.filter((character) => !BASE_HEROES.includes(character) && skinsOf(character).length > 0)
+const rounds = [
+  ...Array.from({ length: Math.max(...BASE_HEROES.map((character) => skinsOf(character).length)) }, (_, round) =>
+    BASE_HEROES.map((character, index) => {
+      const skins = skinsOf(character)
+      return seat(character, index, skins[Math.min(round, skins.length - 1)])
+    })),
+  ...guests.flatMap((guest) => skinsOf(guest).map((skin) => [seat(guest, 0, skin), ...BASE_HEROES.slice(0, 3).map((character, index) => seat(character, index + 1))])),
+]
 const [seats] = rounds
 const standingParties = [
   ...rounds,

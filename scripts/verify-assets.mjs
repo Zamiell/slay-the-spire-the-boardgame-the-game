@@ -27,7 +27,7 @@ import {
 } from '../src/game/assets.ts'
 import { ENEMIES } from '../src/game/enemies.ts'
 import { CHARACTER_IDS } from '../src/game/types.ts'
-import { SKINS, SKIN_IDS, VISUAL_IDS, SKIN_TRAITS } from '../src/game/skins.ts'
+import { SKINS, SKIN_IDS, VISUAL_IDS, SKIN_TRAITS, skinsOf } from '../src/game/skins.ts'
 import { POTIONS, RELICS } from '../src/game/relics.ts'
 import {
   bossProjectileImagePath,
@@ -197,6 +197,7 @@ const MENU_ART_MANIFESTS = {
   kratos: 'docs/skins/kratos-menu-art/manifest.json',
   monogatari_silent: 'docs/skins/monogatari_silent-art/manifest.json',
   monogatari_watcher: 'docs/skins/monogatari_watcher-art/manifest.json',
+  anime_slime_boss: 'docs/skins/anime_slime_boss-art/manifest.json',
 }
 
 check('every skin has portrait, wallpaper and (with the energyOrb trait) energy orb art at the audited sizes', () => {
@@ -296,11 +297,17 @@ check('Ironclad-chan and Defect-chan provenance manifests match their committed 
 // add the art; an Ironclad card that is neither skinned nor listed here fails this check.
 const PENDING_SKIN_CARDS = new Set([])
 
+// Card types a character's skins deliberately leave on the default scan (the Slime Boss `slime` creature cards keep
+// their default face in every skin), unlike PENDING_SKIN_CARDS this is not a promise to add art.
+const UNSKINNED_CARD_TYPES = { slime_boss: new Set(['slime']) }
+
 check('every skin has a face, a thumbnail and an illustration for every card of its character, and nothing else', () => {
   const listed = skinCardFaces()
   assertDeepEqual(SKIN_CARD_FACES, listed, 'src/game/skin-card-faces.ts is stale; run node scripts/sync-skin-card-faces.mjs')
   for (const [character, skins] of Object.entries(SKINS)) {
-    const owned = Object.values(CARDS).filter((def) => def.owner === character && def.publisherScan !== false)
+    const unskinned = UNSKINNED_CARD_TYPES[character] ?? new Set()
+    const owned = Object.values(CARDS).filter((def) => def.owner === character && def.publisherScan !== false && !unskinned.has(def.type))
+    const defaults = Object.values(CARDS).filter((def) => def.owner === character && def.publisherScan !== false && unskinned.has(def.type))
     for (const skin of skins) {
       const pending = (def) => PENDING_SKIN_CARDS.has(`${skin}:${def.id}`)
       const covered = owned.filter((def) => !pending(def))
@@ -320,6 +327,11 @@ check('every skin has a face, a thumbnail and an illustration for every card of 
       // Gems keep the default socketed faces, and a card the skin lacks keeps its default scan.
       const gem = CARDS.strike_ironclad ?? owned[0]
       assertEqual(cardThumbPath(owned[0], false, gem, skin), cardThumbPath(owned[0], false, gem))
+      for (const def of defaults) {
+        assertEqual(cardImagePath(def, false, skin), cardImagePath(def, false), `${skin} keeps the default ${def.id} face`)
+        assertEqual(cardThumbPath(def, true, undefined, skin), cardThumbPath(def, true), `${skin} keeps the default ${def.id}+ thumbnail`)
+        assertEqual(cardArtPath(def, skin), cardArtPath(def), `${skin} keeps the default ${def.id} art`)
+      }
       const foreign = character === 'silent' ? CARDS.strike_ironclad : CARDS.strike_silent
       assertEqual(cardImagePath(foreign, false, skin), cardImagePath(foreign, false))
       assertEqual(cardArtPath(foreign, skin), cardArtPath(foreign))
@@ -864,6 +876,7 @@ check('bundled combat cutouts are sized for their render box, with an alpha chan
     'hexaghost-hero.webp', 'hexaghost-impact.webp', 'hexaghost-ready.webp', 'hexaghost.webp',
     'ironclad-hero.webp', 'ironclad-impact.webp', 'ironclad-ready.webp', 'ironclad.webp',
     ...SKIN_IDS.flatMap((id) => [`${id}-hero.webp`, `${id}.webp`]),
+    ...skinsOf('slime_boss').map((id) => `${id}-spawn.webp`),
     'monogatari_defect-charge.webp', 'monogatari_defect-release.webp',
     'monogatari_ironclad-impact.webp', 'monogatari_ironclad-ready.webp',
     'silent-hero.webp', 'silent-throw.webp', 'silent.webp',
@@ -893,7 +906,7 @@ check('bundled combat cutouts are sized for their render box, with an alpha chan
     const height = Number(block.match(/  Height: (\d+)/)?.[1])
     const alpha = /Alpha:\s+1/.test(block)
     const [floor, cap] = enemyPathSet.has(path) ? (bossEliteFiles.has(file) ? BOSS_ELITE_CUTOUT_EDGE : ENEMY_CUTOUT_EDGE)
-      : file.endsWith('-hero.webp') ? CHARACTER_HERO_EDGE
+      : /-(hero|spawn)\.webp$/.test(file) ? CHARACTER_HERO_EDGE
       : CHARACTER_CUTOUT_EDGE
     const resolution = Math.min(width, height) >= floor / 2 &&
       Math.max(width, height) >= floor && Math.max(width, height) <= cap
@@ -972,6 +985,33 @@ check('every character and skin has its combat, menu and merchant art', () => {
   assertDeepEqual(missing, [], 'visual-id art inventory')
   const heads = Object.keys(JSON.parse(readFileSync(join(repoRoot, 'src/ui/hero-art-head.json'), 'utf8')))
   assertDeepEqual(VISUAL_IDS.filter((id) => !heads.some((head) => head === id || head.startsWith(`${id}-`))), [], 'hero head calibration per visual id')
+  assertDeepEqual(skinsOf('slime_boss').filter((id) => !heads.includes(`${id}-spawn`)), [], 'hero head calibration of each summon drawing')
+})
+
+check('every Slime Boss skin summons from a drawing framed like its hero cutout', () => {
+  // CombatScreen shows `<skin>-spawn.webp` unscaled in the cutout's box while a Slime card resolves, so the figure has to stand where
+  // `<skin>-hero.webp` stands (same canvas, same ground line, same stature) or the hero jumps when the Slime appears.
+  const probe = `
+import json, sys
+from PIL import Image
+for path in sys.argv[1:]:
+    image = Image.open(path).convert('RGBA')
+    box = image.getchannel('A').point(lambda a: 255 if a > 32 else 0).getbbox()
+    print(json.dumps([image.width, image.height, *box]))
+`
+  const root = join(publicRoot, 'assets/combat/characters')
+  for (const skin of skinsOf('slime_boss')) {
+    const result = spawnSync('python3', ['-c', probe, join(root, `${skin}-hero.webp`), join(root, `${skin}-spawn.webp`)], { encoding: 'utf8' })
+    assert(result.status === 0, result.stderr)
+    const [hero, spawn] = result.stdout.trim().split('\n').map((line) => JSON.parse(line))
+    assertDeepEqual(spawn.slice(0, 2), hero.slice(0, 2), `${skin}-spawn.webp is not the size of its hero cutout`)
+    const [width, height, left, top, right, bottom] = spawn
+    assert(Math.min(left, top, width - right, height - bottom) >= 4, `${skin}-spawn.webp touches its canvas edge`)
+    assert(Math.abs(bottom - hero[5]) <= 12, `${skin}-spawn.webp stands ${bottom - hero[5]}px off the hero's ground line`)
+    const stature = (bottom - top) / (hero[5] - hero[3])
+    assert(stature > 0.7 && stature < 1.3, `${skin}-spawn.webp is ${stature.toFixed(2)}x the hero's stature`)
+    assert(Math.abs((left + right) / 2 - (hero[2] + hero[4]) / 2) <= width * 0.15, `${skin}-spawn.webp stands off the hero's centre line`)
+  }
 })
 
 check('every released hero and skin has registered transparent treasure pickup poses', () => {

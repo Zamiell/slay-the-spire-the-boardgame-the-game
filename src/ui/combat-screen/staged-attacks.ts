@@ -26,6 +26,16 @@ export interface StagedAttackSpec {
 }
 
 export const STAGED_ATTACKS = {
+  anime_slime_boss: {
+    durationMs: 1195,
+    displayScale: 2.3,
+    contactReach: 0.7088,
+    poses: ['ready', 'sink', 'gather', 'windup', 'leap', 'fly', 'step', 'cross0', 'cross', 'thrust', 'punch', 'splash', 'pull', 'recoil', 'rise0', 'rise', 'hop', 'land', 'recover'],
+    cues: [{ ms: 205, sound: 'anime_slime_boss-dash' }, { ms: 620, sound: 'anime_slime_boss-splash' }],
+    hits: [
+      { ms: 530, weight: 1, style: 'strike', angle: 0, vfx: 'impact', sound: 'anime_slime_boss-punch' },
+    ],
+  },
   kratos: {
     durationMs: 2400,
     displayScale: 2.3,
@@ -63,6 +73,9 @@ export const STAGED_ATTACKS = {
 } as const satisfies Record<string, StagedAttackSpec>
 
 export const STAGED_SOUND_VOLUMES = {
+  'anime_slime_boss-dash': 0.2,
+  'anime_slime_boss-punch': 0.32,
+  'anime_slime_boss-splash': 0.18,
   'kratos-chain': 0.19,
   'kratos-light': 0.16,
   'kratos-slam': 0.32,

@@ -328,6 +328,11 @@ def write_fixture(out):
             (root / 'animated').mkdir(parents=True, exist_ok=True)
             image.save(root / f'animated/{skin}-{file_name(pose)}.webp', lossless=True)
         bake_rest_art(images['idle'], config, root, out)
+        if config.get('character') == 'slime_boss':
+            # Slime Boss may summon from a drawing of its own, framed like the hero cutout: a recoloured copy of it here.
+            hero = Image.open(root / f'{skin}-hero.webp').convert('RGBA')
+            red, green, blue, alpha = hero.split()
+            Image.merge('RGBA', (blue, red, green, alpha)).save(root / f'{skin}-spawn.webp', lossless=True)
         for vfx in {hit['vfx'] for hit in config['hits']}:
             target = out / f'assets/combat/vfx/actions/{skin}/{vfx}.webp'
             target.parent.mkdir(parents=True, exist_ok=True)

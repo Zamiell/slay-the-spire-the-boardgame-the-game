@@ -5,11 +5,12 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { CHARACTER_IDS } from '../src/game/types.ts'
+import { CHARACTER_IDS, DOWNFALL_CHARACTER_IDS } from '../src/game/types.ts'
 import { SKINS, SKIN_IDS, SKIN_LABELS, VISUAL_IDS, SKIN_TRAITS, characterOfSkin, hasStagedAttack, isSkinOf, playerVisualId, skinTraits, skinsOf, validSkin, visualId } from '../src/game/skins.ts'
 import { createRun } from '../src/game/run.ts'
 import { beginCatchUp } from '../src/game/run/setup.ts'
-import { createCombat, preparePlayerTurn } from '../src/game/combat.ts'
+import { createCombat, playCard, preparePlayerTurn } from '../src/game/combat.ts'
+import { bruiserSlime } from '../src/game/downfall/slime-boss.ts'
 import { addPresentationEvent } from '../src/game/combat/presentation.ts'
 import { createRng } from '../src/game/rng.ts'
 import { createCampaignProgress, parseCampaignProgress } from '../src/game/campaign.ts'
@@ -17,7 +18,7 @@ import { CARDS } from '../src/game/cards.ts'
 import { RELICS } from '../src/game/relics.ts'
 import { validateRunLog } from '../src/ui/run-log.ts'
 import { addLeaderboardRun } from './lib/leaderboard.mjs'
-import { createRoom, createStore, joinRoom, saveStore } from './lib/rooms.mjs'
+import { createRoom, createStore, joinRoom, saveStore, snapshotFor, startRun } from './lib/rooms.mjs'
 import { assert, assertDeepEqual, assertEqual, check, report, suite } from './lib/harness.mjs'
 
 suite('skins')
@@ -135,8 +136,11 @@ check('a skin records hit-by-hit damage on its attack events exactly when its st
 
 check('Catch Up seats keep the skin they join with', () => {
   for (const skin of SKIN_IDS) {
-    // The table already seats a third hero, so neither newcomer duplicates a character.
-    const seated = CORE_HEROES.find((character) => character !== heroOf(skin) && character !== otherHero(skin))
+    // The table already seats a third hero, so neither newcomer duplicates a character. A Downfall hero can only join a
+    // Downfall table (Catch Up refuses it in a base-game run), so its table is seated by another Downfall hero.
+    const downfall = DOWNFALL_CHARACTER_IDS.some((character) => character === heroOf(skin))
+    const seated = downfall ? DOWNFALL_CHARACTER_IDS.find((character) => character !== heroOf(skin))
+      : CORE_HEROES.find((character) => character !== heroOf(skin) && character !== otherHero(skin))
     const base = createRun(13, party([seated]))
     const act2 = { ...base, phase: 'map', neow: null, act: 2, map: { ...base.map, act: 2, position: null } }
     const joined = beginCatchUp(act2, party([heroOf(skin), skin]).map((member) => ({ ...member, id: 'p2' })))
@@ -182,6 +186,32 @@ check('a campaign saved with Kratos\'s unlock row loads without it', () => {
   const loaded = parseCampaignProgress(saved)
   assert(!('kratos' in loaded.characters))
   assertDeepEqual(loaded, createCampaignProgress())
+})
+
+check('a room snapshot carries a staged attack\'s per-enemy damage, so every client splits the hero\'s hits from a Slime Command', () => {
+  const store = createStore()
+  const room = createRoom(store, { code: 'SLIMEY' })
+  const ann = joinRoom(room, { name: 'Ann', character: 'slime_boss', skin: 'anime_slime_boss' })
+  const bo = joinRoom(room, { name: 'Bo', character: 'guardian' })
+  startRun(room, ann.token, { seed: 7 })
+  const [player] = structuredClone(room.run.players)
+  const enemies = [0, 1].map((index) => ({ uid: `enemy-${index}`, defId: 'jaw_worm', row: 0, isBoss: false, hp: 30, maxHp: 30, block: 0,
+    strength: 0, vulnerable: 0, weak: 0, poison: 0, actionIndex: 0, abilityUsed: true, dead: false }))
+  let combat = createCombat(createRng(47), [{ ...player, hand: [], draw: [], energy: 9, slimes: [bruiserSlime('command-bruiser')] }], enemies)
+  combat.phase = 'player'
+  const tackle = { uid: 'flame-tackle', defId: 'slime_boss_flame_tackle', upgraded: false }
+  combat.players[0].hand.push(tackle)
+  combat = playCard(combat, player.id, tackle.uid, { enemyUid: 'enemy-0', row: 0, slimeUids: ['command-bruiser'], slimeEnemyUids: ['enemy-0'] })
+  room.run.phase = 'combat'
+  room.run.combat = combat
+  const event = combat.presentationEvents.findLast((held) => held.kind === 'card')
+  assertDeepEqual(event.enemyHpLoss, { 'enemy-0': 2, 'enemy-1': 2 }, 'the engine attributes only the hero\'s own hits to the card event')
+  assertEqual(combat.enemies[0].hp, 27, 'the Bruiser Command adds its own damage on top (2 + 1)')
+  const seen = snapshotFor(room, ann.token).run.combat.presentationEvents.findLast((held) => held.kind === 'card')
+  assertDeepEqual(seen.enemyHpLoss, event.enemyHpLoss, 'the snapshot forwards the public damage map')
+  assert(seen.enemyHpLoss !== event.enemyHpLoss, 'the snapshot copies it')
+  assertDeepEqual(snapshotFor(room, bo.token).run.combat.presentationEvents.findLast((held) => held.kind === 'card').enemyHpLoss, event.enemyHpLoss,
+    'another seat sees the same public numbers')
 })
 
 check('stored rooms: seat skins load, bad ones drop, and a room seating Kratos is discarded', () => {

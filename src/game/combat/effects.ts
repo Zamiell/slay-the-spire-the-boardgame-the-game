@@ -334,6 +334,9 @@ export function resolveSlimeCommand(
   const enemyIds = enemyUid && targets.enemyIds.includes(enemyUid)
     ? [enemyUid, ...targets.enemyIds.filter((uid) => uid !== enemyUid)]
     : targets.enemyIds
+  // The Slime's damage belongs to its own Command beat, not to the staged strike of the card that Commanded it.
+  const cardEvent = state.presentationEvents?.at(-1)
+  const cardHpLoss = cardEvent?.enemyHpLoss
   for (const effect of command.effects) {
     applyEffect(state, actor, effect, command.scope, 'self', {
       ...context,
@@ -344,6 +347,7 @@ export function resolveSlimeCommand(
     }, source)
     if (combatIsOver(state)) break
   }
+  if (cardEvent && cardHpLoss) cardEvent.enemyHpLoss = cardHpLoss
   const animationCounts = (context.slimeAnimationCounts ??= {})
   const animationIndex = animationCounts[slime.card.uid] ?? 0
   animationCounts[slime.card.uid] = animationIndex + 1

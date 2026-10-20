@@ -968,12 +968,13 @@ try {
   }
   }
 
-  // Several skins across heroes: the five real skins of the registry (two for Ironclad), so the offers, the owned/short
+  // Several skins across heroes: the six real skins of the registry (two for Ironclad), so the offers, the owned/short
   // states and the per-hero Wear toggles run against them directly. Every base hero has a skin, so no rack is locked.
   const cost = SKIN_PRICE.toLocaleString('en-US')
   const OFFERS = [
     ['kratos', 'Kratos', 'Ironclad'], ['monogatari_ironclad', 'Ironclad-chan', 'Ironclad'], ['monogatari_silent', 'Silent-chan', 'Silent'],
     ['monogatari_defect', 'Defect-chan', 'Defect'], ['monogatari_watcher', 'Watcher-chan', 'Watcher'],
+    ['anime_slime_boss', 'Slimeboss-chan', 'Slime Boss'],
   ]
   assert.deepEqual(OFFERS.map(([id]) => id), offeredSkins, 'the Shop test lists every registered skin in catalogue order')
   const webkitBrowser = await webkit.launch()
@@ -988,7 +989,7 @@ try {
         ['phone-932x430', { width: 932, height: 430 }, true],
       ]) {
         const label = `${engineName} ${screen}`
-        // Five offers (one owned, so Wear shows beside four prices) and no locked rack.
+        // Six offers (one owned, so Wear shows beside five prices) and no locked rack.
         const { context, page, errors } = await open(viewport, phone, wallet(3000, [], { skins: ['kratos'] }), { engine })
         // WebKit's phone emulation never reports the lazily loaded Shop's controls as stable, so it clicks through the DOM.
         const press = (locator) => phone && engineName === 'webkit' ? locator.dispatchEvent('click') : phone ? locator.tap() : locator.click()
@@ -1018,7 +1019,7 @@ try {
             assert.match(await buy.innerText(), /2,500/)
           }
         }
-        assert.equal(await page.getByRole('button', { name: /^Buy the (Ironclad|Silent|Defect|Watcher)-chan skin/ }).count(), 4, `${label}: all four -chan offers`)
+        assert.equal(await page.getByRole('button', { name: /^Buy the (Ironclad|Silent|Defect|Watcher|Slimeboss)-chan skin/ }).count(), 5, `${label}: all five -chan offers`)
         await assertUnclipped(page, '.shop-skin, .shop-skin h3, .shop-button', `${label} skins`)
         const reach = await page.evaluate(() => {
           const scroll = (selector) => { const element = document.querySelector(selector); return element.scrollHeight - element.clientHeight }
@@ -1044,7 +1045,7 @@ try {
         await page.screenshot({ path: join(output, `multi-${engineName}-${screen}-skins.png`), timeout: 90_000 })
         assert.deepEqual(errors, [], `${label}: page errors`)
         await context.close()
-        console.log(`${label}: five skin offers fit`)
+        console.log(`${label}: six skin offers fit`)
       }
     }
   } finally { await webkitBrowser.close() }

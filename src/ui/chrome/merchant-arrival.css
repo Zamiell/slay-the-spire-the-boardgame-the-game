@@ -131,6 +131,7 @@
 .sts-scope .merchant-arrival__party figure[data-character='monogatari_silent'] img { --standing-scale: 1.05109; transform: translateY(3.12%); }
 .sts-scope .merchant-arrival__party figure[data-character='monogatari_defect'] img { --standing-scale: 0.67422; transform: translateY(0.17%); }
 .sts-scope .merchant-arrival__party figure[data-character='monogatari_watcher'] img { --standing-scale: 0.89423; transform: translateY(0.35%); }
+.sts-scope .merchant-arrival__party figure[data-character='anime_slime_boss'] img { --standing-scale: 1.09489; transform: translateY(3.12%); }
 .sts-scope .merchant-arrival__merchant {
   position: absolute;
   z-index: 3;

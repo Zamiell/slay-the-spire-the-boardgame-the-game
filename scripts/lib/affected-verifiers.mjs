@@ -215,6 +215,9 @@ export function requiresFullSuite(status) {
   return false
 }
 
+/** The skins drawn as named characters (Monogatari-style and Slimeboss-chan) share one folder, script and manifest naming. */
+const SKIN_FAMILY = '(?:monogatari|anime)'
+const NAMED_SKIN = `${SKIN_FAMILY}_[a-z_]+`
 /**
  * verify-art-bakes.mjs re-runs every bake and pixel audit; it takes far longer than every other light check together.
  * Only a change to one of its art pipeline inputs selects it, never the import graph, an owner entry or the
@@ -230,10 +233,10 @@ const ART_BAKE_INPUT = new RegExp('^(' + [
   // Menu and Shop icon prompts live beside the animation sources but no bake reads them.
   'scripts/animation/(?!sources/(menu-icons|shop-icons)/)',
   // The scripts/art inputs the bakes run or whose sources the provenance manifests hash.
-  'scripts/art/campfire-sitters\\.py$', 'scripts/art/sources/campfire-sitters/(manifest\\.json|[^/]+\\.webp)$', 'scripts/art/skin-cards/(masks/|([a-z]+-)?registration\\.json$)', 'scripts/art/sources/([^/]+-skin-cards|monogatari_[a-z]+-char)/',
-  'scripts/art/sources/monogatari/(cards/|ironclad-idle-grip-repaired\\.png$)', 'scripts/art/sources/monogatari_[a-z]+-noncombat/identity\\.webp$',
+  'scripts/art/campfire-sitters\\.py$', 'scripts/art/sources/campfire-sitters/(manifest\\.json|[^/]+\\.webp)$', 'scripts/art/skin-cards/(masks/|([a-z]+-)*registration\\.json$|cards/slime_boss\\.json$)', `scripts/art/sources/([^/]+-skin-cards|${NAMED_SKIN}-char)/`,
+  'scripts/art/sources/monogatari/(cards/|ironclad-idle-grip-repaired\\.png$)', `scripts/art/sources/${NAMED_SKIN}-noncombat/identity\\.webp$`,
   // The provenance the bakes hash.
-  'docs/skins/[^/]+-card-art/', 'docs/skins/monogatari_[a-z]+-art/(attack-manifest\\.json|README\\.md)$',
+  'docs/skins/[^/]+-card-art/', `docs/skins/${NAMED_SKIN}-art/(attack-manifest\\.json|README\\.md)$`, `docs/skins/${NAMED_SKIN}-art/prompts/attack-[a-z0-9]+\\.txt$`,
   'docs/skins/monogatari_silent-art/manifest\\.json$',
   'docs/skins/kratos-art\\.json$',
   'docs/monogatari-skins/cards/[a-z]+-catalogue\\.json$', 'docs/monogatari-skins/prompts/(cards|combat)/',
@@ -243,7 +246,7 @@ const ART_BAKE_INPUT = new RegExp('^(' + [
   'scripts/verify-art-bakes\\.mjs$', 'scripts/lib/asset-inventory\\.mjs$',
 ].join('|') + ')')
 /** The only Markdown the bakes read: the audit-cap table of each staged skin's README. */
-const AUDIT_CAP_TABLE = /^docs\/skins\/monogatari_[a-z]+-art\/README\.md$/
+const AUDIT_CAP_TABLE = new RegExp(`^docs/skins/${NAMED_SKIN}-art/README\\.md$`)
 export const artBakeInput = (file) => {
   const path = cleanPath(file)
   return ART_BAKE_INPUT.test(path) && (!path.endsWith('.md') || AUDIT_CAP_TABLE.test(path))
@@ -353,8 +356,8 @@ export function affectedVerifiers(root, changedFiles, scripts) {
     let covered = [...selected].some((script) => dependenciesOf(join('scripts', script)).has(resolve(root, file)))
     if (file === 'scripts/animation/kratos.py' || file.startsWith('scripts/animation/sources/kratos/')
       || file === 'scripts/animation/skin-attack.py' || file === 'scripts/animation/skin_geometry.py'
-      || file === 'scripts/animation/audit-poses.py' || /^scripts\/animation\/(monogatari[\w]*|measure-[\w-]+)\.py$/.test(file)
-      || file.startsWith('scripts/animation/sources/monogatari_')
+      || file === 'scripts/animation/audit-poses.py' || new RegExp(`^scripts/animation/(monogatari[\\w]*|${NAMED_SKIN}|measure-[\\w-]+)\\.py$`).test(file)
+      || new RegExp(`^scripts/animation/sources/${NAMED_SKIN}/`).test(file)
       || file.startsWith('scripts/animation/skins/') || file.startsWith('scripts/animation/test-skins/')) {
       // The bakes and audits run in verify-art-bakes (artBakeInput). verify-assets reads the skin configs and hashes the
       // Kratos idle source as a menu-art reference.
@@ -387,6 +390,7 @@ export function affectedVerifiers(root, changedFiles, scripts) {
       covered ||= browserCovered
     }
     if (file.startsWith('scripts/art/sources/kratos/') || file.startsWith('scripts/art/sources/kratos-skin-cards/')
+      || file.startsWith('scripts/art/sources/anime_slime_boss-skin-cards/')
       || file.startsWith('scripts/art/skin-cards/')) {
       selected.add('verify-assets.mjs')
       selected.add('verify-skin-browser.mjs')
@@ -394,7 +398,7 @@ export function affectedVerifiers(root, changedFiles, scripts) {
       covered = true
     }
     // Monogatari skin exporters: character art feeds the skin browser; merchant and treasure art feeds their verifiers.
-    if (/^scripts\/art\/(export|cutout)-[\w-]*monogatari[\w-]*-(char|idle)\.py$/.test(file)) {
+    if (new RegExp(`^scripts/art/(export|cutout)-[\\w-]*${SKIN_FAMILY}[\\w-]*-(char|idle)\\.py$`).test(file)) {
       selected.add('verify-assets.mjs')
       selected.add('verify-skin-browser.mjs')
       covered = true
@@ -404,11 +408,11 @@ export function affectedVerifiers(root, changedFiles, scripts) {
       selected.add('verify-art-scenes-browser.mjs')
       covered = true
     }
-    if (/^scripts\/art\/export-[\w-]*monogatari[\w-]*-noncombat\.py$/.test(file)) {
+    if (new RegExp(`^scripts/art/export-[\\w-]*${SKIN_FAMILY}[\\w-]*-noncombat\\.py$`).test(file)) {
       for (const script of ['verify-assets.mjs', 'verify-merchant-overflow-browser.mjs', 'verify-treasure-animation-browser.mjs']) selected.add(script)
       covered = true
     }
-    if (file.startsWith('scripts/art/sources/kratos-noncombat/')) {
+    if (file.startsWith('scripts/art/sources/kratos-noncombat/') || file.startsWith('scripts/art/sources/anime_slime_boss-noncombat/')) {
       for (const script of ['verify-assets.mjs', 'verify-merchant-overflow-browser.mjs', 'verify-treasure-animation-browser.mjs']) selected.add(script)
       covered = true
     }
@@ -436,8 +440,8 @@ export function affectedVerifiers(root, changedFiles, scripts) {
     }
     // Menu-art and Ironclad-chan/Defect-chan provenance (the manifests and the prompts and sources they hash) is checked by
     // verify-assets.
-    if (/^docs\/(monogatari-skins|skins\/(kratos-menu-art|monogatari_[a-z]+-art))\//.test(file)
-      || /^scripts\/(animation\/sources\/monogatari|art\/sources\/monogatari(_[a-z]+-char)?)\//.test(file)) {
+    if (new RegExp(`^docs/(monogatari-skins|skins/(kratos-menu-art|${NAMED_SKIN}-art))/`).test(file)
+      || new RegExp(`^scripts/(animation/sources/monogatari|art/sources/(monogatari|${NAMED_SKIN}-char))/`).test(file)) {
       selected.add('verify-assets.mjs')
       covered = true
     }

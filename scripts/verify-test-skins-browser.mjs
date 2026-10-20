@@ -9,6 +9,8 @@ import { join, resolve } from 'node:path'
 import { createServer } from 'vite'
 import { chromium } from './lib/profile-browser.mjs'
 import { installTestSkins, scratchDir, syntheticPortraits, testSkinsPlugin, TEST_SKINS } from './lib/test-skins.mjs'
+import { SKINS } from '../src/game/skins.ts'
+import { SKIN_PRICES } from '../src/game/coins.ts'
 
 const root = resolve(import.meta.dirname, '..')
 const scratch = scratchDir('test-skins-smoke')
@@ -16,6 +18,15 @@ const assetsDir = scratch.dir
 mkdirSync(join(assetsDir, 'combat/characters'), { recursive: true })
 writeFileSync(join(assetsDir, 'combat/characters/synthetic.txt'), 'synthetic pose')
 const skins = TEST_SKINS
+// What the registry holds without the synthetic skins (this process has not installed them yet), and what it must hold with them:
+// an extra skin joins its hero's list, or opens a new hero at the end, exactly as `registerSkins` does.
+const real = { skins: Object.fromEntries(Object.entries(SKINS).map(([hero, list]) => [hero, [...list]])), prices: { ...SKIN_PRICES } }
+const expected = { skins: { ...real.skins }, prices: { ...real.prices } }
+for (const { id, character, price = 2500 } of skins) {
+  expected.skins[character] = [...(expected.skins[character] ?? []), id]
+  expected.prices[id] = price
+}
+const expectedIds = Object.values(expected.skins).flat()
 const vite = await createServer({ root, logLevel: 'silent', plugins: [testSkinsPlugin(skins, { assetsDir })], server: { host: '127.0.0.1', port: 0 } })
 await vite.listen()
 const address = vite.httpServer?.address()
@@ -33,41 +44,41 @@ try {
     const coins = await import('/src/game/coins.ts')
     const vfx = await import('/src/ui/combat-vfx.ts')
     const wallet = await import('/src/wallet.ts')
-    const synthetic = ['extra_silent', 'extra_defect']
+    const synthetic = ['extra_silent', 'extra_defect', 'extra_slime_boss']
     const bought = wallet.buySkin({ ...wallet.createWallet(), coins: 5000 }, 'extra_defect')
     return {
       ids: [...registry.SKIN_IDS], visual: [...registry.VISUAL_IDS],
-      silent: [...registry.skinsOf('silent')], watcher: [...registry.skinsOf('watcher')], ironclad: [...registry.skinsOf('ironclad')],
-      defect: [...registry.skinsOf('defect')], ironcladOnly: registry.isSkinOf('ironclad', 'extra_silent'),
+      lists: Object.fromEntries(['ironclad', 'silent', 'defect', 'watcher', 'slime_boss'].map((hero) => [hero, [...registry.skinsOf(hero)]])),
+      ironcladOnly: registry.isSkinOf('ironclad', 'extra_silent'),
       labels: Object.fromEntries(synthetic.concat('kratos').map((id) => [id, registry.SKIN_LABELS[id]])),
       traits: Object.fromEntries(synthetic.concat('kratos').map((id) => [id, registry.SKIN_TRAITS[id]])),
-      staged: synthetic.map((id) => registry.hasStagedAttack(id)), character: registry.characterOfSkin('extra_silent'),
+      staged: synthetic.map((id) => registry.hasStagedAttack(id)), characters: synthetic.map((id) => registry.characterOfSkin(id)),
       prices: Object.fromEntries(Object.keys(coins.SKIN_PRICES).map((id) => [id, coins.SKIN_PRICES[id]])),
-      visualOf: [registry.visualId('silent', 'extra_silent'), registry.visualId('watcher', 'extra_silent')],
-      normalized: registry.normalizeSkins(['extra_defect', 'nope', 'kratos', 'monogatari_silent']),
+      visualOf: [registry.visualId('silent', 'extra_silent'), registry.visualId('watcher', 'extra_silent'), registry.visualId('slime_boss', 'extra_slime_boss')],
+      normalized: registry.normalizeSkins(['extra_defect', 'nope', 'kratos', 'monogatari_silent', 'extra_slime_boss']),
       bought: bought.ok ? bought.wallet.skins : bought.reason,
-      vfx: [vfx.cardVfxRecipe('extra_silent', 'strike_silent'), vfx.cardVfxRecipe('silent', 'strike_silent')],
+      vfx: [vfx.cardVfxRecipe('extra_silent', 'strike_silent'), vfx.cardVfxRecipe('silent', 'strike_silent'),
+        vfx.cardVfxRecipe('extra_slime_boss', 'slime_boss_strike'), vfx.cardVfxRecipe('slime_boss', 'slime_boss_strike')],
       asset: await (await fetch('/assets/combat/characters/synthetic.txt')).text(),
       realAsset: (await fetch('/assets/combat/characters/kratos-hero.webp', { method: 'HEAD' })).headers.get('content-type'),
     }
   })
-  assert.deepEqual(seen.ids, ['kratos', 'monogatari_ironclad', 'monogatari_silent', 'extra_silent', 'monogatari_defect', 'extra_defect', 'monogatari_watcher'])
+  assert.deepEqual(seen.ids, expectedIds)
   assert.deepEqual(seen.visual.slice(-seen.ids.length), seen.ids)
-  assert.deepEqual([seen.silent, seen.watcher, seen.ironclad, seen.defect],
-    [['monogatari_silent', 'extra_silent'], ['monogatari_watcher'], ['kratos', 'monogatari_ironclad'], ['monogatari_defect', 'extra_defect']])
+  assert.deepEqual(seen.lists, Object.fromEntries(Object.keys(seen.lists).map((hero) => [hero, expected.skins[hero] ?? []])))
   assert.equal(seen.ironcladOnly, false)
-  assert.deepEqual(seen.labels, { extra_silent: 'Extra', extra_defect: 'Extra', kratos: 'Kratos' })
+  assert.deepEqual(seen.labels, { extra_silent: 'Extra', extra_defect: 'Extra', extra_slime_boss: 'Extra', kratos: 'Kratos' })
   assert.deepEqual(seen.traits.kratos, { energyOrb: true, stagedAttack: true })
   assert.deepEqual(seen.traits.extra_silent, { energyOrb: false, stagedAttack: false })
   assert.deepEqual(seen.traits.extra_defect, { energyOrb: true, stagedAttack: false })
-  assert.deepEqual(seen.staged, [false, false])
-  assert.equal(seen.character, 'silent')
-  assert.deepEqual(seen.prices, { kratos: 2500, monogatari_ironclad: 2500, monogatari_silent: 2500, monogatari_defect: 2500, monogatari_watcher: 2500,
-    extra_silent: 2500, extra_defect: 1234 })
-  assert.deepEqual(seen.visualOf, ['extra_silent', 'watcher'])
-  assert.deepEqual(seen.normalized, ['kratos', 'monogatari_silent', 'extra_defect'])
+  assert.deepEqual(seen.staged, [false, false, false])
+  assert.deepEqual(seen.characters, ['silent', 'defect', 'slime_boss'])
+  assert.deepEqual(seen.prices, expected.prices)
+  assert.deepEqual(seen.visualOf, ['extra_silent', 'watcher', 'extra_slime_boss'])
+  assert.deepEqual(seen.normalized, expectedIds.filter((id) => ['extra_defect', 'kratos', 'monogatari_silent', 'extra_slime_boss'].includes(id)))
   assert.deepEqual(seen.bought, ['extra_defect'])
   assert.deepEqual(seen.vfx[0], seen.vfx[1], 'a skin shows its hero\'s combat VFX')
+  assert.deepEqual(seen.vfx[2], seen.vfx[3], 'a skin of a Downfall hero shows its hero\'s combat VFX')
   assert.equal(seen.asset, 'synthetic pose')
   assert.match(seen.realAsset ?? '', /image\/webp/)
   assert.deepEqual(errors, [])
@@ -78,6 +89,7 @@ try {
   const coins = await import('../src/game/coins.ts')
   assert.deepEqual([...registry.SKIN_IDS], seen.ids)
   assert.equal(coins.SKIN_PRICES.extra_defect, 1234)
+  assert.equal(coins.SKIN_PRICES.extra_slime_boss, 4321)
   await installTestSkins(skins)
   assert.deepEqual([...registry.SKIN_IDS], seen.ids, 'installing twice must not duplicate skins')
   await installTestSkins([{ id: 'kratos', character: 'ironclad', label: 'Other', price: 1 }])

@@ -1,6 +1,6 @@
 // Real engine events rendered by the production combat screen; no synthetic attacks.
 // The hero wears a skin with a staged attack: the hero's own cards play, the skin's animation shows.
-export async function installAttackFixture({ character, skin }) {
+export async function installAttackFixture({ character, skin, strike = `strike_${character}` }) {
   document.querySelector('#root').style.display = 'none'
   document.documentElement.dataset.mobilePerformance = String(innerWidth < 900)
   document.documentElement.dataset.reducedMotion = 'false'
@@ -35,17 +35,20 @@ export async function installAttackFixture({ character, skin }) {
     f.restoration++
     f.render()
   }
-  f.attack = (id = `strike_${f.character}`) => {
+  // `command`: the enemy a Slime Command in the card hits (the party's first Slime acts).
+  f.attack = (id = strike, { command } = {}) => {
     if (id === 'shiv') {
       f.state.players[0].shivs++
       f.state = spendShiv(f.state, 'p1', 'enemy-0')
     } else {
       const held = { uid: `art-${f.run}-${f.state.presentationEvents.length}`, defId: id, upgraded: false }
       f.state.players[0].hand.push(held)
-      f.state = playCard(f.state, 'p1', held.uid, { enemyUid: 'enemy-0', row: 0 })
+      f.state = playCard(f.state, 'p1', held.uid, { enemyUid: 'enemy-0', row: 0,
+        ...(command && { slimeUids: [f.state.players[0].slimes[0].card.uid], slimeEnemyUids: [command] }) })
     }
     f.render()
-    return f.state.presentationEvents.at(-1).seq
+    // A card can add more events after the hero's own (a Slime Command); the attack is the card's or Shiv's.
+    return f.state.presentationEvents.findLast(event => event.kind === 'card' || event.kind === 'shiv').seq
   }
   f.reset()
 }

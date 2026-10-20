@@ -115,4 +115,33 @@ def monogatari(card, entry, plan, work, refs_dir):
     return prompt, paths
 
 
-RECIPES = {'kratos': kratos, 'monogatari': monogatari}
+ANIME_SLIME_BOSS_TEMPLATE = """Use case: stylized-concept. Asset type: one text-free Slay the Spire card illustration, redrawn as clean modern TV-anime art starring Slimeboss-chan, the original anime heroine of the Slime Boss skin (the human form of the lime-green slime boss).
+Reference images, by number. Image 1 is the CHARACTER DESIGN SHEET and the STYLE AUTHORITY: copy its clean thin dark linework, flat cel colouring with one soft shadow step, large almond eyes with small highlights, long straight hair strands drawn as a few clean flat-shaded clumps, and calm TV-anime proportions. Image 2 is the approved HEROINE IDENTITY drawing: {cues} Keep her face, gold-yellow eyes, lime-green hair, tiny black bowler mini-hat, coat, tunic, belt, boots and colours identical to images 1 and 2 in every card, redrawn for the new pose and camera. Slimes are glossy translucent lime-green blobs (the same lime as her hair) with a few white specular highlights, thin dark outlines, drips and small bubbles, like the floating blob and the slime glove in image 2; they have no faces, no hats and no eyes, and they never take another colour. Image {scan_n} is the original Slay the Spire card and image {art_n} is that card's original artwork: keep the card's meaning, subject and gesture, but translate it into the scene below with the heroine and her lime-green slimes. Ignore every letter, number, symbol and the frame of the card scan; none of them may appear in the result.
+SCENE: {name} ({type} card). {scene}
+Compose {composition}. Palette: {palette} Produce one wide 1536x1024 illustration with no frame, no border, no labels, no text, no symbols resembling letters, no logo, no watermark. Keep the main subject inside the central 75 percent of the image height and the central 85 percent of its width, because the illustration is later cropped to a shallow wide window and shown small, so keep the focal shapes bold and readable at thumbnail size.
+She is a single adult-looking young woman in her modest full-coverage outfit with exactly two arms and two legs, correct hands, no fan-service pose, no gore. Calm faint smile, thin even linework, flat cel colour, a simple clean anime background (no photographic or painterly detail), no gradients except the glossy slimes.
+"""
+
+ANIME_SLIME_BOSS_COMPOSITION = {
+    'attack': 'a dynamic diagonal action composition with a dramatic camera angle, motion arcs and a clear impact',
+    'skill': 'a solid, calm, readable composition with clear props that reads inside a rounded rectangle',
+    'power': 'an iconic, centred, emblematic composition whose important shapes read inside a circle or oval, with calm margins at all four edges',
+}
+
+
+def anime_slime_boss(card, entry, plan, work, refs_dir):
+    pool = {r['tag']: r for r in plan['styleReferences']}
+    tags = entry.get('styles') or list(pool)
+    inputs = [(resolve_ref(pool[t]['path']), f'style-{t}') for t in tags]
+    inputs.append((resolve_ref(plan['identityReference']), 'identity'))
+    k = len(tags)
+    paths = [png(src, work / 'inputs' / card['id'] / f'{i + 1:02d}-{role}.png', 1280) for i, (src, role) in enumerate(inputs)]
+    paths.append(png(CARDS / f"{scan_key(card, False)}.webp", work / 'inputs' / card['id'] / f'{k + 2:02d}-scan.png'))
+    paths.append(original_art(card, work / 'inputs' / card['id'] / f'{k + 3:02d}-art.png'))
+    prompt = ANIME_SLIME_BOSS_TEMPLATE.format(
+        scan_n=k + 2, art_n=k + 3, cues=plan['identityCues'], name=card['name'], type=card['type'], scene=entry['scene'],
+        composition=ANIME_SLIME_BOSS_COMPOSITION[card['type']], palette=plan['palette'])
+    return prompt, paths
+
+
+RECIPES = {'kratos': kratos, 'monogatari': monogatari, 'anime_slime_boss': anime_slime_boss}

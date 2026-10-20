@@ -233,6 +233,8 @@
 .pip--energy[data-skin-orb][data-character='monogatari_silent'] { --energy-orb-glow: rgb(166 248 62 / 0.45); }
 .pip--energy[data-skin-orb][data-character='monogatari_watcher'] { --energy-orb-glow: rgb(150 70 240 / 0.5); }
 
+.pip--energy[data-skin-orb][data-character='anime_slime_boss'] { --energy-orb-glow: rgb(171 239 60 / 0.45); }
+
 .pip--energy[data-skin-orb]::before,
 .pip--energy[data-skin-orb]::after { content: none; }
 

@@ -21,13 +21,14 @@ STATES = {
        for hero in ('ironclad', 'silent', 'defect', 'hermit', 'slime_boss')},
     'watcher': (['characters/watcher-hero.webp'], ['characters/watcher-hero.webp']),
     **{skin: ([f'characters/animated/{skin}-idle.webp'], [f'characters/{skin}-hero.webp'])
-       for skin in ('kratos', 'monogatari_ironclad', 'monogatari_silent', 'monogatari_defect', 'monogatari_watcher')},
+       for skin in ('kratos', 'monogatari_ironclad', 'monogatari_silent', 'monogatari_defect', 'monogatari_watcher', 'anime_slime_boss')},
     'guardian': (['rigged/hero-guardian-idle.webp'], ['characters/guardian-hero.webp']),
     'guardian-defense': (['rigged/hero-guardian-defense-idle.webp'], ['characters/guardian-defense.webp']),
     **{f'hexaghost-heat-{heat}': ([f'rigged/hero-hexaghost-heat-{heat}-idle.webp'], [f'characters/hexaghost-heat-{heat}.webp'])
        for heat in range(7)},
     # Shown instead of the idle pose for a moment: the Slime Boss spawn and the Guardian mode shifts.
     'slime_boss-spawn': (['characters/slime_boss-spawn.webp'],) * 2,
+    'anime_slime_boss-spawn': (['characters/anime_slime_boss-spawn.webp'],) * 2,
     'guardian-transition': (['characters/guardian-to-attack.webp', 'characters/guardian-to-defense.webp'],) * 2,
 }
 

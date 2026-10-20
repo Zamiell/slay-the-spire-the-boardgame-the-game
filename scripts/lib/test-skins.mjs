@@ -28,6 +28,8 @@ const DEFAULT_PRICE = 2500
 export const TEST_SKINS = [
   { id: 'extra_silent', character: 'silent', label: 'Extra' },
   { id: 'extra_defect', character: 'defect', label: 'Extra', price: 1234, traits: { energyOrb: true } },
+  // A Downfall hero (a formation of Slimes, no ordinary deck): everything hero-keyed answers for a skin of it too.
+  { id: 'extra_slime_boss', character: 'slime_boss', label: 'Extra', price: 4321 },
 ]
 
 /** A skin with every field filled in; throws on a malformed one. */

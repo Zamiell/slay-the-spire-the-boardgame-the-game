@@ -182,3 +182,26 @@ render('monogatari_watcher-thrust', .5, lambda t: band(len(t), 900, 7000) * np.e
 render('monogatari_watcher-chime', .35, lambda t: band(len(t), 1500, 8000) * np.exp(-t * 170) * .5
        + tone(t, 360, 300, .35) * np.exp(-t * 75) * .3
        + ring(t, [(2794, 11, .24), (2798, 13, .12), (4186, 14, .18), (6272, 20, .09)]), [(.06, .2)])
+
+# Slimeboss-chan (anime_slime_boss): a gooey dash whoosh, a heavy wet gauntlet punch and a slime splash.
+# Own random stream, so every sound above stays byte-identical. Each file starts on its animation beat.
+rng = np.random.default_rng(20261019)
+
+
+def bubble(t, delay, frequency, decay, gain=1.0):
+    """A wet bubble: a short sine whose pitch rises quickly, starting `delay` seconds in."""
+    u = np.maximum(0, t - delay)
+    return np.sin(2 * np.pi * (frequency * u + frequency * 9 * u * u)) * np.exp(-u * decay) * gain * (t >= delay)
+
+
+render('anime_slime_boss-dash', .3, lambda t: swept(t, 500, 2300, 1.8) * attack(t, .02)
+       * np.where(t < .1, np.sin(np.pi * t / .2) ** 2, np.exp(-(t - .1) * 14)) * .6
+       + bubble(t, .0, 260, 26, .35) + bubble(t, .06, 340, 34, .25) + bubble(t, .11, 210, 40, .2))
+render('anime_slime_boss-punch', .42, lambda t: band(len(t), 1200, 9000) * np.exp(-t * 95) * 1.0
+       + tone(t, 160, 52, .42) * np.exp(-t * 15) * 1.1
+       + band(len(t), 250, 2600) * np.exp(-t * 17) * (.5 + .5 * np.sin(2 * np.pi * 32 * t)) * .75
+       + bubble(t, .012, 300, 36, .35) + bubble(t, .05, 420, 40, .3) + bubble(t, .1, 250, 44, .25), [(.05, .12)])
+render('anime_slime_boss-splash', .4, lambda t: band(len(t), 1800, 7000) * attack(t, .01) * np.exp(-t * 15) * .55
+       + sum(bubble(t, delay, frequency, 55, .22) for delay, frequency in
+             [(.0, 700), (.022, 980), (.051, 560), (.08, 1250), (.118, 820), (.16, 1500), (.21, 900)])
+       + band(len(t), 200, 900) * np.exp(-t * 20) * .35)

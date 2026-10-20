@@ -508,7 +508,7 @@ export function usePresentationEvents(
       const slimeAnimation = event.kind === 'card' && cardDef(event.sourceId).cardKind === 'slime'
       const delay = delays.get(event.seq) ?? 0
       const localAttackContact = splitAttackWeights(state, event) ? attackContact : Math.max(0, attackContact - delay)
-      const slimeBossAttack = state.players.some((player) =>
+      const slimeBossAttack = !staged && state.players.some((player) =>
         player.id === event.actorId && player.character === 'slime_boss') && attackContact > 0
       const lifetime = (localAttackContact > 0
         ? slimeBossAttack ? SLIME_COMMAND_ANIMATION_MS + 100

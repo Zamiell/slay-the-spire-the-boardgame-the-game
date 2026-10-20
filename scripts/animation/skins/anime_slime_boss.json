@@ -1,0 +1,278 @@
+{
+  "skin": "anime_slime_boss",
+  "note": "Hand-authored clock and presentation of the Slimeboss-chan attack: a slime-powered fist strike (a short sink into a step, the floating slime blob streams down her arm and wraps the right fist into a big glossy gauntlet, a coil, a low leap in, one heavy punch, the gauntlet bursts into a splash, she recoils, rises and hops back onto the idle). The drawings are baked from the sources by anime_slime_boss.py (planted on the idle near sole, poseShift stays ~0) which writes audit.landmarks (the head: hat top to iris centroid; the floating blob wherever it floats); skin-attack.py --measure --write stores poseShift and contactReach; everything else is edited here. Format: docs/skins/attack-animation.md.",
+  "canvas": 1152,
+  "displayScale": 2.3,
+  "ground": 1136,
+  "durationMs": 1195,
+  "travel": {
+    "out": [225, 530],
+    "back": [850, 1110],
+    "path": {
+      "out": [
+        [225, 0],
+        [275, 0.02],
+        [340, 0.965],
+        [390, 0.98],
+        [435, 0.99],
+        [485, 0.997],
+        [530, 1]
+      ],
+      "back": [
+        [850, 1],
+        [910, 0.99],
+        [980, 0.04],
+        [1035, 0.015],
+        [1110, 0]
+      ]
+    }
+  },
+  "contactReach": 0.7088,
+  "contactPoses": [
+    "punch"
+  ],
+  "keys": [
+    [0, "idle"],
+    [40, "sink"],
+    [90, "gather"],
+    [145, "windup"],
+    [225, "leap"],
+    [275, "fly"],
+    [340, "step"],
+    [390, "cross0"],
+    [435, "cross"],
+    [485, "thrust"],
+    [530, "punch"],
+    [620, "splash"],
+    [690, "pull"],
+    [740, "recoil"],
+    [795, "rise0"],
+    [850, "rise"],
+    [910, "hop"],
+    [980, "land"],
+    [1035, "recover"],
+    [1110, "idle"]
+  ],
+  "cues": [
+    {
+      "at": 205,
+      "sound": "anime_slime_boss-dash"
+    },
+    {
+      "at": "splash",
+      "sound": "anime_slime_boss-splash"
+    }
+  ],
+  "hits": [
+    {
+      "at": "punch",
+      "weight": 1,
+      "style": "strike",
+      "angle": 0,
+      "vfx": "impact",
+      "sound": "anime_slime_boss-punch"
+    }
+  ],
+  "sounds": {
+    "anime_slime_boss-dash": 0.2,
+    "anime_slime_boss-punch": 0.32,
+    "anime_slime_boss-splash": 0.18
+  },
+  "audit": {
+    "tolerances": {
+      "propRatio": 0.36,
+      "soleRatio": 0.33,
+      "headStepPx": 110,
+      "propStepPx": 110,
+      "groundSpeedPxPerMs": 0.34,
+      "headRatio": 0.0022,
+      "lonePixels": 260
+    },
+    "skip": {
+      "props": [
+        "gather",
+        "windup",
+        "leap",
+        "fly",
+        "step",
+        "cross",
+        "thrust",
+        "punch",
+        "splash",
+        "pull",
+        "recoil",
+        "cross0"
+      ],
+      "soleRatio": [
+        "fly",
+        "hop"
+      ]
+    },
+    "airborne": {
+      "fly": 20,
+      "hop": 32
+    },
+    "landmarks": {
+      "idle": {
+        "head": [
+          [584.5, 770.6],
+          [576.0, 812.4]
+        ],
+        "props": {
+          "blob": [
+            [507.0, 854.3],
+            [527.0, 820.0]
+          ]
+        }
+      },
+      "sink": {
+        "head": [
+          [635.6, 802.5],
+          [628.1, 844.5]
+        ],
+        "props": {
+          "blob": [
+            [568.4, 821.9],
+            [524.8, 847.5]
+          ]
+        }
+      },
+      "gather": {
+        "head": [
+          [634.6, 829.1],
+          [628.7, 871.4]
+        ]
+      },
+      "windup": {
+        "head": [
+          [656.2, 846.4],
+          [646.2, 887.9]
+        ]
+      },
+      "leap": {
+        "head": [
+          [756.2, 841.3],
+          [750.2, 883.5]
+        ]
+      },
+      "fly": {
+        "head": [
+          [781.0, 873.8],
+          [766.3, 913.8]
+        ]
+      },
+      "step": {
+        "head": [
+          [785.1, 884.8],
+          [773.3, 925.8]
+        ]
+      },
+      "cross0": {
+        "head": [
+          [786.1, 883.9],
+          [772.7, 924.3]
+        ]
+      },
+      "cross": {
+        "head": [
+          [791.3, 863.6],
+          [779.5, 904.5]
+        ]
+      },
+      "thrust": {
+        "head": [
+          [778.9, 881.1],
+          [763.2, 920.7]
+        ]
+      },
+      "punch": {
+        "head": [
+          [798.7, 879.6],
+          [786.1, 920.3]
+        ]
+      },
+      "splash": {
+        "head": [
+          [795.7, 860.1],
+          [786.2, 901.7]
+        ]
+      },
+      "pull": {
+        "head": [
+          [774.8, 840.9],
+          [768.0, 883.0]
+        ]
+      },
+      "recoil": {
+        "head": [
+          [759.8, 857.7],
+          [752.8, 899.8]
+        ]
+      },
+      "rise0": {
+        "head": [
+          [721.9, 852.1],
+          [718.7, 894.6]
+        ],
+        "props": {
+          "blob": [
+            [652.4, 882.2],
+            [627.9, 890.8]
+          ]
+        }
+      },
+      "rise": {
+        "head": [
+          [677.9, 782.1],
+          [673.0, 824.5]
+        ],
+        "props": {
+          "blob": [
+            [578.9, 819.6],
+            [552.3, 860.2]
+          ]
+        }
+      },
+      "hop": {
+        "head": [
+          [580.1, 783.7],
+          [571.6, 825.5]
+        ],
+        "props": {
+          "blob": [
+            [485.2, 870.8],
+            [509.8, 829.7]
+          ]
+        }
+      },
+      "land": {
+        "head": [
+          [601.6, 848.0],
+          [580.8, 885.2]
+        ],
+        "props": {
+          "blob": [
+            [531.6, 888.3],
+            [505.2, 923.7]
+          ]
+        }
+      },
+      "recover": {
+        "head": [
+          [584.2, 777.7],
+          [575.0, 819.3]
+        ],
+        "props": {
+          "blob": [
+            [502.9, 864.7],
+            [523.9, 829.9]
+          ]
+        }
+      }
+    },
+    "note": "Head length is hat top to the centroid of the gold irises (the model draws the neck and jaw at inconsistent heights, so the chin is not a stable landmark); the head scale is the registration itself, so headRatio is near zero by construction and the caps that matter are the steps. The only tracked prop is the floating slime blob: while it is absorbed into the gauntlet (gather to recoil) the gauntlet is bigger than the idle glove by design and is skipped in skip.props. soleRatio is 0.33 (the lunge drawings plant a long flat boot and read up to 1.31 of the idle sole); fly and hop are airborne (lift 20 and 32) and not checked by it. lonePixels 260 lets the splash droplets and the punch spray count as detached slime."
+  },
+  "poseShift": {},
+  "minHoldMs": 45,
+  "timingNote": "Footwork follows travel.path: grounded drawings hold the box nearly still (groundSpeedPxPerMs caps it at 0.34 px/ms on screen) and the airborne drawings (fly out, hop back) carry the dash. Out: sink 40-90, gather 90-145 (the blob streams down the arm), windup 145-225 (the gauntlet complete, arm cocked), leap 225-275 (push-off, the box starts), fly 275-340 (flight, 96% of the trip), step 340-390 (landing stride), cross0 390-435 and cross 435-485 (the gauntlet arm sweeps forward in front of her torso while the bare arm pulls back), thrust 485-530 (arm half extended), punch 530-620 (the hit, weight 1), splash 620-690 (the gauntlet bursts), pull 690-740 and recoil 740-795 (the arm folds back, the bare hand returns to its guard), rise0 795-850, rise 850-910 (the travel back starts), hop 910-980 (airborne back hop), land 980-1035, recover 1035-1110, then the exact idle drawing for the last 85 ms. Every drawing holds at least 45 ms; no flight drawing needs shortHolds. The gauntlet is on the same (right, near) arm in every drawing; the bare arm is the far arm. Every cut moves the head by at most 102 px and the blob by at most 107 px."
+}

@@ -436,6 +436,7 @@ const skinAttack: Partial<Record<SkinId, VfxRecipe>> = {
   kratos: recipe('slash', 'lunge', 'kratos/impact', 'ember-orange'),
   monogatari_silent: recipe('slash', 'lunge', 'monogatari_silent/impact', 'venom-green'),
   monogatari_watcher: recipe('blunt', 'lunge', 'monogatari_watcher/impact', 'astral-violet'),
+  anime_slime_boss: recipe('blunt', 'lunge', 'anime_slime_boss/impact', 'chaos-green'),
 }
 
 const actorTone: Record<CharacterId, string> = {

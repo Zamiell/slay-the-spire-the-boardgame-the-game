@@ -175,28 +175,31 @@ check('Kratos attack art provenance and measured pose shifts', () => {
   assert(measured.status === 0, measured.stderr || measured.stdout)
 })
 
-check('Silent-chan and Watcher-chan attack art provenance, and every Monogatari bake matches its sources', () => {
+check('Silent-chan, Watcher-chan and Slimeboss-chan attack art provenance, and every anime skin bake matches its sources', () => {
   const digest = (path) => createHash('sha256').update(readFileSync(join(repoRoot, path))).digest('hex')
   const read = (path) => JSON.parse(readFileSync(join(repoRoot, path), 'utf8'))
   const generated = {
     monogatari_silent: read('docs/skins/monogatari_silent-art/manifest.json').attack.generated,
     monogatari_watcher: read('docs/skins/monogatari_watcher-art/attack-manifest.json').generated,
+    anime_slime_boss: read('docs/skins/anime_slime_boss-art/attack-manifest.json').generated,
   }
   for (const [skin, entries] of Object.entries(generated)) {
     const config = readFileSync(join(repoRoot, `scripts/animation/skins/${skin}.json`), 'utf8')
     // One manifest entry per drawn pose of the animation clock (the idle key is the separate `ready` drawing).
     const drawn = [...new Set(JSON.parse(config).keys.map(([, pose]) => pose))].filter((pose) => pose !== 'idle').sort()
-    assertDeepEqual(entries.map((entry) => entry.name).sort(), drawn, `${skin}: attack provenance entries vs the poses of its animation config`)
+    // A skin of Slime Boss also records its summon drawing (`spawn`), which is not a pose of the clock.
+    const posed = entries.filter((entry) => entry.name !== 'spawn')
+    assertDeepEqual(posed.map((entry) => entry.name).sort(), drawn, `${skin}: attack provenance entries vs the poses of its animation config`)
     for (const entry of entries) {
       for (const hashed of [entry.source, entry.prompt, entry.output, ...entry.inputs.filter((input) => input.path)]) {
         assert(!hashed.path.startsWith('/') && !hashed.path.split('/').includes('..'), `${skin}: unsafe provenance path ${hashed.path}`)
         assertEqual(digest(hashed.path), hashed.sha256, hashed.path)
       }
-      assert(config.includes(`"${entry.name}"`), `${skin}: ${entry.name} is not a pose of the animation config`)
+      if (posed.includes(entry)) assert(config.includes(`"${entry.name}"`), `${skin}: ${entry.name} is not a pose of the animation config`)
     }
   }
   // Each bake step regenerates its runtime WebP from the committed sources and fails if any byte differs.
-  for (const script of ['monogatari.py', 'monogatari_silent.py', 'monogatari_watcher.py']) {
+  for (const script of ['monogatari.py', 'monogatari_silent.py', 'monogatari_watcher.py', 'anime_slime_boss.py']) {
     const baked = spawnSync('python3', [`scripts/animation/${script}`, '--check'], { cwd: repoRoot, encoding: 'utf8' })
     assert(baked.status === 0, `${script} --check: ${baked.stderr || baked.stdout}`)
   }

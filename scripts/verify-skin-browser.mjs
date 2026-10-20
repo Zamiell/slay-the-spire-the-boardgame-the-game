@@ -33,7 +33,10 @@ const browser = await chromium.launch({ headless: true })
 const errors = []
 // One case per registered skin: registering a skin extends every check below. All facts come from the registry.
 const CORE_HEROES = ['ironclad', 'silent', 'defect', 'watcher']
-const CASES = SKIN_IDS.map((skin) => {
+// `--skin=<id>` runs one skin's cases.
+const only = process.argv.find((arg) => arg.startsWith('--skin='))?.slice('--skin='.length)
+if (only && !SKIN_IDS.includes(only)) throw new Error(`--skin=${only} is not a registered skin (${SKIN_IDS.join(', ')})`)
+const CASES = SKIN_IDS.filter((skin) => !only || skin === only).map((skin) => {
   const hero = characterOfSkin(skin)
   const partner = CORE_HEROES.find((character) => character !== hero)
   return { skin, hero, name: CHARACTER_LABEL[hero], label: SKIN_LABELS[skin], traits: SKIN_TRAITS[skin], partner, partnerName: CHARACTER_LABEL[partner],
@@ -44,7 +47,7 @@ const seated = (expected) => [...document.querySelectorAll('.campfire__sitter')]
   .filter((sitter) => sitter.complete && sitter.naturalWidth > 0)
   .map((sitter) => new URL(sitter.currentSrc).pathname.match(/\/sitters\/([^/]+)\.webp$/)?.[1]).sort().join(',') === expected
 // The halo around a skin's own energy orb matches that orb's art (a skin copying another's halo would be wrong).
-const ORB_GLOW = { kratos: [220, 22, 24], monogatari_silent: [166, 248, 62], monogatari_watcher: [150, 70, 240] }
+const ORB_GLOW = { kratos: [220, 22, 24], monogatari_silent: [166, 248, 62], monogatari_watcher: [150, 70, 240], anime_slime_boss: [171, 239, 60] }
 const SCREENS = [['desktop', { width: 1440, height: 900 }], ['horizontal-phone', { width: 844, height: 390 }]]
 
 // A context signed in as `username`, who has (or has not) chosen a skin in Profile.
@@ -139,6 +142,7 @@ try {
       `${tag}: the energy orb is the skin's exactly when its energyOrb trait says so`)
     if (traits.energyOrb) {
       assert.match(await page.locator('.energy-orb__skin').getAttribute('src'), new RegExp(`/combat/energy-orbs/${skin}\\.webp$`), `${tag}: the orb art is the skin's`)
+      assert.equal(await page.locator('.pip--energy .energy-orb__layers').count(), 0, `${tag}: the skin's orb replaces a Downfall hero's own orb layers`)
       assert.ok(ORB_GLOW[skin], `${tag}: ORB_GLOW names every skin with its own orb`)
       const filter = await page.locator('.pip--energy[data-skin-orb]').evaluate((orb) => getComputedStyle(orb).filter)
       const [halo] = [...filter.matchAll(/drop-shadow\(rgba?\((\d+), (\d+), (\d+)[^)]*\)[^)]*?\s0px 0px/g)].map((match) => match.slice(1, 4).map(Number))
@@ -255,8 +259,9 @@ try {
     // The run starts with the skin, and Bo's table shows Ann's seat in combat as the skin.
     await ann.getByRole('button', { name: 'Enter the Spire' }).click()
     await ann.getByRole('button', { name: 'Start standard campaign', exact: true }).click()
-    await ann.getByRole('heading', { name: 'Neow’s Blessing' }).waitFor()
-    await bo.getByRole('heading', { name: 'Neow’s Blessing' }).waitFor()
+    // A Downfall hero is dealt the Heart's Boon instead of Neow's Blessing: wait for the scene, not its title.
+    await ann.locator('.neow-screen').waitFor()
+    await bo.locator('.neow-screen').waitFor()
     assert.equal(room.run.players[0].skin, skin)
     assert.ok(!('skin' in room.run.players[1]))
     room.run = { ...room.run, phase: 'combat', neow: null, combat: createCombat(createRng(63), room.run.players, [{

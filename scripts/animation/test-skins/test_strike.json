@@ -1,8 +1,8 @@
 {
   "skin": "test_strike",
-  "character": "ironclad",
+  "character": "slime_boss",
   "label": "Test strike",
-  "note": "Test-only skin (never registered): the short five-pose strike the real skins use (anticipation, lunge, strike, recovery) with one hit; see test_combo.json.",
+  "note": "Test-only skin (never registered): the short five-pose strike the real skins use (anticipation, lunge, strike, recovery) with one hit, worn by Slime Boss (a Downfall hero with a slime formation); see test_combo.json.",
   "canvas": 192,
   "displayScale": 2.3,
   "ground": 184,

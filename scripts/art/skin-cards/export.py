@@ -11,7 +11,7 @@ import json
 from PIL import Image, ImageOps
 
 from recipes import record_ref
-from skincards import ROOT, add_skin_args, art_dir, docs_dir, load_catalogue, load_json, resolve, skin_data
+from skincards import HERE, MASKS, ROOT, add_skin_args, art_dir, docs_dir, load_catalogue, load_json, registration_file, resolve, skin_data
 
 
 def record(path):
@@ -28,10 +28,13 @@ def export(image, path):
     raise ValueError(f'{path.name}: card art exceeds 40 KiB')
 
 
-def header(plan, skin):
+def header(plan, skin, owner):
     """Model, references and (Kratos) game images of the manifest. Repo files are recorded by path and hash;
     external references (the copyrighted style frames, identity sheets) only by description and hash."""
     base = {'model': plan['model'], 'quality': plan['quality'], 'size': plan['size'], 'cardSize': [748, 420]}
+    if plan.get('recordPipelineInputs'):  # the owner's catalogue, registration table and masks, hash-checked by verify-art-bakes
+        base.update(catalogue=record(HERE / f'cards/{owner}.json'), registration=record(HERE / registration_file(f'{owner}__')),
+                    masks=[record(path) for path in sorted((MASKS / owner).glob('*.png'))])
     if plan.get('recipe', 'kratos') == 'kratos':
         refs = {r['tag']: r for r in load_json(skin_data(skin) / 'refs.json')}
         return {**base, 'references': [record(ROOT / p) for p in [*plan['styleReferences'], plan['identityReference']]],
@@ -48,7 +51,7 @@ def main():
     plan = load_json(skin_data(skin) / 'plan.json')
     selections = load_json(skin_data(skin) / 'selections.json', {})
     docs, out = docs_dir(skin), art_dir(skin, owner)
-    manifest = {**header(plan, skin), 'cards': []}
+    manifest = {**header(plan, skin, owner), 'cards': []}
     for card in load_catalogue(owner):
         selection = selections.get(card['id'])
         if not selection:

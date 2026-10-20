@@ -8,6 +8,7 @@ export const SKINS = {
   silent: ['monogatari_silent'],
   defect: ['monogatari_defect'],
   watcher: ['monogatari_watcher'],
+  slime_boss: ['anime_slime_boss'],
 } as const satisfies Partial<Record<CharacterId, readonly string[]>>
 
 export type SkinId = (typeof SKINS)[keyof typeof SKINS][number]
@@ -23,6 +24,7 @@ export const SKIN_LABELS: Record<SkinId, string> = {
   monogatari_silent: 'Silent-chan',
   monogatari_defect: 'Defect-chan',
   monogatari_watcher: 'Watcher-chan',
+  anime_slime_boss: 'Slimeboss-chan',
 }
 
 /** Presentation facts of a skin. Code reads them by visual id instead of testing for a literal skin id. */
@@ -39,6 +41,7 @@ export const SKIN_TRAITS = {
   monogatari_silent: { energyOrb: true, stagedAttack: true },
   monogatari_defect: { energyOrb: false, stagedAttack: false },
   monogatari_watcher: { energyOrb: true, stagedAttack: true },
+  anime_slime_boss: { energyOrb: true, stagedAttack: true },
 } as const satisfies Record<SkinId, SkinTraits>
 
 /** The traits of a skin's visual id; a character's own visual id has none. */

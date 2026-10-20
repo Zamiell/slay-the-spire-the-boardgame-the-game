@@ -138,5 +138,17 @@
   "pose": "references/monogatari_watcher.webp",
   "sourceSha256": "075e94a5ebebb5f8dac0f6510670988fd938c6f320fbb5c0f35170d5791c128c",
   "grade": false
+ },
+ "anime_slime_boss": {
+  "seat": [
+   420,
+   850
+  ],
+  "crown": 14,
+  "prompt": "identity",
+  "pose": "monogatari_defect.webp",
+  "sourceSha256": "bc963690e7801a55ec6cb18c459d597c5c4afccba0fe486cc5a06054e37bcbf3",
+  "note": "She is a human girl with exactly two arms and two legs, the long-haired heroine of the first image (long lime-green hair, tiny black bowler mini-hat, gold eyes, black coat with white shoulder panels, slate tunic, brown belt, grey trousers, tall brown boots). She sits upright but relaxed on an invisible chair-height seat, like the second image: thighs level, knees bent about ninety degrees, both brown boots planted side by side on the ground, her near hand resting on her knee and her other hand relaxed; her head is turned to look right at the fire with a faint smile. Her glossy translucent lime slime glove coats only her right hand (keep it), and one small glossy lime slime blob sits on her knee or lap. Her very long hair falls behind her shoulders and back and over the coat, and never reaches the ground. Flat clean anime cel colours exactly like the first image, no ground, no seat.",
+  "grade": false
  }
 }

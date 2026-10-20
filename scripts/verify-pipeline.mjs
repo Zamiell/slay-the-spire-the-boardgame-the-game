@@ -241,9 +241,39 @@ check('assets and the selector itself keep focused checks', () => {
   assertDeepEqual(affected('src/game/new-system.ts'), everyRoutineCheck)
   assertDeepEqual(affected('src/ui/CombatScreen.tsx', 'src/game/new-system.ts'), everyRoutineCheck)
 })
+check('every Slimeboss-chan file family selects its focused art owners, never the whole suite', () => {
+  const skin = 'anime_slime_boss'
+  const families = [
+    [`scripts/animation/${skin}.py`, [ART_BAKES, 'verify-skin-attack-browser.mjs']],
+    [`scripts/animation/measure-${skin}.py`, [ART_BAKES, 'verify-skin-attack-browser.mjs']],
+    [`scripts/animation/skins/${skin}.json`, [ART_BAKES, 'verify-assets.mjs', 'verify-skin-attack-browser.mjs']],
+    [`scripts/animation/sources/${skin}/attack/gather.webp`, [ART_BAKES, 'verify-skin-attack-browser.mjs']],
+    [`scripts/animation/sources/${skin}/registration.json`, [ART_BAKES, 'verify-skin-attack-browser.mjs']],
+    [`scripts/art/export-${skin}-char.py`, ['verify-assets.mjs', 'verify-skin-browser.mjs']],
+    [`scripts/art/export-${skin}-noncombat.py`, ['verify-assets.mjs', 'verify-merchant-overflow-browser.mjs', 'verify-treasure-animation-browser.mjs']],
+    [`scripts/art/sources/${skin}-char/idle-identity.webp`, [ART_BAKES, 'verify-assets.mjs']],
+    [`scripts/art/sources/${skin}-noncombat/merchant.webp`, ['verify-assets.mjs', 'verify-merchant-overflow-browser.mjs', 'verify-treasure-animation-browser.mjs']],
+    [`scripts/art/sources/${skin}-skin-cards/strike.webp`, [ART_BAKES, 'verify-assets.mjs', 'verify-skin-cards-browser.mjs']],
+    [`scripts/art/sources/campfire-sitters/${skin}.webp`, [ART_BAKES, 'verify-assets.mjs', 'verify-art-scenes-browser.mjs']],
+    [`docs/skins/${skin}-art/README.md`, [ART_BAKES]],
+    [`docs/skins/${skin}-art/attack-manifest.json`, [ART_BAKES]],
+    [`docs/skins/${skin}-art/manifest.json`, ['verify-assets.mjs']],
+    [`docs/skins/${skin}-card-art/manifest.json`, [ART_BAKES]],
+  ]
+  for (const [file, owners] of families) {
+    const selected = affected(file)
+    includesEvery(selected, owners, file)
+    assert(selected.length < 15, `${file} fell back to ${selected.length} verifiers`)
+  }
+  for (const file of [`docs/skins/${skin}-art/manifest.json`, `docs/skins/${skin}-art/prompts/idle.txt`, `docs/skins/${skin}-noncombat/README.md`]) {
+    assert(!affected(file).includes(ART_BAKES), `${file} must not select ${ART_BAKES}`)
+  }
+})
 check('only an art pipeline input selects the slow art bakes', () => {
   for (const file of ['scripts/animation/kratos.py', 'public/assets/combat/rigged/hero-defect-idle.webp', 'public/assets/sfx/ui.ogg',
     'docs/skins/kratos-card-art/manifest.json', 'docs/skins/monogatari_watcher-art/README.md', 'docs/skins/kratos-art.json',
+    'docs/skins/anime_slime_boss-art/README.md', 'docs/skins/anime_slime_boss-art/attack-manifest.json', 'docs/skins/monogatari_watcher-art/attack-manifest.json',
+    'docs/skins/anime_slime_boss-art/prompts/attack-punch.txt',
     'docs/monogatari-skins/prompts/combat/ironclad-ready.txt', 'docs/skins/kratos-card-art/prompts/slayer_bash.txt',
     'src/ui/hero-art-head.json', 'public/assets/noncombat/campfire/camp.webp', 'scripts/art/campfire-sitters.py',
     'scripts/art/sources/campfire-sitters/manifest.json', 'scripts/art/sources/kratos-skin-cards/slayer_bash.webp',
@@ -260,7 +290,7 @@ check('only an art pipeline input selects the slow art bakes', () => {
     'scripts/animation/sources/menu-icons/stats.txt', 'scripts/animation/README.md', 'docs/monogatari-skins/cards/README.md',
     'scripts/lib/test-skins.mjs', 'docs/skins/monogatari_silent-art/prompts/select-portrait.txt',
     'public/assets/card-art/ironclad/bash.webp', 'public/assets/combat/energy-orbs/kratos.webp', 'public/assets/combat/slimes/spike.webp',
-    'docs/skins/monogatari_watcher-art/manifest.json', 'docs/monogatari-skins/cards/defect-coverage.json',
+    'docs/skins/monogatari_watcher-art/manifest.json', 'docs/skins/anime_slime_boss-art/manifest.json', 'docs/monogatari-skins/cards/defect-coverage.json',
     'scripts/verify-assets.mjs',
     'scripts/verify-deleted.mjs']) {
     assert(!affected(file).includes(ART_BAKES), `${file} must not select ${ART_BAKES}`)
@@ -284,7 +314,8 @@ check('every file the art bakes hash selects them', () => {
   for (const entry of kratos.generated) hashed.push(entry.source, entry.prompt, ...entry.inputs.map((input) => input.path))
   for (const entry of kratos.runtime) hashed.push(entry.path)
   for (const entry of [...read('docs/skins/monogatari_silent-art/manifest.json').attack.generated,
-    ...read('docs/skins/monogatari_watcher-art/attack-manifest.json').generated]) {
+    ...read('docs/skins/monogatari_watcher-art/attack-manifest.json').generated,
+    ...read('docs/skins/anime_slime_boss-art/attack-manifest.json').generated]) {
     hashed.push(...[entry.source, entry.prompt, entry.output, ...entry.inputs].filter((record) => record.path).map((record) => record.path))
   }
   for (const skin of readdirSync(resolve(root, 'docs/skins')).filter((dir) => dir.endsWith('-card-art'))) {

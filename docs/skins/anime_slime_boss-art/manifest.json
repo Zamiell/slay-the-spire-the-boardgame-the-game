@@ -1,0 +1,240 @@
+{
+  "model": "gpt-image-2.5-sunburst",
+  "quality": "high",
+  "noteOnReferences": "Copyrighted style references are never committed; each is recorded by description and SHA-256 of the copy supplied to the model. Slimeboss-chan is an original design from the user's own reference image.",
+  "idleIdentity": {
+    "prompt": {
+      "path": "docs/skins/anime_slime_boss-art/prompts/idle.txt",
+      "sha256": "e2b9c3461808bf43544002b805f823a9698853b76b28de6bcc281ea9c5c1282f"
+    },
+    "references": [
+      {
+        "description": "The user's Slimeboss-chan design (reference.png, 768x1472 on black): lime-green long hair, black mini bowler hat, gold eyes, black coat with white shoulder panels; identity and style authority, not committed",
+        "sha256": "1fd8a836069c506bb641ca2e204c81d1b6467f2d40a1fa3571a02c8db41b20be"
+      }
+    ],
+    "size": "1024x1536",
+    "n": 3,
+    "selected": 1,
+    "note": "edit with --background transparent: native alpha cutout (alpha noise of 8 or less zeroed), used directly as the idle cutout; scripts/art/sources/anime_slime_boss-char/idle-identity.webp. Candidates 2 and 3 were not chosen (identity: /home/hieul/slime-skin-work/identity/)."
+  },
+  "assets": [
+    {
+      "name": "idle hero cutout",
+      "source": {
+        "path": "scripts/art/sources/anime_slime_boss-char/idle-identity.webp",
+        "sha256": "422643e3bd6fd98fcf11584d40d518fb4d29d0461f9f22dd203dac64cd64e761"
+      },
+      "output": {
+        "path": "public/assets/combat/characters/anime_slime_boss-hero.webp",
+        "sha256": "5a4866baf9a19c765347a5140a48b71b97cf6918c163017b8e8801038e35326c"
+      },
+      "outputSize": [
+        1152,
+        1152
+      ],
+      "background": "transparent",
+      "references": [
+        {
+          "description": "The user's Slimeboss-chan design (reference.png, 768x1472 on black): lime-green long hair, black mini bowler hat, gold eyes, black coat with white shoulder panels; identity and style authority, not committed",
+          "sha256": "1fd8a836069c506bb641ca2e204c81d1b6467f2d40a1fa3571a02c8db41b20be"
+        },
+        {
+          "description": "Approved identity: Slimeboss-chan idle (generated from the reference, native alpha PNG 1024x1536, prompts/idle.txt); committed as idle-identity.webp (lossy q96 copy, alpha noise <=8 zeroed)",
+          "sha256": "518a6bfe7c5e5573f3f7aaf481623530f315599badce71c214a31ed5ede94dc2"
+        }
+      ],
+      "method": "No second pass: the approved identity is already a clean native-alpha cutout. export-anime_slime_boss-char.py scales it so the hair crown to near sole is 830px, plants the near (left) sole on y=1115 (Kratos hero line) at stance centre x=576."
+    },
+    {
+      "name": "list icon",
+      "source": {
+        "path": "scripts/art/sources/anime_slime_boss-char/idle-identity.webp",
+        "sha256": "422643e3bd6fd98fcf11584d40d518fb4d29d0461f9f22dd203dac64cd64e761"
+      },
+      "output": {
+        "path": "public/assets/combat/characters/anime_slime_boss.webp",
+        "sha256": "9f529e813deb2cd3c9f622e78b63effe23363b9a4c824b3ceefd633d6fbbb61b"
+      },
+      "outputSize": [
+        512,
+        512
+      ],
+      "background": "transparent",
+      "references": [
+        {
+          "description": "The user's Slimeboss-chan design (reference.png, 768x1472 on black): lime-green long hair, black mini bowler hat, gold eyes, black coat with white shoulder panels; identity and style authority, not committed",
+          "sha256": "1fd8a836069c506bb641ca2e204c81d1b6467f2d40a1fa3571a02c8db41b20be"
+        },
+        {
+          "description": "Approved identity: Slimeboss-chan idle (generated from the reference, native alpha PNG 1024x1536, prompts/idle.txt); committed as idle-identity.webp (lossy q96 copy, alpha noise <=8 zeroed)",
+          "sha256": "518a6bfe7c5e5573f3f7aaf481623530f315599badce71c214a31ed5ede94dc2"
+        }
+      ],
+      "method": "The painted figure of the hero cutout scaled to 500px tall, bottom aligned on a 512 canvas."
+    },
+    {
+      "name": "energy orb",
+      "source": {
+        "path": "scripts/art/sources/anime_slime_boss-char/energy-orb.webp",
+        "sha256": "c83833d4a53facb3c11845c21a26906d44b10fe2b5290cb202ced7d4ada8b587"
+      },
+      "output": {
+        "path": "public/assets/combat/energy-orbs/anime_slime_boss.webp",
+        "sha256": "56a354d252003420df96cb03447476829e1cee1cd772396f1259b13bbc335339"
+      },
+      "outputSize": [
+        256,
+        256
+      ],
+      "background": "transparent",
+      "references": [
+        {
+          "description": "Approved identity: Slimeboss-chan idle (generated from the reference, native alpha PNG 1024x1536, prompts/idle.txt); committed as idle-identity.webp (lossy q96 copy, alpha noise <=8 zeroed)",
+          "sha256": "518a6bfe7c5e5573f3f7aaf481623530f315599badce71c214a31ed5ede94dc2"
+        },
+        {
+          "description": "Silent-chan Energy orb (public/assets/combat/energy-orbs/monogatari_silent.webp), FORMAT only",
+          "sha256": "6c03d67fddbdaf9c390d8697c4bcc26b45d0c582e61b2728d0c09e08cc2f212a"
+        }
+      ],
+      "method": "prompts/hud-energy-orb.txt, 3 candidates (1024x1024, edit, high, native alpha), candidate 2 selected. Cropped square around the painted orb with a 4% margin, resized to 256."
+    },
+    {
+      "name": "vfx light",
+      "source": {
+        "path": "scripts/art/sources/anime_slime_boss-char/vfx-light.webp",
+        "sha256": "353d286fa8a04bfeeab20035536285429111b657d8cc7d2c0894903d56793375"
+      },
+      "output": {
+        "path": "public/assets/combat/vfx/actions/anime_slime_boss/light.webp",
+        "sha256": "bac20fd32db339e09418f006ff72fc7784fe9c9f256e154ee3897d55eebb311e"
+      },
+      "outputSize": [
+        512,
+        512
+      ],
+      "background": "transparent",
+      "references": [
+        {
+          "description": "Approved identity: Slimeboss-chan idle (generated from the reference, native alpha PNG 1024x1536, prompts/idle.txt); committed as idle-identity.webp (lossy q96 copy, alpha noise <=8 zeroed)",
+          "sha256": "518a6bfe7c5e5573f3f7aaf481623530f315599badce71c214a31ed5ede94dc2"
+        },
+        {
+          "description": "Silent-chan light VFX (monogatari_silent/light.webp), FORMAT only",
+          "sha256": "9a486145ced864810999cc803c19115e98a07b438d35bb1cab82f8543e2064b7"
+        }
+      ],
+      "method": "prompts/vfx-light.txt, 3 candidates (1024x1024, edit, high, native alpha), candidate 1 selected, resized to 512."
+    },
+    {
+      "name": "vfx impact",
+      "source": {
+        "path": "scripts/art/sources/anime_slime_boss-char/vfx-impact.webp",
+        "sha256": "b2d41f1572d48df8e3d66bd77f6720a6758fc3720d317e4e6c6feb02bbcb4bea"
+      },
+      "output": {
+        "path": "public/assets/combat/vfx/actions/anime_slime_boss/impact.webp",
+        "sha256": "8a082430e181eeffa12d4211d33048f23a05732cfe4fcb8fc3a77959c33f0e1d"
+      },
+      "outputSize": [
+        512,
+        512
+      ],
+      "background": "transparent",
+      "references": [
+        {
+          "description": "Approved identity: Slimeboss-chan idle (generated from the reference, native alpha PNG 1024x1536, prompts/idle.txt); committed as idle-identity.webp (lossy q96 copy, alpha noise <=8 zeroed)",
+          "sha256": "518a6bfe7c5e5573f3f7aaf481623530f315599badce71c214a31ed5ede94dc2"
+        },
+        {
+          "description": "Silent-chan impact VFX (monogatari_silent/impact.webp), FORMAT only",
+          "sha256": "42103a8dd742099df25ed3e9545b095ec909c0d93ed73c826409b055c7dd9a64"
+        }
+      ],
+      "method": "prompts/vfx-impact.txt, 3 candidates (1024x1024, edit, high, native alpha), candidate 2 selected, resized to 512."
+    },
+    {
+      "name": "character-select portrait",
+      "source": {
+        "path": "scripts/art/sources/anime_slime_boss-char/portrait.webp",
+        "sha256": "ccc6d0e00f0c924cbc684ceeb5bc3ecc0b712ee9d5cb8e23a977ee06ff95e980"
+      },
+      "output": {
+        "path": "public/assets/menu/character-select/portrait-anime_slime_boss.png",
+        "sha256": "5b2f96259de6786dce28f8daf4f9a7829a3897c76c5f9b7fb9118e1d299030bd"
+      },
+      "outputSize": [
+        256,
+        384
+      ],
+      "background": "opaque",
+      "references": [
+        {
+          "description": "Approved identity: Slimeboss-chan idle (generated from the reference, native alpha PNG 1024x1536, prompts/idle.txt); committed as idle-identity.webp (lossy q96 copy, alpha noise <=8 zeroed)",
+          "sha256": "518a6bfe7c5e5573f3f7aaf481623530f315599badce71c214a31ed5ede94dc2"
+        },
+        {
+          "description": "Existing Slime Boss character-select portrait, FORMAT/mood only",
+          "sha256": "c44c2aa00db49f3fc87e7d50079a6f122743caf1a574520deb2d01c624140a9f"
+        },
+        {
+          "description": "Silent-chan character-select portrait, FORMAT only",
+          "sha256": "21c927d500b5c92fc340bd5d5f474b7dcf6043ee6ae31ca9b0e5fee6ab6d93a9"
+        }
+      ],
+      "method": "prompts/select-portrait.txt, 3 candidates (1024x1536, edit, high), candidate 2 selected, resized to 256x384."
+    },
+    {
+      "name": "character-select wallpaper",
+      "source": {
+        "path": "scripts/art/sources/anime_slime_boss-char/wallpaper.webp",
+        "sha256": "a3ac4ba9762290dfa9a9cdf8a3b1914176ba183bb0b75bb89f11e91fb3eeae8b"
+      },
+      "output": {
+        "path": "public/assets/menu/character-select/character-anime_slime_boss-wallpaper.webp",
+        "sha256": "e1dc1a9ddc32201fd66791b4aa6ab56efa12bb23ed244d71967c3fbacadcb4d2"
+      },
+      "outputSize": [
+        1536,
+        864
+      ],
+      "background": "opaque",
+      "references": [
+        {
+          "description": "Approved identity: Slimeboss-chan idle (generated from the reference, native alpha PNG 1024x1536, prompts/idle.txt); committed as idle-identity.webp (lossy q96 copy, alpha noise <=8 zeroed)",
+          "sha256": "518a6bfe7c5e5573f3f7aaf481623530f315599badce71c214a31ed5ede94dc2"
+        },
+        {
+          "description": "Existing Slime Boss wallpaper, mood/setting only",
+          "sha256": "18ca9a0a05b5cee113aa7173f9c4a92bea6f40a83d54b1b555e1bea4c42387f9"
+        },
+        {
+          "description": "Silent-chan wallpaper, FORMAT/framing only",
+          "sha256": "3b5c0c7bf4b6622b0615fe01f4af9cc13283cd4126e179ed46777ee42ea654e6"
+        }
+      ],
+      "method": "prompts/select-wallpaper.txt, 3 candidates (1536x1024, edit, high), candidate 2 selected (she stands on the right, no mirroring); the top 1536x864 is kept (bottom cropped)."
+    }
+  ],
+  "poseReferences": {
+    "note": "Seated, merchant and reaching/gripping-hand references for the noncombat art; kept outside the repo in /home/hieul/slime-skin-work/char/poses/ (not committed). seated: candidate 1 of 3, merchant: candidate 1 of 3, reaching-grip: candidate 2 of 3 (both hands on one sheet).",
+    "prompts": [
+      {
+        "path": "docs/skins/anime_slime_boss-art/prompts/pose-seated.txt",
+        "sha256": "b466d15f7e6e414a4688af229aef138230f60b2c7e4afbbca8928a289666bfd1"
+      },
+      {
+        "path": "docs/skins/anime_slime_boss-art/prompts/pose-merchant.txt",
+        "sha256": "80463925d3bcd37a09fd0a94729da04b7f1c91003ea583e266f0c2272de8526d"
+      },
+      {
+        "path": "docs/skins/anime_slime_boss-art/prompts/pose-reaching.txt",
+        "sha256": "af222846221541ff4b0689f9ba8c7cb5db5e3cc255a0892c43c0486f6d82933e"
+      }
+    ]
+  },
+  "attack": {
+    "note": "Filled in by the attack animation phase."
+  }
+}

@@ -1,0 +1,326 @@
+{
+ "slime_boss_combo_tackle": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_combo_tackle.webp",
+  "webpQuality": 82,
+  "bytes": 151742
+ },
+ "slime_boss_consult_playbook": {
+  "candidate": 2,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_consult_playbook.webp",
+  "webpQuality": 88,
+  "bytes": 150058
+ },
+ "slime_boss_darkling_duo": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_darkling_duo.webp",
+  "webpQuality": 86,
+  "bytes": 142424
+ },
+ "slime_boss_defend": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_defend.webp",
+  "webpQuality": 86,
+  "bytes": 140400
+ },
+ "slime_boss_delegate": {
+  "candidate": 2,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_delegate.webp",
+  "webpQuality": 84,
+  "bytes": 142074
+ },
+ "slime_boss_digest": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_digest.webp",
+  "webpQuality": 90,
+  "bytes": 147026
+ },
+ "slime_boss_dive_tackle": {
+  "candidate": 2,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_dive_tackle.webp",
+  "webpQuality": 82,
+  "bytes": 147938
+ },
+ "slime_boss_divide_conquer": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_divide_conquer.webp",
+  "webpQuality": 90,
+  "bytes": 147962
+ },
+ "slime_boss_duplicated_form": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_duplicated_form.webp",
+  "webpQuality": 86,
+  "bytes": 150948
+ },
+ "slime_boss_feeding_frenzy": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_feeding_frenzy.webp",
+  "webpQuality": 84,
+  "bytes": 152224
+ },
+ "slime_boss_flame_tackle": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_flame_tackle.webp",
+  "webpQuality": 78,
+  "bytes": 149714
+ },
+ "slime_boss_forward_tackle": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_forward_tackle.webp",
+  "webpQuality": 76,
+  "bytes": 150792
+ },
+ "slime_boss_glop_chop": {
+  "candidate": 2,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_glop_chop.webp",
+  "webpQuality": 78,
+  "bytes": 145160
+ },
+ "slime_boss_gluttony": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_gluttony.webp",
+  "webpQuality": 88,
+  "bytes": 137922
+ },
+ "slime_boss_goop_armor": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_goop_armor.webp",
+  "webpQuality": 84,
+  "bytes": 145184
+ },
+ "slime_boss_goop_spray": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_goop_spray.webp",
+  "webpQuality": 84,
+  "bytes": 144908
+ },
+ "slime_boss_growth": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_growth.webp",
+  "webpQuality": 90,
+  "bytes": 124606
+ },
+ "slime_boss_haunting_lick": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_haunting_lick.webp",
+  "webpQuality": 90,
+  "bytes": 145668
+ },
+ "slime_boss_hungry_tackle": {
+  "candidate": 2,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_hungry_tackle.webp",
+  "webpQuality": 80,
+  "bytes": 147200
+ },
+ "slime_boss_it_looks_tasty": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_it_looks_tasty.webp",
+  "webpQuality": 82,
+  "bytes": 142436
+ },
+ "slime_boss_just_desserts": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_just_desserts.webp",
+  "webpQuality": 88,
+  "bytes": 149596
+ },
+ "slime_boss_leech_energy": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_leech_energy.webp",
+  "webpQuality": 84,
+  "bytes": 147270
+ },
+ "slime_boss_level_up": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_level_up.webp",
+  "webpQuality": 82,
+  "bytes": 145110
+ },
+ "slime_boss_lick": {
+  "candidate": 2,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_lick.webp",
+  "webpQuality": 86,
+  "bytes": 147630
+ },
+ "slime_boss_living_wall": {
+  "candidate": 2,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_living_wall.webp",
+  "webpQuality": 88,
+  "bytes": 149088
+ },
+ "slime_boss_minion_master": {
+  "candidate": 2,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_minion_master.webp",
+  "webpQuality": 84,
+  "bytes": 143620
+ },
+ "slime_boss_nibble_and_lick": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_nibble_and_lick.webp",
+  "webpQuality": 90,
+  "bytes": 144490
+ },
+ "slime_boss_ooze_bath": {
+  "candidate": 2,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_ooze_bath.webp",
+  "webpQuality": 90,
+  "bytes": 149118
+ },
+ "slime_boss_opening_tackle": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_opening_tackle.webp",
+  "webpQuality": 82,
+  "bytes": 148082
+ },
+ "slime_boss_overexert": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_overexert.webp",
+  "webpQuality": 80,
+  "bytes": 146932
+ },
+ "slime_boss_pile_on": {
+  "candidate": 2,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_pile_on.webp",
+  "webpQuality": 80,
+  "bytes": 148780
+ },
+ "slime_boss_prepare_crush": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_prepare_crush.webp",
+  "webpQuality": 88,
+  "bytes": 151152
+ },
+ "slime_boss_protect_the_boss": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_protect_the_boss.webp",
+  "webpQuality": 88,
+  "bytes": 141786
+ },
+ "slime_boss_quick_snack": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_quick_snack.webp",
+  "webpQuality": 86,
+  "bytes": 145652
+ },
+ "slime_boss_rain_of_goop": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_rain_of_goop.webp",
+  "webpQuality": 86,
+  "bytes": 145542
+ },
+ "slime_boss_rally_the_troops": {
+  "candidate": 3,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_rally_the_troops.webp",
+  "webpQuality": 84,
+  "bytes": 142316
+ },
+ "slime_boss_ravenous_tackle": {
+  "candidate": 2,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_ravenous_tackle.webp",
+  "webpQuality": 76,
+  "bytes": 147714
+ },
+ "slime_boss_recklessness": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_recklessness.webp",
+  "webpQuality": 74,
+  "bytes": 151074
+ },
+ "slime_boss_recollect": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_recollect.webp",
+  "webpQuality": 90,
+  "bytes": 144868
+ },
+ "slime_boss_reformation": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_reformation.webp",
+  "webpQuality": 88,
+  "bytes": 139348
+ },
+ "slime_boss_relentless_tackle": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_relentless_tackle.webp",
+  "webpQuality": 80,
+  "bytes": 151348
+ },
+ "slime_boss_replication": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_replication.webp",
+  "webpQuality": 88,
+  "bytes": 146972
+ },
+ "slime_boss_repurpose": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_repurpose.webp",
+  "webpQuality": 88,
+  "bytes": 140580
+ },
+ "slime_boss_shape_of_puddle": {
+  "candidate": 2,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_shape_of_puddle.webp",
+  "webpQuality": 86,
+  "bytes": 144604
+ },
+ "slime_boss_slime_brawl": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_slime_brawl.webp",
+  "webpQuality": 82,
+  "bytes": 152192
+ },
+ "slime_boss_slime_slap": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_slime_slap.webp",
+  "webpQuality": 84,
+  "bytes": 144332
+ },
+ "slime_boss_slime_tap": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_slime_tap.webp",
+  "webpQuality": 86,
+  "bytes": 144852
+ },
+ "slime_boss_slippery": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_slippery.webp",
+  "webpQuality": 84,
+  "bytes": 141418
+ },
+ "slime_boss_smothering_tackle": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_smothering_tackle.webp",
+  "webpQuality": 84,
+  "bytes": 145314
+ },
+ "slime_boss_spear_tackle": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_spear_tackle.webp",
+  "webpQuality": 84,
+  "bytes": 153550
+ },
+ "slime_boss_spit": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_spit.webp",
+  "webpQuality": 90,
+  "bytes": 145916
+ },
+ "slime_boss_strike": {
+  "candidate": 2,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_strike.webp",
+  "webpQuality": 82,
+  "bytes": 143472
+ },
+ "slime_boss_tongue_lash": {
+  "candidate": 1,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_tongue_lash.webp",
+  "webpQuality": 84,
+  "bytes": 146370
+ },
+ "slime_boss_vicious_tackle": {
+  "candidate": 3,
+  "source": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_vicious_tackle.webp",
+  "webpQuality": 78,
+  "bytes": 143636
+ }
+}

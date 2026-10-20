@@ -354,6 +354,13 @@ html[data-mobile-performance='true'] .sts-scope .run-summary__coins-note { font-
 .shop-skin h3 small { display: flex; align-items: center; justify-content: center; gap: 0.25rem; color: #e7d7b0; font-size: 0.85rem; font-weight: 400; letter-spacing: 0.06em; text-shadow: 0 1px 1px #000; }
 .shop-skin__crest { width: 1.4rem; height: 1.4rem; object-fit: contain; }
 .shop-skin__buy { min-height: 2.9rem; font-size: 1.3rem; }
+/* Six racks side by side on a small desktop window leave less than a price button's width: the name and the price tighten to fit their rack. */
+.shop-skin { container-type: inline-size; grid-template-columns: minmax(0, 1fr); }
+@container (max-width: 7.2rem) {
+  .shop-skin h3 { font-size: 1.2rem; }
+  .shop-skin__buy { padding-inline: 0.25rem; font-size: 1.05rem; }
+  .shop-skin__buy .coin-icon { width: 1.35rem; height: 1.35rem; }
+}
 .shop-skin__buy:disabled {
   color: #d9ccb4;
   background:

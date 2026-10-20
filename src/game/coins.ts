@@ -80,6 +80,7 @@ export const SKIN_PRICES: Readonly<Record<SkinId, number>> = {
   monogatari_silent: SKIN_PRICE,
   monogatari_defect: SKIN_PRICE,
   monogatari_watcher: SKIN_PRICE,
+  anime_slime_boss: SKIN_PRICE,
 }
 
 /** No run holds more boss awards than this (Acts I-IV plus A13's second Act III boss, with a Mind Bloom boss). */

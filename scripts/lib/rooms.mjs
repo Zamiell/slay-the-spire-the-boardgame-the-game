@@ -6114,6 +6114,8 @@ function redactCombat(combat, viewerId) {
       enemyIds: [...event.enemyIds],
       playerIds: [...event.playerIds],
       ...(event.enemyRow === undefined ? {} : { enemyRow: event.enemyRow }),
+      // Public per-enemy damage of a staged skin's attack (its hits show the hero's share, a Slime Command its own).
+      ...(event.enemyHpLoss === undefined ? {} : { enemyHpLoss: { ...event.enemyHpLoss } }),
       ...(event.kind === 'card' ? {
         upgraded: event.upgraded,
         copied: event.copied,

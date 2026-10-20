@@ -1,0 +1,707 @@
+{
+ "model": "gpt-image-2.5-sunburst",
+ "workflow": "imagegen bundled image_gen.py edit",
+ "quality": "high",
+ "background": "transparent (native alpha)",
+ "size": "1536x1024",
+ "format": "png, stored as WebP q96 (alpha lossless, alpha noise of 8 or less zeroed)",
+ "registration": "scripts/animation/sources/anime_slime_boss/attack/../attack-registration.json (measured by scripts/animation/measure-anime_slime_boss.py)",
+ "bake": "python3 scripts/animation/anime_slime_boss.py",
+ "config": "scripts/animation/skins/anime_slime_boss.json",
+ "note": "Nineteen drawings (eighteen attack poses and the spawn drawing), each an edit with the layout canvas, the approved identity and (for every pose after the first) the previous approved drawing; the in-betweens cross0, cross, rise0, pull and recoil get both neighbours. Arm review (user report: the slime hand seemed to change from the right to the left hand): the glove is on the same arm in every drawing, her right arm, drawn over her torso with its sleeve continuous from the shoulder panel, and the bare left arm is the far arm drawn behind the torso. The earlier thrust, punch and splash drew the gauntlet arm from the far shoulder with the bare arm over the chest, so step to thrust read as the glove jumping hands in one 50 ms cut. The fix: ARM RULE paragraph in every prompt after the cross (prompts/attack-cross.txt and later), the bare lead hand tucked at the chin in leap, fly and step, and the in-betweens cross0, cross and pull so the gauntlet arm is seen travelling over the torso while the bare hand pulls back. Every candidate was viewed one by one against the idle, rejecting heterochromatic eyes, a second floating blob, an arm folded too early and a swapped glove. The model draws a standing body 5-10% shorter than the idle at the same head size, so drawings are scaled by hat top to iris centroid (the chin is not stable: the neck and throat show in the side views); the standing spawn drawing uses the geometric mean of the head scale and the hat-to-sole height scale. The audit tracks the floating blob only (the gauntlet is bigger than the idle glove by design). The follow drawing was generated and dropped.",
+ "generated": [
+  {
+   "name": "sink",
+   "size": [
+    1536,
+    1024
+   ],
+   "n": 3,
+   "selected": "candidate 3",
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-art/prompts/attack-sink.txt",
+    "sha256": "e808c4b2ba7bbdcdcf693c9164d0c67801d84c080cbd7eea34529dbb8a33e5f0"
+   },
+   "source": {
+    "path": "scripts/animation/sources/anime_slime_boss/attack/sink.webp",
+    "sha256": "bae7deadb3d1adbf580dbde88c9c9ce2152df3f32ce85a36c1d12bc33b9b8355"
+   },
+   "output": {
+    "path": "public/assets/combat/characters/animated/anime_slime_boss-sink.webp",
+    "sha256": "7a4305a03a1fa6dab55dbd48008dfca33bf59e3875235e667400bb5b22a25ac5"
+   },
+   "inputs": [
+    {
+     "path": "scripts/animation/sources/anime_slime_boss/attack/inputs/layout-idle.webp",
+     "description": "image 1: 1536x1024 transparent layout canvas with the registered idle hero at 1.6x runtime scale, near sole on x=493.5 y=960",
+     "sha256": "1bdf423ea57c19d2017c3d74b9b935ca71534d5a1178cd1e95b2aabc4cfeb61b"
+    },
+    {
+     "description": "image 2: Approved identity: Slimeboss-chan idle (generated from the reference, native alpha PNG 1024x1536, prompts/idle.txt; the committed copy is scripts/art/sources/anime_slime_boss-char/idle-identity.webp, a lossy q96 copy)",
+     "sha256": "518a6bfe7c5e5573f3f7aaf481623530f315599badce71c214a31ed5ede94dc2"
+    }
+   ],
+   "notes": "First move out of the idle: she turns to face the enemy and lowers into a step, the blob drifting toward her right shoulder."
+  },
+  {
+   "name": "gather",
+   "size": [
+    1536,
+    1024
+   ],
+   "n": 3,
+   "selected": "candidate 3",
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-art/prompts/attack-gather.txt",
+    "sha256": "db70e4020a3f6d1a4b6a1a478c07ff6448babe3072b3faaf1123cf3eac89998f"
+   },
+   "source": {
+    "path": "scripts/animation/sources/anime_slime_boss/attack/gather.webp",
+    "sha256": "dae2dc745dddcc3b3d9ba0b8fd5d235a755a04c5cef3969d63aa03dc404c60b9"
+   },
+   "output": {
+    "path": "public/assets/combat/characters/animated/anime_slime_boss-gather.webp",
+    "sha256": "ac2eb3eb8473e69d6581ffe29b1645595fae62182153e8e39a29b58a8fd644eb"
+   },
+   "inputs": [
+    {
+     "path": "scripts/animation/sources/anime_slime_boss/attack/inputs/layout-idle.webp",
+     "description": "image 1: 1536x1024 transparent layout canvas with the registered idle hero at 1.6x runtime scale, near sole on x=493.5 y=960",
+     "sha256": "1bdf423ea57c19d2017c3d74b9b935ca71534d5a1178cd1e95b2aabc4cfeb61b"
+    },
+    {
+     "description": "image 2: Approved identity: Slimeboss-chan idle (generated from the reference, native alpha PNG 1024x1536, prompts/idle.txt; the committed copy is scripts/art/sources/anime_slime_boss-char/idle-identity.webp, a lossy q96 copy)",
+     "sha256": "518a6bfe7c5e5573f3f7aaf481623530f315599badce71c214a31ed5ede94dc2"
+    },
+    {
+     "description": "image 3: the approved neighbouring drawing, scaled normalised onto the same layout canvas (head scale and near-sole plant; for the in-betweens and recoil this is the drawing before it), not committed"
+    }
+   ],
+   "notes": "The floating blob has stretched into a stream that pours down her right arm onto the glove, which swells."
+  },
+  {
+   "name": "windup",
+   "size": [
+    1536,
+    1024
+   ],
+   "n": 3,
+   "selected": "candidate 3",
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-art/prompts/attack-windup.txt",
+    "sha256": "ef0ee7e4441f1ef21a0fd23dfde536f712897705748d0f57617bc3ed44248506"
+   },
+   "source": {
+    "path": "scripts/animation/sources/anime_slime_boss/attack/windup.webp",
+    "sha256": "de564d9fd01c618b8e658940c2c7e44a14db74c2f171fcf6657b2cab5a7bcc9d"
+   },
+   "output": {
+    "path": "public/assets/combat/characters/animated/anime_slime_boss-windup.webp",
+    "sha256": "08f4a06fdf23af6b8dfccbedc15392acc21fb3369a8ce5c634c47cca5fb9638e"
+   },
+   "inputs": [
+    {
+     "path": "scripts/animation/sources/anime_slime_boss/attack/inputs/layout-idle.webp",
+     "description": "image 1: 1536x1024 transparent layout canvas with the registered idle hero at 1.6x runtime scale, near sole on x=493.5 y=960",
+     "sha256": "1bdf423ea57c19d2017c3d74b9b935ca71534d5a1178cd1e95b2aabc4cfeb61b"
+    },
+    {
+     "description": "image 2: Approved identity: Slimeboss-chan idle (generated from the reference, native alpha PNG 1024x1536, prompts/idle.txt; the committed copy is scripts/art/sources/anime_slime_boss-char/idle-identity.webp, a lossy q96 copy)",
+     "sha256": "518a6bfe7c5e5573f3f7aaf481623530f315599badce71c214a31ed5ede94dc2"
+    },
+    {
+     "description": "image 3: the approved neighbouring drawing, scaled normalised onto the same layout canvas (head scale and near-sole plant; for the in-betweens and recoil this is the drawing before it), not committed"
+    }
+   ],
+   "notes": "The gauntlet is complete (a glossy slime fist and forearm wrap, about 1.5x the idle glove) and the arm is cocked far back; no floating blob remains. The bare left hand is in a guard in front of her chin."
+  },
+  {
+   "name": "leap",
+   "size": [
+    1536,
+    1024
+   ],
+   "n": 10,
+   "selected": "arm-fix round candidate 3",
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-art/prompts/attack-leap.txt",
+    "sha256": "69e3293c869839cd6bb8e88e9d50a1d800aefd77c0cd6bad9ea55f555dbf9eeb"
+   },
+   "source": {
+    "path": "scripts/animation/sources/anime_slime_boss/attack/leap.webp",
+    "sha256": "a4c9085928e1a0ca90f1172d07d738980585aa4559a1b75a3ef6de1f46f4c849"
+   },
+   "output": {
+    "path": "public/assets/combat/characters/animated/anime_slime_boss-leap.webp",
+    "sha256": "c1046b293fb4b79a4a6b3af7b7bf771c77245de772633e6e566be03e46241d23"
+   },
+   "inputs": [
+    {
+     "path": "scripts/animation/sources/anime_slime_boss/attack/inputs/layout-idle.webp",
+     "description": "image 1: 1536x1024 transparent layout canvas with the registered idle hero at 1.6x runtime scale, near sole on x=493.5 y=960",
+     "sha256": "1bdf423ea57c19d2017c3d74b9b935ca71534d5a1178cd1e95b2aabc4cfeb61b"
+    },
+    {
+     "description": "image 2: Approved identity: Slimeboss-chan idle (generated from the reference, native alpha PNG 1024x1536, prompts/idle.txt; the committed copy is scripts/art/sources/anime_slime_boss-char/idle-identity.webp, a lossy q96 copy)",
+     "sha256": "518a6bfe7c5e5573f3f7aaf481623530f315599badce71c214a31ed5ede94dc2"
+    },
+    {
+     "description": "image 3: the approved neighbouring drawing, scaled normalised onto the same layout canvas (head scale and near-sole plant; for the in-betweens and recoil this is the drawing before it), not committed"
+    }
+   ],
+   "notes": "Push-off of the dash, rear toe on the ground. Round 1 (3 candidates) redrew a floating blob next to the gauntlet and was rejected; round 2 (3, \"no floating blob\") was kept until the arm review; the arm-fix round (4) redrew it with the bare left hand tucked in a guard at her chin instead of reaching forward, so the bare hand has only a short way to travel back during the cross."
+  },
+  {
+   "name": "fly",
+   "size": [
+    1536,
+    1024
+   ],
+   "n": 7,
+   "selected": "arm-fix round candidate 3",
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-art/prompts/attack-fly.txt",
+    "sha256": "d4c17c6f0b8346941d1d982d1199e4996c0f6e6052a238f3607d29f8eb1f599f"
+   },
+   "source": {
+    "path": "scripts/animation/sources/anime_slime_boss/attack/fly.webp",
+    "sha256": "eac2478de1bb88a6fd50b78b0a4fd694b398ba92e618d7a4ea0d34950cc9d4e7"
+   },
+   "output": {
+    "path": "public/assets/combat/characters/animated/anime_slime_boss-fly.webp",
+    "sha256": "73823032e95f72a04aa4d6a8e22318eeef01e57a8cfac07d73176f673cf13372"
+   },
+   "inputs": [
+    {
+     "path": "scripts/animation/sources/anime_slime_boss/attack/inputs/layout-idle.webp",
+     "description": "image 1: 1536x1024 transparent layout canvas with the registered idle hero at 1.6x runtime scale, near sole on x=493.5 y=960",
+     "sha256": "1bdf423ea57c19d2017c3d74b9b935ca71534d5a1178cd1e95b2aabc4cfeb61b"
+    },
+    {
+     "description": "image 2: Approved identity: Slimeboss-chan idle (generated from the reference, native alpha PNG 1024x1536, prompts/idle.txt; the committed copy is scripts/art/sources/anime_slime_boss-char/idle-identity.webp, a lossy q96 copy)",
+     "sha256": "518a6bfe7c5e5573f3f7aaf481623530f315599badce71c214a31ed5ede94dc2"
+    },
+    {
+     "description": "image 3: the approved neighbouring drawing, scaled normalised onto the same layout canvas (head scale and near-sole plant; for the in-betweens and recoil this is the drawing before it), not committed"
+    }
+   ],
+   "notes": "Flying dash, both boots off the ground (lift 20), the bare left hand tucked in a guard at her chin (redrawn in the arm-fix round: the first version reached forward)."
+  },
+  {
+   "name": "step",
+   "size": [
+    1536,
+    1024
+   ],
+   "n": 7,
+   "selected": "arm-fix round candidate 2",
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-art/prompts/attack-step.txt",
+    "sha256": "0c58e460d00164114f9b6ec7017185ab6288853fcaf5558188ebb468c1184b6c"
+   },
+   "source": {
+    "path": "scripts/animation/sources/anime_slime_boss/attack/step.webp",
+    "sha256": "45831956644a6fd552e06687202c2d3faa617e3012606fd0444fb0e74d41f22d"
+   },
+   "output": {
+    "path": "public/assets/combat/characters/animated/anime_slime_boss-step.webp",
+    "sha256": "a7dded8ff5263f917054bd9b7d3e664af0f2f8517a36acd80a7884bf74f1bbd9"
+   },
+   "inputs": [
+    {
+     "path": "scripts/animation/sources/anime_slime_boss/attack/inputs/layout-idle.webp",
+     "description": "image 1: 1536x1024 transparent layout canvas with the registered idle hero at 1.6x runtime scale, near sole on x=493.5 y=960",
+     "sha256": "1bdf423ea57c19d2017c3d74b9b935ca71534d5a1178cd1e95b2aabc4cfeb61b"
+    },
+    {
+     "description": "image 2: Approved identity: Slimeboss-chan idle (generated from the reference, native alpha PNG 1024x1536, prompts/idle.txt; the committed copy is scripts/art/sources/anime_slime_boss-char/idle-identity.webp, a lossy q96 copy)",
+     "sha256": "518a6bfe7c5e5573f3f7aaf481623530f315599badce71c214a31ed5ede94dc2"
+    },
+    {
+     "description": "image 3: the approved neighbouring drawing, scaled normalised onto the same layout canvas (head scale and near-sole plant; for the in-betweens and recoil this is the drawing before it), not committed"
+    }
+   ],
+   "notes": "Landing stride in front of the enemy, gauntlet cocked at the hip (still drawn over the hair), the bare left fist in a guard at her chin (redrawn in the arm-fix round: the first version reached forward)."
+  },
+  {
+   "name": "cross0",
+   "size": [
+    1536,
+    1024
+   ],
+   "n": 4,
+   "selected": "candidate 3",
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-art/prompts/attack-cross0.txt",
+    "sha256": "b6295ff633555c8917cdb3e010412a25c3822bf5912357316ef7bba3006abd24"
+   },
+   "source": {
+    "path": "scripts/animation/sources/anime_slime_boss/attack/cross0.webp",
+    "sha256": "671a5ec79b1d40732b6d9b8ee2c1bd4bf9d0e5727803c557a19dfe92e951ea71"
+   },
+   "output": {
+    "path": "public/assets/combat/characters/animated/anime_slime_boss-cross0.webp",
+    "sha256": "b2daba906013d954d6e4a3ba66f89bd2eaf17a5233c1c336daf23695d7a75b7e"
+   },
+   "inputs": [
+    {
+     "path": "scripts/animation/sources/anime_slime_boss/attack/inputs/layout-idle.webp",
+     "description": "image 1: 1536x1024 transparent layout canvas with the registered idle hero at 1.6x runtime scale, near sole on x=493.5 y=960",
+     "sha256": "1bdf423ea57c19d2017c3d74b9b935ca71534d5a1178cd1e95b2aabc4cfeb61b"
+    },
+    {
+     "description": "image 2: Approved identity: Slimeboss-chan idle (generated from the reference, native alpha PNG 1024x1536, prompts/idle.txt; the committed copy is scripts/art/sources/anime_slime_boss-char/idle-identity.webp, a lossy q96 copy)",
+     "sha256": "518a6bfe7c5e5573f3f7aaf481623530f315599badce71c214a31ed5ede94dc2"
+    },
+    {
+     "description": "image 3: the approved neighbouring drawing, scaled normalised onto the same layout canvas (head scale and near-sole plant; for the in-betweens and recoil this is the drawing before it), not committed"
+    },
+    {
+     "description": "image 4: the cross drawing, normalised the same way"
+    }
+   ],
+   "notes": "Added in the arm-fix round: half-way between step (image 3) and cross (image 4): the gauntlet arm starts to sweep forward, the glove at her rear hip, the bare fist has dropped from her chin to her upper chest."
+  },
+  {
+   "name": "cross",
+   "size": [
+    1536,
+    1024
+   ],
+   "n": 12,
+   "selected": "third round candidate 2",
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-art/prompts/attack-cross.txt",
+    "sha256": "e79ef770da34847fe074f2949c4a0ecae478d8e69597b65d4a15a206547772b2"
+   },
+   "source": {
+    "path": "scripts/animation/sources/anime_slime_boss/attack/cross.webp",
+    "sha256": "6b91fb1a2838a12dbfc33aa15db0af8f8b5396ec3684a99c61bb7ce9b924dc3b"
+   },
+   "output": {
+    "path": "public/assets/combat/characters/animated/anime_slime_boss-cross.webp",
+    "sha256": "fb598702416f69e205108d0b9d34483389240ae12d52006f8d54062b002348c4"
+   },
+   "inputs": [
+    {
+     "path": "scripts/animation/sources/anime_slime_boss/attack/inputs/layout-idle.webp",
+     "description": "image 1: 1536x1024 transparent layout canvas with the registered idle hero at 1.6x runtime scale, near sole on x=493.5 y=960",
+     "sha256": "1bdf423ea57c19d2017c3d74b9b935ca71534d5a1178cd1e95b2aabc4cfeb61b"
+    },
+    {
+     "description": "image 2: Approved identity: Slimeboss-chan idle (generated from the reference, native alpha PNG 1024x1536, prompts/idle.txt; the committed copy is scripts/art/sources/anime_slime_boss-char/idle-identity.webp, a lossy q96 copy)",
+     "sha256": "518a6bfe7c5e5573f3f7aaf481623530f315599badce71c214a31ed5ede94dc2"
+    },
+    {
+     "description": "image 3: the approved neighbouring drawing, scaled normalised onto the same layout canvas (head scale and near-sole plant; for the in-betweens and recoil this is the drawing before it), not committed"
+    },
+    {
+     "description": "image 4: the thrust drawing, normalised the same way"
+    }
+   ],
+   "notes": "Added in the arm-fix round: the first moment of the cross punch. The gauntlet arm (her right, near arm) is drawn over her torso and belt with its sleeve continuous from the shoulder panel to the glove, the bare left arm is behind her torso with only the hand showing at her hip. Rounds 1 and 2 (4 candidates each) drew the bare arm over her chest and hid the gauntlet arm behind the torso; round 3 added the explicit layering rule (prompts/attack-cross.txt) and the continuous-sleeve requirement."
+  },
+  {
+   "name": "thrust",
+   "size": [
+    1536,
+    1024
+   ],
+   "n": 7,
+   "selected": "arm-fix round candidate 2",
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-art/prompts/attack-thrust.txt",
+    "sha256": "e2959fee4c30259d4fec23cddac2ed88e389e395a95b54adb385d147e4c28cc6"
+   },
+   "source": {
+    "path": "scripts/animation/sources/anime_slime_boss/attack/thrust.webp",
+    "sha256": "804ecedaf0dcdaf6e831ff98533295fb845996083deb0a236d167f7ebc1c5645"
+   },
+   "output": {
+    "path": "public/assets/combat/characters/animated/anime_slime_boss-thrust.webp",
+    "sha256": "000c3c524e81d612543edd22682dc69273a0d2227db6cbbbadfc3b97c9b461ce"
+   },
+   "inputs": [
+    {
+     "path": "scripts/animation/sources/anime_slime_boss/attack/inputs/layout-idle.webp",
+     "description": "image 1: 1536x1024 transparent layout canvas with the registered idle hero at 1.6x runtime scale, near sole on x=493.5 y=960",
+     "sha256": "1bdf423ea57c19d2017c3d74b9b935ca71534d5a1178cd1e95b2aabc4cfeb61b"
+    },
+    {
+     "description": "image 2: Approved identity: Slimeboss-chan idle (generated from the reference, native alpha PNG 1024x1536, prompts/idle.txt; the committed copy is scripts/art/sources/anime_slime_boss-char/idle-identity.webp, a lossy q96 copy)",
+     "sha256": "518a6bfe7c5e5573f3f7aaf481623530f315599badce71c214a31ed5ede94dc2"
+    },
+    {
+     "description": "image 3: the approved neighbouring drawing, scaled normalised onto the same layout canvas (head scale and near-sole plant; for the in-betweens and recoil this is the drawing before it), not committed"
+    }
+   ],
+   "notes": "Redrawn in the arm-fix round after cross: the arm half extended in front of her chest, the sleeve continuous from the shoulder, the bare left hand open behind her hip. The first version (3 candidates) had the gauntlet arm hidden behind the torso and the bare arm drawn over it."
+  },
+  {
+   "name": "punch",
+   "size": [
+    1536,
+    1024
+   ],
+   "n": 8,
+   "selected": "arm-fix round candidate 3",
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-art/prompts/attack-punch.txt",
+    "sha256": "4e83682ca7b2e566236ca3bfab1b126064775c08d22155e688ed2938427949dc"
+   },
+   "source": {
+    "path": "scripts/animation/sources/anime_slime_boss/attack/punch.webp",
+    "sha256": "dc7cb28eddb3ddd52de2ed2374e7193a4f4c7c60b1a9d6dc28e5581d3902a9b9"
+   },
+   "output": {
+    "path": "public/assets/combat/characters/animated/anime_slime_boss-punch.webp",
+    "sha256": "69699e110a35936262c9947a72da5eed7486cba370b940007d542b0bb9c8796a"
+   },
+   "inputs": [
+    {
+     "path": "scripts/animation/sources/anime_slime_boss/attack/inputs/layout-idle.webp",
+     "description": "image 1: 1536x1024 transparent layout canvas with the registered idle hero at 1.6x runtime scale, near sole on x=493.5 y=960",
+     "sha256": "1bdf423ea57c19d2017c3d74b9b935ca71534d5a1178cd1e95b2aabc4cfeb61b"
+    },
+    {
+     "description": "image 2: Approved identity: Slimeboss-chan idle (generated from the reference, native alpha PNG 1024x1536, prompts/idle.txt; the committed copy is scripts/art/sources/anime_slime_boss-char/idle-identity.webp, a lossy q96 copy)",
+     "sha256": "518a6bfe7c5e5573f3f7aaf481623530f315599badce71c214a31ed5ede94dc2"
+    },
+    {
+     "description": "image 3: the approved neighbouring drawing, scaled normalised onto the same layout canvas (head scale and near-sole plant; for the in-betweens and recoil this is the drawing before it), not committed"
+    }
+   ],
+   "notes": "CONTACT (the only hit): the heavy straight gauntlet punch, the right arm drawn over her torso with its sleeve continuous from the shoulder panel, the bare left hand open behind her hip, a few droplets spraying. Redrawn in the arm-fix round (4 candidates; the first set of 4 drew the gauntlet arm from the far shoulder with the bare arm in front)."
+  },
+  {
+   "name": "splash",
+   "size": [
+    1536,
+    1024
+   ],
+   "n": 8,
+   "selected": "arm-fix round candidate 4",
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-art/prompts/attack-splash.txt",
+    "sha256": "e0dbc1027a8437ab943c5b48ef4da2ca2a330a2afb66e1e7f7efe4ee348c04dd"
+   },
+   "source": {
+    "path": "scripts/animation/sources/anime_slime_boss/attack/splash.webp",
+    "sha256": "8fbb30cdc858aeb44e4f371367c8abcb5428882d4a87e01efcad646cf94124a8"
+   },
+   "output": {
+    "path": "public/assets/combat/characters/animated/anime_slime_boss-splash.webp",
+    "sha256": "85ebd94c96a363a0a2ed2c513ffb75116b049e1f583c021020d25dc4bbeaca7b"
+   },
+   "inputs": [
+    {
+     "path": "scripts/animation/sources/anime_slime_boss/attack/inputs/layout-idle.webp",
+     "description": "image 1: 1536x1024 transparent layout canvas with the registered idle hero at 1.6x runtime scale, near sole on x=493.5 y=960",
+     "sha256": "1bdf423ea57c19d2017c3d74b9b935ca71534d5a1178cd1e95b2aabc4cfeb61b"
+    },
+    {
+     "description": "image 2: Approved identity: Slimeboss-chan idle (generated from the reference, native alpha PNG 1024x1536, prompts/idle.txt; the committed copy is scripts/art/sources/anime_slime_boss-char/idle-identity.webp, a lossy q96 copy)",
+     "sha256": "518a6bfe7c5e5573f3f7aaf481623530f315599badce71c214a31ed5ede94dc2"
+    },
+    {
+     "description": "image 3: the approved neighbouring drawing, scaled normalised onto the same layout canvas (head scale and near-sole plant; for the in-betweens and recoil this is the drawing before it), not committed"
+    }
+   ],
+   "notes": "The gauntlet bursts into a crown of slime droplets; hair and coat flare forward; same arms as the punch. Redrawn in the arm-fix round (4 candidates) from the new punch."
+  },
+  {
+   "name": "pull",
+   "size": [
+    1536,
+    1024
+   ],
+   "n": 4,
+   "selected": "candidate 3",
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-art/prompts/attack-pull.txt",
+    "sha256": "582c13ca567fb1b304825e6c2870f18a4941296d83215a18eba0dd5c6003d787"
+   },
+   "source": {
+    "path": "scripts/animation/sources/anime_slime_boss/attack/pull.webp",
+    "sha256": "f3a61a00ca5776b2b56d14f6be828689365af97f93fc62d3941640a93f5a8452"
+   },
+   "output": {
+    "path": "public/assets/combat/characters/animated/anime_slime_boss-pull.webp",
+    "sha256": "fa48cafa3521e39d686df033eba17595b06b8476e13c20305e1c4f2a18f768d7"
+   },
+   "inputs": [
+    {
+     "path": "scripts/animation/sources/anime_slime_boss/attack/inputs/layout-idle.webp",
+     "description": "image 1: 1536x1024 transparent layout canvas with the registered idle hero at 1.6x runtime scale, near sole on x=493.5 y=960",
+     "sha256": "1bdf423ea57c19d2017c3d74b9b935ca71534d5a1178cd1e95b2aabc4cfeb61b"
+    },
+    {
+     "description": "image 2: Approved identity: Slimeboss-chan idle (generated from the reference, native alpha PNG 1024x1536, prompts/idle.txt; the committed copy is scripts/art/sources/anime_slime_boss-char/idle-identity.webp, a lossy q96 copy)",
+     "sha256": "518a6bfe7c5e5573f3f7aaf481623530f315599badce71c214a31ed5ede94dc2"
+    },
+    {
+     "description": "image 3: the approved neighbouring drawing, scaled normalised onto the same layout canvas (head scale and near-sole plant; for the in-betweens and recoil this is the drawing before it), not committed"
+    },
+    {
+     "description": "image 4: the recoil drawing, normalised the same way"
+    }
+   ],
+   "notes": "Added in the arm-fix round: half-way between splash (image 3) and recoil (image 4): the gauntlet arm pulling back with the glove deflating in front of her stomach, the bare hand coming forward beside her ribs."
+  },
+  {
+   "name": "recoil",
+   "size": [
+    1536,
+    1024
+   ],
+   "n": 11,
+   "selected": "arm-fix round candidate 2",
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-art/prompts/attack-recoil.txt",
+    "sha256": "7f9729cc2dfb07bc5dab2ffa0b78ed7f741db3c4e25e8f3d2dd02167118d3a2d"
+   },
+   "source": {
+    "path": "scripts/animation/sources/anime_slime_boss/attack/recoil.webp",
+    "sha256": "8f25bf7d9f58083bdbe4aa95e77b6cd60d2cc5ebdcd22fd351f1c430bbe91860"
+   },
+   "output": {
+    "path": "public/assets/combat/characters/animated/anime_slime_boss-recoil.webp",
+    "sha256": "d68f12d96485eece5956d950c766bf4228f5d5d9e8137753234337b07006c324"
+   },
+   "inputs": [
+    {
+     "path": "scripts/animation/sources/anime_slime_boss/attack/inputs/layout-idle.webp",
+     "description": "image 1: 1536x1024 transparent layout canvas with the registered idle hero at 1.6x runtime scale, near sole on x=493.5 y=960",
+     "sha256": "1bdf423ea57c19d2017c3d74b9b935ca71534d5a1178cd1e95b2aabc4cfeb61b"
+    },
+    {
+     "description": "image 2: Approved identity: Slimeboss-chan idle (generated from the reference, native alpha PNG 1024x1536, prompts/idle.txt; the committed copy is scripts/art/sources/anime_slime_boss-char/idle-identity.webp, a lossy q96 copy)",
+     "sha256": "518a6bfe7c5e5573f3f7aaf481623530f315599badce71c214a31ed5ede94dc2"
+    },
+    {
+     "description": "image 3: the approved neighbouring drawing, scaled normalised onto the same layout canvas (head scale and near-sole plant; for the in-betweens and recoil this is the drawing before it), not committed"
+    },
+    {
+     "description": "image 4: the rise0 drawing, normalised the same way"
+    }
+   ],
+   "notes": "The gauntlet arm folded across the front of her chest, the bare fist back in a guard at her chin. Rounds before the arm review (7 candidates, A splash / B follow, then with the old thrust as an arm reference) were replaced by a round (4) between the new splash (image 3) and rise0 (image 4)."
+  },
+  {
+   "name": "rise0",
+   "size": [
+    1536,
+    1024
+   ],
+   "n": 4,
+   "selected": "candidate 2",
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-art/prompts/attack-rise0.txt",
+    "sha256": "4d97fbeff31ff769ee82c996803b2414b5760c4758d0b011710b876ce01406a9"
+   },
+   "source": {
+    "path": "scripts/animation/sources/anime_slime_boss/attack/rise0.webp",
+    "sha256": "3f1090a3ee928dcb01206bdd55033ce17e4a4d361e3a0c8186be61d887a90678"
+   },
+   "output": {
+    "path": "public/assets/combat/characters/animated/anime_slime_boss-rise0.webp",
+    "sha256": "122863723e96f9a6b2d4c077aaaa07706e7f9e7e1ebde849ad280c02ae5dea55"
+   },
+   "inputs": [
+    {
+     "path": "scripts/animation/sources/anime_slime_boss/attack/inputs/layout-idle.webp",
+     "description": "image 1: 1536x1024 transparent layout canvas with the registered idle hero at 1.6x runtime scale, near sole on x=493.5 y=960",
+     "sha256": "1bdf423ea57c19d2017c3d74b9b935ca71534d5a1178cd1e95b2aabc4cfeb61b"
+    },
+    {
+     "description": "image 2: Approved identity: Slimeboss-chan idle (generated from the reference, native alpha PNG 1024x1536, prompts/idle.txt; the committed copy is scripts/art/sources/anime_slime_boss-char/idle-identity.webp, a lossy q96 copy)",
+     "sha256": "518a6bfe7c5e5573f3f7aaf481623530f315599badce71c214a31ed5ede94dc2"
+    },
+    {
+     "description": "image 3: the approved neighbouring drawing, scaled normalised onto the same layout canvas (head scale and near-sole plant; for the in-betweens and recoil this is the drawing before it), not committed"
+    },
+    {
+     "description": "image 4: the rise drawing, normalised the same way"
+    }
+   ],
+   "notes": "Half-way between recoil and rise (images 3 and 4): half risen, the glove back to normal, a small blob forming at the shoulder. Drawn before the arm review; its glove arm already read as the same arm and was kept."
+  },
+  {
+   "name": "rise",
+   "size": [
+    1536,
+    1024
+   ],
+   "n": 3,
+   "selected": "candidate 2",
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-art/prompts/attack-rise.txt",
+    "sha256": "b5fa2dcec8fcf000df91de2af53278e96fe870d63794203b38c71b8f45f830f1"
+   },
+   "source": {
+    "path": "scripts/animation/sources/anime_slime_boss/attack/rise.webp",
+    "sha256": "98c4352768073ad4d9b576cabffbb4ea2c6e49144153f9e5bcb9f46fd90e31ca"
+   },
+   "output": {
+    "path": "public/assets/combat/characters/animated/anime_slime_boss-rise.webp",
+    "sha256": "e39b0dd9ccfe3eb3f834c62b66ad3bd51671707208f894675548d0ef070f944f"
+   },
+   "inputs": [
+    {
+     "path": "scripts/animation/sources/anime_slime_boss/attack/inputs/layout-idle.webp",
+     "description": "image 1: 1536x1024 transparent layout canvas with the registered idle hero at 1.6x runtime scale, near sole on x=493.5 y=960",
+     "sha256": "1bdf423ea57c19d2017c3d74b9b935ca71534d5a1178cd1e95b2aabc4cfeb61b"
+    },
+    {
+     "description": "image 2: Approved identity: Slimeboss-chan idle (generated from the reference, native alpha PNG 1024x1536, prompts/idle.txt; the committed copy is scripts/art/sources/anime_slime_boss-char/idle-identity.webp, a lossy q96 copy)",
+     "sha256": "518a6bfe7c5e5573f3f7aaf481623530f315599badce71c214a31ed5ede94dc2"
+    },
+    {
+     "description": "image 3: the approved neighbouring drawing, scaled normalised onto the same layout canvas (head scale and near-sole plant; for the in-betweens and recoil this is the drawing before it), not committed"
+    }
+   ],
+   "notes": "Nearly upright guard, glove at the hip, the blob back beside her right shoulder."
+  },
+  {
+   "name": "hop",
+   "size": [
+    1536,
+    1024
+   ],
+   "n": 3,
+   "selected": "candidate 3",
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-art/prompts/attack-hop.txt",
+    "sha256": "b756b8169715f9397f616447844047825c68fa506500201584d4d91ee3d9b57a"
+   },
+   "source": {
+    "path": "scripts/animation/sources/anime_slime_boss/attack/hop.webp",
+    "sha256": "d0953ee9fb061a58273f8221600046fa2a3ab4e9d441b1c26739fb36d4c86d7e"
+   },
+   "output": {
+    "path": "public/assets/combat/characters/animated/anime_slime_boss-hop.webp",
+    "sha256": "3077b3fa6482e172c2b05601ab1da7ad99eb2b07e06b415350bdcde5e8bfba76"
+   },
+   "inputs": [
+    {
+     "path": "scripts/animation/sources/anime_slime_boss/attack/inputs/layout-idle.webp",
+     "description": "image 1: 1536x1024 transparent layout canvas with the registered idle hero at 1.6x runtime scale, near sole on x=493.5 y=960",
+     "sha256": "1bdf423ea57c19d2017c3d74b9b935ca71534d5a1178cd1e95b2aabc4cfeb61b"
+    },
+    {
+     "description": "image 2: Approved identity: Slimeboss-chan idle (generated from the reference, native alpha PNG 1024x1536, prompts/idle.txt; the committed copy is scripts/art/sources/anime_slime_boss-char/idle-identity.webp, a lossy q96 copy)",
+     "sha256": "518a6bfe7c5e5573f3f7aaf481623530f315599badce71c214a31ed5ede94dc2"
+    },
+    {
+     "description": "image 3: the approved neighbouring drawing, scaled normalised onto the same layout canvas (head scale and near-sole plant; for the in-betweens and recoil this is the drawing before it), not committed"
+    }
+   ],
+   "notes": "Backwards hop, both boots off the ground (lift 32), still facing the enemy, hair and coat blown forward."
+  },
+  {
+   "name": "land",
+   "size": [
+    1536,
+    1024
+   ],
+   "n": 3,
+   "selected": "candidate 2",
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-art/prompts/attack-land.txt",
+    "sha256": "272913d4fffa2f3ee583d4aee442c0f1837baae6e067b3745350355eacc8a283"
+   },
+   "source": {
+    "path": "scripts/animation/sources/anime_slime_boss/attack/land.webp",
+    "sha256": "c5f0d997e2e2013d488283cab4286f14cc3060dd8c997a67bb196f148ef1f21d"
+   },
+   "output": {
+    "path": "public/assets/combat/characters/animated/anime_slime_boss-land.webp",
+    "sha256": "017d451006a1f111260e1522961ac7e0c211658e50f8f02db9703d2970a96a64"
+   },
+   "inputs": [
+    {
+     "path": "scripts/animation/sources/anime_slime_boss/attack/inputs/layout-idle.webp",
+     "description": "image 1: 1536x1024 transparent layout canvas with the registered idle hero at 1.6x runtime scale, near sole on x=493.5 y=960",
+     "sha256": "1bdf423ea57c19d2017c3d74b9b935ca71534d5a1178cd1e95b2aabc4cfeb61b"
+    },
+    {
+     "description": "image 2: Approved identity: Slimeboss-chan idle (generated from the reference, native alpha PNG 1024x1536, prompts/idle.txt; the committed copy is scripts/art/sources/anime_slime_boss-char/idle-identity.webp, a lossy q96 copy)",
+     "sha256": "518a6bfe7c5e5573f3f7aaf481623530f315599badce71c214a31ed5ede94dc2"
+    },
+    {
+     "description": "image 3: the approved neighbouring drawing, scaled normalised onto the same layout canvas (head scale and near-sole plant; for the in-betweens and recoil this is the drawing before it), not committed"
+    }
+   ],
+   "notes": "Touchdown of the hop, knees bent."
+  },
+  {
+   "name": "recover",
+   "size": [
+    1536,
+    1024
+   ],
+   "n": 4,
+   "selected": "candidate 3",
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-art/prompts/attack-recover.txt",
+    "sha256": "2c5c4aa9ec07c6d552718620f35e3ca6ce31ffb4bb239064ddfc881b5048b641"
+   },
+   "source": {
+    "path": "scripts/animation/sources/anime_slime_boss/attack/recover.webp",
+    "sha256": "9b5a07a9e256538d90994d58c3c9ccd96b4cbbbdd665e9a5487f4db15631e2ae"
+   },
+   "output": {
+    "path": "public/assets/combat/characters/animated/anime_slime_boss-recover.webp",
+    "sha256": "9a3a590a00f3360da637be8f525b7ed3405d04e1bd5f69c32adb81aaa1e2ac75"
+   },
+   "inputs": [
+    {
+     "path": "scripts/animation/sources/anime_slime_boss/attack/inputs/layout-idle.webp",
+     "description": "image 1: 1536x1024 transparent layout canvas with the registered idle hero at 1.6x runtime scale, near sole on x=493.5 y=960",
+     "sha256": "1bdf423ea57c19d2017c3d74b9b935ca71534d5a1178cd1e95b2aabc4cfeb61b"
+    },
+    {
+     "description": "image 2: Approved identity: Slimeboss-chan idle (generated from the reference, native alpha PNG 1024x1536, prompts/idle.txt; the committed copy is scripts/art/sources/anime_slime_boss-char/idle-identity.webp, a lossy q96 copy)",
+     "sha256": "518a6bfe7c5e5573f3f7aaf481623530f315599badce71c214a31ed5ede94dc2"
+    },
+    {
+     "description": "image 3: the approved neighbouring drawing, scaled normalised onto the same layout canvas (head scale and near-sole plant; for the in-betweens and recoil this is the drawing before it), not committed"
+    }
+   ],
+   "notes": "Settling back toward the idle stance and the three-quarter front view."
+  },
+  {
+   "name": "spawn",
+   "size": [
+    1536,
+    1024
+   ],
+   "n": 4,
+   "selected": "candidate 2",
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-art/prompts/attack-spawn.txt",
+    "sha256": "29bd196ee753e524638db93adac82eedaaf81d8d2f73c2ffd203a635d9c93df1"
+   },
+   "source": {
+    "path": "scripts/animation/sources/anime_slime_boss/attack/spawn.webp",
+    "sha256": "adbff669424e84aae6b72e58245d61297fa779eda0dfe7264a06d451d5bdf1cf"
+   },
+   "output": {
+    "path": "public/assets/combat/characters/anime_slime_boss-spawn.webp",
+    "sha256": "07abd21c563ba6187a3af89f8914524335f55cd75c29db610847b875e1d4ffef"
+   },
+   "inputs": [
+    {
+     "path": "scripts/animation/sources/anime_slime_boss/attack/inputs/layout-idle.webp",
+     "description": "image 1: 1536x1024 transparent layout canvas with the registered idle hero at 1.6x runtime scale, near sole on x=493.5 y=960",
+     "sha256": "1bdf423ea57c19d2017c3d74b9b935ca71534d5a1178cd1e95b2aabc4cfeb61b"
+    },
+    {
+     "description": "image 2: Approved identity: Slimeboss-chan idle (generated from the reference, native alpha PNG 1024x1536, prompts/idle.txt; the committed copy is scripts/art/sources/anime_slime_boss-char/idle-identity.webp, a lossy q96 copy)",
+     "sha256": "518a6bfe7c5e5573f3f7aaf481623530f315599badce71c214a31ed5ede94dc2"
+    }
+   ],
+   "notes": "The standing \"summoning\" drawing (hands raised, a slime blob budding out of her right palm), a static drawing on the hero canvas planted on the idle near sole."
+  }
+ ]
+}

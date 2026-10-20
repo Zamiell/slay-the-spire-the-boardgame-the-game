@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[3]
 HERE = Path(__file__).resolve().parent
 MASKS = HERE / 'masks'
 SKIN_OWNERS = {'kratos': 'ironclad', 'monogatari_ironclad': 'ironclad', 'monogatari_silent': 'silent',
-               'monogatari_defect': 'defect', 'monogatari_watcher': 'watcher'}
+               'monogatari_defect': 'defect', 'monogatari_watcher': 'watcher', 'anime_slime_boss': 'slime_boss'}
 CARDS = ROOT / 'public/assets/cards'
 THUMBS = ROOT / 'public/assets/cards-sm'
 REF_SIZE = (744, 1039)
@@ -101,13 +101,20 @@ def mask_path(owner, card_type, upgraded):
     return MASKS / owner / f"base-{card_type}{'-up' if upgraded else ''}.png"
 
 
+def registration_file(key):
+    """The registration table holding a scan key: Defect and Slime Boss have their own files, so the shared
+    registration.json (whose hash is recorded in the Ironclad provenance manifest) never changes for a new owner."""
+    if key.startswith(('defect__', 'slayer__defect__')):
+        return 'defect-registration.json'
+    if key.startswith('slime_boss__'):
+        return 'slime-boss-registration.json'
+    return 'registration.json'
+
+
 def registration(key):
     """Affine mapping reference coordinates (744x1039) to this scan resized to 744x1039; identity for most scans."""
-    path = HERE / 'registration.json'
+    path = HERE / registration_file(key)
     table = json.loads(path.read_text()) if path.exists() else {}
-    defect_path = HERE / 'defect-registration.json'
-    if key.startswith('defect__') or (key.startswith('slayer__defect__')):
-        table = json.loads(defect_path.read_text()) if defect_path.exists() else {}
     return np.array(table.get(key, [1, 0, 0, 0, 1, 0]), dtype=np.float64).reshape(2, 3)
 
 

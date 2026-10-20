@@ -1,0 +1,1189 @@
+{
+ "model": "gpt-image-2.5-sunburst",
+ "quality": "high",
+ "size": "1536x1024",
+ "cardSize": [
+  748,
+  420
+ ],
+ "catalogue": {
+  "path": "scripts/art/skin-cards/cards/slime_boss.json",
+  "sha256": "67827fb25ba4c68bf30839cae1d9719747ba7fed29aeab8df70ff236b57a48bb"
+ },
+ "registration": {
+  "path": "scripts/art/skin-cards/slime-boss-registration.json",
+  "sha256": "0e6d59af0cbc773d029efc9a6649cf4cd39af19f7b330611243ee03df215ae69"
+ },
+ "masks": [
+  {
+   "path": "scripts/art/skin-cards/masks/slime_boss/base-attack-up.png",
+   "sha256": "a2f5431608635e405fea45cc6f992c153c07864a84010a53c51cc86d18a0ea3c"
+  },
+  {
+   "path": "scripts/art/skin-cards/masks/slime_boss/base-attack.png",
+   "sha256": "3e925bd56f1174baa948544d90f950b94306a804b6c0469f268313cba246dae9"
+  },
+  {
+   "path": "scripts/art/skin-cards/masks/slime_boss/base-power-up.png",
+   "sha256": "036184b32474de2823038d0fb236c16fe2d6dedac1c818ffea620d085e037b0d"
+  },
+  {
+   "path": "scripts/art/skin-cards/masks/slime_boss/base-power.png",
+   "sha256": "94eed33758c5bce975a54ba0e8a167502b27c4cbddc19997d5d144e352bf1950"
+  },
+  {
+   "path": "scripts/art/skin-cards/masks/slime_boss/base-skill-up.png",
+   "sha256": "9a28c313ef4cda8763b7886ca3b7cbadbb2cefb2358b516ba29c6752665ff767"
+  },
+  {
+   "path": "scripts/art/skin-cards/masks/slime_boss/base-skill.png",
+   "sha256": "20fb2c5c88adda22bffbb0ce5ea5934f097b56a10854d4ac8f0f79b41259016e"
+  }
+ ],
+ "identityReference": {
+  "description": "Approved Slimeboss-chan idle identity drawing: lime-green long hair, tiny black bowler hat, gold-yellow eyes, black coat with white shoulder panels, slate tunic with a gold zip line, brown belt, grey trousers, tall brown boots, slime-glove fist and a small floating slime blob (generated, flattened on a dark background, not committed)",
+  "sha256": "52ef05d32f38c492b0411023d8519d3e02b3651f6c6826905534e9103919717b"
+ },
+ "styleReferences": {
+  "design": {
+   "description": "The user's Slimeboss-chan character design sheet: clean modern TV-anime linework and flat cel colour (style authority and identity; copyrighted/not ours to redistribute, not committed)",
+   "sha256": "39bad4b9b487fc4df468efb024405025dfb7875cb761c28d4819894d18c9b136"
+  }
+ },
+ "cards": [
+  {
+   "id": "slime_boss_slime_slap",
+   "scene": "She swings her slime-glove fist in a wide backhand slap across the frame, a big arc of lime goop trailing behind it, a grey stone knight statue snapping sideways from the blow, a small slime blob swelling larger beside her shoulder.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_slime_slap.webp",
+    "sha256": "8e6a70d9b4fc310edd6d3ba26c6cb9af46b2e09ee09a489c44c05ffc9e498b6d"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_slime_slap.txt",
+    "sha256": "5092e0b7222d4ba1b135f5308908d781e3cb4c9719c88ee99aace0498be075ea"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_slime_slap.webp",
+    "sha256": "01a05f62122c1b341156fc8c3975a97c26e75f782e5d144a7ad55c27524102f2"
+   },
+   "webpQuality": 75
+  },
+  {
+   "id": "slime_boss_lick",
+   "scene": "A long glossy slime tongue unrolls from a small slime beside her and licks out toward a grey stone knight statue, while she gestures with two fingers like a conductor giving a quiet command.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_lick.webp",
+    "sha256": "2581f723daed8687b0fd58059ffbdfbe12d4b3b2014cecc53d142957fab67166"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_lick.txt",
+    "sha256": "47d987a896872ae4912abeb9b088a1f599418350bbd1484025431f3b2ef7f06e"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_lick.webp",
+    "sha256": "962082d45ca156b05e10f07c292bcc4a861673d82f19261e7b5964b876a57ec0"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "slime_boss_defend",
+   "scene": "She crosses her forearms in front of her chest as a thin translucent lime slime membrane forms a dome around her and glancing blows bounce off it in small flat sparks.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_defend.webp",
+    "sha256": "4166de8b325eab677a763450b23408d0e89482cb9cf98969a12ea47ac30d6487"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_defend.txt",
+    "sha256": "0d253e580b6424d6ee9de5c657369d3fe7e60ba34db67df82ae73208392b5dbb"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_defend.webp",
+    "sha256": "28e2d10d727c92524dfb99b1678508528ac3c7da5359040de3ba48b091be124b"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "slime_boss_strike",
+   "scene": "A clean straight punch: she drives her lime slime-glove fist toward the camera-right, three simple speed lines behind it, a flat white impact flash cracking a grey stone knight statue's round shield.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_strike.webp",
+    "sha256": "0f74c5bc9d8409049a2e3ee3a2c43fa3e0e0d08a7a3ddd7549107b67896dc893"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_strike.txt",
+    "sha256": "53a655de1065f3bbebd7dcdc84782422119ee94a6780ad0347e0e37bb92a8378"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_strike.webp",
+    "sha256": "720b31d9a7250236de7e52625b2a86db3065d96e4b949825c50b28a06f97516a"
+   },
+   "webpQuality": 75
+  },
+  {
+   "id": "slime_boss_combo_tackle",
+   "scene": "Low camera: she snaps two fingers and two slimes, one big and one small, shoot one after the other along a diagonal with trailing goop streaks and slam into the cracked shield of a grey stone knight statue.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_combo_tackle.webp",
+    "sha256": "91e392c4322f499aa6b23fbaf853e5c2737ac0a6ccab11bac76d188367ae408f"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_combo_tackle.txt",
+    "sha256": "888d71ebfc3c7f4aff9a4d36a898191487e0de1415b04b42f039e6f12bae2118"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_combo_tackle.webp",
+    "sha256": "d4310b892572c4663ca5c4890776cb38b78ee65d5754f6f93adeb7c56eb25502"
+   },
+   "webpQuality": 70
+  },
+  {
+   "id": "slime_boss_opening_tackle",
+   "scene": "She flicks one finger and a single round lime slime shoots like a cannonball into a heavy wooden door, planks splitting outward, her long hair streaming behind her.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_opening_tackle.webp",
+    "sha256": "460122b839463c96be63b4fa3bcff1b5466c4aeedce04f2d42c3544b73b42568"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_opening_tackle.txt",
+    "sha256": "ca060d10f52888d0ec453533ad1da9f9d3309652020c358428fd80ddc1e79611"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_opening_tackle.webp",
+    "sha256": "0143e79f14c456cc1e22ed235a183eee3a383593aca3309bf276434da83ff3da"
+   },
+   "webpQuality": 75
+  },
+  {
+   "id": "slime_boss_forward_tackle",
+   "scene": "A big slime leans forward like a wedge and bulldozes ahead pushing a grey stone knight statue backwards across the floor, while she walks calmly behind it with her coat flowing and a thin slime film hugging her shoulder as a shield.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_forward_tackle.webp",
+    "sha256": "d77027e14298585f3c634c0cfbf44ca4d0f91d87a2ef837b492575ed4cafe408"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_forward_tackle.txt",
+    "sha256": "c36b0247781e43c5cb4e3916e6392ac7300ebf86f7c24826fce1c572a42217d8"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_forward_tackle.webp",
+    "sha256": "50c7eefba6438947bceadd14d681365e25df91318e2475f00f4cb42963d78637"
+   },
+   "webpQuality": 55
+  },
+  {
+   "id": "slime_boss_flame_tackle",
+   "scene": "A big slime rolls across a stone hall wrapped in bright yellow-lime flames and sweeps three grey stone statue silhouettes in a row at once, flame streaks and goop splashes, she watches from the side with her coat blown by the heat.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_flame_tackle.webp",
+    "sha256": "04db8a4d8509fc3506124dd38c9268141898a68074b44109d42b5111f239c6cb"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_flame_tackle.txt",
+    "sha256": "28b45d4be481e4531527e0db3702f7a80ee158b7967dc13609f885ebc7b955eb"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_flame_tackle.webp",
+    "sha256": "ad2762cb16394d855c20f8d3dd8dce3029387f28e11b678ec6b312f8f0b5bb02"
+   },
+   "webpQuality": 60
+  },
+  {
+   "id": "slime_boss_hungry_tackle",
+   "scene": "A slime lunges at a grey stone knight statue while she holds a fan of blank glowing cards in her other hand and one card dissolves into goop, a bright burst of lime energy leaping into her palm.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_hungry_tackle.webp",
+    "sha256": "2233846b6620e811bd0b6dd8671bdff52bd3a5e32867c322efd51f20bde51be9"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_hungry_tackle.txt",
+    "sha256": "2eac8e930edc15f7bcaa2510342848f1b95e288288e79a8cf75fcde71642fb2b"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_hungry_tackle.webp",
+    "sha256": "ab25b9ecdea153e7e1da778f9e426e2f40300a52b4096e00d3da8e85dd0e03f7"
+   },
+   "webpQuality": 70
+  },
+  {
+   "id": "slime_boss_ravenous_tackle",
+   "scene": "A huge slime slams down onto a grey stone knight statue with a big goop splash, and two smaller slimes beside her visibly swell twice their size with rising bubbles, her fist clenched in satisfaction.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_ravenous_tackle.webp",
+    "sha256": "e9841b756001851675f0c784d60017d9125affd13880ca9edfc0098ae23b54df"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_ravenous_tackle.txt",
+    "sha256": "652f19a9f64c640d8c999533f3a43d50aa7d19a34d5b2aed4e4200c3b845f46e"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_ravenous_tackle.webp",
+    "sha256": "9da6bf6b8a0f9fbf1dce66000688da23143263470736dcd0784883c3b4606e6a"
+   },
+   "webpQuality": 55
+  },
+  {
+   "id": "slime_boss_relentless_tackle",
+   "scene": "A lead slime rams a grey stone knight statue while three fading after-image copies of it trail behind in a line like an unstoppable chain, she beckons forward with one raised finger and a bright motion streak runs through the frame.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_relentless_tackle.webp",
+    "sha256": "3ecd79a505ac62259aadd43abb8262fddcc6672213f7a2b4ee7ddeb4d2fe4ac3"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_relentless_tackle.txt",
+    "sha256": "94cd82922d03560e413b2ce5cc7b40853a1363a7e0b4b648c0c657f2f87b83ac"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_relentless_tackle.webp",
+    "sha256": "2411b17a52a52bc9977d608207fe5571d979b52adc450333eb20b45f1407fb86"
+   },
+   "webpQuality": 60
+  },
+  {
+   "id": "slime_boss_spear_tackle",
+   "scene": "A slime stretches itself into two sharp parallel goop spears that pierce straight through a round shield, one above the other, while she stands behind it with her arm extended forward and her hair swept back.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_spear_tackle.webp",
+    "sha256": "19ba93018c2cf6fc0d9c71901ddb52695fef072498f3498a19d66f8424bf5e43"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_spear_tackle.txt",
+    "sha256": "3212caae21f3a816b4a32fb5c162c61e1ff6f392aa33281554412207d7226846"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_spear_tackle.webp",
+    "sha256": "260b20b11c53b1e09f76c9abdba1d3fff74804b2946716b588aef9e1e56e7e7c"
+   },
+   "webpQuality": 75
+  },
+  {
+   "id": "slime_boss_growth",
+   "scene": "Three slimes in a row on a diagonal grow from small to medium to large, a thick slime wall bulging up behind her, and she rests a hand on the largest one with a faint smile.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_growth.webp",
+    "sha256": "dea4e9617275134b6f467a97fd4f223994656fb1b2eb3d5da07d6c524cfd020e"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_growth.txt",
+    "sha256": "1f9a932c8b3c86cd85d45cbd3eef11f361b82d3c62c9e243d6f12f612e4c38f4"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_growth.webp",
+    "sha256": "be5f774ac33ef04589813e3010272049d9b28e032c5cf59db104b329c86140fb"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "slime_boss_reformation",
+   "scene": "A slime burst into droplets floats in the air and the droplets are pulled together above her open palm into a bigger glossy slime, shards of shine rippling inward, her eyes closed.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_reformation.webp",
+    "sha256": "a9f75e29fecc981b06ecce0e097cc5f526b140ce4a2cec82cecc6225f3c334be"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_reformation.txt",
+    "sha256": "54e8802b3f230ff0f5a833b305be9e2085bdb7657de222d7e2f68b3b7b3aa295"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_reformation.webp",
+    "sha256": "21bab308a32a7dd48ad35c75de4d6f568d93da1ff0069aba3945a6fd09408033"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "slime_boss_nibble_and_lick",
+   "scene": "A small slime nibbles a glowing lime orb of food and swells a little, then licks the air happily, while she crouches next to it patting it with one finger as a gentle command.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_nibble_and_lick.webp",
+    "sha256": "cbf5e77efb93a448f16af4d89d297d72cd218b1c285aad0b952915af447ee1f8"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_nibble_and_lick.txt",
+    "sha256": "2ff1ef4cabf40dbf92ed5e2cb7e83cc4098f4ab8f0b25e189f700414bab6525e"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_nibble_and_lick.webp",
+    "sha256": "fab89ed6d9081defbb2ecec6ecc2dff8fe6cb7a03894d2dfdee1ea1f971fd230"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "slime_boss_recollect",
+   "scene": "She pulls two glowing blank cards out of a shimmering pool of goop with two fingers, eyes closed in recollection, a slime hovering calmly at her shoulder.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_recollect.webp",
+    "sha256": "b9a4b6e9b1c565e1ca9afe815ebdb9cffdae2428c6598169230125e836daff5d"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_recollect.txt",
+    "sha256": "f168f0329c4512748120844420da3b3277eecd12c8c3a94c156bfe3869857266"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_recollect.webp",
+    "sha256": "c6e31b17bf8a9d5ce8f617c5c31983cc70c6938aef2ca57470c8d03b058ccc80"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "slime_boss_pile_on",
+   "scene": "Five slimes of different sizes pile onto a grey stone knight statue in a squirming heap, goop dripping down, while she watches from the side with her arms crossed.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_pile_on.webp",
+    "sha256": "a9b73af25459bdf1b13bfd3710252370408e23f23b0d6806fd390a452535773d"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_pile_on.txt",
+    "sha256": "85bdfebb5144d98497f45b0f0e95f90fc367a5a3e05190ed2f2f97acb606e3dc"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_pile_on.webp",
+    "sha256": "21bde5846e6c16bffdbce4bd214631c520d0481484fe3cb759fe9d18e89d48e7"
+   },
+   "webpQuality": 65
+  },
+  {
+   "id": "slime_boss_just_desserts",
+   "scene": "She sets a plate with a wobbling lime jelly dessert in front of a big slime at a candlelit table, a small slime waiting beside it with a tiny spoon of goop, warm calm lighting.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_just_desserts.webp",
+    "sha256": "60dd0cab98e9c7181cd35bd004437411e9d905fb7b33842172aadb538c91637c"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_just_desserts.txt",
+    "sha256": "5525c4868d90845b379ffa92858aab2b9805238d8d8bb211f2c87a5d81e7e5d9"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_just_desserts.webp",
+    "sha256": "146d46e9fce99e7bf8c74cf6a80f97a5735cbf4d97bd3707ae20d32c94461793"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "slime_boss_repurpose",
+   "scene": "A slime dissolves into a bright glowing lime energy orb that she catches in her open palm, the leftover goop dripping away, her coat swaying.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_repurpose.webp",
+    "sha256": "1cfd016eebebd921b7d7174182b9f0cbb98b6a4bb82d9dfc288bbee6ef3b8ddf"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_repurpose.txt",
+    "sha256": "3b169c854a8630386ff5cd51f110a98069b6ae58bcbdad6f6dfe92955d47dd0d"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_repurpose.webp",
+    "sha256": "5a5f7b8b88276c2b29f99e7085fe92e53c397eb0f1409b1b22eb296be6287ae0"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "slime_boss_leech_energy",
+   "scene": "A small slime latches onto a grey stone knight statue and a ribbon of glowing lime energy streams from the statue through the slime to her shoulder, a thin shield bubble flickering around her.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_leech_energy.webp",
+    "sha256": "a37f337e6da9620e2ecce370db3821998d8d00cf666a83a7b9608a61c0d4effd"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_leech_energy.txt",
+    "sha256": "4ad4f88c690df1b8cbd31306f16111f1ad17e6399df4b7e576a7d264de857a08"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_leech_energy.webp",
+    "sha256": "228f4590e8b95634c01d1717fd4892471c37160696b4bb2af9ad9279019b1951"
+   },
+   "webpQuality": 75
+  },
+  {
+   "id": "slime_boss_goop_spray",
+   "scene": "She sweeps her slime glove sideways and a wide fan of lime goop sprays across three grey stone statue silhouettes, the goop sagging heavily on them, while she flicks a glowing blank card from her other hand.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_goop_spray.webp",
+    "sha256": "4ff59bf7da100b6cfa2fb3b6af68310c0926e531f28a8406bb6266b3e57a8c49"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_goop_spray.txt",
+    "sha256": "d75fcdf293a672c3d32e8f7d8aacedd709455c2c3aea8ce9ea696f8c33766287"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_goop_spray.webp",
+    "sha256": "24b025b9eb24cdf4bf12ece71309387861307cf93f583133b69c9880c007284c"
+   },
+   "webpQuality": 75
+  },
+  {
+   "id": "slime_boss_recklessness",
+   "scene": "Centred emblem: her slime-glove fist clenched in front of her chest wrapped in jagged angry spikes of lime energy, hair whipping wildly, a bold ring of sharp zigzag energy around her.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_recklessness.webp",
+    "sha256": "716e3e7d5d75181bf3e4a1510a641cb25e62fce81e85ff2d0dbcd2ebf1efee3b"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_recklessness.txt",
+    "sha256": "11e0910d5fb84da392c1da14fde5a164deda8d39d347f3c6f3984b2d99974fad"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_recklessness.webp",
+    "sha256": "053dff387aa400f6607464c85832ba4c5f89b0b0abc4a2bf63b8af8afb37a15d"
+   },
+   "webpQuality": 50
+  },
+  {
+   "id": "slime_boss_slippery",
+   "scene": "She slides backwards low across a slick lime goop trail with one knee bent, leaving a long glossy streak behind her, while sword slashes whistle harmlessly over her hat.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_slippery.webp",
+    "sha256": "34d70e3eeb21eb0571ecbeb8f25d1a4877e8aae82cb9780083025cf9b4dc6da6"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_slippery.txt",
+    "sha256": "796c98b8a6798999800ee917f7fa60303fae5648d4ed15c522a9c7035c5ce2e1"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_slippery.webp",
+    "sha256": "8809fe3eb874f64d023f5b7b90fa9d1bd65ae3a8c9cddef183a05987aef51ed2"
+   },
+   "webpQuality": 75
+  },
+  {
+   "id": "slime_boss_protect_the_boss",
+   "scene": "Three slimes form a tight wall in front of her, the biggest in the middle, while arrows bounce off them, and she stands calmly behind peeking over the top with her tiny hat.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_protect_the_boss.webp",
+    "sha256": "37ef6df5db365ece3d13990a18afd6f9faf0b605bd4c7318382d23706c5fd760"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_protect_the_boss.txt",
+    "sha256": "0d77a0d86236ec32f9cfe6288f4ec643f7ad3673a6d7b1095254de81438fb08e"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_protect_the_boss.webp",
+    "sha256": "51763336fd694bcf488689f1237f19e659890397084eeb26e7632b984fe6de33"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "slime_boss_quick_snack",
+   "scene": "She bites a wobbling lime jelly snack on a stick with a relaxed smile while the biggest slime next to her bubbles up into a round shield bubble over her head.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_quick_snack.webp",
+    "sha256": "71944fb57206fd6859eb61a48d4544e4bea71a582118608fbd5d671638b5b284"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_quick_snack.txt",
+    "sha256": "32e01d5bb380a16d5c9bf68181df09696c843f372146d7054f70e9f2e739d6ea"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_quick_snack.webp",
+    "sha256": "df4187ecc12accd3c6b6467b1df340e04fa7ac10f3fe2a76a127ea16de4b9909"
+   },
+   "webpQuality": 75
+  },
+  {
+   "id": "slime_boss_it_looks_tasty",
+   "scene": "She holds up a glowing blank card that is turning into lime candy between her fingers while a slime beside her swells in anticipation, a thin shield bubble around her, a faint smile.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_it_looks_tasty.webp",
+    "sha256": "a1a7c28afcf696ee05cb0c2d369f8d59fcf38484f17468da26114c3fa262f4c1"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_it_looks_tasty.txt",
+    "sha256": "f143a045c40714366b4279d0150c80c93175a5a9db05682f31c421274a792bc7"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_it_looks_tasty.webp",
+    "sha256": "65f1f1eec102facb77db9cbae469a397d8a531fa77512e642de580593007a569"
+   },
+   "webpQuality": 70
+  },
+  {
+   "id": "slime_boss_divide_conquer",
+   "scene": "One big slime splits in mid air into three equal slimes in a row, goop strands stretching between them, while she holds up her hand with fingers spread like a general.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_divide_conquer.webp",
+    "sha256": "c5d70cbc516d51f4478d770b611f88f6c726103496cb64fa5e63d75b2f3d5bd5"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_divide_conquer.txt",
+    "sha256": "66cb0472d24777efea892d52256b91cdadea201189c37ceb178fe721252904fc"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_divide_conquer.webp",
+    "sha256": "8dd15ffb7e1d606bad8a8b0af796dfb86e69874f04c52faa13e03545db5b9cf0"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "slime_boss_digest",
+   "scene": "A big translucent slime with a glowing blank card slowly dissolving inside its body and a bright orb forming within, while she watches it with her hands behind her back.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_digest.webp",
+    "sha256": "6e309bb128d7f6447f26ecad8bf6f07933192f27f069345c42141961baa1b12b"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_digest.txt",
+    "sha256": "a2dd0b59217341d9c2862b099c3520318555fa05524bf7c77ec752855d4c10b8"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_digest.webp",
+    "sha256": "f8a44bb5cafea2832c97b697e2d452d9b1631ff1c0b601c94f85b4d48b9511cf"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "slime_boss_living_wall",
+   "scene": "A rampart wall of tall stacked slimes spans the frame and she calmly looks over the top of the highest slime holding a small lantern, shine highlights on every blob.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_living_wall.webp",
+    "sha256": "b55c962c867514cf95385c3c802668de5a5addf82c7265b4e6bf9e1d06363e3a"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_living_wall.txt",
+    "sha256": "28ac2f1330eccbbbf1a83572544e159e108d225744c684a7c0476162d76373a4"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_living_wall.webp",
+    "sha256": "041debf085e5767c9bf29f54de791db6327bc0902b1bda56f6dab4c4fb44fa9c"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "slime_boss_prepare_crush",
+   "scene": "Centred emblem: a gigantic slime hangs overhead against a dark ceiling about to drop, her small figure below looking up with one hand raised to hold it, a ring of dripping goop framing the scene.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_prepare_crush.webp",
+    "sha256": "0e1bb146bf6415868076e0a17ba6ceaa148b4bddef5552fcf1f953f49dbc8170"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_prepare_crush.txt",
+    "sha256": "2fd19eaf200df0678d07b4ca429fca282fc0d469d1e7c0c3100b0e7aa75099d7"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_prepare_crush.webp",
+    "sha256": "3599dd400e19e9f32a5fac820c0cc904c6b8b7a8b3076e376f2eb79798d9e72c"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "slime_boss_spit",
+   "scene": "A slime spits a ball of lime goop toward the camera in a splashy arc while she flicks a glowing blank card from her fingers, one eyebrow slightly raised.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_spit.webp",
+    "sha256": "0186d9c59cd952ac9b9d750833c2c3cf4b149a78d9dcc2d4fc40a0af952a9928"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_spit.txt",
+    "sha256": "967e542d7404689e287ea3e62009734126453c3a22afbe8bf125dbaa1f6999a2"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_spit.webp",
+    "sha256": "a33c7072c112f032345f49fa8281c036d4312050e748060108daa0152dd7ca97"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "slime_boss_haunting_lick",
+   "scene": "From deep shadow a pale semi-transparent ghostly slime tongue licks out toward a grey stone statue, her silhouette half hidden in the dark with only her gold eyes and lime hair lit.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_haunting_lick.webp",
+    "sha256": "4338c9042ed6cfc44abbf436982392729c1376a68aec0e8ece45a81a7bde6d81"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_haunting_lick.txt",
+    "sha256": "0acf50ef955a12193d507b0291efb5a89e2e746cdfb6ccbfeedd37dbc3d90202"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_haunting_lick.webp",
+    "sha256": "f914659a027203e52c79f21f7a823d5221d08968a34c30de09e3d033f0dde5e6"
+   },
+   "webpQuality": 85
+  },
+  {
+   "id": "slime_boss_glop_chop",
+   "scene": "She chops downward with her slime glove stretched into a wide cleaver-shaped slime blade, goop chunks flying off a cracked grey stone knight statue.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_glop_chop.webp",
+    "sha256": "bc034918d8a2239d824ef6e403175f1a996f9a1833c7cf7203fcf0de014783a3"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_glop_chop.txt",
+    "sha256": "b58abed553e760892d44b153ac195874cbb64af14f22537ee270c7df54d728ec"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_glop_chop.webp",
+    "sha256": "5ff57bc9a204f36f77781715dcfa25397e2b36d6484831a1866052be4bd7c3e7"
+   },
+   "webpQuality": 60
+  },
+  {
+   "id": "slime_boss_smothering_tackle",
+   "scene": "A big slime completely smothers the head of a grey stone knight statue like a heavy blanket with goop dripping down, shaking lines around the statue, she holds one hand out calmly.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_smothering_tackle.webp",
+    "sha256": "bf3b6a8587d5726ccb54f952eaf9077c5c3d44fd9fb3b5922a4a756181df6c96"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_smothering_tackle.txt",
+    "sha256": "6aa494f01a62da0656cfcae2b07159d6905d8b8924a6f618e99c65498e2a8801"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_smothering_tackle.webp",
+    "sha256": "9794c41cdf4a20ad58f38d62587615b62e08616bc7b6bcbf873c7187e901bb82"
+   },
+   "webpQuality": 75
+  },
+  {
+   "id": "slime_boss_dive_tackle",
+   "scene": "A slime dives from the top of the frame like a comet, stretched into a teardrop with a bright motion streak, and splashes into a grey stone statue in a ring of goop.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_dive_tackle.webp",
+    "sha256": "55886022f49b896025b5c7bdf6fb30902629cd65cc9ad8c14b92ccac01edd40b"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_dive_tackle.txt",
+    "sha256": "2c168c1882c1d0b4ed43cf98c148ca362686f9e83d66005860d832adba00ae55"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_dive_tackle.webp",
+    "sha256": "cc8e8213b9489171b98df58b489318a8aa125354bfb26c8ffeabfc0528fc2e52"
+   },
+   "webpQuality": 75
+  },
+  {
+   "id": "slime_boss_gluttony",
+   "scene": "A big slime swallows a heap of glowing orbs of food, a round muscular bulge swelling in its body, while she watches with a content smile and a faint warm aura around the slime.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_gluttony.webp",
+    "sha256": "10508ffc7344a7ee7d14abde17f2c7b4541a4e5be7f17790639e9380f50fcaad"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_gluttony.txt",
+    "sha256": "172a822988428ceed3bc36c3c0611bf5e1892c62b0e6f7b1614016abbb09039c"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_gluttony.webp",
+    "sha256": "792c873b3ce23bdebc5e1ef505b850777b1b25632f2b40a1a948e5b260cca38d"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "slime_boss_tongue_lash",
+   "scene": "A long glossy slime tendril whips out of her slime glove like a tongue and wraps around the arm of a grey stone knight statue, while a small slime at her side glows a little brighter.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_tongue_lash.webp",
+    "sha256": "a2417ff67ae75912d29fbd988b8fac2c37180f7b3e44ed9459b0f78a88d72aa6"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_tongue_lash.txt",
+    "sha256": "e6f69d7daff24f418d267f0c34fa66db0a460882f79608cd28ee1c136827c198"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_tongue_lash.webp",
+    "sha256": "92699b9aa9a90216f30e87e8c760a8d46319e3acc75eda98fc41baa67453a6ac"
+   },
+   "webpQuality": 75
+  },
+  {
+   "id": "slime_boss_slime_brawl",
+   "scene": "She and a slime throw a punch together side by side, her slime-glove fist next to the slime's fist-shaped pseudopod, both glowing brighter and lit by a bold flat colour burst behind them.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_slime_brawl.webp",
+    "sha256": "d6a7869e0427e123c8c3fa7b00b887eed2a744e37f108f8dd1e094f59dfd0716"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_slime_brawl.txt",
+    "sha256": "6eaf2123b3ff40df8fc230a1e8c9260b3618b5cb5510908eece0ce0a744e34c9"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_slime_brawl.webp",
+    "sha256": "3a5cee0b62d30680230fe00c6b17286bc7c1f12105c78ccbe65c7dfd405b1eac"
+   },
+   "webpQuality": 65
+  },
+  {
+   "id": "slime_boss_ooze_bath",
+   "scene": "She relaxes in a wooden tub filled with glowing lime ooze, tiny bowler hat on her head, hair tied up, bubbles drifting, a small slime floating happily next to her, warm steam.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_ooze_bath.webp",
+    "sha256": "857b85dc1976858cfe96357cad119796eac85479abc5fde3b53f1ea148fbebc5"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_ooze_bath.txt",
+    "sha256": "30389a3d7a9c4c5912034566d662ef6afdfe5f344fcf14ba9dc3b5477d6e0e47"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_ooze_bath.webp",
+    "sha256": "47e6420d58912734a6b55b9b661fe2a4288e4cf6cd68fbdf10fe336abcee4c01"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "slime_boss_goop_armor",
+   "scene": "Centred emblem: a calm portrait of her with glossy lime slime armor plates covering her shoulders, forearms and gloves like layered pauldrons and gauntlets, a bright ring of goop behind her.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_goop_armor.webp",
+    "sha256": "b0fb202233bbed7d8b9136066ba7032e446f3ad5f2a404a7756de3be6e629dcd"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_goop_armor.txt",
+    "sha256": "36ad89da56a78c9463439cefc78ccc614f924befe5e97e58b25dac7b44e7a85a"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_goop_armor.webp",
+    "sha256": "ad6e176f651533f7d9fe1ec22dab96db6c2b3f1aa9e4f15bc5eca7d23cafb202"
+   },
+   "webpQuality": 75
+  },
+  {
+   "id": "slime_boss_delegate",
+   "scene": "She lounges in a high-backed chair holding a teacup with one hand and waves the other toward a big slime that charges off at an enemy, a tidy slime shield bubble covering her chair.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_delegate.webp",
+    "sha256": "b9d960ca47d5394fa1e5bcc122bccaa6418e7bf62ca99eed39dfc4497b6f698b"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_delegate.txt",
+    "sha256": "7054fe9d9e16c6ba1fc66b8b698ce0a4243da51df1af70677eb6d6535cae8362"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_delegate.webp",
+    "sha256": "5a75c755b05923f6b4663cf75e89d85da48b946cf7dd203f42458817156b647a"
+   },
+   "webpQuality": 75
+  },
+  {
+   "id": "slime_boss_feeding_frenzy",
+   "scene": "She tosses glowing lime orbs of food from both hands to three slimes that rear up bigger as they eat, goop flying around, a grey stone knight statue knocked back by the swell.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_feeding_frenzy.webp",
+    "sha256": "664513e3ddd34fbc5bef685a99ca098cf9f2400377d8774877ba6dae66df5e66"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_feeding_frenzy.txt",
+    "sha256": "922877a1c2a2807235c959ec584e3ae3243ce778f953e413d29f7e65761d49b2"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_feeding_frenzy.webp",
+    "sha256": "7862772c82be79971857eae796028be4839c7703636557f8eea82524c14d138b"
+   },
+   "webpQuality": 75
+  },
+  {
+   "id": "slime_boss_slime_tap",
+   "scene": "She taps a big slime like a barrel with a wooden spigot and glowing lime liquid pours into a mug in her hand while sparks of energy and a card flutter out.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_slime_tap.webp",
+    "sha256": "c95adcd052f28e1c03b992446a539c756c89551d50094b596d82f9fe592fe9aa"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_slime_tap.txt",
+    "sha256": "857ba94d1ae9faf92394bfb64e2fc46b82d74c117601c2645cf4dd3bc26573ba"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_slime_tap.webp",
+    "sha256": "e108742e86761ac487d7d3d9e15c899f5223a39f77117cf834fca9739f0ce35f"
+   },
+   "webpQuality": 75
+  },
+  {
+   "id": "slime_boss_rain_of_goop",
+   "scene": "Centred emblem: she stands with her palm open to the sky while heavy glowing lime goop rain falls from a dark cloud above her in a ring of three bright droplets, hair and coat soaked in lime shine.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_rain_of_goop.webp",
+    "sha256": "d783e79889b76c48605d45ee294b3821efbf58269e903f931c49cd9ba2a34d11"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_rain_of_goop.txt",
+    "sha256": "19fc6acdfd47e98aae3de5b777abb22f1122b12827b6a96a7fb087c85f728abf"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_rain_of_goop.webp",
+    "sha256": "e88c7bbe34b777c8045d229735e03c8f1d1c945cc907bbe724ae7a047edfc131"
+   },
+   "webpQuality": 75
+  },
+  {
+   "id": "slime_boss_consult_playbook",
+   "scene": "Centred emblem: she reads an open book with blank pages, one eyebrow raised, while a glowing card and a bright energy orb float out of the pages and a small slime peeks over her shoulder.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_consult_playbook.webp",
+    "sha256": "af7c94eb90ceebfcfd019887674a11f9e2c6e136de5294b30476176a4a69aced"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_consult_playbook.txt",
+    "sha256": "5b9a86d6b2dc467e2b25da67184003665a3cac4b1eb36916282940a1f2c1f1d3"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_consult_playbook.webp",
+    "sha256": "41d4785cf9c35d060b35fa74b7e59030ab932e83f709de9a58e40e45569adc9e"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "slime_boss_duplicated_form",
+   "scene": "Centred emblem: two identical copies of her stand back to back, the second one drawn as a translucent lime afterimage, both with fists raised, a bright circle of light behind them.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_duplicated_form.webp",
+    "sha256": "ed3b15e9f029bd285b9fe484752636f52f3dc62ed4b734630dd5af6dbaab422d"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_duplicated_form.txt",
+    "sha256": "77d8634c7402d1729f16ee725fa69ad9cf33d01af1dcd0de7edc1e04d24472df"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_duplicated_form.webp",
+    "sha256": "49391d2de60c819efc0c4a99c6d3b7015798b83f73dd5ed0ae216537a766f7aa"
+   },
+   "webpQuality": 75
+  },
+  {
+   "id": "slime_boss_minion_master",
+   "scene": "Centred emblem: she sits on a tall slime throne with her legs crossed and conducts with one finger, small slimes lined up around her in neat formation, a bright lime halo behind her.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_minion_master.webp",
+    "sha256": "16ee0a8c8febed929d37eb79fc0880e5293aabb5f1aa4e8867d29fcd104feb83"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_minion_master.txt",
+    "sha256": "055fc39111b855568f37e38f958097e8a6b79c806576f12e7da125d0d3060ad3"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_minion_master.webp",
+    "sha256": "c5da3da853140aba5222c8144ddd4ef1464087cab7b7464d3cdc1619c4b6260a"
+   },
+   "webpQuality": 75
+  },
+  {
+   "id": "slime_boss_overexert",
+   "scene": "She strains with gritted teeth holding two glowing blank cards, her hair flying wildly, a lime aura bursting around her and two doubled after-images of her fist striking a statue at once.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_overexert.webp",
+    "sha256": "86b3de28b9bcae9d91775986dd98de0e11ab483cb8d4a6e13f0d39d7ff52a87a"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_overexert.txt",
+    "sha256": "2a13da0e34ca64576cac4ebf38f2cdfeeeb08cfd5a2e4dc34c5e44a2d00808e4"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_overexert.webp",
+    "sha256": "1adc7ab1cc24d11a016a7b71a29c91c6197e6ff86c4a18cb55bbd5d8606517f8"
+   },
+   "webpQuality": 70
+  },
+  {
+   "id": "slime_boss_replication",
+   "scene": "She draws a glowing slime-shaped card from a floating deck of blank cards with two fingers while a perfect mirror copy of a slime appears in front of her, two identical slimes facing each other with a ring of shine between them.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_replication.webp",
+    "sha256": "03e7e75f4ce5d41302fc84d1c1cd612b679bf9ae26c3dde9d422ae863f5d944a"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_replication.txt",
+    "sha256": "1f67492ccf5771137abc31d1fee479653c19458f789a37014750f63f4e2740ca"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_replication.webp",
+    "sha256": "f566f1737d4c536c0304369ea7bbb506b1b2ce58489dea49d1819793daa91c86"
+   },
+   "webpQuality": 80
+  },
+  {
+   "id": "slime_boss_darkling_duo",
+   "scene": "Centred emblem: she stands back to back with one dark glossy lime slime, both in confident ready poses, fists touching in the middle, a circular glow behind them.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_darkling_duo.webp",
+    "sha256": "03ec98d958483fb061252ad0f0edd078032d825e3bebd1d8dab92c90b898d9d0"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_darkling_duo.txt",
+    "sha256": "e69eba791866a3c51b0d87a4c5b64d2cbf71fcf550912a4e86ddb43edb304919"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_darkling_duo.webp",
+    "sha256": "ca9be7a7821707a19c6971a84fba15bdee0a6c8227401b324bb7da747483f840"
+   },
+   "webpQuality": 75
+  },
+  {
+   "id": "slime_boss_shape_of_puddle",
+   "scene": "Centred emblem: she rises from the waist up out of a round lime puddle, her lower body flowing into the goop, three glowing lime cubes floating in a ring above her.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 2,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_shape_of_puddle.webp",
+    "sha256": "9804ecaf12ea234c2d45ead9176d07ffe00bd8df666b3f926e1629942b9402d4"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_shape_of_puddle.txt",
+    "sha256": "53f56286d56cdd4beac0c977601408a5cfc01508031d33cfa257726f8749ee66"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_shape_of_puddle.webp",
+    "sha256": "b647a1d1e40240427f8aa882c8699b2dd70a33fe9a1345de1a6b80f6bc13ad6a"
+   },
+   "webpQuality": 75
+  },
+  {
+   "id": "slime_boss_rally_the_troops",
+   "scene": "A wide shot with her pointing forward with one raised arm while a wave of a dozen slimes of all sizes surges behind her toward the camera like an army, her coat and hair blowing.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 3,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_rally_the_troops.webp",
+    "sha256": "2f9eb237eec35e93d82ed1499c3f98896b82f686f21e252a1e055cb0b21ab932"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_rally_the_troops.txt",
+    "sha256": "b187101b3aeb9a0ca52a56546c2e70fcabc76f92264e2ca7ebdd91f1b768d3bc"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_rally_the_troops.webp",
+    "sha256": "fd427dc7cc4955ebf3c1d592a70adf49cafa519331422771cbda6b55b11aef26"
+   },
+   "webpQuality": 75
+  },
+  {
+   "id": "slime_boss_vicious_tackle",
+   "scene": "A huge slime hurtles along a diagonal as a spiked wrecking ball with thorny goop spikes and a trail of smaller tackle slimes lined behind it, smashing through a stone wall in a burst of rubble, she stands braced at the edge.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 3,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_vicious_tackle.webp",
+    "sha256": "d02e0705dab74075503374028314504443a02ae0fbca2c3d925e04527c57b915"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_vicious_tackle.txt",
+    "sha256": "ced53122edf0e3b72641bd6fcd083992052af09a53edfaf66a2f39654ce0014b"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_vicious_tackle.webp",
+    "sha256": "0b69e0d300624812882de8d015dce83203e8121e24e988855701bb0069efc077"
+   },
+   "webpQuality": 65
+  },
+  {
+   "id": "slime_boss_level_up",
+   "scene": "Centred emblem: a slime climbs a spiral of three glowing rings getting bigger at each ring, sparkles rising, while she lifts it with one open hand from below, a bright circular glow behind.",
+   "styleImages": [
+    "design"
+   ],
+   "candidate": 1,
+   "source": {
+    "path": "scripts/art/sources/anime_slime_boss-skin-cards/slime_boss_level_up.webp",
+    "sha256": "32737d073e5487e91d84bd86217a1d47b5a925ec868cfea7deb9f6077d87cddb"
+   },
+   "prompt": {
+    "path": "docs/skins/anime_slime_boss-card-art/prompts/slime_boss_level_up.txt",
+    "sha256": "54b232ea5284a20cb11cf80530353ad7211309d04680945bf897a7ca896effea"
+   },
+   "output": {
+    "path": "public/assets/skin-card-art/anime_slime_boss/slime_boss/slime_boss_level_up.webp",
+    "sha256": "94b3c0fbde20cfe0658b2249f0c96ebb320091f494f2c24c416673b9893e4526"
+   },
+   "webpQuality": 75
+  }
+ ]
+}

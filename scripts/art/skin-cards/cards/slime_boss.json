@@ -1,0 +1,434 @@
+[
+ {
+  "id": "slime_boss_slime_slap",
+  "name": "Slime Slap",
+  "type": "attack",
+  "rarity": "starter",
+  "cost": 2,
+  "text": "Deal 2 damage. Grow a Slime."
+ },
+ {
+  "id": "slime_boss_lick",
+  "name": "Lick",
+  "type": "skill",
+  "rarity": "starter",
+  "cost": 1,
+  "text": "Command."
+ },
+ {
+  "id": "slime_boss_defend",
+  "name": "Defend",
+  "type": "skill",
+  "rarity": "starter",
+  "cost": 1,
+  "text": "Gain 1 Block."
+ },
+ {
+  "id": "slime_boss_strike",
+  "name": "Strike",
+  "type": "attack",
+  "rarity": "starter",
+  "cost": 1,
+  "text": "Deal 1 damage."
+ },
+ {
+  "id": "slime_boss_combo_tackle",
+  "name": "Combo Tackle",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 2,
+  "text": "Deal 2 damage. Command up to 2 different Slimes."
+ },
+ {
+  "id": "slime_boss_opening_tackle",
+  "name": "Opening Tackle",
+  "type": "attack",
+  "rarity": "common",
+  "cost": 1,
+  "text": "Deal 1 damage. Command."
+ },
+ {
+  "id": "slime_boss_forward_tackle",
+  "name": "Forward Tackle",
+  "type": "attack",
+  "rarity": "common",
+  "cost": 2,
+  "text": "Retain. Deal 3 damage. Gain 1 Block."
+ },
+ {
+  "id": "slime_boss_flame_tackle",
+  "name": "Flame Tackle",
+  "type": "attack",
+  "rarity": "common",
+  "cost": 2,
+  "text": "Deal 2 damage to ALL enemies. Command."
+ },
+ {
+  "id": "slime_boss_hungry_tackle",
+  "name": "Hungry Tackle",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": "Deal 2 damage. Exhaust a card in your hand. If it costs 2 or more, gain 2 Energy."
+ },
+ {
+  "id": "slime_boss_ravenous_tackle",
+  "name": "Ravenous Tackle",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 3,
+  "text": "Deal 5 damage. Grow a Slime twice."
+ },
+ {
+  "id": "slime_boss_relentless_tackle",
+  "name": "Relentless Tackle",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 2,
+  "text": "Deal 2 damage. The next Attack played by any player this turn costs 0."
+ },
+ {
+  "id": "slime_boss_spear_tackle",
+  "name": "Spear Tackle",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 2,
+  "text": "Deal 2 damage twice."
+ },
+ {
+  "id": "slime_boss_growth",
+  "name": "Growth",
+  "type": "skill",
+  "rarity": "common",
+  "cost": 2,
+  "text": "Gain 2 Block. Grow a Slime."
+ },
+ {
+  "id": "slime_boss_reformation",
+  "name": "Reformation",
+  "type": "skill",
+  "rarity": "common",
+  "cost": 1,
+  "text": "Grow a Slime. Exhaust."
+ },
+ {
+  "id": "slime_boss_nibble_and_lick",
+  "name": "Nibble and Lick",
+  "type": "skill",
+  "rarity": "common",
+  "cost": 2,
+  "text": "Grow a Slime, then Command it."
+ },
+ {
+  "id": "slime_boss_recollect",
+  "name": "Recollect",
+  "type": "skill",
+  "rarity": "common",
+  "cost": 1,
+  "text": "Retain. Draw 2 cards."
+ },
+ {
+  "id": "slime_boss_pile_on",
+  "name": "Pile On!",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": "Deal 1 damage for each Slime you have in play."
+ },
+ {
+  "id": "slime_boss_just_desserts",
+  "name": "Just Desserts",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 0,
+  "text": "Retain. The next Power or Slime you play this turn costs 1 less."
+ },
+ {
+  "id": "slime_boss_repurpose",
+  "name": "Repurpose",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 0,
+  "text": "Retain. Gain 1 Energy. Exhaust."
+ },
+ {
+  "id": "slime_boss_leech_energy",
+  "name": "Leech Energy",
+  "type": "attack",
+  "rarity": "common",
+  "cost": 0,
+  "text": "Deal 1 damage. Gain 1 Block if you have a card with Retain in your hand."
+ },
+ {
+  "id": "slime_boss_goop_spray",
+  "name": "Goop Spray",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": "Apply 1 Weak. Draw 1 card."
+ },
+ {
+  "id": "slime_boss_recklessness",
+  "name": "Recklessness",
+  "type": "power",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": "Your ‘Tackles’ deal +2 damage on each damage icon."
+ },
+ {
+  "id": "slime_boss_slippery",
+  "name": "Slippery",
+  "type": "skill",
+  "rarity": "common",
+  "cost": 2,
+  "text": "Gain 2 Block. Costs 0 if you spent at least 2 Energy on another card this turn."
+ },
+ {
+  "id": "slime_boss_protect_the_boss",
+  "name": "Protect the Boss",
+  "type": "skill",
+  "rarity": "common",
+  "cost": 1,
+  "text": "Retain. Gain 2 Block."
+ },
+ {
+  "id": "slime_boss_quick_snack",
+  "name": "Quick Snack",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": "Gain X+1 Block. X is the highest level among Slimes you have in play."
+ },
+ {
+  "id": "slime_boss_it_looks_tasty",
+  "name": "It Looks Tasty",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": "Gain 1 Block. Exhaust a card in your hand. If it costs 2 or more, Grow a Slime."
+ },
+ {
+  "id": "slime_boss_divide_conquer",
+  "name": "Divide & Conquer",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": "X",
+  "text": "Command X different Slimes."
+ },
+ {
+  "id": "slime_boss_digest",
+  "name": "Digest",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 3,
+  "text": "Give a Slime 1 Strength. Costs 1 less for each card with Retain in your hand. Exhaust."
+ },
+ {
+  "id": "slime_boss_living_wall",
+  "name": "Living Wall",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 2,
+  "text": "Gain 2 Block, +1 Block per Slime you have in play."
+ },
+ {
+  "id": "slime_boss_prepare_crush",
+  "name": "Prepare Crush",
+  "type": "power",
+  "rarity": "uncommon",
+  "cost": 3,
+  "text": "Retain. Start of turn: Deal 15 damage, then discard this card."
+ },
+ {
+  "id": "slime_boss_spit",
+  "name": "Spit",
+  "type": "skill",
+  "rarity": "common",
+  "cost": 1,
+  "text": "Draw 1 card. Command."
+ },
+ {
+  "id": "slime_boss_haunting_lick",
+  "name": "Haunting Lick",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": "Retain. Command."
+ },
+ {
+  "id": "slime_boss_glop_chop",
+  "name": "Glop Chop",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": "Deal 2 damage. Apply 1 Vulnerable if you have a ‘Tackle’ in your hand."
+ },
+ {
+  "id": "slime_boss_smothering_tackle",
+  "name": "Smothering Tackle",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 2,
+  "text": "Retain. Deal 2 damage. Apply 1 Vulnerable."
+ },
+ {
+  "id": "slime_boss_dive_tackle",
+  "name": "Dive Tackle",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": "Deal 4 damage. Exhaust."
+ },
+ {
+  "id": "slime_boss_gluttony",
+  "name": "Gluttony",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 2,
+  "text": "Give a Slime 1 Strength."
+ },
+ {
+  "id": "slime_boss_tongue_lash",
+  "name": "Tongue Lash",
+  "type": "attack",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": "Deal 1 damage. Give a Slime 1 Strength. Exhaust."
+ },
+ {
+  "id": "slime_boss_slime_brawl",
+  "name": "Slime Brawl",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": "Give 1 Strength to a Slime, then Command it. Remove that 1 Strength at end of turn."
+ },
+ {
+  "id": "slime_boss_ooze_bath",
+  "name": "Ooze Bath",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 2,
+  "text": "Command a single Slime X times. X is the number of cards with Retain in your hand."
+ },
+ {
+  "id": "slime_boss_goop_armor",
+  "name": "Goop Armor",
+  "type": "power",
+  "rarity": "uncommon",
+  "cost": 1,
+  "text": "Whenever you play a ‘Tackle,’ gain 1 Block."
+ },
+ {
+  "id": "slime_boss_delegate",
+  "name": "Delegate",
+  "type": "skill",
+  "rarity": "uncommon",
+  "cost": 2,
+  "text": "Gain 3 Block. Command. Exhaust."
+ },
+ {
+  "id": "slime_boss_feeding_frenzy",
+  "name": "Feeding Frenzy",
+  "type": "attack",
+  "rarity": "rare",
+  "cost": 2,
+  "text": "Deal 2 damage. Grow up to 3 different Slimes."
+ },
+ {
+  "id": "slime_boss_slime_tap",
+  "name": "Slime Tap",
+  "type": "skill",
+  "rarity": "rare",
+  "cost": 1,
+  "text": "Choose a Slime. Draw cards and gain Energy equal to its level. Exhaust."
+ },
+ {
+  "id": "slime_boss_rain_of_goop",
+  "name": "Rain of Goop",
+  "type": "power",
+  "rarity": "rare",
+  "cost": "X",
+  "text": "When played, place X Strength on this. Start of turn: Move 1 Strength from this onto you or a Slime card. If this has no Strength, Exhaust."
+ },
+ {
+  "id": "slime_boss_consult_playbook",
+  "name": "Consult Playbook",
+  "type": "power",
+  "rarity": "rare",
+  "cost": 1,
+  "text": "Once per turn: When you play a ‘Tackle,’ draw 1 card and gain 1 Energy."
+ },
+ {
+  "id": "slime_boss_duplicated_form",
+  "name": "Duplicated Form",
+  "type": "power",
+  "rarity": "rare",
+  "cost": 3,
+  "text": "Once per turn: The next Attack you play this turn is played twice."
+ },
+ {
+  "id": "slime_boss_minion_master",
+  "name": "Minion Master",
+  "type": "power",
+  "rarity": "rare",
+  "cost": 2,
+  "text": "Start of turn: Command a Slime."
+ },
+ {
+  "id": "slime_boss_overexert",
+  "name": "Overexert",
+  "type": "skill",
+  "rarity": "rare",
+  "cost": 1,
+  "text": "Draw 2 cards, then play a card in your hand for 0 Energy. If it’s an Attack, it’s played twice. Exhaust."
+ },
+ {
+  "id": "slime_boss_replication",
+  "name": "Replication",
+  "type": "skill",
+  "rarity": "rare",
+  "cost": 1,
+  "text": "Search your draw pile for a Slime, then play it for 0 Energy. Shuffle your draw pile. Exhaust."
+ },
+ {
+  "id": "slime_boss_darkling_duo",
+  "name": "Darkling Duo",
+  "type": "power",
+  "rarity": "rare",
+  "cost": 1,
+  "text": "Whenever you play a card with Retain, Command your Bruiser Slime."
+ },
+ {
+  "id": "slime_boss_shape_of_puddle",
+  "name": "Shape of Puddle",
+  "type": "power",
+  "rarity": "rare",
+  "cost": 3,
+  "text": "Any time: Add a cube to gain 2 Block, then Exhaust if there are 3 cubes."
+ },
+ {
+  "id": "slime_boss_rally_the_troops",
+  "name": "Rally the Troops",
+  "type": "skill",
+  "rarity": "rare",
+  "cost": 2,
+  "text": "Command ALL Slimes."
+ },
+ {
+  "id": "slime_boss_vicious_tackle",
+  "name": "Vicious Tackle",
+  "type": "attack",
+  "rarity": "rare",
+  "cost": 4,
+  "text": "Deal 8 damage. Costs 1 less for each other ‘Tackle’ in your hand."
+ },
+ {
+  "id": "slime_boss_level_up",
+  "name": "Level Up",
+  "type": "power",
+  "rarity": "rare",
+  "cost": 2,
+  "text": "Start of turn: Grow a Slime."
+ }
+]

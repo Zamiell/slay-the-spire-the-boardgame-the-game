@@ -31,7 +31,9 @@ try {
       ['monogatari_ironclad', 'monogatari_silent', 'monogatari_defect', 'monogatari_watcher'],
       ['monogatari_silent', 'monogatari_defect'], ['monogatari_ironclad', 'monogatari_watcher'],
       ['guardian', 'hermit', 'monogatari_ironclad', 'monogatari_watcher'],
-      ['guardian', 'monogatari_defect'], ['guardian', 'hexaghost', 'monogatari_ironclad']]) {
+      ['guardian', 'monogatari_defect'], ['guardian', 'hexaghost', 'monogatari_ironclad'],
+      ['anime_slime_boss'], ['anime_slime_boss', 'guardian', 'hexaghost', 'hermit'], ['monogatari_ironclad', 'anime_slime_boss', 'monogatari_defect', 'monogatari_watcher'],
+      ['anime_slime_boss', 'monogatari_silent']]) {
       const run = postNeowRun(47, characters.map((visual, i) => ({ id: `p${i+1}`, name: visual,
         character: isSkinId(visual) ? characterOfSkin(visual) : visual, ...(isSkinId(visual) ? { skin: visual } : {}) })))
       if (name.startsWith('horizontal-phone')) {

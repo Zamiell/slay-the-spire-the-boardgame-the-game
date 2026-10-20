@@ -22,6 +22,9 @@ const ATTACK_CARDS = {
   ironclad: [['strike_ironclad', 1], ['cleave', 2], ['twin_strike', 1]],
   silent: [['strike_silent', 1], ['dagger_spray', 2]],
   watcher: [['strike_watcher', 1], ['eruption', 1]],
+  // Flame Tackle hits every enemy, then Commands a Slime (`command`: its target, `commandDamage`: what it deals). Only
+  // `heroDamage` belongs to the hero's staged strike; the Slime's damage lands on its own Command beat.
+  slime_boss: [['slime_boss_strike', 1], ['slime_boss_flame_tackle', 2, { command: 'enemy-0', commandDamage: 1, heroDamage: 2 }]],
 }
 const fileOf = pose => pose === 'idle' ? 'ready' : pose
 // Every timed check follows the config's clock rather than restating its milliseconds.
@@ -97,6 +100,84 @@ async function assertPinnedFlashesOnTip(page, p, label, frozenAt) {
     assert(miss < PIN_TOLERANCE, `${label}: the ${hit.at} flash anchors ${(miss * 100).toFixed(1)}% of the drawing from the prop tip ${JSON.stringify({ anchor: seen.anchor, expected })}`)
   }
 }
+// A skin dresses Slime Boss and nothing else: her slimes keep the plain hero's layout and stay in front of the skin's drawing,
+// and she summons from the skin's own drawing (`<skin>-spawn.webp`), falling back to the idle drawing (`<skin>-hero.webp`).
+async function assertSlimeFormation(page, p, label) {
+  const setup = wear => page.evaluate(async wear => {
+    const { bruiserSlime } = await import('/src/game/downfall/slime-boss.ts')
+    const f = window.attackFixture
+    document.documentElement.dataset.reducedMotion = 'false'
+    f.reset('slime_boss', wear)
+    f.state.players[0].slimes = [bruiserSlime('a'), bruiserSlime('b'), bruiserSlime('c')]
+    f.render()
+  }, wear)
+  const measure = async () => {
+    await page.waitForFunction(() => [...document.querySelectorAll('.slime-party__art')].every(image => image.complete && image.naturalWidth > 0))
+    return page.evaluate(() => {
+      const box = node => { const r = node.getBoundingClientRect(); return [r.left, r.top, r.width, r.height] }
+      const covers = actor => {
+        const [x, y, width, height] = box(actor)
+        const stack = document.elementsFromPoint(x + width / 2, y + height / 2)
+        const hero = stack.findIndex(node => node.closest('.seat__portrait, .character-attack'))
+        return !stack.includes(actor) || hero >= 0 && hero < stack.indexOf(actor)
+      }
+      const actors = [...document.querySelectorAll('.slime-party__actor')]
+      return { seat: box(document.querySelector('.seat__portrait')), hp: box(document.querySelector('.seat__interactive .bar')), actors: actors.map(box),
+        covered: actors.filter(covers).length }
+    })
+  }
+  await setup(null)
+  const plain = await measure()
+  await setup(p.skin)
+  const worn = await measure()
+  assert.equal(worn.actors.length, 3, `${label}: the skinned Slime Boss lost slimes`)
+  assert.equal(worn.covered, 0, `${label}: a slime is hidden behind the skin ${JSON.stringify(worn)}`)
+  for (const key of ['seat', 'hp']) assert(worn[key].every((value, index) => Math.abs(value - plain[key][index]) < .6), `${label}: the skin moves the hero's ${key} ${JSON.stringify({ plain: plain[key], worn: worn[key] })}`)
+  assert(worn.actors.flat().every((value, index) => Math.abs(value - plain.actors.flat()[index]) < .6), `${label}: the skin moves the slime formation ${JSON.stringify({ plain: plain.actors, worn: worn.actors })}`)
+  // The hero out at the target never covers her slimes.
+  const coveredWhileAttacking = await page.evaluate(card => new Promise(resolve => {
+    const actors = [...document.querySelectorAll('.slime-party__actor')]
+    const covers = actor => {
+      const r = actor.getBoundingClientRect()
+      const stack = document.elementsFromPoint(r.left + r.width / 2, r.top + r.height / 2)
+      const hero = stack.findIndex(node => node.closest('.seat__portrait, .character-attack'))
+      return !stack.includes(actor) || hero >= 0 && hero < stack.indexOf(actor)
+    }
+    let covered = 0, frames = 0
+    const sample = () => {
+      covered = Math.max(covered, actors.filter(covers).length)
+      if (++frames < 120 || document.querySelector('.character-attack')) requestAnimationFrame(sample); else resolve(covered)
+    }
+    window.attackFixture.attack(card)
+    sample()
+  }), p.cards[0][0])
+  assert.equal(coveredWhileAttacking, 0, `${label}: the attack covers a slime`)
+  // The summon: a Slime card shows the skin's drawing, or the idle drawing without one.
+  const summon = async (seq, wanted) => {
+    await page.evaluate(seq => {
+      const f = window.attackFixture
+      f.state.presentationEvents = [{ kind: 'card', seq, actorId: 'p1', sourceId: 'slime_boss_bruiser_slime', enemyIds: [], playerIds: [], upgraded: false, copied: false, energy: 1 }]
+      f.render()
+    }, seq)
+    await page.waitForFunction(wanted => {
+      const image = document.querySelector('.seat__portrait > img[data-static-art]')
+      return image?.complete && image.naturalWidth > 0 && image.src.endsWith(wanted)
+    }, wanted)
+    const shown = await measure()
+    assert.equal(shown.covered, 0, `${label}: a slime is hidden while the hero summons`)
+    assert(shown.actors.flat().every((value, index) => Math.abs(value - worn.actors.flat()[index]) < .6), `${label}: the summon moves the slimes`)
+  }
+  const missingSpawn = `**/${p.skin}-spawn.webp`
+  await page.route(missingSpawn, route => route.fulfill({ status: 404 }))
+  await setup(p.skin)
+  await summon(900, `/${p.skin}-hero.webp`)
+  await page.unroute(missingSpawn)
+  // The 404 was the point: it is not a missing-artwork error.
+  errors.splice(0, errors.length, ...errors.filter(error => !error.endsWith(`/${p.skin}-spawn.webp`)))
+  await setup(p.skin)
+  await summon(901, `/${p.skin}-spawn.webp`)
+  await page.evaluate(() => window.attackFixture.reset())
+}
 async function run(browser, engine, screen, viewport, p) {
   const { config, table, beats, strikeBeats, assetsReady } = p
   const skin = p.skin
@@ -131,7 +212,7 @@ async function run(browser, engine, screen, viewport, p) {
       await route.continue()
     })
     await page.goto(origin)
-    await page.evaluate(installAttackFixture, { character: p.character, skin })
+    await page.evaluate(installAttackFixture, { character: p.character, skin, strike: p.cards[0][0] })
     if (p.synthetic) await page.addStyleTag({ content: fixtureCss })
     await page.waitForFunction(() => {
       const image = document.querySelector('.seat__portrait > img')
@@ -143,7 +224,7 @@ async function run(browser, engine, screen, viewport, p) {
     await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
     // A truly cold play must still travel and hit on one shared clock.
     // Delaying beyond the event lifetime reproduces the reviewed regression.
-    const cold = await page.evaluate(() => new Promise((resolve, reject) => {
+    const cold = await page.evaluate(hitMs => new Promise((resolve, reject) => {
       const onImpact = event => {
         if (event.detail.index !== 0) return
         clearTimeout(timeout)
@@ -153,10 +234,16 @@ async function run(browser, engine, screen, viewport, p) {
         const transform = getComputedStyle(attack).transform
         const time = attack.getAnimations()[0]?.currentTime
         const target = document.querySelector(`[data-staged-impact-seq="${event.detail.seq}"]`)
+        // A renderer can deliver the event after a short attack has already returned home (a 1000ms strike is out at the
+        // target for about 200ms): where the box stands at the hit's own beat is read on the same clock, then put back.
+        const [animation] = attack.getAnimations()
+        animation.currentTime = hitMs
+        const atHit = new DOMMatrix(getComputedStyle(attack).transform).e
+        animation.currentTime = time
         resolve({
           time, targetTime: target?.getAnimations()[0]?.currentTime,
           start: attack.getAnimations()[0]?.startTime, targetStart: target?.getAnimations()[0]?.startTime,
-          x: new DOMMatrix(transform).e, fallback: Boolean(attack.querySelector('.is-fallback')),
+          x: new DOMMatrix(transform).e, atHit, fallback: Boolean(attack.querySelector('.is-fallback')),
           goal: getComputedStyle(attack).getPropertyValue('--attack-x'),
         })
       }
@@ -166,8 +253,8 @@ async function run(browser, engine, screen, viewport, p) {
       }, 15000)
       document.addEventListener('staged-impact', onImpact)
       window.attackFixture.attack()
-    })).catch(error => { throw new Error(`${engine}/${screen}: ${error.message}`, { cause: error }) })
-    assert(cold.fallback && cold.x > 10, `${engine}/${screen}: cold cutout never travels ${JSON.stringify(cold)}`)
+    }), table.hits[0].ms).catch(error => { throw new Error(`${engine}/${screen}: ${error.message}`, { cause: error }) })
+    assert(cold.fallback && Math.max(cold.x, cold.atHit) > 10, `${engine}/${screen}: cold cutout never travels ${JSON.stringify(cold)}`)
     // WebKit clamps a finished impact's currentTime at delay + duration.
     // startTime is the shared clock even when a busy renderer reports it late.
     assert(Number.isFinite(cold.start) && Number.isFinite(cold.targetStart) &&
@@ -201,14 +288,14 @@ async function run(browser, engine, screen, viewport, p) {
       getComputedStyle(image).filter, getComputedStyle(image.closest('.seat')).filter,
     ]), ['none', 'none'], `${engine}/${screen}: filters pixelate overscanned idle in WebKit`)
     await page.locator('.board').screenshot({ path: resolve(output, `${skin}-${engine}-${screen}-idle.png`) })
-    for (const [card, targetCount] of p.cards) {
+    for (const [card, targetCount, choices] of p.cards) {
       const label = `${engine}/${screen}/${card}`
       // Capture live beats in one page call; browser round trips can outlast
       // a whole pose on a busy phone renderer.
-      const played = await page.evaluate(({ card, idleReturn, rest }) => new Promise((resolve, reject) => {
+      const played = await page.evaluate(({ card, choices, idleReturn, rest }) => new Promise((resolve, reject) => {
         const impacts = []
         const numbers = []
-        const frameStats = { maxBodies: 0, maxTravel: 0 }
+        const frameStats = { maxBodies: 0, goal: 0 }
         const damage = new Map()
         window.skinSounds = []
         const onImpact = event => {
@@ -227,8 +314,8 @@ async function run(browser, engine, screen, viewport, p) {
         })
         observer.observe(document.querySelector('.board'), { childList: true, subtree: true })
         const before = new Map(window.attackFixture.state.enemies.map(enemy => [enemy.uid, enemy.hp]))
-        const seq = window.attackFixture.attack(card)
-        const event = window.attackFixture.state.presentationEvents.at(-1)
+        const seq = window.attackFixture.attack(card, choices)
+        const event = window.attackFixture.state.presentationEvents.find(candidate => candidate.seq === seq)
         event.enemyIds.forEach(id => damage.set(id, event.enemyHpLoss[id] ?? 0))
         const started = performance.now()
         let last
@@ -246,7 +333,7 @@ async function run(browser, engine, screen, viewport, p) {
             const image = visible[0]
             last = { time, src: image?.src, bodies: visible.length }
             frameStats.maxBodies = Math.max(frameStats.maxBodies, visible.length)
-            frameStats.maxTravel = Math.max(frameStats.maxTravel, new DOMMatrix(getComputedStyle(attack).transform).e)
+            frameStats.goal = Math.max(frameStats.goal, parseFloat(getComputedStyle(attack).getPropertyValue('--attack-x')) || 0)
             if (time >= idleReturn + 20 && visible.length === 1 && image?.src.endsWith(rest)) {
               const returned = new DOMMatrix(getComputedStyle(attack).transform).e
               if (Math.abs(returned) < .5) return finish(null, { frameStats, impacts,
@@ -258,15 +345,22 @@ async function run(browser, engine, screen, viewport, p) {
           else setTimeout(sample, 16)
         }
         sample()
-      }), { card, idleReturn: p.idleReturn, rest: `/${skin}-ready.webp` }).catch(error => { throw new Error(`${label}: ${error.message}`, { cause: error }) })
+      }), { card, choices, idleReturn: p.idleReturn, rest: `/${skin}-ready.webp` }).catch(error => { throw new Error(`${label}: ${error.message}`, { cause: error }) })
       assert.equal(played.frameStats.maxBodies, 1, `${label}: missing or duplicated attacker`)
-      assert(played.frameStats.maxTravel > 10, `${label}: the actor never reaches the target`)
+      // The travel's goal, not a polled transform: on a loaded renderer polling can miss the whole out-at-target window.
+      // The frozen-clock stance check below proves the weapon lands inside the target.
+      assert(played.frameStats.goal > 10, `${label}: the actor never reaches the target`)
       assert.equal(Object.keys(played.damage).length, targetCount, 'wrong authoritative targets')
       for (const [target, total] of Object.entries(played.damage)) {
         const hits = played.impacts.filter(impact => impact.target === target)
         assert.deepEqual(hits.map(hit => hit.index), table.hits.map((_, index) => index), `${label}: missing/repeated/out-of-order impacts`)
+        if (choices?.heroDamage !== undefined) assert.equal(total, choices.heroDamage, `${label}: the Slime's damage was weighed into the hero's strike`)
+        // The Slime's own damage shows 450ms or more after the hero's first beat; a renderer that delivers a beat later than
+        // that has already shown it, so a Command target may read that much lower.
+        const late = choices?.command === target ? choices.commandDamage : 0
         for (const [index, fraction] of p.cumulative.entries()) {
-          assert(Math.abs(hits[index].hp - (played.before[target] - total * fraction)) < 1e-8,
+          const expected = played.before[target] - total * fraction
+          assert([expected, expected - late].some(hp => Math.abs(hits[index].hp - hp) < 1e-8),
             `${label}: wrong visible HP at beat ${index + 1}: ${JSON.stringify(hits)}`)
         }
         const numbers = played.numbers.filter(number => number.target === target)
@@ -477,6 +571,7 @@ print(f'visible skin: {matched}/{len(points)}')
       }
       await page.evaluate(() => window.attackFixture.reset())
     }
+    if (p.character === 'slime_boss') await assertSlimeFormation(page, p, `${engine}/${screen}`)
     // Cards and item-granted Shivs both keep separate weighted debts.
     // The second lethal combo must not erase the first or kill its target early.
     for (const source of [p.cards[0][0], 'shiv']) {
@@ -533,7 +628,8 @@ print(f'visible skin: {matched}/{len(points)}')
         channel.port1.onmessage = () => { if (++turns < 4) channel.port2.postMessage(0); else resolve() }
         channel.port2.postMessage(0)
       }))
-      await page.clock.pauseAt(new Date(await page.evaluate(() => Date.now()) + 50))
+      // A margin the evaluate/pauseAt round trip cannot outrun on a loaded machine (the clock keeps running until it pauses).
+      await page.clock.pauseAt(new Date(await page.evaluate(() => Date.now()) + 1000))
       await page.evaluate(card => { window.attackFixture.attack(card); window.attackFixture.attack(card) }, p.cards[0][0])
       await settleReact()
       await page.clock.runFor(expected - LETHAL_COMBO_TOLERANCE_MS)

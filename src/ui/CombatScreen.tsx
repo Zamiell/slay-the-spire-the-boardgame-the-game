@@ -6899,7 +6899,8 @@ function CombatScreenView({
           // Where the painted head ends, so held potions and Orbs float just above it.
           const animatedPortrait = !prefersReducedMotion && !occupant?.dead && !slimeSpawnEvent
           const heroHeads = heroArtHeads as Record<string, number[]>
-          const heroHead = (slimeSpawnEvent ? heroHeads['slime_boss-spawn'] : rigId ? heroHeads[rigId] : undefined)?.[animatedPortrait ? 0 : 1]
+          // A skin may paint its own summon drawing (`<skin>-spawn.webp`) and calibrate its head; otherwise the idle drawing shows.
+          const heroHead = ((slimeSpawnEvent && heroHeads[`${occupantVisual}-spawn`]) || (rigId ? heroHeads[rigId] : undefined))?.[animatedPortrait ? 0 : 1]
           const guardianShiftHead = occupantVisual === 'guardian' ? heroHeads['guardian-transition']?.[0] : undefined
           return (
             <div
@@ -6984,15 +6985,13 @@ function CombatScreenView({
                             data-static-art={Boolean(slimeSpawnEvent) || undefined}
                             src={assetPath(occupantVisual === 'hexaghost'
                               ? `combat/characters/hexaghost-heat-${occupantHeat}.webp`
-                              : occupantVisual === 'slime_boss' && slimeSpawnEvent
-                                ? 'combat/characters/slime_boss-spawn.webp'
-                              : `combat/characters/${occupantVisual}-hero.webp`)}
+                              : `combat/characters/${occupantVisual}-${slimeSpawnEvent ? 'spawn' : 'hero'}.webp`)}
                             data-vfx-seq={characterAttack?.active.event.seq}
                             alt=""
                             onError={(event) => {
-                              if (occupantVisual === 'slime_boss' && slimeSpawnEvent && event.currentTarget.dataset.fallback !== 'true') {
+                              if (slimeSpawnEvent && event.currentTarget.dataset.fallback !== 'true') {
                                 event.currentTarget.dataset.fallback = 'true'
-                                event.currentTarget.src = assetPath('combat/characters/slime_boss.webp')
+                                event.currentTarget.src = assetPath(`combat/characters/${occupantVisual}-hero.webp`)
                               } else event.currentTarget.style.display = 'none'
                             }}
                           />
@@ -7214,7 +7213,7 @@ function CombatScreenView({
                       ) : null}
                       </span>
                     </button>
-                    {occupantVisual === 'slime_boss' && occupant.slimes.length > 0 ? (
+                    {occupant.character === 'slime_boss' && occupant.slimes.length > 0 ? (
                       <span className="slime-party combat__slime-status" role="list"
                         aria-label={`${occupant.name}'s Slimes`}>
                         {occupant.slimes.map((slime) => {
@@ -7571,7 +7570,7 @@ function CombatScreenView({
           title="Energy">
             {skinOrb ? <img className="energy-orb__skin"
               src={assetPath(`combat/energy-orbs/${viewerVisual}.webp`)} alt="" aria-hidden="true" /> : null}
-            {downfallCharacter ? <span className="energy-orb__layers" aria-hidden="true">
+            {downfallCharacter && !skinOrb ? <span className="energy-orb__layers" aria-hidden="true">
               {downfallEnergyOrbLayers(downfallCharacter, viewer.energy === 0).map(({ layer, src }) =>
                 <img key={layer} data-layer={layer} src={src} alt="" />)}
             </span> : null}

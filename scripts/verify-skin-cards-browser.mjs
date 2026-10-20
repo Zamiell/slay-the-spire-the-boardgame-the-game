@@ -17,6 +17,7 @@ import { CARDS, STARTER_DECKS } from '../src/game/cards.ts'
 import { CARD_PACKS } from '../src/game/packs.ts'
 import { cardImagePath } from '../src/game/assets.ts'
 import { SKIN_IDS, characterOfSkin } from '../src/game/skins.ts'
+import { BASE_CHARACTER_IDS } from '../src/game/types.ts'
 import { CHARACTER_LABEL } from '../src/ui/run-summary-data.ts'
 
 const root = resolve(import.meta.dirname, '..')
@@ -35,6 +36,8 @@ const errors = []
 const SCREENS = [['desktop', { width: 1440, height: 900 }], ['horizontal-phone', { width: 844, height: 390 }]]
 
 // One kit per hero that has a skin: every card name and id below comes from the card tables, so registering a skin extends the checks.
+// A hero may have no Slayer Pack (Slime Boss), and may own cards no skin repaints (its `slime` creature cards): `pack` and `unskinned` are then
+// absent or set, and the pack-only checks below skip.
 const CORE_HEROES = ['ironclad', 'silent', 'defect', 'watcher']
 const escape = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 const signatureOf = (hero) => CARDS[STARTER_DECKS[hero].find((id) => !/^(strike|defend)_/.test(id))]
@@ -42,20 +45,24 @@ function kitOf(hero) {
   const partner = CORE_HEROES.find((character) => character !== hero)
   const owned = Object.values(CARDS).filter((def) => def.owner === hero && !def.pack && def.publisherScan !== false)
   const unique = (def) => Object.values(CARDS).filter((other) => other.name === def.name).length === 1
-  const pack = CARD_PACKS[`slayer_${hero}`].cardIds.map((id) => CARDS[id]).find(unique)
+  const pack = CARD_PACKS[`slayer_${hero}`]?.cardIds.map((id) => CARDS[id]).find(unique)
   const power = owned.find((def) => def.type === 'power' && def.rarity !== 'starter')
   const signature = signatureOf(hero)
   const partnerCard = signatureOf(partner)
-  const rewards = owned.filter((def) => def.rarity === 'common' && def.type !== 'power').slice(0, 2)
+  const unskinned = owned.find((def) => def.type === 'slime')
+  const rewards = owned.filter((def) => def.rarity === 'common' && def.type !== 'power' && def.type !== 'slime').slice(0, 2)
   const curse = CARDS.ascenders_bane
-  return { hero, partner, name: CHARACTER_LABEL[hero], partnerName: CHARACTER_LABEL[partner], pack, power, signature, partnerCard, curse,
-    rewards: [...rewards.map((def) => def.id), pack.id], packId: `slayer_${hero}`, partnerPackId: `slayer_${partner}`,
-    extrasPattern: new RegExp(escape(curse.name.split(' ')[0]) + '|' + escape(partnerCard.name) + '|' + escape(pack.name)),
+  return { hero, partner, name: CHARACTER_LABEL[hero], partnerName: CHARACTER_LABEL[partner], pack, unskinned, power, signature, partnerCard, curse,
+    rewards: [...rewards.map((def) => def.id), ...(pack ? [pack.id] : [])], packId: `slayer_${hero}`, partnerPackId: `slayer_${partner}`,
+    extrasPattern: new RegExp([curse.name.split(' ')[0], partnerCard.name, pack?.name, unskinned?.name].filter(Boolean).map(escape).join('|')),
     zoomFile: cardImagePath(signature, false).split('/').pop(), starterSize: STARTER_DECKS[hero].length,
     defaultThumb: new RegExp(`/assets/cards-sm/(slayer__)?${hero}__[a-z0-9-]+(__[a-z0-9-]+)?\\+?\\.webp$`),
     skinThumb: (skin) => new RegExp(`/assets/skin-cards-sm/${skin}/(slayer__)?${hero}__[a-z0-9-]+(__[a-z0-9-]+)?\\+?\\.webp$`) }
 }
-const CASES = SKIN_IDS.map((skin) => ({ skin, hero: characterOfSkin(skin) }))
+// `--skin=<id>` runs one skin's cases (and its hero's default look).
+const only = process.argv.find((arg) => arg.startsWith('--skin='))?.slice('--skin='.length)
+if (only && !SKIN_IDS.includes(only)) throw new Error(`--skin=${only} is not a registered skin (${SKIN_IDS.join(', ')})`)
+const CASES = SKIN_IDS.filter((skin) => !only || skin === only).map((skin) => ({ skin, hero: characterOfSkin(skin) }))
 
 /** `skin` is the choice stored in Profile; the account's wallet owns it unless `owned` is false (a stale choice). */
 async function openContext(viewport, username, skin, owned = true) {
@@ -115,7 +122,8 @@ function fixture(skin, kit) {
   run.players[0].deck.push(
     { uid: 'x-curse', defId: kit.curse.id, upgraded: false },
     { uid: 'x-other', defId: kit.partnerCard.id, upgraded: false },
-    { uid: 'x-pack', defId: kit.pack.id, upgraded: true },
+    ...(kit.pack ? [{ uid: 'x-pack', defId: kit.pack.id, upgraded: true }] : []),
+    ...(kit.unskinned ? [{ uid: 'x-unskinned', defId: kit.unskinned.id, upgraded: false }] : []),
   )
   return run
 }
@@ -150,7 +158,8 @@ async function soloChecks(screen, viewport, skin, hero) {
   await page.locator('.row__seat .power').first().hover()
   await page.locator('.power__zoom:not(.slime-party__zoom)').waitFor()
   await assertAll(page, '.power__zoom-image', skin ? SKIN_THUMB : DEFAULT_THUMB, `${screen} ${tag}: power zoom scan`)
-  await assertAll(page, '.power__zoom .card-face__illustration',
+  // Only the base heroes' CSS faces paint an illustration (Downfall faces are text-first), so only they carry the art the skin swaps.
+  if (BASE_CHARACTER_IDS.some((character) => character === hero)) await assertAll(page, '.power__zoom .card-face__illustration',
     skin ? new RegExp(`/assets/skin-card-art/${skin}/${hero}/${kit.power.id}\\.webp$`) : new RegExp(`/assets/card-art/${hero}/${kit.power.id}\\.webp$`),
     `${screen} ${tag}: power zoom CSS face illustration`)
   await page.mouse.move(0, 0)
@@ -188,7 +197,9 @@ async function soloChecks(screen, viewport, skin, hero) {
     [`${kit.name} starter cards`, mine, skin ? SKIN_THUMB : DEFAULT_THUMB],
     ['colorless/curse card', by(new RegExp(escape(kit.curse.name.split(' ')[0]))), /\/assets\/cards-sm\/ascension__/],
     ['another hero\'s card', by(new RegExp('^' + escape(kit.partnerCard.name) + '\\b')), new RegExp(`/assets/cards-sm/${kit.partner}__`)],
-    [`Slayer Pack ${kit.name} card`, by(new RegExp(escape(kit.pack.name))), skin ? SKIN_THUMB : new RegExp(`/assets/cards-sm/slayer__${hero}__`)],
+    ...(kit.pack ? [[`Slayer Pack ${kit.name} card`, by(new RegExp(escape(kit.pack.name))), skin ? SKIN_THUMB : new RegExp(`/assets/cards-sm/slayer__${hero}__`)]] : []),
+    // A card the skin does not repaint keeps its default face even with the skin worn.
+    ...(kit.unskinned ? [[`${kit.name}'s ${kit.unskinned.name}, which no skin repaints`, by(new RegExp('^' + escape(kit.unskinned.name) + '\\b')), DEFAULT_THUMB]] : []),
   ]) {
     assert.ok(cards.length > 0, `${screen} ${tag}: deck viewer has a ${label}`)
     assert.deepEqual(cards.filter(({ src }) => !expected.test(src)).map(({ src }) => src), [], `${screen} ${tag}: ${label}`)
@@ -227,8 +238,14 @@ async function menuChecks(screen, viewport, skin, hero) {
   await assertAll(page, `.compendium-card--${hero} img`, skin ? SKIN_THUMB : DEFAULT_THUMB, `${screen} ${tag}: compendium tile`)
   await page.getByLabel('Search cards').fill(kit.partnerCard.name)
   await assertAll(page, `.compendium-card--${kit.partner} img`, new RegExp(`/assets/cards-sm/${kit.partner}__`), `${screen} ${tag}: ${kit.partnerName} tile stays default`)
-  await page.getByLabel('Search cards').fill(kit.pack.name)
-  await assertAll(page, `.compendium-card--${hero} img`, skin ? SKIN_THUMB : DEFAULT_THUMB, `${screen} ${tag}: pack card tile`)
+  if (kit.pack) {
+    await page.getByLabel('Search cards').fill(kit.pack.name)
+    await assertAll(page, `.compendium-card--${hero} img`, skin ? SKIN_THUMB : DEFAULT_THUMB, `${screen} ${tag}: pack card tile`)
+  }
+  if (kit.unskinned) {
+    await page.getByLabel('Search cards').fill(kit.unskinned.name)
+    await assertAll(page, `.compendium-card--${hero} img`, DEFAULT_THUMB, `${screen} ${tag}: a card no skin repaints stays default in the compendium`)
+  }
   await page.getByLabel('Search cards').fill(kit.signature.name)
   await page.screenshot({ path: resolve(output, `${screen}-compendium-grid-${tag}.png`) })
   await tile.click()
@@ -257,7 +274,7 @@ async function shopAndStatsChecks(screen, viewport, skin, hero) {
   await page.goto(origin, { waitUntil: 'networkidle' })
   await page.getByRole('button', { name: 'Shop', exact: true }).click()
   await page.locator('.shop-pack').first().waitFor()
-  await assertAll(page, `.shop-pack[data-pack="${kit.packId}"] .shop-fan__card`, skin ? SKIN_THUMB : new RegExp(`/assets/cards-sm/slayer__${hero}__`),
+  if (kit.pack) await assertAll(page, `.shop-pack[data-pack="${kit.packId}"] .shop-fan__card`, skin ? SKIN_THUMB : new RegExp(`/assets/cards-sm/slayer__${hero}__`),
     `${screen} ${tag}: ${kit.name} pack fan`)
   await assertAll(page, `.shop-pack[data-pack="${kit.partnerPackId}"] .shop-fan__card`, new RegExp(`/assets/cards-sm/slayer__${kit.partner}__`),
     `${screen} ${tag}: ${kit.partnerName} pack fan stays default`)
@@ -308,7 +325,8 @@ async function onlineChecks(screen, viewport, skin, hero) {
   await bo.locator('.online-lobby').waitFor()
   await ann.getByRole('button', { name: 'Enter the Spire' }).click()
   await ann.getByRole('button', { name: 'Start standard campaign', exact: true }).click()
-  await ann.getByRole('heading', { name: 'Neow’s Blessing' }).waitFor()
+  // A Downfall hero is dealt the Heart's Boon instead of Neow's Blessing: wait for the scene, not its title.
+  await ann.locator('.neow-screen').waitFor()
   const room = rooms.store.rooms.get(code)
   assert.deepEqual(room.run.players.map((player) => [player.character, player.skin ?? null]), [[hero, skin], [kit.partner, null]])
   room.run = { ...room.run, phase: 'combat', neow: null, combat: preparePlayerTurn(createCombat(createRng(73), room.run.players, [{ ...jaw, uid: 'online-enemy' }], 'skin-cards-online')) }

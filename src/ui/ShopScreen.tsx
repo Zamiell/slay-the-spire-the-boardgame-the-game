@@ -54,6 +54,7 @@ const HERO_ACCENT: Partial<Record<CharacterId, string>> = {
   silent: PACK_ACCENT.slayer_silent,
   defect: PACK_ACCENT.slayer_defect,
   watcher: PACK_ACCENT.slayer_watcher,
+  slime_boss: '#7cc43d',
 }
 const heroAccent = (hero: CharacterId) => HERO_ACCENT[hero] ?? PACK_ACCENT.slayer_colorless
 

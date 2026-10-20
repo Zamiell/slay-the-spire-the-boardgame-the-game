@@ -167,40 +167,6 @@ check('every reachable card resolves a stable combat VFX recipe for every charac
   }
 })
 
-check('every staged attack skin has its own attack VFX recipe resolving to a shipped file', () => {
-  // combat-vfx.ts `skinAttack`: a skin without an entry falls back to its hero's effect on every attack card.
-  for (const skin of SKIN_IDS.filter((id) => SKIN_TRAITS[id].stagedAttack)) {
-    const hero = characterOfSkin(skin)
-    const own = Object.values(CARDS).filter((card) => card.owner === hero)
-      .map((card) => cardVfxRecipe(skin, card.id)).filter((recipe) => recipe.asset === `${skin}/impact`)
-    assert(own.length > 0, `${skin}: no ${hero} card resolves to the skin's own attack recipe`)
-    assert(existsSync(new URL(`../public${vfxAssetPath(own[0])}`, import.meta.url)), `${skin}: ${vfxAssetPath(own[0])} is not shipped`)
-  }
-})
-
-check('every hero and skin keeps its documented combat VFX tone and attack asset', () => {
-  // [Strike tone, Defend tone, Strike asset] per visual id. A skin keeps its hero's tone unless it carries its own attack
-  // recipe (combat-vfx.ts `skinAttack`); a tone swap there changes every flash and trail of the skin, so it is pinned here.
-  const expected = {
-    ironclad: ['ember-orange', 'ember-orange', 'ironclad-strike'],
-    silent: ['steel-green', 'venom-green', 'silent-shiv'],
-    defect: ['voltaic-blue', 'voltaic-blue', 'magic-burst'],
-    watcher: ['astral-violet', 'astral-violet', 'magic-burst'],
-    kratos: ['ember-orange', 'ember-orange', 'ironclad-strike'],
-    monogatari_ironclad: ['ember-orange', 'ember-orange', 'ironclad-strike'],
-    monogatari_silent: ['venom-green', 'venom-green', 'monogatari_silent/impact'],
-    monogatari_defect: ['voltaic-blue', 'voltaic-blue', 'magic-burst'],
-    monogatari_watcher: ['astral-violet', 'astral-violet', 'monogatari_watcher/impact'],
-  }
-  const ids = VISUAL_IDS.filter((id) => !['slime_boss', 'guardian', 'hexaghost', 'hermit'].includes(id))
-  assertDeepEqual(Object.keys(expected).sort(), [...ids].sort(), 'visual ids with a pinned VFX tone')
-  for (const id of ids) {
-    const hero = SKIN_IDS.includes(id) ? characterOfSkin(id) : id
-    const [strike, defend] = [`strike_${hero}`, `defend_${hero}`].map((card) => cardVfxRecipe(id, card))
-    assertDeepEqual([strike.tone, defend.tone, strike.asset], expected[id], `${id} VFX tone and attack asset`)
-  }
-})
-
 check('notable card identities stay distinct and portable between characters', () => {
   const strike = cardVfxRecipe('ironclad', 'strike_ironclad')
   const bash = cardVfxRecipe('ironclad', 'bash')
@@ -522,6 +488,46 @@ check('the stage shrinks only as far as it has to', () => {
   assert(crowded[0] < MIN_STAGE_SCALE, 'extreme four-player crowds can fit below the ordinary floor')
   assert(crowded.every((scale, i) => i === 0 || scale > crowded[i - 1]), 'each cleared group restores scale')
   assertEqual(stageScaleFor(5, 1440, rem, 1), 1, 'one survivor restores the wanted size')
+})
+
+// Slime Boss's cards register when its module loads. That happens here, after the sound-identity checks above built and
+// walked their card grids, so those keep the card set they pin; a skin of Slime Boss needs its cards for the two checks below.
+await import('../src/game/downfall/slime-boss.ts')
+
+check('every staged attack skin has its own attack VFX recipe resolving to a shipped file', () => {
+  // combat-vfx.ts `skinAttack`: a skin without an entry falls back to its hero's effect on every attack card.
+  for (const skin of SKIN_IDS.filter((id) => SKIN_TRAITS[id].stagedAttack)) {
+    const hero = characterOfSkin(skin)
+    const own = Object.values(CARDS).filter((card) => card.owner === hero)
+      .map((card) => cardVfxRecipe(skin, card.id)).filter((recipe) => recipe.asset === `${skin}/impact`)
+    assert(own.length > 0, `${skin}: no ${hero} card resolves to the skin's own attack recipe`)
+    assert(existsSync(new URL(`../public${vfxAssetPath(own[0])}`, import.meta.url)), `${skin}: ${vfxAssetPath(own[0])} is not shipped`)
+  }
+})
+
+check('every hero and skin keeps its documented combat VFX tone and attack asset', () => {
+  // [Strike tone, Defend tone, Strike asset] per visual id. A skin keeps its hero's tone unless it carries its own attack
+  // recipe (combat-vfx.ts `skinAttack`); a tone swap there changes every flash and trail of the skin, so it is pinned here.
+  const expected = {
+    ironclad: ['ember-orange', 'ember-orange', 'ironclad-strike'],
+    silent: ['steel-green', 'venom-green', 'silent-shiv'],
+    defect: ['voltaic-blue', 'voltaic-blue', 'magic-burst'],
+    watcher: ['astral-violet', 'astral-violet', 'magic-burst'],
+    kratos: ['ember-orange', 'ember-orange', 'ironclad-strike'],
+    monogatari_ironclad: ['ember-orange', 'ember-orange', 'ironclad-strike'],
+    monogatari_silent: ['venom-green', 'venom-green', 'monogatari_silent/impact'],
+    monogatari_defect: ['voltaic-blue', 'voltaic-blue', 'magic-burst'],
+    monogatari_watcher: ['astral-violet', 'astral-violet', 'monogatari_watcher/impact'],
+    anime_slime_boss: ['chaos-green', 'chaos-green', 'anime_slime_boss/impact'],
+  }
+  const ids = VISUAL_IDS.filter((id) => !['slime_boss', 'guardian', 'hexaghost', 'hermit'].includes(id))
+  assertDeepEqual(Object.keys(expected).sort(), [...ids].sort(), 'visual ids with a pinned VFX tone')
+  for (const id of ids) {
+    const hero = SKIN_IDS.includes(id) ? characterOfSkin(id) : id
+    // Slime Boss's starter Strike and Defend are `slime_boss_*` (the base heroes' are `*_<hero>`).
+    const [strike, defend] = ['strike', 'defend'].map((kind) => cardVfxRecipe(id, hero === 'slime_boss' ? `slime_boss_${kind}` : `${kind}_${hero}`))
+    assertDeepEqual([strike.tone, defend.tone, strike.asset], expected[id], `${id} VFX tone and attack asset`)
+  }
 })
 
 report('ui helpers')

@@ -1,0 +1,866 @@
+{
+"slime_boss__normal__combo-tackle": [
+0.9994,
+0.0,
+0.2046,
+0.0,
+0.9993,
+0.6105
+],
+"slime_boss__normal__combo-tackle+": [
+1.0,
+0.0,
+0.0097,
+0.0,
+0.9997,
+0.2808
+],
+"slime_boss__normal__delegate": [
+1.0006,
+0.0,
+-0.1391,
+0.0,
+1.0007,
+-0.4935
+],
+"slime_boss__normal__delegate+": [
+1.0001,
+0.0,
+-0.0045,
+0.0,
+0.9999,
+0.0959
+],
+"slime_boss__normal__digest": [
+1.0006,
+0.0,
+-0.151,
+0.0,
+1.0006,
+-0.4619
+],
+"slime_boss__normal__digest+": [
+1.0001,
+0.0,
+0.0267,
+0.0,
+0.9999,
+0.063
+],
+"slime_boss__normal__dive-tackle": [
+1.0,
+0.0,
+0.008,
+0.0,
+1.0001,
+-0.0094
+],
+"slime_boss__normal__dive-tackle+": [
+1.0001,
+0.0,
+-0.0017,
+0.0,
+0.9999,
+0.1197
+],
+"slime_boss__normal__divide-conquer": [
+1.0007,
+0.0,
+-0.1875,
+0.0,
+1.0007,
+-0.5391
+],
+"slime_boss__normal__divide-conquer+": [
+1.0002,
+0.0,
+0.0162,
+0.0,
+0.9997,
+0.2838
+],
+"slime_boss__normal__flame-tackle": [
+1.0,
+0.0,
+0.0002,
+0.0,
+1.0,
+-0.0005
+],
+"slime_boss__normal__flame-tackle+": [
+1.0,
+0.0,
+-0.0003,
+0.0,
+1.0,
+0.0006
+],
+"slime_boss__normal__forward-tackle": [
+1.0001,
+0.0,
+0.0014,
+0.0,
+1.0,
+-0.0027
+],
+"slime_boss__normal__forward-tackle+": [
+1.0001,
+0.0,
+-0.0052,
+0.0,
+1.0,
+0.0384
+],
+"slime_boss__normal__glop-chop": [
+0.9994,
+0.0,
+0.2205,
+0.0,
+0.9993,
+0.5575
+],
+"slime_boss__normal__glop-chop+": [
+1.0002,
+0.0,
+-0.0041,
+0.0,
+0.9999,
+0.0919
+],
+"slime_boss__normal__gluttony": [
+1.0006,
+0.0,
+-0.0945,
+0.0,
+1.001,
+-0.4349
+],
+"slime_boss__normal__gluttony+": [
+1.0002,
+0.0,
+-0.0105,
+0.0,
+0.9998,
+0.1982
+],
+"slime_boss__normal__goop-armor": [
+1.0,
+0.0,
+0.0005,
+0.0,
+1.0,
+-0.0014
+],
+"slime_boss__normal__goop-armor+": [
+1.0,
+0.0,
+0.0003,
+0.0,
+1.0,
+0.0007
+],
+"slime_boss__normal__goop-spray": [
+1.0006,
+0.0,
+-0.142,
+0.0,
+1.0007,
+-0.4543
+],
+"slime_boss__normal__goop-spray+": [
+0.9997,
+0.0,
+0.0257,
+0.0,
+1.0,
+0.0471
+],
+"slime_boss__normal__growth": [
+1.0,
+0.0,
+0.0009,
+0.0,
+1.0,
+-0.0
+],
+"slime_boss__normal__growth+": [
+1.0,
+0.0,
+-0.0004,
+0.0,
+1.0,
+0.0006
+],
+"slime_boss__normal__haunting-lick": [
+1.0006,
+0.0,
+-0.1723,
+0.0,
+1.0007,
+-0.499
+],
+"slime_boss__normal__haunting-lick+": [
+1.0001,
+0.0,
+-0.0042,
+0.0,
+0.9999,
+0.0979
+],
+"slime_boss__normal__hungry-tackle": [
+1.0002,
+0.0,
+-0.0096,
+0.0,
+1.0001,
+-0.0072
+],
+"slime_boss__normal__hungry-tackle+": [
+1.0003,
+0.0,
+-0.0144,
+0.0,
+1.0,
+0.0233
+],
+"slime_boss__normal__it-looks-tasty": [
+1.0006,
+0.0,
+-0.1624,
+0.0,
+1.0007,
+-0.4788
+],
+"slime_boss__normal__it-looks-tasty+": [
+1.0002,
+0.0,
+0.0354,
+0.0,
+0.9999,
+0.0982
+],
+"slime_boss__normal__just-desserts": [
+1.0002,
+0.0,
+-0.0071,
+0.0,
+1.0002,
+-0.0121
+],
+"slime_boss__normal__just-desserts+": [
+1.0002,
+0.0,
+-0.0109,
+0.0,
+0.9999,
+0.0729
+],
+"slime_boss__normal__leech-energy": [
+1.0002,
+0.0,
+-0.0124,
+0.0,
+1.0,
+0.0
+],
+"slime_boss__normal__leech-energy+": [
+1.0002,
+0.0,
+-0.0201,
+0.0,
+1.0,
+0.0001
+],
+"slime_boss__normal__living-wall": [
+1.0005,
+0.0,
+-0.1376,
+0.0,
+1.0007,
+-0.5278
+],
+"slime_boss__normal__living-wall+": [
+1.0,
+0.0,
+0.0003,
+0.0,
+0.9997,
+0.3304
+],
+"slime_boss__normal__nibble-and-lick": [
+1.0008,
+0.0,
+-0.2724,
+0.0,
+1.0009,
+-0.5791
+],
+"slime_boss__normal__nibble-and-lick+": [
+1.0001,
+0.0,
+-0.0083,
+0.0,
+1.0,
+0.0001
+],
+"slime_boss__normal__ooze-bath": [
+1.0006,
+0.0,
+-0.1989,
+0.0,
+1.0007,
+-0.5068
+],
+"slime_boss__normal__ooze-bath+": [
+0.9998,
+0.0,
+0.0154,
+0.0,
+0.9999,
+0.1107
+],
+"slime_boss__normal__opening-tackle": [
+0.9994,
+0.0,
+0.1999,
+0.0,
+0.9991,
+0.6503
+],
+"slime_boss__normal__opening-tackle+": [
+1.0001,
+0.0,
+-0.0562,
+0.0,
+1.0,
+0.0368
+],
+"slime_boss__normal__pile-on": [
+1.0,
+0.0,
+-0.0095,
+0.0,
+1.0002,
+0.0061
+],
+"slime_boss__normal__pile-on+": [
+1.0,
+0.0,
+0.0017,
+0.0,
+0.9998,
+0.2008
+],
+"slime_boss__normal__prepare-crush": [
+1.0001,
+0.0,
+-0.0294,
+0.0,
+1.0,
+0.0197
+],
+"slime_boss__normal__prepare-crush+": [
+0.9999,
+0.0,
+0.0059,
+0.0,
+1.0,
+0.0328
+],
+"slime_boss__normal__protect-the-boss": [
+1.0007,
+0.0,
+-0.2189,
+0.0,
+1.0008,
+-0.5873
+],
+"slime_boss__normal__protect-the-boss+": [
+1.0001,
+0.0,
+-0.0038,
+0.0,
+1.0001,
+-0.1282
+],
+"slime_boss__normal__quick-snack": [
+1.0008,
+0.0,
+-0.232,
+0.0,
+1.0009,
+-0.3812
+],
+"slime_boss__normal__quick-snack+": [
+0.9998,
+0.0,
+0.0108,
+0.0,
+0.9998,
+0.1854
+],
+"slime_boss__normal__ravenous-tackle": [
+1.0,
+0.0,
+0.0006,
+0.0,
+1.0002,
+-0.0106
+],
+"slime_boss__normal__ravenous-tackle+": [
+1.0,
+0.0,
+-0.0019,
+0.0,
+0.9998,
+0.155
+],
+"slime_boss__normal__recklessness": [
+1.0001,
+0.0,
+-0.0557,
+0.0,
+1.0,
+-0.0
+],
+"slime_boss__normal__recklessness+": [
+0.9999,
+0.0,
+0.0904,
+0.0,
+1.0,
+0.0001
+],
+"slime_boss__normal__recollect": [
+1.0007,
+0.0,
+-0.215,
+0.0,
+1.0008,
+-0.5651
+],
+"slime_boss__normal__recollect+": [
+0.9999,
+0.0,
+0.0099,
+0.0,
+1.0001,
+-0.053
+],
+"slime_boss__normal__reformation": [
+1.0007,
+0.0,
+-0.2127,
+0.0,
+1.0009,
+-0.5371
+],
+"slime_boss__normal__reformation+": [
+1.0001,
+0.0,
+0.0672,
+0.0,
+1.0,
+0.0008
+],
+"slime_boss__normal__relentless-tackle": [
+1.0001,
+0.0,
+-0.0037,
+0.0,
+1.0001,
+-0.0096
+],
+"slime_boss__normal__relentless-tackle+": [
+1.0002,
+0.0,
+-0.0071,
+0.0,
+0.9999,
+0.1339
+],
+"slime_boss__normal__repurpose": [
+1.0006,
+0.0,
+-0.1803,
+0.0,
+1.0009,
+-0.4068
+],
+"slime_boss__normal__repurpose+": [
+0.9997,
+0.0,
+0.041,
+0.0,
+0.9999,
+0.1432
+],
+"slime_boss__normal__slime-brawl": [
+1.0006,
+0.0,
+-0.1478,
+0.0,
+1.0007,
+-0.4834
+],
+"slime_boss__normal__slime-brawl+": [
+1.0,
+0.0,
+0.0608,
+0.0,
+0.9998,
+0.2416
+],
+"slime_boss__normal__slippery": [
+1.0007,
+0.0,
+-0.2306,
+0.0,
+1.0008,
+-0.5415
+],
+"slime_boss__normal__slippery+": [
+1.0001,
+0.0,
+-0.0031,
+0.0,
+1.0,
+-0.0002
+],
+"slime_boss__normal__smothering-tackle": [
+1.0,
+0.0,
+0.0454,
+0.0,
+1.0002,
+-0.0113
+],
+"slime_boss__normal__smothering-tackle+": [
+1.0,
+0.0,
+0.0601,
+0.0,
+0.9999,
+0.146
+],
+"slime_boss__normal__spear-tackle": [
+1.0001,
+0.0,
+0.0104,
+0.0,
+1.0001,
+-0.0072
+],
+"slime_boss__normal__spear-tackle+": [
+1.0001,
+0.0,
+0.0141,
+0.0,
+0.9999,
+0.0619
+],
+"slime_boss__normal__spit": [
+1.0008,
+0.0,
+-0.2541,
+0.0,
+1.0009,
+-0.5746
+],
+"slime_boss__normal__spit+": [
+1.0001,
+0.0,
+-0.0033,
+0.0,
+1.0,
+-0.0
+],
+"slime_boss__normal__tongue-lash": [
+1.0,
+0.0,
+0.0007,
+0.0,
+1.0002,
+-0.0096
+],
+"slime_boss__normal__tongue-lash+": [
+1.0,
+0.0,
+0.0008,
+0.0,
+0.9999,
+0.1304
+],
+"slime_boss__rare__consult-playbook": [
+0.999,
+0.0,
+0.4317,
+0.0,
+0.9986,
+0.6889
+],
+"slime_boss__rare__consult-playbook+": [
+1.0,
+0.0,
+0.0091,
+0.0,
+0.9999,
+0.0709
+],
+"slime_boss__rare__darkling-duo": [
+0.9982,
+0.0,
+0.7414,
+0.0,
+0.9985,
+0.6522
+],
+"slime_boss__rare__darkling-duo+": [
+1.0,
+0.0,
+0.0007,
+0.0,
+1.0001,
+-0.0516
+],
+"slime_boss__rare__duplicated-form": [
+0.9981,
+0.0,
+0.7731,
+0.0,
+0.9985,
+0.658
+],
+"slime_boss__rare__duplicated-form+": [
+1.0,
+0.0,
+0.0324,
+0.0,
+0.9999,
+0.091
+],
+"slime_boss__rare__feeding-frenzy": [
+1.0,
+0.0,
+-0.0,
+0.0,
+0.9996,
+0.0282
+],
+"slime_boss__rare__feeding-frenzy+": [
+1.0,
+0.0,
+0.0002,
+0.0,
+0.9998,
+0.233
+],
+"slime_boss__rare__level-up": [
+0.9982,
+0.0,
+0.7636,
+0.0,
+0.9985,
+0.6625
+],
+"slime_boss__rare__level-up+": [
+1.0,
+0.0,
+0.0001,
+0.0,
+0.9998,
+0.1778
+],
+"slime_boss__rare__minion-master": [
+0.9982,
+0.0,
+0.7545,
+0.0,
+0.9985,
+0.6496
+],
+"slime_boss__rare__minion-master+": [
+1.0,
+0.0,
+0.0227,
+0.0,
+1.0,
+-0.0158
+],
+"slime_boss__rare__overexert": [
+0.9994,
+0.0,
+0.3136,
+0.0,
+0.9995,
+0.0325
+],
+"slime_boss__rare__overexert+": [
+1.0002,
+0.0,
+0.0453,
+0.0,
+1.0,
+0.034
+],
+"slime_boss__rare__rain-of-goop": [
+0.9986,
+0.0,
+0.6182,
+0.0,
+0.9985,
+0.689
+],
+"slime_boss__rare__rain-of-goop+": [
+0.9999,
+0.0,
+0.0532,
+0.0,
+1.0,
+-0.0354
+],
+"slime_boss__rare__rally-the-troops": [
+0.9994,
+0.0,
+0.3685,
+0.0,
+0.9994,
+0.0376
+],
+"slime_boss__rare__rally-the-troops+": [
+0.9998,
+0.0,
+0.1738,
+0.0,
+0.9997,
+0.2768
+],
+"slime_boss__rare__replication": [
+0.9993,
+0.0,
+0.3386,
+0.0,
+0.9994,
+0.0371
+],
+"slime_boss__rare__replication+": [
+1.0,
+0.0,
+0.0602,
+0.0,
+0.9998,
+0.1652
+],
+"slime_boss__rare__shape-of-puddle": [
+0.9982,
+0.0,
+0.7408,
+0.0,
+0.9985,
+0.6534
+],
+"slime_boss__rare__shape-of-puddle+": [
+1.0,
+0.0,
+0.0041,
+0.0,
+1.0001,
+-0.0766
+],
+"slime_boss__rare__slime-tap": [
+1.0002,
+0.0,
+0.0451,
+0.0,
+1.0005,
+-0.0461
+],
+"slime_boss__rare__slime-tap+": [
+1.0,
+0.0,
+0.0705,
+0.0,
+0.9999,
+0.142
+],
+"slime_boss__rare__vicious-tackle": [
+0.9984,
+0.0,
+0.6424,
+0.0,
+0.9985,
+0.6495
+],
+"slime_boss__rare__vicious-tackle+": [
+1.0002,
+0.0,
+-0.0079,
+0.0,
+0.9999,
+0.1296
+],
+"slime_boss__starter__defend": [
+0.9996,
+0.0,
+0.0931,
+0.0,
+1.0001,
+-0.0045
+],
+"slime_boss__starter__defend+": [
+0.9999,
+0.0,
+0.0053,
+0.0,
+1.0,
+-0.0022
+],
+"slime_boss__starter__lick": [
+0.9998,
+0.0,
+-0.0529,
+0.0,
+1.0,
+0.0
+],
+"slime_boss__starter__lick+": [
+0.9998,
+0.0,
+0.0099,
+0.0,
+1.0,
+-0.001
+],
+"slime_boss__starter__slime-slap": [
+1.0008,
+0.0,
+-0.3538,
+0.0,
+0.998,
+1.3687
+],
+"slime_boss__starter__slime-slap+": [
+1.0002,
+0.0,
+-0.0354,
+0.0,
+1.0,
+0.0347
+],
+"slime_boss__starter__strike": [
+1.0008,
+0.0,
+-0.4413,
+0.0,
+0.9988,
+0.7449
+],
+"slime_boss__starter__strike+": [
+1.0002,
+0.0,
+-0.0707,
+0.0,
+1.0,
+0.0309
+]
+}

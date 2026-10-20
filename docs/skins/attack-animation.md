@@ -101,6 +101,19 @@ registration, chain trimming), which also writes the measured `poseShift` and `c
 `skins/kratos.json`; `kratos.py --check` fails when they drift. Other skins measure their baked
 drawings with `skin-attack.py --measure`.
 
+## Summon drawing (Slime Boss)
+
+Slime Boss stands in a formation of Slimes, and while a Slime card resolves its seat shows a one-shot 16-frame drawing
+(`slime_boss-spawn.webp`) for about 1.65 s while the Slime pops in. A skin of Slime Boss may paint its own:
+`combat/characters/<skin>-spawn.webp`, one complete drawing (no frames) on the canvas of `<skin>-hero.webp`, framed exactly like it:
+the seat shows it unscaled in the cutout's box, so the figure must stand on the same ground line, at the same stature and centre
+line, or the hero jumps when the Slime appears (`verify-assets.mjs` checks size, margins, ground line within 12 px, stature
+0.7-1.3x and centre line within 15%). It needs a `<skin>-spawn` entry in `src/ui/hero-art-head.json` (`calibrate-hero-head.py`) so held
+potions and Orbs sit above the head it shows. Without the file the seat falls back to `<skin>-hero.webp` for the same window (a 404
+the first time, then the idle drawing). The Slime pop-in, its Command animations and the formation layout never change with the skin:
+`verify-skin-attack-browser.mjs` seats the skinned hero beside three Slimes and requires the same seat, HP bar and Slime rectangles
+as the plain hero, no Slime covered by the hero's drawing or attack, and the summon drawing (and its fallback).
+
 ## Pose audit
 
 `python3 scripts/animation/audit-poses.py <skin> [--no-sheet]` holds a skin's drawings to its config's `audit` block, which
@@ -120,7 +133,8 @@ supplement it, never replace it.
 ## Test skins
 
 `scripts/animation/test-skins/test_combo.json` (a many-pose combo with three hits, cues and a slam) and
-`test_strike.json` (a five-pose strike with one hit) are never registered. `skin-attack.py --fixture <dir>` draws them
+`test_strike.json` (a five-pose strike with one hit, worn by Slime Boss: its formation, its summon drawing and a Slime Command that
+hits the target the card hits) are never registered. `skin-attack.py --fixture <dir>` draws them
 as solid shapes into a scratch directory with their generated CSS and table; the browser verifier serves those
 through a Vite plugin (`scripts/lib/skin-attack-fixture.mjs`, `scripts/lib/test-skins.mjs`), so the generic code
 path is covered whether or not a real skin uses a given shape of attack.

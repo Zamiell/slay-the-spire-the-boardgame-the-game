@@ -1,0 +1,299 @@
+{
+ "model": "gpt-image-2.5-sunburst",
+ "quality": "high",
+ "size": "1536x1024",
+ "recipe": "anime_slime_boss",
+ "recordPipelineInputs": true,
+ "hero": "Slimeboss-chan",
+ "identityReference": "@work/cards/refs/identity-idle.png",
+ "identityDescription": "Approved Slimeboss-chan idle identity drawing: lime-green long hair, tiny black bowler hat, gold-yellow eyes, black coat with white shoulder panels, slate tunic with a gold zip line, brown belt, grey trousers, tall brown boots, slime-glove fist and a small floating slime blob (generated, flattened on a dark background, not committed)",
+ "identityCues": "a young heroine with very long straight lime-green hair, a tiny black bowler mini-hat perched on top of her head, gold-yellow eyes with a faint calm smile, a black high-collared long coat with white shoulder panels over a dark slate tunic with a gold zip line, a brown belt with a silver buckle, baggy grey trousers into dark cuffs, tall brown lace-up boots, and on her right hand a glossy lime slime glove (as in image 2 the glove is her only magic tool).",
+ "palette": "lime green (the exact green of her hair and her slimes), black coat, slate and grey, cream white and gold accents; simple clean backgrounds in dusk teal, slate blue, moss and warm cream with lime light; no pink, no purple, no blue slimes.",
+ "styleReferences": [
+  {
+   "tag": "design",
+   "path": "@work/cards/refs/reference.png",
+   "description": "The user's Slimeboss-chan character design sheet: clean modern TV-anime linework and flat cel colour (style authority and identity; copyrighted/not ours to redistribute, not committed)"
+  }
+ ],
+ "prototype": [
+  "slime_boss_slime_slap",
+  "slime_boss_defend",
+  "slime_boss_goop_armor",
+  "slime_boss_rally_the_troops",
+  "slime_boss_vicious_tackle",
+  "slime_boss_shape_of_puddle"
+ ],
+ "cards": {
+  "slime_boss_slime_slap": {
+   "name": "Slime Slap",
+   "type": "attack",
+   "scene": "She swings her slime-glove fist in a wide backhand slap across the frame, a big arc of lime goop trailing behind it, a grey stone knight statue snapping sideways from the blow, a small slime blob swelling larger beside her shoulder."
+  },
+  "slime_boss_lick": {
+   "name": "Lick",
+   "type": "skill",
+   "scene": "A long glossy slime tongue unrolls from a small slime beside her and licks out toward a grey stone knight statue, while she gestures with two fingers like a conductor giving a quiet command."
+  },
+  "slime_boss_defend": {
+   "name": "Defend",
+   "type": "skill",
+   "scene": "She crosses her forearms in front of her chest as a thin translucent lime slime membrane forms a dome around her and glancing blows bounce off it in small flat sparks."
+  },
+  "slime_boss_strike": {
+   "name": "Strike",
+   "type": "attack",
+   "scene": "A clean straight punch: she drives her lime slime-glove fist toward the camera-right, three simple speed lines behind it, a flat white impact flash cracking a grey stone knight statue's round shield."
+  },
+  "slime_boss_combo_tackle": {
+   "name": "Combo Tackle",
+   "type": "attack",
+   "scene": "Low camera: she snaps two fingers and two slimes, one big and one small, shoot one after the other along a diagonal with trailing goop streaks and slam into the cracked shield of a grey stone knight statue."
+  },
+  "slime_boss_opening_tackle": {
+   "name": "Opening Tackle",
+   "type": "attack",
+   "scene": "She flicks one finger and a single round lime slime shoots like a cannonball into a heavy wooden door, planks splitting outward, her long hair streaming behind her."
+  },
+  "slime_boss_forward_tackle": {
+   "name": "Forward Tackle",
+   "type": "attack",
+   "scene": "A big slime leans forward like a wedge and bulldozes ahead pushing a grey stone knight statue backwards across the floor, while she walks calmly behind it with her coat flowing and a thin slime film hugging her shoulder as a shield."
+  },
+  "slime_boss_flame_tackle": {
+   "name": "Flame Tackle",
+   "type": "attack",
+   "scene": "A big slime rolls across a stone hall wrapped in bright yellow-lime flames and sweeps three grey stone statue silhouettes in a row at once, flame streaks and goop splashes, she watches from the side with her coat blown by the heat."
+  },
+  "slime_boss_hungry_tackle": {
+   "name": "Hungry Tackle",
+   "type": "attack",
+   "scene": "A slime lunges at a grey stone knight statue while she holds a fan of blank glowing cards in her other hand and one card dissolves into goop, a bright burst of lime energy leaping into her palm."
+  },
+  "slime_boss_ravenous_tackle": {
+   "name": "Ravenous Tackle",
+   "type": "attack",
+   "scene": "A huge slime slams down onto a grey stone knight statue with a big goop splash, and two smaller slimes beside her visibly swell twice their size with rising bubbles, her fist clenched in satisfaction."
+  },
+  "slime_boss_relentless_tackle": {
+   "name": "Relentless Tackle",
+   "type": "attack",
+   "scene": "A lead slime rams a grey stone knight statue while three fading after-image copies of it trail behind in a line like an unstoppable chain, she beckons forward with one raised finger and a bright motion streak runs through the frame."
+  },
+  "slime_boss_spear_tackle": {
+   "name": "Spear Tackle",
+   "type": "attack",
+   "scene": "A slime stretches itself into two sharp parallel goop spears that pierce straight through a round shield, one above the other, while she stands behind it with her arm extended forward and her hair swept back."
+  },
+  "slime_boss_growth": {
+   "name": "Growth",
+   "type": "skill",
+   "scene": "Three slimes in a row on a diagonal grow from small to medium to large, a thick slime wall bulging up behind her, and she rests a hand on the largest one with a faint smile."
+  },
+  "slime_boss_reformation": {
+   "name": "Reformation",
+   "type": "skill",
+   "scene": "A slime burst into droplets floats in the air and the droplets are pulled together above her open palm into a bigger glossy slime, shards of shine rippling inward, her eyes closed."
+  },
+  "slime_boss_nibble_and_lick": {
+   "name": "Nibble and Lick",
+   "type": "skill",
+   "scene": "A small slime nibbles a glowing lime orb of food and swells a little, then licks the air happily, while she crouches next to it patting it with one finger as a gentle command."
+  },
+  "slime_boss_recollect": {
+   "name": "Recollect",
+   "type": "skill",
+   "scene": "She pulls two glowing blank cards out of a shimmering pool of goop with two fingers, eyes closed in recollection, a slime hovering calmly at her shoulder."
+  },
+  "slime_boss_pile_on": {
+   "name": "Pile On!",
+   "type": "attack",
+   "scene": "Five slimes of different sizes pile onto a grey stone knight statue in a squirming heap, goop dripping down, while she watches from the side with her arms crossed."
+  },
+  "slime_boss_just_desserts": {
+   "name": "Just Desserts",
+   "type": "skill",
+   "scene": "She sets a plate with a wobbling lime jelly dessert in front of a big slime at a candlelit table, a small slime waiting beside it with a tiny spoon of goop, warm calm lighting."
+  },
+  "slime_boss_repurpose": {
+   "name": "Repurpose",
+   "type": "skill",
+   "scene": "A slime dissolves into a bright glowing lime energy orb that she catches in her open palm, the leftover goop dripping away, her coat swaying."
+  },
+  "slime_boss_leech_energy": {
+   "name": "Leech Energy",
+   "type": "attack",
+   "scene": "A small slime latches onto a grey stone knight statue and a ribbon of glowing lime energy streams from the statue through the slime to her shoulder, a thin shield bubble flickering around her."
+  },
+  "slime_boss_goop_spray": {
+   "name": "Goop Spray",
+   "type": "skill",
+   "scene": "She sweeps her slime glove sideways and a wide fan of lime goop sprays across three grey stone statue silhouettes, the goop sagging heavily on them, while she flicks a glowing blank card from her other hand."
+  },
+  "slime_boss_recklessness": {
+   "name": "Recklessness",
+   "type": "power",
+   "scene": "Centred emblem: her slime-glove fist clenched in front of her chest wrapped in jagged angry spikes of lime energy, hair whipping wildly, a bold ring of sharp zigzag energy around her."
+  },
+  "slime_boss_slippery": {
+   "name": "Slippery",
+   "type": "skill",
+   "scene": "She slides backwards low across a slick lime goop trail with one knee bent, leaving a long glossy streak behind her, while sword slashes whistle harmlessly over her hat."
+  },
+  "slime_boss_protect_the_boss": {
+   "name": "Protect the Boss",
+   "type": "skill",
+   "scene": "Three slimes form a tight wall in front of her, the biggest in the middle, while arrows bounce off them, and she stands calmly behind peeking over the top with her tiny hat."
+  },
+  "slime_boss_quick_snack": {
+   "name": "Quick Snack",
+   "type": "skill",
+   "scene": "She bites a wobbling lime jelly snack on a stick with a relaxed smile while the biggest slime next to her bubbles up into a round shield bubble over her head."
+  },
+  "slime_boss_it_looks_tasty": {
+   "name": "It Looks Tasty",
+   "type": "skill",
+   "scene": "She holds up a glowing blank card that is turning into lime candy between her fingers while a slime beside her swells in anticipation, a thin shield bubble around her, a faint smile."
+  },
+  "slime_boss_divide_conquer": {
+   "name": "Divide & Conquer",
+   "type": "skill",
+   "scene": "One big slime splits in mid air into three equal slimes in a row, goop strands stretching between them, while she holds up her hand with fingers spread like a general."
+  },
+  "slime_boss_digest": {
+   "name": "Digest",
+   "type": "skill",
+   "scene": "A big translucent slime with a glowing blank card slowly dissolving inside its body and a bright orb forming within, while she watches it with her hands behind her back."
+  },
+  "slime_boss_living_wall": {
+   "name": "Living Wall",
+   "type": "skill",
+   "scene": "A rampart wall of tall stacked slimes spans the frame and she calmly looks over the top of the highest slime holding a small lantern, shine highlights on every blob."
+  },
+  "slime_boss_prepare_crush": {
+   "name": "Prepare Crush",
+   "type": "power",
+   "scene": "Centred emblem: a gigantic slime hangs overhead against a dark ceiling about to drop, her small figure below looking up with one hand raised to hold it, a ring of dripping goop framing the scene."
+  },
+  "slime_boss_spit": {
+   "name": "Spit",
+   "type": "skill",
+   "scene": "A slime spits a ball of lime goop toward the camera in a splashy arc while she flicks a glowing blank card from her fingers, one eyebrow slightly raised."
+  },
+  "slime_boss_haunting_lick": {
+   "name": "Haunting Lick",
+   "type": "skill",
+   "scene": "From deep shadow a pale semi-transparent ghostly slime tongue licks out toward a grey stone statue, her silhouette half hidden in the dark with only her gold eyes and lime hair lit."
+  },
+  "slime_boss_glop_chop": {
+   "name": "Glop Chop",
+   "type": "attack",
+   "scene": "She chops downward with her slime glove stretched into a wide cleaver-shaped slime blade, goop chunks flying off a cracked grey stone knight statue."
+  },
+  "slime_boss_smothering_tackle": {
+   "name": "Smothering Tackle",
+   "type": "attack",
+   "scene": "A big slime completely smothers the head of a grey stone knight statue like a heavy blanket with goop dripping down, shaking lines around the statue, she holds one hand out calmly."
+  },
+  "slime_boss_dive_tackle": {
+   "name": "Dive Tackle",
+   "type": "attack",
+   "scene": "A slime dives from the top of the frame like a comet, stretched into a teardrop with a bright motion streak, and splashes into a grey stone statue in a ring of goop."
+  },
+  "slime_boss_gluttony": {
+   "name": "Gluttony",
+   "type": "skill",
+   "scene": "A big slime swallows a heap of glowing orbs of food, a round muscular bulge swelling in its body, while she watches with a content smile and a faint warm aura around the slime."
+  },
+  "slime_boss_tongue_lash": {
+   "name": "Tongue Lash",
+   "type": "attack",
+   "scene": "A long glossy slime tendril whips out of her slime glove like a tongue and wraps around the arm of a grey stone knight statue, while a small slime at her side glows a little brighter."
+  },
+  "slime_boss_slime_brawl": {
+   "name": "Slime Brawl",
+   "type": "skill",
+   "scene": "She and a slime throw a punch together side by side, her slime-glove fist next to the slime's fist-shaped pseudopod, both glowing brighter and lit by a bold flat colour burst behind them."
+  },
+  "slime_boss_ooze_bath": {
+   "name": "Ooze Bath",
+   "type": "skill",
+   "scene": "She relaxes in a wooden tub filled with glowing lime ooze, tiny bowler hat on her head, hair tied up, bubbles drifting, a small slime floating happily next to her, warm steam."
+  },
+  "slime_boss_goop_armor": {
+   "name": "Goop Armor",
+   "type": "power",
+   "scene": "Centred emblem: a calm portrait of her with glossy lime slime armor plates covering her shoulders, forearms and gloves like layered pauldrons and gauntlets, a bright ring of goop behind her."
+  },
+  "slime_boss_delegate": {
+   "name": "Delegate",
+   "type": "skill",
+   "scene": "She lounges in a high-backed chair holding a teacup with one hand and waves the other toward a big slime that charges off at an enemy, a tidy slime shield bubble covering her chair."
+  },
+  "slime_boss_feeding_frenzy": {
+   "name": "Feeding Frenzy",
+   "type": "attack",
+   "scene": "She tosses glowing lime orbs of food from both hands to three slimes that rear up bigger as they eat, goop flying around, a grey stone knight statue knocked back by the swell."
+  },
+  "slime_boss_slime_tap": {
+   "name": "Slime Tap",
+   "type": "skill",
+   "scene": "She taps a big slime like a barrel with a wooden spigot and glowing lime liquid pours into a mug in her hand while sparks of energy and a card flutter out."
+  },
+  "slime_boss_rain_of_goop": {
+   "name": "Rain of Goop",
+   "type": "power",
+   "scene": "Centred emblem: she stands with her palm open to the sky while heavy glowing lime goop rain falls from a dark cloud above her in a ring of three bright droplets, hair and coat soaked in lime shine."
+  },
+  "slime_boss_consult_playbook": {
+   "name": "Consult Playbook",
+   "type": "power",
+   "scene": "Centred emblem: she reads an open book with blank pages, one eyebrow raised, while a glowing card and a bright energy orb float out of the pages and a small slime peeks over her shoulder."
+  },
+  "slime_boss_duplicated_form": {
+   "name": "Duplicated Form",
+   "type": "power",
+   "scene": "Centred emblem: two identical copies of her stand back to back, the second one drawn as a translucent lime afterimage, both with fists raised, a bright circle of light behind them."
+  },
+  "slime_boss_minion_master": {
+   "name": "Minion Master",
+   "type": "power",
+   "scene": "Centred emblem: she sits on a tall slime throne with her legs crossed and conducts with one finger, small slimes lined up around her in neat formation, a bright lime halo behind her."
+  },
+  "slime_boss_overexert": {
+   "name": "Overexert",
+   "type": "skill",
+   "scene": "She strains with gritted teeth holding two glowing blank cards, her hair flying wildly, a lime aura bursting around her and two doubled after-images of her fist striking a statue at once."
+  },
+  "slime_boss_replication": {
+   "name": "Replication",
+   "type": "skill",
+   "scene": "She draws a glowing slime-shaped card from a floating deck of blank cards with two fingers while a perfect mirror copy of a slime appears in front of her, two identical slimes facing each other with a ring of shine between them."
+  },
+  "slime_boss_darkling_duo": {
+   "name": "Darkling Duo",
+   "type": "power",
+   "scene": "Centred emblem: she stands back to back with one dark glossy lime slime, both in confident ready poses, fists touching in the middle, a circular glow behind them."
+  },
+  "slime_boss_shape_of_puddle": {
+   "name": "Shape of Puddle",
+   "type": "power",
+   "scene": "Centred emblem: she rises from the waist up out of a round lime puddle, her lower body flowing into the goop, three glowing lime cubes floating in a ring above her."
+  },
+  "slime_boss_rally_the_troops": {
+   "name": "Rally the Troops",
+   "type": "skill",
+   "scene": "A wide shot with her pointing forward with one raised arm while a wave of a dozen slimes of all sizes surges behind her toward the camera like an army, her coat and hair blowing."
+  },
+  "slime_boss_vicious_tackle": {
+   "name": "Vicious Tackle",
+   "type": "attack",
+   "scene": "A huge slime hurtles along a diagonal as a spiked wrecking ball with thorny goop spikes and a trail of smaller tackle slimes lined behind it, smashing through a stone wall in a burst of rubble, she stands braced at the edge."
+  },
+  "slime_boss_level_up": {
+   "name": "Level Up",
+   "type": "power",
+   "scene": "Centred emblem: a slime climbs a spiral of three glowing rings getting bigger at each ring, sparkles rising, while she lifts it with one open hand from below, a bright circular glow behind."
+  }
+ }
+}

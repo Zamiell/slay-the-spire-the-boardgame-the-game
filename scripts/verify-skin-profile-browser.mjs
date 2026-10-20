@@ -349,16 +349,16 @@ try {
   const lockedTile = (page, hero, look) => page.getByRole('button', { name: `${hero}, ${look}, locked: 2,500 coins. Open the Shop`, exact: true })
   const checked = (page) => page.locator('.profile-skins__radios [role="radio"][aria-checked="true"]').evaluateAll((items) => items.map((item) => item.getAttribute('aria-label')))
   const OWNS_SOME = ['kratos', 'monogatari_silent', 'monogatari_defect']
-  const OWNS_ALL = ['kratos', 'monogatari_ironclad', 'monogatari_silent', 'monogatari_defect', 'monogatari_watcher']
-  const ROW_IDS = ['profile-skins-ironclad', 'profile-skins-silent', 'profile-skins-defect', 'profile-skins-watcher']
-  const ALL_DEFAULT = ['Ironclad, Default', 'Silent, Default', 'Defect, Default', 'Watcher, Default']
+  const OWNS_ALL = ['kratos', 'monogatari_ironclad', 'monogatari_silent', 'monogatari_defect', 'monogatari_watcher', 'anime_slime_boss']
+  const ROW_IDS = ['profile-skins-ironclad', 'profile-skins-silent', 'profile-skins-defect', 'profile-skins-watcher', 'profile-skins-slime_boss']
+  const ALL_DEFAULT = ['Ironclad, Default', 'Silent, Default', 'Defect, Default', 'Watcher, Default', 'Slime Boss, Default']
   const webkitBrowser = await webkit.launch()
   try {
     for (const [engineName, engine] of [['chromium', browser], ['webkit', webkitBrowser]]) {
       for (const [screen, viewport, phoneScreen] of SCREENS) {
         const phone = phoneScreen && engineName === 'webkit' ? 'dom' : phoneScreen
         const label = `${engineName} ${screen}`
-        // Kratos, Silent-chan and Defect-chan owned, Ironclad-chan and Watcher-chan locked: four rows, owned and unowned tiles.
+        // Kratos, Silent-chan and Defect-chan owned, Ironclad-chan, Watcher-chan and Slimeboss-chan locked: five rows, owned and unowned tiles.
         const { context, page } = await open(viewport, phoneScreen, undefined, OWNS_SOME, { engine })
         await openSkins(page, phone)
         assert.deepEqual(await page.getByRole('radiogroup').evaluateAll((groups) => groups.map((group) => group.getAttribute('aria-labelledby'))),
@@ -369,7 +369,9 @@ try {
         assert.equal(await page.getByRole('radiogroup', { name: 'Silent' }).getByRole('radio').count(), 2, `${label}: Silent has Default and Silent-chan`)
         assert.equal(await page.getByRole('radiogroup', { name: 'Watcher' }).getByRole('radio').count(), 1, `${label}: Watcher owns nothing yet`)
         assert.equal(await lockedTile(page, 'Watcher', 'Watcher-chan').count(), 1, `${label}: Watcher-chan is a locked tile`)
-        assert.equal(await page.getByRole('button', { name: /locked/ }).count(), 2, `${label}: only those two are locked`)
+        assert.equal(await lockedTile(page, 'Slime Boss', 'Slimeboss-chan').count(), 1, `${label}: Slimeboss-chan is a locked tile`)
+        assert.equal(await page.getByRole('radiogroup', { name: 'Slime Boss' }).getByRole('radio').count(), 1, `${label}: Slime Boss owns nothing yet`)
+        assert.equal(await page.getByRole('button', { name: /locked/ }).count(), 3, `${label}: only those three are locked`)
         assert.deepEqual(await checked(page), ALL_DEFAULT, `${label}: Default is worn on every hero`)
         assert.match(await radio(page, 'Silent', 'Silent-chan').locator('img').evaluate((image) => image.currentSrc), /portrait-monogatari_silent\.png$/)
         assert.match(await lockedTile(page, 'Watcher', 'Watcher-chan').locator('.profile-skin__art > img').evaluate((image) => image.currentSrc), /portrait-monogatari_watcher\.png$/)
@@ -382,13 +384,13 @@ try {
         await press(radio(page, 'Silent', 'Silent-chan'), phone)
         await press(radio(page, 'Ironclad', 'Kratos'), phone)
         await press(radio(page, 'Defect', 'Defect-chan'), phone)
-        assert.deepEqual(await checked(page), ['Ironclad, Kratos', 'Silent, Silent-chan', 'Defect, Defect-chan', 'Watcher, Default'], `${label}: one look worn per hero`)
+        assert.deepEqual(await checked(page), ['Ironclad, Kratos', 'Silent, Silent-chan', 'Defect, Defect-chan', 'Watcher, Default', 'Slime Boss, Default'], `${label}: one look worn per hero`)
         await settledImages(page)
         await scroll('top')
         await assertFits(page, `${label} (Kratos, Silent-chan and Defect-chan worn)`)
         await page.screenshot({ path: join(output, `multi-${engineName}-${screen}-skins-worn.png`), timeout: 90_000 })
         await context.close()
-        console.log(`PASS ${label}: four hero rows with owned and locked skins fit`)
+        console.log(`PASS ${label}: five hero rows with owned and locked skins fit`)
       }
     }
   } finally { await webkitBrowser.close() }
@@ -405,11 +407,11 @@ try {
     await press(radio(page, 'Defect', 'Defect-chan'), phone)
     await press(radio(page, 'Ironclad', 'Kratos'), phone)
     assert.deepEqual(await stored(page), { silent: 'monogatari_silent', watcher: 'monogatari_watcher', defect: 'monogatari_defect', ironclad: 'kratos' })
-    assert.deepEqual(await checked(page), ['Ironclad, Kratos', 'Silent, Silent-chan', 'Defect, Defect-chan', 'Watcher, Watcher-chan'], `${name}: exactly one worn per hero`)
-    assert.equal(await page.locator('.profile-skin__check').count(), 4, `${name}: four check badges`)
+    assert.deepEqual(await checked(page), ['Ironclad, Kratos', 'Silent, Silent-chan', 'Defect, Defect-chan', 'Watcher, Watcher-chan', 'Slime Boss, Default'], `${name}: exactly one worn per hero`)
+    assert.equal(await page.locator('.profile-skin__check').count(), 5, `${name}: one check badge per hero row (the worn tile, Default for Slime Boss)`)
     await press(radio(page, 'Silent', 'Default'), phone)
     assert.deepEqual(await stored(page), { watcher: 'monogatari_watcher', defect: 'monogatari_defect', ironclad: 'kratos' }, `${name}: Default clears only Silent`)
-    assert.deepEqual(await checked(page), ['Ironclad, Kratos', 'Silent, Default', 'Defect, Defect-chan', 'Watcher, Watcher-chan'])
+    assert.deepEqual(await checked(page), ['Ironclad, Kratos', 'Silent, Default', 'Defect, Defect-chan', 'Watcher, Watcher-chan', 'Slime Boss, Default'])
     // A hero with two skins cycles through Default, Kratos and Ironclad-chan.
     await radio(page, 'Ironclad', 'Kratos').focus()
     await page.keyboard.press('ArrowRight')
@@ -429,6 +431,7 @@ try {
 
     // The next solo run wears the chosen look of the hero picked: Silent-chan.
     await press(radio(page, 'Silent', 'Silent-chan'), phone)
+    await press(radio(page, 'Slime Boss', 'Slimeboss-chan'), phone)
     await page.getByRole('button', { name: 'Back to main menu' }).click()
     await page.getByRole('button', { name: 'Single Player', exact: true }).click()
     await page.getByRole('button', { name: 'Standard', exact: true }).click()
@@ -438,7 +441,10 @@ try {
     assert.match(await decoded('.start-menu__character-roster button[aria-label="Silent"] img'), /portrait-monogatari_silent\.png$/, `${name}: Silent shows its -chan portrait`)
     assert.match(await decoded('.start-menu__character-roster button[aria-label="Watcher"] img'), /portrait-monogatari_watcher\.png$/, `${name}: Watcher shows its -chan portrait`)
     assert.match(await decoded('.start-menu__character-roster button[aria-label="Defect"] img'), /portrait-monogatari_defect\.png$/, `${name}: Defect shows its -chan portrait`)
+    assert.match(await decoded('.start-menu__character-roster button[aria-label="Slime Boss"] img'), /portrait-anime_slime_boss\.png$/, `${name}: Slime Boss shows its -chan portrait`)
     await page.screenshot({ path: join(output, `multi-${name}-character-select.png`), timeout: 90_000 })
+    await page.locator('.start-menu__character-roster button[aria-label="Slime Boss"]').click()
+    assert.match(await decoded('.start-menu__character-wallpaper'), /character-anime_slime_boss-wallpaper\.webp$/, `${name}: Slime Boss's wallpaper is the -chan one`)
     await page.locator('.start-menu__character-roster button[aria-label="Ironclad"]').click()
     await page.locator('.start-menu__character-roster button[aria-label="Silent"]').click()
     assert.match(await decoded('.start-menu__character-wallpaper'), /character-monogatari_silent-wallpaper\.webp$/, `${name}: Silent's wallpaper is the -chan one`)
@@ -460,7 +466,7 @@ try {
     await page.reload()
     await page.locator('.start-menu__nav').waitFor()
     await openSkins(page, false)
-    assert.deepEqual(await checked(page), ['Ironclad, Default', 'Silent, Silent-chan', 'Defect, Default', 'Watcher, Default'],
+    assert.deepEqual(await checked(page), ['Ironclad, Default', 'Silent, Silent-chan', 'Defect, Default', 'Watcher, Default', 'Slime Boss, Default'],
       'a skin of another hero and an unowned skin read as Default; the owned one stays')
     assert.equal(await lockedTile(page, 'Ironclad', 'Kratos').count(), 1)
     assert.equal(await lockedTile(page, 'Watcher', 'Watcher-chan').count(), 1)
@@ -468,7 +474,7 @@ try {
     await page.evaluate(async () => (await import('/src/skin-preference.ts')).setPreferredSkin('watcher', 'monogatari_watcher'))
     await page.evaluate(async () => (await import('/src/skin-preference.ts')).setPreferredSkin('ironclad', 'monogatari_silent'))
     // Neither attempt wrote anything; the next real write drops the stale choices.
-    assert.deepEqual(await checked(page), ['Ironclad, Default', 'Silent, Silent-chan', 'Defect, Default', 'Watcher, Default'], 'an unowned skin and another hero\'s skin cannot be worn')
+    assert.deepEqual(await checked(page), ['Ironclad, Default', 'Silent, Silent-chan', 'Defect, Default', 'Watcher, Default', 'Slime Boss, Default'], 'an unowned skin and another hero\'s skin cannot be worn')
     await page.evaluate(async () => (await import('/src/skin-preference.ts')).setPreferredSkin('watcher', undefined))
     assert.deepEqual(await stored(page), { silent: 'monogatari_silent' }, 'the stale choices are dropped by the next write')
     await lockedTile(page, 'Watcher', 'Watcher-chan').click()

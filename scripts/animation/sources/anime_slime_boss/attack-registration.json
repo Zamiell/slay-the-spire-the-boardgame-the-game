@@ -1,0 +1,338 @@
+{
+ "note": "Slimeboss-chan attack drawings: the model draws each pose on a 1536x1024 layout canvas (inputs/layout-idle.webp, the registered idle at 1.6x runtime scale, near sole on x=493.5, y=960). measure-anime_slime_boss.py stores per pose, in source pixels, hatTop (the top of the mini-hat), eye (centroid of the gold irises) and blob (the long axis of the floating slime blob, null while it is absorbed into the gauntlet); anime_slime_boss.py scales each drawing uniformly by idle head / drawn head (hat top to eye), plants the near (rear) sole on the idle near sole and the lowest row on the ground minus lift (frame px), and writes the runtime drawings and audit.landmarks of skins/anime_slime_boss.json.",
+ "layout": {
+  "canvas": [
+   1536,
+   1024
+  ],
+  "scale": 1.6,
+  "rearSoleX": 493.5,
+  "ground": 960,
+  "idleHeadPixels": 68.2
+ },
+ "poses": {
+  "sink": {
+   "source": "scripts/animation/sources/anime_slime_boss/attack/sink.webp",
+   "trackBlob": true,
+   "hatTop": [
+    615,
+    249
+   ],
+   "eye": [
+    599.5,
+    335.7
+   ],
+   "blob": [
+    [
+     476.0,
+     289.0
+    ],
+    [
+     386.0,
+     342.0
+    ]
+   ]
+  },
+  "gather": {
+   "source": "scripts/animation/sources/anime_slime_boss/attack/gather.webp",
+   "trackBlob": false,
+   "hatTop": [
+    616,
+    174
+   ],
+   "eye": [
+    600.4,
+    286.8
+   ],
+   "blob": null
+  },
+  "windup": {
+   "source": "scripts/animation/sources/anime_slime_boss/attack/windup.webp",
+   "trackBlob": false,
+   "hatTop": [
+    696,
+    245
+   ],
+   "eye": [
+    670.0,
+    352.5
+   ],
+   "blob": null
+  },
+  "leap": {
+   "source": "scripts/animation/sources/anime_slime_boss/attack/leap.webp",
+   "trackBlob": false,
+   "hatTop": [
+    841,
+    236
+   ],
+   "eye": [
+    826.2,
+    339.4
+   ],
+   "blob": null
+  },
+  "fly": {
+   "source": "scripts/animation/sources/anime_slime_boss/attack/fly.webp",
+   "trackBlob": false,
+   "lift": 20,
+   "hatTop": [
+    902,
+    265
+   ],
+   "eye": [
+    862.2,
+    373.4
+   ],
+   "blob": null
+  },
+  "step": {
+   "source": "scripts/animation/sources/anime_slime_boss/attack/step.webp",
+   "trackBlob": false,
+   "hatTop": [
+    992,
+    232
+   ],
+   "eye": [
+    957.2,
+    352.5
+   ],
+   "blob": null
+  },
+  "cross0": {
+   "source": "scripts/animation/sources/anime_slime_boss/attack/cross0.webp",
+   "trackBlob": false,
+   "hatTop": [
+    1024,
+    235
+   ],
+   "eye": [
+    984.5,
+    354.0
+   ],
+   "blob": null
+  },
+  "cross": {
+   "source": "scripts/animation/sources/anime_slime_boss/attack/cross.webp",
+   "trackBlob": false,
+   "hatTop": [
+    1025,
+    202
+   ],
+   "eye": [
+    991.9,
+    315.9
+   ],
+   "blob": null
+  },
+  "thrust": {
+   "source": "scripts/animation/sources/anime_slime_boss/attack/thrust.webp",
+   "trackBlob": false,
+   "hatTop": [
+    978,
+    257
+   ],
+   "eye": [
+    933.2,
+    370.0
+   ],
+   "blob": null
+  },
+  "punch": {
+   "source": "scripts/animation/sources/anime_slime_boss/attack/punch.webp",
+   "trackBlob": false,
+   "hatTop": [
+    1062,
+    168
+   ],
+   "eye": [
+    1022.5,
+    295.7
+   ],
+   "blob": null
+  },
+  "splash": {
+   "source": "scripts/animation/sources/anime_slime_boss/attack/splash.webp",
+   "trackBlob": false,
+   "hatTop": [
+    840,
+    283
+   ],
+   "eye": [
+    817.1,
+    383.4
+   ],
+   "blob": null
+  },
+  "pull": {
+   "source": "scripts/animation/sources/anime_slime_boss/attack/pull.webp",
+   "trackBlob": false,
+   "hatTop": [
+    891,
+    238
+   ],
+   "eye": [
+    874.1,
+    341.3
+   ],
+   "blob": null
+  },
+  "recoil": {
+   "source": "scripts/animation/sources/anime_slime_boss/attack/recoil.webp",
+   "trackBlob": false,
+   "hatTop": [
+    937,
+    195
+   ],
+   "eye": [
+    917.5,
+    310.9
+   ],
+   "blob": null
+  },
+  "rise0": {
+   "source": "scripts/animation/sources/anime_slime_boss/attack/rise0.webp",
+   "trackBlob": true,
+   "hatTop": [
+    840,
+    205
+   ],
+   "eye": [
+    831.4,
+    318.0
+   ],
+   "blob": [
+    [
+     655.0,
+     285.0
+    ],
+    [
+     590.0,
+     308.0
+    ]
+   ]
+  },
+  "rise": {
+   "source": "scripts/animation/sources/anime_slime_boss/attack/rise.webp",
+   "trackBlob": true,
+   "hatTop": [
+    768,
+    170
+   ],
+   "eye": [
+    756.8,
+    267.1
+   ],
+   "blob": [
+    [
+     541.0,
+     256.0
+    ],
+    [
+     480.0,
+     349.0
+    ]
+   ]
+  },
+  "hop": {
+   "source": "scripts/animation/sources/anime_slime_boss/attack/hop.webp",
+   "trackBlob": true,
+   "lift": 32,
+   "hatTop": [
+    526,
+    104
+   ],
+   "eye": [
+    505.4,
+    205.7
+   ],
+   "blob": [
+    [
+     295.0,
+     316.0
+    ],
+    [
+     355.0,
+     216.0
+    ]
+   ]
+  },
+  "land": {
+   "source": "scripts/animation/sources/anime_slime_boss/attack/land.webp",
+   "trackBlob": true,
+   "hatTop": [
+    579,
+    263
+   ],
+   "eye": [
+    528.0,
+    354.5
+   ],
+   "blob": [
+    [
+     407.0,
+     362.0
+    ],
+    [
+     342.0,
+     449.0
+    ]
+   ]
+  },
+  "recover": {
+   "source": "scripts/animation/sources/anime_slime_boss/attack/recover.webp",
+   "trackBlob": true,
+   "hatTop": [
+    556,
+    183
+   ],
+   "eye": [
+    535.6,
+    276.3
+   ],
+   "blob": [
+    [
+     374.0,
+     378.0
+    ],
+    [
+     421.0,
+     300.0
+    ]
+   ]
+  }
+ },
+ "spawn": {
+  "source": "scripts/animation/sources/anime_slime_boss/attack/spawn.webp",
+  "hatTop": [
+   460,
+   80
+  ],
+  "eye": [
+   429.1,
+   189.7
+  ]
+ },
+ "idle": {
+  "hatTop": [
+   584.5,
+   770.6
+  ],
+  "eye": [
+   576.0,
+   812.4
+  ],
+  "blob": [
+   [
+    507.0,
+    854.3
+   ],
+   [
+    527.0,
+    820.0
+   ]
+  ]
+ },
+ "heroHeadPixels": 98.0,
+ "heroHatTopY": 274
+}

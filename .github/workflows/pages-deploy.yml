@@ -56,12 +56,15 @@ jobs:
           curl --fail --silent --show-error --retry 10 --retry-all-errors --retry-delay 2 --max-time 30 --head \
             "https://raw.githubusercontent.com/$GITHUB_REPOSITORY/$DEPLOY_SHA/public/assets/combat/rigged/hero-defect-idle.mov" | grep -qi '^content-type: video/quicktime'
           curl --fail --silent --show-error --retry 10 --retry-all-errors --retry-delay 2 --max-time 30 --head \
+            "https://raw.githubusercontent.com/$GITHUB_REPOSITORY/$DEPLOY_SHA/public/assets/combat/rigged-webm/hero-defect-idle.webm" | grep -Eqi '^content-type: (video/webm|application/octet-stream)'
+          curl --fail --silent --show-error --retry 10 --retry-all-errors --retry-delay 2 --max-time 30 --head \
             "https://raw.githubusercontent.com/$GITHUB_REPOSITORY/$DEPLOY_SHA/public/assets/bgm/exordium.mp3" | grep -qi '^content-type: audio/mpeg'
           curl --fail --silent --show-error --retry 10 --retry-all-errors --retry-delay 2 --max-time 30 --head \
             "https://raw.githubusercontent.com/$GITHUB_REPOSITORY/$DEPLOY_SHA/public/assets/combat/enemies/animated/reptomancer-attack.png" | grep -Eqi '^content-type: (image/png|application/octet-stream)'
           curl --fail --silent --show-error --retry 10 --retry-all-errors --retry-delay 2 --max-time 30 --head \
             "https://raw.githubusercontent.com/$GITHUB_REPOSITORY/$DEPLOY_SHA/public/assets/combat/rigged/hero-defect-idle.webp" | grep -Eqi '^content-type: (image/webp|application/octet-stream)'
           find dist/assets/combat/rigged -type f -name '*.mov' -delete
+          find dist/assets/combat/rigged-webm -type f -name '*.webm' -delete
           find dist/assets/combat -type f -name '*-attack.png' -delete
           find dist/assets/combat/rigged -type f -name 'hero-*-idle.webp' -delete
           find dist/assets/bgm -type f -delete

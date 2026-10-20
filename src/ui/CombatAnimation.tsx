@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import webmSources from './combat-webm-sources.json' with { type: 'json' }
 
 export type CombatArtElement = HTMLImageElement | HTMLVideoElement
 
@@ -15,9 +16,16 @@ export const useSafariCombatVideo = useSafariCombatRendering && !forceWebp && ty
   // Linux WebKit advertises HEVC but its decoder drops the alpha plane.
   !iOSWebKit && /^Mac/.test(navigator.platform) &&
   document.createElement('video').canPlayType('video/quicktime; codecs="hvc1"') !== ''
+const useChromiumCombatVideo = !forceWebp && !iOSWebKit && /(?:Chrome|Chromium|Edg|OPR)/.test(userAgent) &&
+  typeof document !== 'undefined' && document.createElement('video').canPlayType('video/webm; codecs="vp9"') !== ''
+const webmNames = new Set(Object.keys(webmSources))
 
 export function combatVideoPath(src: string, origin = assetCdnOrigin): string {
-  const video = src.includes('/combat/rigged/') ? src.replace(/\.webp(?=\?|$)/, '.mov') : src
+  const name = src.match(/\/([^/?]+)\.webp(?:\?|$)/)?.[1]
+  const webm = useChromiumCombatVideo && name && webmNames.has(name)
+  const video = src.includes('/combat/rigged/')
+    ? webm ? src.replace('/combat/rigged/', '/combat/rigged-webm/').replace(/\.webp(?=\?|$)/, '.webm')
+      : src.replace(/\.webp(?=\?|$)/, '.mov') : src
   if (video === src) return src
   const asset = video.indexOf('assets/')
   return origin && asset >= 0 ? `${origin.replace(/\/$/, '')}/${video.slice(asset + 7)}` : video
@@ -27,7 +35,7 @@ type VideoPreload = {
   cancelled: boolean
   priority: boolean
   src: string
-  ready: Set<() => void>
+  ready: Set<(success: boolean) => void>
   stop?: () => void
 }
 
@@ -69,10 +77,10 @@ function runVideoPreloads() {
       task.stop = undefined
       activeVideoPreloads -= 1
       if (videoPreloads.get(task.src) === task) videoPreloads.delete(task.src)
-      const listeners = ready && !task.cancelled ? [...task.ready] : []
+      const listeners = !task.cancelled ? [...task.ready] : []
       task.ready.clear()
       if (ready) readyVideoPreloads.add(task.src)
-      listeners.forEach(listener => listener())
+      listeners.forEach(listener => listener(ready))
       runVideoPreloads()
     }
     const loaded = (event: Event) => {
@@ -93,14 +101,14 @@ function runVideoPreloads() {
     video.addEventListener('error', failed)
     video.src = task.src
     video.load()
-    timeout = window.setTimeout(abort, 30_000)
+    timeout = window.setTimeout(() => settle(false), 30_000)
   }
 }
 
 /** Browser-managed, bounded warmup avoids retaining multi-megabyte MOV buffers in JS. */
-export function preloadCombatVideo(src: string, ready: () => void, priority = false): () => void {
+export function preloadCombatVideo(src: string, ready: (success: boolean) => void, priority = false): () => void {
   if (readyVideoPreloads.has(src)) {
-    ready()
+    ready(true)
     return () => undefined
   }
   let task = videoPreloads.get(src)
@@ -203,7 +211,7 @@ type CombatAnimationProps = DataAttributes & {
   onError?: (image: HTMLImageElement) => void
 }
 
-/** macOS Safari hardware-decodes HEVC-alpha; iOS keeps the pixel-identical WebP to avoid decoder corruption. */
+/** Native transparent video keeps animation decoding off the interaction path; iOS retains its WebP fallback. */
 export function CombatAnimation({
   src, mediaSrc, posterSrc, alt = '', className, style, loading, loop = true, hidden, forceWebp,
   onReady, onError, ...data
@@ -212,17 +220,23 @@ export function CombatAnimation({
   const [loadedVideo, setLoadedVideo] = useState('')
   const [warmedVideo, setWarmedVideo] = useState('')
   const [loadedImage, setLoadedImage] = useState('')
+  const [failedPoster, setFailedPoster] = useState('')
   const stallTimer = useRef(0)
   const cancelReadyFrame = useRef<() => void>(() => undefined)
   const callbacks = useRef({ onReady, onError })
   callbacks.current = { onReady, onError }
   const videoSrc = combatVideoPath(src)
   const videoRequest = mediaSrc ?? videoSrc
-  const wantsVideo = !forceWebp && useSafariCombatVideo && videoSrc !== src
+  const webm = /\.webm(?:\?|$)/.test(videoSrc)
+  const wantsVideo = !forceWebp && videoSrc !== src &&
+    (useSafariCombatVideo || webm)
   const videoFailed = failedVideo === videoRequest
   const videoLoaded = loadedVideo === videoRequest
   const videoWarmed = !loop || readyVideoPreloads.has(videoRequest) || warmedVideo === videoRequest
-  const imageSrc = videoFailed ? src : mediaSrc ?? src
+  const warmPoster = webm ? src.replace('/combat/rigged/', '/combat/rigged-posters/') : src
+  const posterAsset = failedPoster === warmPoster ? src : warmPoster
+  const imageSrc = videoFailed ? src : mediaSrc ??
+    (wantsVideo ? posterAsset : src)
   const clearStallTimer = () => {
     window.clearTimeout(stallTimer.current)
     stallTimer.current = 0
@@ -234,7 +248,10 @@ export function CombatAnimation({
   useEffect(() => () => { clearStallTimer(); cancelReadyFrame.current() }, [videoRequest])
   useEffect(() => {
     if (!wantsVideo || !loop) return
-    return preloadCombatVideo(videoRequest, () => setWarmedVideo(videoRequest), true)
+    return preloadCombatVideo(videoRequest, success => {
+      if (success) setWarmedVideo(videoRequest)
+      else setFailedVideo(videoRequest)
+    }, true)
   }, [loop, videoRequest, wantsVideo])
   useEffect(() => {
     if (!wantsVideo || !videoWarmed || videoFailed || videoLoaded) return
@@ -245,7 +262,7 @@ export function CombatAnimation({
   // alpha frame. Paint the same canvas underneath until that frame is visible.
   const renderVideo = wantsVideo && videoWarmed && !videoFailed
   const inactiveReady = data['data-inactive'] && (renderVideo ? videoLoaded : loadedImage === imageSrc)
-  const poster = posterSrc ?? (renderVideo ? src : undefined)
+  const poster = posterSrc ?? (renderVideo ? posterAsset : undefined)
   const waitingPoster = poster && !(renderVideo ? videoLoaded : loadedImage === imageSrc) ? {
     backgroundImage: `url(${poster})`,
     backgroundPosition: 'center bottom',
@@ -260,7 +277,7 @@ export function CombatAnimation({
       style={{ ...style, ...waitingPoster, visibility: hidden || inactiveReady ? 'hidden' : style?.visibility }}
       crossOrigin={videoSrc.startsWith('http') ? 'anonymous' : undefined}
       src={mediaSrc ?? videoSrc}
-      poster={posterSrc ?? src}
+      poster={posterSrc ?? posterAsset}
       autoPlay
       muted
       loop={loop}
@@ -282,8 +299,8 @@ export function CombatAnimation({
       }}
       onPlaying={clearStallTimer}
       onTimeUpdate={clearStallTimer}
-      onWaiting={watchForStall}
-      onStalled={watchForStall}
+      onWaiting={webm ? undefined : watchForStall}
+      onStalled={webm ? undefined : watchForStall}
       onError={() => setFailedVideo(videoRequest)}
     />
   }
@@ -306,6 +323,9 @@ export function CombatAnimation({
         if (image.isConnected && image.src === request) callbacks.current.onError?.(image)
       })
     }}
-    onError={(event) => onError?.(event.currentTarget)}
+    onError={(event) => {
+      if (imageSrc === warmPoster && warmPoster !== src) setFailedPoster(warmPoster)
+      else onError?.(event.currentTarget)
+    }}
   />
 }

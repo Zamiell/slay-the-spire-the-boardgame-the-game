@@ -71,6 +71,7 @@ const focusedUiOwners = ownerMap([
   ['src/ui/styles/shop.css', ['verify-shop-browser.mjs']],
   ['src/ui/LeaderboardScreen.tsx', ['verify-leaderboard-browser.mjs']],
   ['src/ui/CombatScreen.tsx', [
+    'verify-act-four-facing-browser.mjs', 'verify-combat-video-browser.mjs',
     'verify-unload-shivs-browser.mjs',
     'verify-start-turn-party-browser.mjs',
     'verify-start-turn-resync-browser.mjs',
@@ -82,6 +83,8 @@ const focusedUiOwners = ownerMap([
     'verify-skin-browser.mjs', 'verify-skin-attack-browser.mjs', 'verify-monogatari-animation-browser.mjs',
     'verify-monogatari-skins-browser.mjs', 'verify-monogatari-online-browser.mjs', 'verify-defect-chan-evoke-browser.mjs',
   ]],
+  ['src/ui/CombatAnimation.tsx', ['verify-combat-video-browser.mjs', 'verify-combat-hand-viewport-browser.mjs']],
+  ['src/ui/combat-webm-sources.json', ['verify-art-bakes.mjs', 'verify-combat-video-browser.mjs']],
   ['src/ui/EnemyCard.tsx', ['verify-elite-signatures-browser.mjs', 'verify-elite-intent-browser.mjs', 'verify-skin-attack-browser.mjs', 'verify-boss-heavy-attacks-browser.mjs']],
   ['src/ui/combat-screen/hooks.ts', ['verify-card-damage-preview-browser.mjs', 'verify-skin-attack-browser.mjs']],
   ['src/ui/combat-screen/staged-attacks.ts', ['verify-assets.mjs', 'verify-skin-attack-browser.mjs']],
@@ -126,9 +129,9 @@ const focusedUiOwners = ownerMap([
   ['src/ui/TokenRow.tsx', [
     'verify-turn-targets-browser.mjs', 'verify-row-target-browser.mjs', 'verify-combat-target-geometry-browser.mjs',
   ]],
-  ['src/ui/styles/enemy-portrait.css', ['verify-turn-targets-browser.mjs', 'verify-end-turn-drag-browser.mjs']],
+  ['src/ui/styles/enemy-portrait.css', ['verify-row-target-browser.mjs', 'verify-turn-targets-browser.mjs', 'verify-end-turn-drag-browser.mjs']],
   ['src/ui/styles/presentation-overlays.css', ['verify-lightning-act2-browser.mjs']],
-  ['src/ui/styles/stage-scale.css', ['verify-combat-layout-reload-browser.mjs', 'verify-elite-intent-browser.mjs', 'verify-hero-potions-browser.mjs']],
+  ['src/ui/styles/stage-scale.css', ['verify-act-four-facing-browser.mjs', 'verify-combat-layout-reload-browser.mjs', 'verify-elite-intent-browser.mjs', 'verify-hero-potions-browser.mjs']],
   ['src/ui/styles/title-menu.css', ['verify-run-replay-browser.mjs', 'verify-replay-controls-browser.mjs', 'verify-title-menu-browser.mjs']],
 ])
 const focusedOnlyUiOwners = ownerMap([
@@ -241,7 +244,7 @@ const ART_BAKE_INPUT = new RegExp('^(' + [
   'docs/skins/kratos-art\\.json$',
   'docs/monogatari-skins/cards/[a-z]+-catalogue\\.json$', 'docs/monogatari-skins/prompts/(cards|combat)/',
   'docs/monogatari-skins/combat-manifest\\.json$',
-  'src/ui/(hero|elite)-art-head\\.json$', 'src/ui/rig-animation-metadata\\.json$', 'src/ui/combat-screen/staged-attacks\\.ts$',
+  'src/ui/combat-webm-sources\\.json$', 'src/ui/(hero|elite)-art-head\\.json$', 'src/ui/rig-animation-metadata\\.json$', 'src/ui/combat-screen/staged-attacks\\.ts$',
   'src/ui/styles/staged-attacks\\.css$',
   'scripts/verify-art-bakes\\.mjs$', 'scripts/lib/asset-inventory\\.mjs$',
 ].join('|') + ')')

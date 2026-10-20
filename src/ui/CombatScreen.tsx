@@ -14,7 +14,7 @@ import { StartTurnOrder } from './combat-screen/StartTurnOrder.tsx'
 // of the board, hooks.ts for the senses that watch the board change, and
 // vfx.tsx for the effect overlay a play puts on it.
 import rigMetadata from './rig-animation-metadata.json' with { type: 'json' }
-import { enemyDef } from '../game/enemies.ts'
+import { enemyAbilities, enemyDef } from '../game/enemies.ts'
 import { hasStagedAttack, playerVisualId, skinTraits, type VisualId } from '../game/skins.ts'
 import {
   PHASE_LABEL,
@@ -809,8 +809,8 @@ function CombatScreenView({
         .map((src) => [src, current.get(src)!])))
       const cancels = assets.filter((src) => !characterAttackBlobs.has(src)).map((src) => {
         const video = combatVideoPath(src)
-        if (video !== src) return preloadCombatVideo(video, () => {
-          if (!controller.signal.aborted) setCharacterAttackBlobs((current) => new Map(current).set(src, true))
+        if (video !== src) return preloadCombatVideo(video, success => {
+          if (success && !controller.signal.aborted) setCharacterAttackBlobs((current) => new Map(current).set(src, true))
         })
         const image = new Image()
         image.src = src
@@ -1243,6 +1243,9 @@ function CombatScreenView({
   versionRef.current = authoritativeVersion ?? -1
   refreshRef.current = authoritativeRefresh
   const rows = useMemo(() => rowsOf(state), [state])
+  const facingEnemies = state.enemies.filter((enemy) =>
+    enemyAbilities(enemyDef(enemy.defId, enemy.ascension)).some((ability) => ability.kind === 'facing'))
+  const liveFacingEnemies = facingEnemies.filter((enemy) => !enemy.dead)
   const savedDiscardKey = savedDiscardOrder?.join('\0')
   const cardPreviewKey = cardPreview
     ? `${cardPreview.cardUid}\0${cardPreview.copy === true}\0${cardPreview.chamber === true}\0${cardPreview.kind}\0${cardPreview.spendMiracle}\0${cardPreview.enemyUid ?? ''}\0${cardPreview.slimeUids?.join('\0') ?? ''}\0${cardPreview.slimeEnemyUids?.join('\0') ?? ''}\0${cardPreview.cards.map((card) => card.uid).join('\0')}`
@@ -2289,9 +2292,10 @@ function CombatScreenView({
       const heroGutter = compact ? (largestSlimeParty ? 12.5 : 7.5) : (largestSlimeParty ? 4.5 : 2.75)
       const heroFloor = largestSlimeParty ? (compact ? 1.25 : 7.1) : 4.1
       const heroFit = (heightRem - heroGutter - (stageHasOrbs ? 7 : 0)) / ((STAGE_GAP_REM - 1) * 1.2 + heroFloor)
+      // Landscape raises portraits above the hand by 4.75rem in stage-scale.css.
       const enemyFit = stageHasTallEnemy
-        ? (heightRem - 6.6) / ((STAGE_GAP_REM - 1) * 1.6 + 5.3) : 1
-      const scale = Math.min(widthScale, Math.max(.3, Math.min(heroFit, enemyFit)))
+        ? (heightRem - 6.6 - (compact ? 4.75 : 0)) / ((STAGE_GAP_REM - 1) * 1.6 + 5.3) : 1
+      const scale = Math.min(widthScale, Math.max(compact ? .25 : .3, Math.min(heroFit, enemyFit)))
       fittedStage.current = { combatId: state.combatId, restoration: authoritativeRestoration }
       setStageLayout(previous => previous.scale === scale && previous.enemySlots === stageEnemyCount
         ? previous : { scale, enemySlots: stageEnemyCount })
@@ -5719,7 +5723,14 @@ function CombatScreenView({
                   Edit {trigger.label}
                 </button>
               ))}
-              {!visibleStartModeShift ? <StartTurnOrder key={`${state.combatId}/${state.turn}`} title="Start-of-turn order"
+              {state.startTurnStage === 'facing' && pendingStartEnemy ? (
+                <span className="combat__power-hint" role="status">{pendingStartEnemy.label}</span>
+              ) : null}
+              {pendingStartEnemy?.id.startsWith('facing:') && pendingStartEnemy.targets?.some((target) => target.uid === 'none') ? (
+                <button type="button" disabled={!startEnemyChoiceAvailable('none')}
+                  onClick={() => chooseStartTurnEnemy('none')}>Face away</button>
+              ) : null}
+              {!visibleStartModeShift && state.startTurnStage !== 'facing' ? <StartTurnOrder key={`${state.combatId}/${state.turn}`} title="Start-of-turn order"
                 hint={startTurnOrderHint(canCommitStartTurnOrder && !partyStartTurnOrderLocked, 'effects',
                   orderedStartAbilities.length, partyStartTurnOrderLocked)} foldWhenShort
                 players={state.players}
@@ -6857,6 +6868,11 @@ function CombatScreenView({
 
         {rows.map((row) => {
           const occupant = state.players.find((player) => player.row === row)
+          const facingEnemy = liveFacingEnemies.find((enemy) => enemy.uid === occupant?.facingEnemyUid)
+          const facingName = facingEnemy ? enemyDef(facingEnemy.defId, facingEnemy.ascension).name : undefined
+          const facingAway = occupant?.facingEnemyUid === null && state.startTurnStage !== 'facing' && liveFacingEnemies.length === 1
+          const facingDescription = facingName ? `Facing ${facingName}` : facingAway
+            ? `Facing away from ${enemyDef(liveFacingEnemies[0]!.defId, liveFacingEnemies[0]!.ascension).name}` : undefined
           const occupantVisual = occupant ? playerVisualId(occupant) : undefined
           const occupantAttackVisual = isMonogatariVisual(occupantVisual) ? occupant?.character : occupantVisual
           const foes = stageEnemies.filter((enemy) => enemy.row === row)
@@ -6907,7 +6923,10 @@ function CombatScreenView({
               className={['row', occupant?.id === viewerId ? 'row--viewer' : ''].filter(Boolean).join(' ')}
               key={row}
               ref={occupant?.id === viewerId ? viewerRowRef : undefined}
-              style={{ '--stage-row': rows.indexOf(row) } as React.CSSProperties}
+              style={{
+                '--stage-row': rows.indexOf(row),
+                '--stage-player-index': state.players.filter((player) => player.row > row).length,
+              } as React.CSSProperties}
             >
               <div className="row__seat">
                 {occupant ? (
@@ -6959,7 +6978,7 @@ function CombatScreenView({
                         '--silent-attack-duration': `${1900 + Math.max(0,
                           ...characterAttackMotions.map((attack) => attack.targets.length - 1)) * 70}ms`,
                       } as React.CSSProperties : undefined}
-                      aria-label={`${describeSeat(occupant)}${pendingStartPlayer?.players?.some((player) =>
+                      aria-label={`${describeSeat(occupant)}${facingDescription ? `. ${facingDescription}` : ''}${pendingStartPlayer?.players?.some((player) =>
                         player.id === occupant.id) ? `. Target for ${pendingStartPlayer.label}` : ''}`}
                     >
                       <span className="seat__portrait" aria-hidden="true" style={{ '--character-art-scale': characterArtScale } as React.CSSProperties}>
@@ -7146,7 +7165,14 @@ function CombatScreenView({
                           <strong>{hit.damage}</strong>
                         </span>
                       ))}
-                      <span className="seat__name">{occupant.name}</span>
+                      <span className="seat__name">
+                        <span className="seat__label">{occupant.name}</span>
+                        {facingDescription ? (
+                          <span className="seat__facing" title={facingDescription}>
+                            → {facingName?.replace(/^Spire /, '') ?? 'Away'}
+                          </span>
+                        ) : null}
+                      </span>
                       <span className="bar">
                         <span
                           className="bar__fill bar__fill--hp"
@@ -7364,9 +7390,7 @@ function CombatScreenView({
                       <PowerRow powers={occupant.powers} />
                     </div>
                   </>
-                ) : (
-                  <span className="seat seat--empty">empty row</span>
-                )}
+                ) : null}
               </div>
               <div className={`row__enemies${emptyRowTargetable ? ' row__enemies--targetable' : ''}`}
                 data-enemies={foes.length} data-row={emptyRowTargetable ? row : undefined}
@@ -7410,8 +7434,11 @@ function CombatScreenView({
                       onThrowStart={onCultistThrowStart}
                       onThrowSkipped={onCultistThrowSkipped}
                       stageIndex={stageEnemies.findIndex((candidate) => candidate.uid === enemy.uid)}
-                      rowLabel={occupant?.name ?? `Player ${row + 1}`}
-                      defender={occupant}
+                      rowLabel={facingEnemies.some((facing) => facing.uid === enemy.uid) ? undefined : occupant?.name}
+                      defender={facingEnemies.some((facing) => facing.uid === enemy.uid)
+                        ? state.players.find((player) => !player.dead && player.id === viewerId && player.facingEnemyUid === enemy.uid) ??
+                          state.players.find((player) => !player.dead && player.facingEnemyUid === enemy.uid)
+                        : occupant}
                       disabled={Boolean(pendingStartEnemy?.id.startsWith('facing:') && !startEnemyChoiceAvailable(enemy.uid) ||
                         pendingShivProgress && !pendingShivProgress.options.some((option) => option.uid === enemy.uid))}
                       targeted={(isEndTurnEnemyTarget(enemy) ||

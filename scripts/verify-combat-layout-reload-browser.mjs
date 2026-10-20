@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { mkdirSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { createServer } from 'vite'
+import { preview } from 'vite'
 import { chromium } from './lib/profile-browser.mjs'
 import { createRoom, joinRoom, snapshotFor, startRun } from './lib/rooms.mjs'
 import { createRoomServer } from './room-server.mjs'
@@ -29,14 +29,13 @@ const snapshot = () => JSON.parse(JSON.stringify(snapshotFor(room, host.token).r
 const publish = () => { room.version++; rooms.publishRoom(room.code) }
 
 const roomAddress = await rooms.listen(0)
-const server = await createServer({ root, logLevel: 'silent', server: {
+const server = await preview({ root, logLevel: 'silent', preview: {
   host: '127.0.0.1', port: 0,
   proxy: {
     '/api': { target: `http://127.0.0.1:${roomAddress.port}` },
     '/ws': { target: `http://127.0.0.1:${roomAddress.port}`, ws: true },
   },
 } })
-await server.listen()
 const browser = await chromium.launch({ headless: true })
 try {
   for (const [screen, viewport] of [['desktop', { width: 1440, height: 900 }],
@@ -150,6 +149,6 @@ try {
   }
 } finally {
   await browser.close()
-  await server.close()
+  await new Promise((resolve, reject) => server.httpServer.close(error => error ? reject(error) : resolve()))
   await rooms.close()
 }

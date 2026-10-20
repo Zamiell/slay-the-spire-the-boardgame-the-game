@@ -50,6 +50,13 @@ import {
 
 suite('art bakes')
 
+check('Chromium idle companions preserve alpha, colour, frame timing and their source hashes', () => {
+  const result = spawnSync('python3', [join(repoRoot, 'scripts/animation/encode-chromium.py'), '--check'], {
+    cwd: repoRoot, encoding: 'utf8',
+  })
+  assertEqual(result.status, 0, result.stderr || result.stdout)
+})
+
 check('every Safari hardware-video companion was encoded from the current rigged animation', () => {
   const manifest = JSON.parse(readFileSync(join(repoRoot, 'scripts/animation/safari-video-sources.json'), 'utf8'))
   const expected = combatRiggedFiles.map((file) => `public/assets/combat/rigged/${file}`).sort()

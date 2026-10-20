@@ -197,3 +197,7 @@ if __name__ == '__main__':
     if args.only:
         encode += ['--rigs', args.only]
     subprocess.run(encode, check=True)
+    chromium = [sys.executable, str(ROOT / 'scripts/animation/encode-chromium.py')]
+    if args.only:
+        chromium += ['--rigs', args.only]
+    subprocess.run(chromium, check=True)

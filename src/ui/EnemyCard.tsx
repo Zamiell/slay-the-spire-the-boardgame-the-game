@@ -1122,7 +1122,7 @@ export function EnemyCard({
             key={source}
             className="enemy__art--cutout"
             src={source}
-            forceWebp
+            forceWebp={useSafariCombatRendering}
             style={{ animation: 'none' }}
             data-animation-layer="idle"
             data-inactive={bossAttackPlaying || (restTransition ? source !== restTransition.previousSrc || restTransition.playing : false) || undefined}

@@ -307,7 +307,7 @@ export function revealViewerRow(board: HTMLElement | null, row: HTMLElement | nu
   board.scrollTop += rowBox.top - boardBox.top - (board.clientHeight - rowBox.height) / 2
   const seats = [...row.querySelectorAll<HTMLElement>('.row__seat')]
   const partySeats = [...board.querySelectorAll<HTMLElement>('.row__seat')]
-    .filter((seat) => seat.querySelector('.seat:not(.seat--empty)'))
+    .filter((seat) => seat.querySelector('.seat'))
   const enemies = [...row.querySelectorAll<HTMLElement>('.enemy')]
   const bosses = [...board.querySelectorAll<HTMLElement>('.board__bosses .enemy:not(.enemy--dead)')]
   let actors = [...seats, ...(enemies.length > 0 ? enemies : bosses)]

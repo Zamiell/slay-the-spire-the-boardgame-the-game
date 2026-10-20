@@ -314,3 +314,20 @@ on desktop and horizontal phones; regenerate contact metadata after exports.
 For the iOS Chrome/WebKit cold path, delay APNG loading and verify its original
 weapon poses rather than an idle fallback:
 `node scripts/verify-rig-animation-browser.mjs --attack-parity-only --webkit --crios --cold-attack --phone-only --only=sentry`.
+
+Chromium idle playback uses the registered transparent VP9 companions in
+`src/ui/combat-webm-sources.json`. Regenerate them with
+`python3 scripts/animation/encode-chromium.py` after changing a registered idle,
+then run the same command with `--check` to audit source hashes, poster pixels,
+alpha, visible colour and every frame timestamp. The rig renderer runs this
+step for registered sources automatically. Original WebPs remain the fallback;
+macOS Safari keeps its HEVC companions. First-frame posters avoid decoding the
+animated WebP while a VP9 loop warms up.
+
+For the shipping-build playback, alpha, loop, attack-handoff and missing-media
+checks, run `pnpm build` then `node scripts/verify-combat-video-browser.mjs`.
+The same build is used by `node scripts/verify-combat-hand-viewport-browser.mjs`
+for touch-input work and hand-layout checks; hardware-GPU frame timing and
+CPU-only software-compositor input work are reported separately.
+`node scripts/verify-combat-layout-reload-browser.mjs` also uses this build
+with a private room server to check co-op formation after reconnect.

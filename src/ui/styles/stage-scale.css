@@ -7,19 +7,14 @@
   transition: --stage-scale 900ms ease, --stage-enemy-count 900ms ease;
 }
 .combat[data-stage-motion] .enemy { transition: --stage-index 900ms ease; }
-/* A full party stays on one stage; shrinking lanes is better than scrolling
-   teammates above the visible battlefield. */
-.board[data-rows='3'] > .row:has(.seat--empty):not(:has(.enemy)),
-.board[data-rows='4'] > .row:has(.seat--empty):not(:has(.enemy)) {
-  overflow: hidden;
-}
-
 /* Co-op lanes share one physical stage: every actor stands on the same floor. */
 .board {
   /* Actor depth stays inside the battlefield, below combat choice controls. */
   isolation: isolate;
   --stage-scale: inherit;
   --enemy-name-height: 1.75rem;
+  /* Sparse parties keep breathing room without stretching across wide phones. */
+  --stage-field-width: max(var(--stage-width), min(70%, calc(var(--stage-width) + var(--stage-actor-width))));
 
   display: block;
   overflow: auto hidden;
@@ -36,8 +31,8 @@
   position: absolute;
   inset: 0 auto 0 0;
   display: block;
-  width: max(70%, var(--stage-width));
-  left: max(0px, calc((100% - max(70%, var(--stage-width))) / 2));
+  width: var(--stage-field-width);
+  left: max(0px, calc((100% - var(--stage-field-width)) / 2));
   padding: 0;
   border: 0;
   pointer-events: none;
@@ -53,8 +48,8 @@
   position: absolute;
   inset: 0 auto 0 0;
   display: block;
-  width: max(70%, var(--stage-width));
-  left: max(0px, calc((100% - max(70%, var(--stage-width))) / 2));
+  width: var(--stage-field-width);
+  left: max(0px, calc((100% - var(--stage-field-width)) / 2));
   min-height: 0;
   padding: 0;
 }
@@ -66,7 +61,7 @@
 .row__seat {
   position: absolute;
   bottom: calc(1.1rem * var(--stage-scale) + 2.75rem);
-  left: calc(1.5rem * var(--stage-scale) + var(--stage-row) * var(--stage-player-gap));
+  left: calc(1.5rem * var(--stage-scale) + var(--stage-player-index) * var(--stage-player-gap));
   width: var(--stage-actor-width);
   height: calc(18.5rem * var(--stage-scale));
   align-content: start;
@@ -175,6 +170,29 @@
 
 .board .enemy__intent .intent {
   zoom: min(1, calc(var(--stage-scale) + 0.15));
+}
+
+.seat__name:has(.seat__facing) {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: .25rem;
+  font-size: max(.6rem, min(.78rem, calc(.86rem * var(--stage-scale))));
+}
+
+.seat__name:has(.seat__facing) .seat__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.seat__facing {
+  flex: 0 0 auto;
+  color: var(--ink-dim);
+  font-size: clamp(.55rem, calc(.86rem * var(--stage-scale)), .78rem);
+  letter-spacing: 0;
+  white-space: nowrap;
 }
 
 /* Boss art grows upward from the shared floor, so its normal intent row lands
@@ -398,14 +416,19 @@
 }
 
 @media (orientation: landscape) and (max-height: 26.25rem) {
-  /* Foreground summons need the space that bosses/elite enemies reserve for
-     the End turn control, as well as their own full-size row. */
+  /* The actor floor already reserves the hand's space on short screens. */
+  .board { min-height: 0; }
+  .hand-area { height: 0; }
+
+  /* Slime parties keep End turn in the bottom lane, beside their summons. */
   .combat:has(.slime-party):has(.enemy--elite, .enemy--boss) {
     --slime-enemy-clearance: 13rem;
   }
+  .combat:has(.slime-party) .board :is(.enemy--elite, .board__bosses .enemy--boss) {
+    --elite-end-turn-clearance: 8rem;
+  }
   .board :is(.enemy--elite, .board__bosses .enemy--boss) {
     --elite-art-height: min(calc(var(--stage-actor-width) * 1.45), max(4rem, calc(100dvh - 17.5rem)));
-    --elite-end-turn-clearance: 8rem;
   }
 }
 

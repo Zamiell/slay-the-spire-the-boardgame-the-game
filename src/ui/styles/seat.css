@@ -20,17 +20,6 @@
   filter: grayscale(1);
 }
 
-.seat--empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--ink-dim);
-  font-size: 0.75rem;
-  border: 1px dashed var(--edge);
-  border-radius: 5px;
-  padding: 0.45rem;
-}
-
 .seat__name {
   font-size: 0.85rem;
   letter-spacing: 0.06em;

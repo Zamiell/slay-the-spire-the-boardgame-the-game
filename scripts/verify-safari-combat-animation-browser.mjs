@@ -91,7 +91,8 @@ try {
         })
 
         const media = '.seat__portrait > :is(img, video), .enemy__art--cutout:not([data-inactive])'
-        const tag = safariVideo ? 'VIDEO' : 'IMG'
+        const chromiumVideo = engineName === 'chromium' && !phone
+        const tag = safariVideo || chromiumVideo ? 'VIDEO' : 'IMG'
         if (safariVideo) {
           const coldIdle = page.locator('.seat__portrait > img')
           await coldIdle.waitFor()
@@ -112,13 +113,13 @@ try {
         const resting = await page.locator(media).evaluateAll(async (elements, helpers) => {
           const getSize = new Function('element', `return (${helpers.size})(element)`)
           return Promise.all(elements.map(async element => {
-            const asset = element.dataset.animationAsset ?? element.src.replace(/\.mov(?=\?|$)/, '.webp')
+            const asset = element.dataset.animationAsset ?? element.src.replace('/combat/rigged-webm/', '/combat/rigged/').replace(/\.(?:mov|webm)(?=\?|$)/, '.webp')
             const source = new Image(); source.src = asset; await source.decode()
             return { enemy: Boolean(element.closest('.enemy')), tag: element.tagName, src: element.src, asset,
               size: getSize(element), sourceSize: [source.naturalWidth, source.naturalHeight] }
           }))
         }, { size: size.toString() })
-        const extension = safariVideo ? '.mov' : '.webp'
+        const extension = safariVideo ? '.mov' : chromiumVideo ? '.webm' : '.webp'
         assert(resting.every(item => item.tag === (item.enemy ? 'IMG' : tag) && item.src.endsWith(item.enemy ? '.webp' : extension)), `${engineName}/${screen}: ${JSON.stringify(resting)}`)
         assert(resting.every(item => item.size.every((value, axis) =>
           value === item.sourceSize[axis] || value === item.sourceSize[axis] + item.sourceSize[axis] % 2)),

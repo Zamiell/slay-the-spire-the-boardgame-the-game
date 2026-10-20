@@ -17,6 +17,28 @@ try {
         const phone = screen === 'horizontal-phone'
         const context = await browser.newContext({ viewport, isMobile: phone, hasTouch: phone })
         const page = await context.newPage()
+        const touch = phone ? await context.newCDPSession(page) : null
+        let position = { x: 0, y: 0 }, touching = false
+        const finger = async type => touch.send('Input.dispatchTouchEvent', {
+          type, touchPoints: type === 'touchEnd' ? [] : [{ ...position, id: 1, radiusX: 1, radiusY: 1 }],
+        })
+        // Exercise phone drags with touch events in the layout viewport.
+        const pointer = touch ? {
+          async move(x, y, { steps = 1 } = {}) {
+            const from = position
+            for (let step = 1; step <= steps; step++) {
+              position = { x: from.x + (x - from.x) * step / steps, y: from.y + (y - from.y) * step / steps }
+              if (touching) await finger('touchMove')
+            }
+          },
+          async down() { touching = true; await finger('touchStart') },
+          async up() { await finger('touchEnd'); touching = false },
+        } : page.mouse
+        const dragBounds = async locator => {
+          await locator.evaluate(element => Promise.all(element.getAnimations().map(animation => animation.finished)))
+          await locator.click({ trial: true })
+          return locator.boundingBox()
+        }
         const activate = async (locator) => {
           if (!phone) return locator.click()
           const box = await locator.boundingBox()
@@ -215,13 +237,13 @@ try {
         await page.getByRole('button', { name: 'Evoke lightning Orb 1', exact: true }).click()
         const bossBeforeDrop = await page.evaluate(() => window.fixture.state.enemies.find(enemy => enemy.uid === 'boss').hp)
         for (let aim = 0; aim < 2; aim++) {
-          const from = await page.locator('.evoke-target-effect button').boundingBox()
+          const from = await dragBounds(page.locator('.evoke-target-effect button'))
           const to = await lightningGround.boundingBox()
           assert(from && to, `${screen}: the Evoke aim or the empty-row ground is offscreen`)
-          await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2)
-          await page.mouse.down()
-          await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 10 })
-          await page.mouse.up()
+          await pointer.move(from.x + from.width / 2, from.y + from.height / 2)
+          await pointer.down()
+          await pointer.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 10 })
+          await pointer.up()
           if (aim === 0) await page.waitForFunction(() => document.querySelector('.evoke-target-effect')?.textContent?.includes('Orb 2:'))
         }
         await page.locator('.evoke-target-effect').waitFor({ state: 'detached' })
@@ -239,17 +261,17 @@ try {
         })
         await page.getByRole('button', { name: /^Dual Cast,/ }).click()
         await page.getByRole('button', { name: 'Evoke lightning Orb 1', exact: true }).click()
-        const rowAim = await page.locator('.evoke-target-effect button').boundingBox()
-        await page.mouse.move(rowAim.x + rowAim.width / 2, rowAim.y + rowAim.height / 2)
-        await page.mouse.down()
-        await page.mouse.move(rowAim.x + rowAim.width / 2 + 30, rowAim.y + rowAim.height / 2 + 30, { steps: 4 })
+        const rowAim = await dragBounds(page.locator('.evoke-target-effect button'))
+        await pointer.move(rowAim.x + rowAim.width / 2, rowAim.y + rowAim.height / 2)
+        await pointer.down()
+        await pointer.move(rowAim.x + rowAim.width / 2 + 30, rowAim.y + rowAim.height / 2 + 30, { steps: 4 })
         await page.waitForTimeout(100)
         assert.equal(await page.locator('[data-enemy-id="boss"].enemy--targeted').count(), 0,
           `${screen}: the boss lit before any row was under the Evoke aim`)
         const livingBody = await page.locator('[data-enemy-id="living"] .enemy__hit-area').boundingBox()
-        await page.mouse.move(livingBody.x + livingBody.width / 2, livingBody.y + livingBody.height / 2, { steps: 10 })
+        await pointer.move(livingBody.x + livingBody.width / 2, livingBody.y + livingBody.height / 2, { steps: 10 })
         await page.locator('[data-enemy-id="boss"].enemy--targeted').waitFor()
-        await page.mouse.up()
+        await pointer.up()
         await page.waitForFunction(() => document.querySelector('.evoke-target-effect')?.textContent?.includes('Orb 2:'))
 
         // An unarmed end-of-turn row-Lightning Orb drops on the same ground.
@@ -262,11 +284,11 @@ try {
         const endOrb = page.locator('.end-turn-effects button.end-turn-effect--orb')
         await endOrb.waitFor()
         const bossBeforeEndTurn = await page.evaluate(() => window.fixture.state.enemies.find(enemy => enemy.uid === 'boss').hp)
-        const endFrom = await endOrb.boundingBox()
+        const endFrom = await dragBounds(endOrb)
         assert(endFrom, `${screen}: the end-turn Orb is offscreen`)
-        await page.mouse.move(endFrom.x + endFrom.width / 2, endFrom.y + endFrom.height / 2)
-        await page.mouse.down()
-        await page.mouse.move(endFrom.x + endFrom.width / 2 + 30, endFrom.y + endFrom.height / 2 + 30, { steps: 4 })
+        await pointer.move(endFrom.x + endFrom.width / 2, endFrom.y + endFrom.height / 2)
+        await pointer.down()
+        await pointer.move(endFrom.x + endFrom.width / 2 + 30, endFrom.y + endFrom.height / 2 + 30, { steps: 4 })
         const emptyGround = page.locator('.row__enemies--targetable')
         await emptyGround.waitFor()
         assert.equal(await emptyGround.count(), 1, `${screen}: dragging the end-turn Orb did not light the empty row`)
@@ -278,12 +300,12 @@ try {
           const endTo = await emptyGround.boundingBox()
           assert(endTo, `${screen}: empty-row ground disappeared during drag`)
           const point = { x: endTo.x + endTo.width / 2, y: endTo.y + endTo.height / 2 }
-          await page.mouse.move(point.x, point.y, { steps: 10 })
+          await pointer.move(point.x, point.y, { steps: 10 })
           overGround = await page.evaluate(({ x, y }) =>
             document.elementFromPoint(x, y)?.closest('.row__enemies--targetable')?.dataset.row === '0', point)
         }
         assert(overGround, `${screen}: the Orb could not reach the empty-row ground`)
-        await page.mouse.up()
+        await pointer.up()
         await page.waitForFunction(() => document.querySelector('.end-turn-effects')?.getAttribute('aria-label')?.includes('Lightning Orb 2'))
         assert(await page.evaluate(before => window.fixture.state.enemies.find(enemy => enemy.uid === 'boss').hp < before,
           bossBeforeEndTurn), `${screen}: an end-turn Lightning dropped on empty-row ground missed the boss`)

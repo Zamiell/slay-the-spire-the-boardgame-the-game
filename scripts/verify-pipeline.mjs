@@ -46,6 +46,7 @@ check('shared engine changes select every browser flow that imports them', () =>
 check('frontend surfaces select their cores and named focused browser checks', () => {
   const combat = affectedBrowser('src/ui/CombatScreen.tsx')
   includesEvery(combat, ['verify-browser.mjs', 'verify-online-browser.mjs',
+    'verify-act-four-facing-browser.mjs', 'verify-combat-video-browser.mjs', 'verify-slime-hover-browser.mjs',
     'verify-safari-combat-animation-browser.mjs', 'verify-courier-browser.mjs',
     'verify-hermit-combo-browser.mjs', 'verify-hermit-load-reconnect-browser.mjs',
     'verify-hermit-online-staged-trigger-browser.mjs', 'verify-combat-layout-reload-browser.mjs',
@@ -60,7 +61,7 @@ check('frontend surfaces select their cores and named focused browser checks', (
     'verify-run-replay-browser.mjs', 'verify-unload-shivs-browser.mjs',
     'verify-boss-heavy-attacks-browser.mjs'], 'combat screen')
   assert(!combat.includes('verify-noncombat-browser.mjs'))
-  assertEqual(combat.length, 37, 'combat screen selected an unrelated browser suite')
+  assertEqual(combat.length, 40, 'combat screen selected an unrelated browser suite')
   includesEvery(affectedBrowser('src/ui/TokenRow.tsx'), ['verify-turn-targets-browser.mjs',
     'verify-row-target-browser.mjs', 'verify-combat-target-geometry-browser.mjs'], 'Orb row')
   assert(affectedBrowser('src/ui/styles/stage-scale.css').includes('verify-combat-layout-reload-browser.mjs'))
@@ -187,9 +188,9 @@ check('shared frontend changes use cores plus named visual owners', () => {
       'verify-browser.mjs', 'verify-noncombat-browser.mjs', 'verify-online-browser.mjs',
       'verify-enemy-layout-browser.mjs', 'verify-hover-overflow-browser.mjs', 'verify-enemy-attack-once-browser.mjs',
       'verify-combat-stage-scan-browser.mjs', 'verify-wing-and-throw-browser.mjs', 'verify-elite-signatures-browser.mjs',
-      'verify-unload-shivs-browser.mjs', 'verify-boss-heavy-attacks-browser.mjs',
+      'verify-unload-shivs-browser.mjs', 'verify-boss-heavy-attacks-browser.mjs', 'verify-slime-hover-browser.mjs',
     ], sheet)
-    assertEqual(affectedBrowser(sheet).length, 26, `${sheet} selected an unrelated browser suite`)
+    assertEqual(affectedBrowser(sheet).length, 27, `${sheet} selected an unrelated browser suite`)
   }
   const hand = affectedBrowser('src/ui/styles/hand.css')
   includesEvery(hand, ['verify-browser.mjs', 'verify-noncombat-browser.mjs', 'verify-online-browser.mjs',
@@ -199,8 +200,8 @@ check('shared frontend changes use cores plus named visual owners', () => {
     'verify-combat-stage-scan-browser.mjs',
     'verify-row-target-browser.mjs', 'verify-wing-and-throw-browser.mjs', 'verify-elite-signatures-browser.mjs',
     'verify-card-damage-preview-browser.mjs', 'verify-unload-shivs-browser.mjs',
-    'verify-boss-heavy-attacks-browser.mjs'], 'hand stylesheet')
-  assertEqual(hand.length, 30, 'hand stylesheet selected an unrelated browser suite')
+    'verify-boss-heavy-attacks-browser.mjs', 'verify-slime-hover-browser.mjs'], 'hand stylesheet')
+  assertEqual(hand.length, 31, 'hand stylesheet selected an unrelated browser suite')
   includesEvery(affectedBrowser('src/ui/styles/presentation-overlays.css'), [
     'verify-browser.mjs', 'verify-noncombat-browser.mjs', 'verify-online-browser.mjs',
     'verify-lightning-act2-browser.mjs',
@@ -275,7 +276,7 @@ check('only an art pipeline input selects the slow art bakes', () => {
     'docs/skins/anime_slime_boss-art/README.md', 'docs/skins/anime_slime_boss-art/attack-manifest.json', 'docs/skins/monogatari_watcher-art/attack-manifest.json',
     'docs/skins/anime_slime_boss-art/prompts/attack-punch.txt',
     'docs/monogatari-skins/prompts/combat/ironclad-ready.txt', 'docs/skins/kratos-card-art/prompts/slayer_bash.txt',
-    'src/ui/hero-art-head.json', 'public/assets/noncombat/campfire/camp.webp', 'scripts/art/campfire-sitters.py',
+    'src/ui/combat-webm-sources.json', 'src/ui/hero-art-head.json', 'public/assets/noncombat/campfire/camp.webp', 'scripts/art/campfire-sitters.py',
     'scripts/art/sources/campfire-sitters/manifest.json', 'scripts/art/sources/kratos-skin-cards/slayer_bash.webp',
     'scripts/art/skin-cards/masks/attack.png',
     'scripts/verify-art-bakes.mjs']) {
@@ -310,6 +311,10 @@ check('every file the art bakes hash selects them', () => {
   const read = (path) => JSON.parse(readFileSync(resolve(root, path), 'utf8'))
   const hashed = Object.keys(read('scripts/animation/safari-video-sources.json'))
     .flatMap((source) => [source, source.replace(/\.webp$/, '.mov')])
+  hashed.push('src/ui/combat-webm-sources.json')
+  for (const name of Object.keys(read('src/ui/combat-webm-sources.json'))) hashed.push(
+    `public/assets/combat/rigged/${name}.webp`, `public/assets/combat/rigged-webm/${name}.webm`,
+    `public/assets/combat/rigged-posters/${name}.webp`)
   const kratos = read('docs/skins/kratos-art.json')
   for (const entry of kratos.generated) hashed.push(entry.source, entry.prompt, ...entry.inputs.map((input) => input.path))
   for (const entry of kratos.runtime) hashed.push(entry.path)

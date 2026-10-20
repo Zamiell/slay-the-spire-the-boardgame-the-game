@@ -757,7 +757,8 @@ export function EnemyCard({
     }
   }, [animatedEnemy, def.id, visibleEnemy.isBoss])
   const demonAttacking = bossAttackPlaying && bossArtId === 'downfall_demon'
-  const heavy = bossAttackPlaying ? presentedBossAttack?.heavy : undefined
+  // A Boss that dies in its own swing (Divinity) still finishes the blow it landed.
+  const heavy = animateArt && bossAttackReady && !cancelPendingThrow ? presentedBossAttack?.heavy : undefined
   useEffect(() => {
     if (!heavy) return
     return playCombatSound(bossHeavySfxRecipe(heavy.kind, heavy.hits))
@@ -1105,7 +1106,7 @@ export function EnemyCard({
         </> : null}
         {bossAttackPlaying && bossArtId === 'reptomancer' ?
           <span className="reptomancer-sigil" aria-hidden="true" /> : null}
-        {heavy ? <span className="boss-heavy-charge" aria-hidden="true">
+        {heavy && animatedEnemy ? <span className="boss-heavy-charge" aria-hidden="true">
           <span className="boss-heavy-charge__aura" />
           <span className="boss-heavy-charge__ring" />
           <span className="boss-heavy-charge__sparks" />

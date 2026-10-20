@@ -16,53 +16,95 @@
 }
 
 /* tone: the signature colour. shake/recoil: how hard the camera and heroes react. */
-:is(.enemy[data-heavy-attack='slime-crush'], .board:has(.enemy.enemy--acting[data-heavy-attack='slime-crush'])) {
+:is(.enemy[data-heavy-attack='slime-crush'], .board:has(.enemy[data-heavy-attack='slime-crush'])) {
   --heavy-tone: 123 209 92; --heavy-shake: 1.1; --heavy-recoil: .55rem; --heavy-squash: .84;
 }
-:is(.enemy[data-heavy-attack='hexaghost-inferno'], .board:has(.enemy.enemy--acting[data-heavy-attack='hexaghost-inferno'])) {
+:is(.enemy[data-heavy-attack='hexaghost-inferno'], .board:has(.enemy[data-heavy-attack='hexaghost-inferno'])) {
   --heavy-tone: 150 238 120; --heavy-shake: .85; --heavy-recoil: .5rem; --heavy-squash: .94;
 }
-:is(.enemy[data-heavy-attack='automaton-beam'], .board:has(.enemy.enemy--acting[data-heavy-attack='automaton-beam'])) {
+:is(.enemy[data-heavy-attack='automaton-beam'], .board:has(.enemy[data-heavy-attack='automaton-beam'])) {
   --heavy-tone: 255 190 96; --heavy-shake: 1.35; --heavy-recoil: .9rem; --heavy-squash: .92;
 }
-:is(.enemy[data-heavy-attack='guardian-bash'], .board:has(.enemy.enemy--acting[data-heavy-attack='guardian-bash'])) {
+:is(.enemy[data-heavy-attack='guardian-bash'], .board:has(.enemy[data-heavy-attack='guardian-bash'])) {
   --heavy-tone: 231 164 58; --heavy-shake: 1.6; --heavy-recoil: .8rem; --heavy-squash: .88;
 }
-:is(.enemy[data-heavy-attack='collector-fireball'], .board:has(.enemy.enemy--acting[data-heavy-attack='collector-fireball'])) {
+:is(.enemy[data-heavy-attack='collector-fireball'], .board:has(.enemy[data-heavy-attack='collector-fireball'])) {
   --heavy-tone: 255 122 42; --heavy-shake: .95; --heavy-recoil: .6rem; --heavy-squash: .93;
 }
-:is(.enemy[data-heavy-attack='champ-execute'], .board:has(.enemy.enemy--acting[data-heavy-attack='champ-execute'])) {
+:is(.enemy[data-heavy-attack='champ-execute'], .board:has(.enemy[data-heavy-attack='champ-execute'])) {
   --heavy-tone: 220 50 66; --heavy-shake: 1.4; --heavy-recoil: .85rem; --heavy-squash: .9;
 }
-:is(.enemy[data-heavy-attack='champ-flurry'], .board:has(.enemy.enemy--acting[data-heavy-attack='champ-flurry'])) {
+:is(.enemy[data-heavy-attack='champ-flurry'], .board:has(.enemy[data-heavy-attack='champ-flurry'])) {
   --heavy-tone: 255 138 50; --heavy-shake: .8; --heavy-recoil: .45rem; --heavy-squash: .94;
 }
-:is(.enemy[data-heavy-attack='awakened-rend'], .board:has(.enemy.enemy--acting[data-heavy-attack='awakened-rend'])) {
+:is(.enemy[data-heavy-attack='awakened-rend'], .board:has(.enemy[data-heavy-attack='awakened-rend'])) {
   --heavy-tone: 126 190 255; --heavy-shake: 1; --heavy-recoil: .6rem; --heavy-squash: .93;
 }
-:is(.enemy[data-heavy-attack='awakened-eruption'], .board:has(.enemy.enemy--acting[data-heavy-attack='awakened-eruption'])) {
+:is(.enemy[data-heavy-attack='awakened-eruption'], .board:has(.enemy[data-heavy-attack='awakened-eruption'])) {
   --heavy-tone: 74 168 255; --heavy-shake: 1.3; --heavy-recoil: .75rem; --heavy-squash: .9;
 }
-:is(.enemy[data-heavy-attack='time-crush'], .board:has(.enemy.enemy--acting[data-heavy-attack='time-crush'])) {
+:is(.enemy[data-heavy-attack='time-crush'], .board:has(.enemy[data-heavy-attack='time-crush'])) {
   --heavy-tone: 232 205 96; --heavy-shake: 1.5; --heavy-recoil: .9rem; --heavy-squash: .87;
 }
-:is(.enemy[data-heavy-attack='heart-pulse'], .board:has(.enemy.enemy--acting[data-heavy-attack='heart-pulse'])) {
+:is(.enemy[data-heavy-attack='heart-pulse'], .board:has(.enemy[data-heavy-attack='heart-pulse'])) {
   --heavy-tone: 214 38 62; --heavy-shake: 1.5; --heavy-recoil: .85rem; --heavy-squash: .89;
+}
+:is(.enemy[data-heavy-attack='witch-hex'], .board:has(.enemy[data-heavy-attack='witch-hex'])) {
+  --heavy-tone: 170 120 255; --heavy-shake: 0.95; --heavy-recoil: .55rem; --heavy-squash: .92;
+}
+:is(.enemy[data-heavy-attack='dark-core-nova'], .board:has(.enemy[data-heavy-attack='dark-core-nova'])) {
+  --heavy-tone: 140 90 235; --heavy-shake: 1.3; --heavy-recoil: .8rem; --heavy-squash: .9;
+}
+:is(.enemy[data-heavy-attack='wrathful-awakening'], .board:has(.enemy[data-heavy-attack='wrathful-awakening'])) {
+  --heavy-tone: 255 86 52; --heavy-shake: 1.6; --heavy-recoil: .9rem; --heavy-squash: .87;
+}
+:is(.enemy[data-heavy-attack='wrathful-fury'], .board:has(.enemy[data-heavy-attack='wrathful-fury'])) {
+  --heavy-tone: 255 96 64; --heavy-shake: 0.85; --heavy-recoil: .5rem; --heavy-squash: .94;
+}
+:is(.enemy[data-heavy-attack='orb-master-overload'], .board:has(.enemy[data-heavy-attack='orb-master-overload'])) {
+  --heavy-tone: 255 232 96; --heavy-shake: 1.2; --heavy-recoil: .7rem; --heavy-squash: .92;
+}
+:is(.enemy[data-heavy-attack='inferno-blaze'], .board:has(.enemy[data-heavy-attack='inferno-blaze'])) {
+  --heavy-tone: 255 120 40; --heavy-shake: 1.1; --heavy-recoil: .7rem; --heavy-squash: .92;
+}
+:is(.enemy[data-heavy-attack='trickster-ambush'], .board:has(.enemy[data-heavy-attack='trickster-ambush'])) {
+  --heavy-tone: 130 236 176; --heavy-shake: 0.8; --heavy-recoil: .45rem; --heavy-squash: .94;
+}
+:is(.enemy[data-heavy-attack='demon-slam'], .board:has(.enemy[data-heavy-attack='demon-slam'])) {
+  --heavy-tone: 255 110 44; --heavy-shake: 1.7; --heavy-recoil: .95rem; --heavy-squash: .86;
+}
+:is(.enemy[data-heavy-attack='wraith-reap'], .board:has(.enemy[data-heavy-attack='wraith-reap'])) {
+  --heavy-tone: 190 235 255; --heavy-shake: 1.1; --heavy-recoil: .7rem; --heavy-squash: .93;
+}
+:is(.enemy[data-heavy-attack='blasphemer-smite'], .board:has(.enemy[data-heavy-attack='blasphemer-smite'])) {
+  --heavy-tone: 255 226 128; --heavy-shake: 1.4; --heavy-recoil: .8rem; --heavy-squash: .9;
+}
+:is(.enemy[data-heavy-attack='divinity-ruin'], .board:has(.enemy[data-heavy-attack='divinity-ruin'])) {
+  --heavy-tone: 255 246 214; --heavy-shake: 2.1; --heavy-recoil: 1.1rem; --heavy-squash: .84;
+}
+:is(.enemy[data-heavy-attack='neow-judgement'], .board:has(.enemy[data-heavy-attack='neow-judgement'])) {
+  --heavy-tone: 150 190 255; --heavy-shake: 1.4; --heavy-recoil: .8rem; --heavy-squash: .9;
+}
+:is(.enemy[data-heavy-attack='doppelganger-barrage'], .board:has(.enemy[data-heavy-attack='doppelganger-barrage'])) {
+  --heavy-tone: 200 208 232; --heavy-shake: 0.8; --heavy-recoil: .45rem; --heavy-squash: .94;
+}
+:is(.enemy[data-heavy-attack='corrupted-ruin'], .board:has(.enemy[data-heavy-attack='corrupted-ruin'])) {
+  --heavy-tone: 206 54 76; --heavy-shake: 1.5; --heavy-recoil: .85rem; --heavy-squash: .88;
 }
 
 /* ---- Board weather -------------------------------------------------------- */
 
-.board:has(.enemy.enemy--acting[data-heavy-attack]) {
+.board:has(.enemy[data-heavy-attack]) {
   animation: boss-heavy-shake 620ms var(--heavy-contact) linear;
 }
-.board:has(.enemy.enemy--acting[data-heavy-attack][data-heavy-hits='2']) {
+.board:has(.enemy[data-heavy-attack][data-heavy-hits='2']) {
   animation:
     boss-heavy-shake 560ms var(--heavy-contact) linear,
     boss-heavy-shake 560ms calc(var(--heavy-contact) + var(--heavy-gap)) linear;
 }
 
-.board:has(.enemy.enemy--acting[data-heavy-attack])::before,
-.board:has(.enemy.enemy--acting[data-heavy-attack])::after {
+.board:has(.enemy[data-heavy-attack])::before,
+.board:has(.enemy[data-heavy-attack])::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -72,7 +114,7 @@
 }
 
 /* Edges darken and tint through the windup, then release after the landing. */
-.board:has(.enemy.enemy--acting[data-heavy-attack])::before {
+.board:has(.enemy[data-heavy-attack])::before {
   background:
     radial-gradient(ellipse 75% 85% at 50% 58%, transparent 35%, rgb(var(--heavy-tone) / .22) 78%, rgb(var(--heavy-tone) / .4) 100%),
     radial-gradient(ellipse 75% 85% at 50% 58%, transparent 38%, rgb(3 4 8 / .66) 100%);
@@ -80,11 +122,11 @@
 }
 
 /* The white-hot landing frame. */
-.board:has(.enemy.enemy--acting[data-heavy-attack])::after {
+.board:has(.enemy[data-heavy-attack])::after {
   background: radial-gradient(ellipse 60% 80% at 38% 62%, rgb(255 255 255 / .92), rgb(var(--heavy-tone) / .6) 38%, transparent 76%);
   animation: boss-heavy-flash 300ms var(--heavy-contact) ease-out;
 }
-.board:has(.enemy.enemy--acting[data-heavy-attack][data-heavy-hits='2'])::after {
+.board:has(.enemy[data-heavy-attack][data-heavy-hits='2'])::after {
   animation:
     boss-heavy-flash 260ms var(--heavy-contact) ease-out,
     boss-heavy-flash 260ms calc(var(--heavy-contact) + var(--heavy-gap)) ease-out;
@@ -112,11 +154,11 @@
 }
 
 /* Every living hero is knocked back at the landing, then settles. */
-.board:has(.enemy.enemy--acting[data-heavy-attack]) .seat:not(.seat--dead) .seat__portrait {
+.board:has(.enemy[data-heavy-attack]) .seat:not(.seat--dead) .seat__portrait {
   transform-origin: 50% 100%;
   animation: boss-heavy-recoil 640ms var(--heavy-contact) cubic-bezier(.2, .75, .3, 1) forwards;
 }
-.board:has(.enemy.enemy--acting[data-heavy-attack][data-heavy-hits='2']) .seat:not(.seat--dead) .seat__portrait {
+.board:has(.enemy[data-heavy-attack][data-heavy-hits='2']) .seat:not(.seat--dead) .seat__portrait {
   animation:
     boss-heavy-recoil 500ms var(--heavy-contact) cubic-bezier(.2, .75, .3, 1) forwards,
     boss-heavy-recoil 560ms calc(var(--heavy-contact) + var(--heavy-gap)) cubic-bezier(.2, .75, .3, 1) forwards;
@@ -129,12 +171,12 @@
 }
 
 /* The damage that lands is the headline. */
-.board:has(.enemy.enemy--acting[data-heavy-attack]) .seat .hit-vfx {
+.board:has(.enemy[data-heavy-attack]) .seat .hit-vfx {
   width: 6.4rem;
   height: 6.4rem;
   margin: -1.1rem 0 0 -1.1rem;
 }
-.board:has(.enemy.enemy--acting[data-heavy-attack]) .seat .hit-vfx strong {
+.board:has(.enemy[data-heavy-attack]) .seat .hit-vfx strong {
   font-size: 2.7rem;
   color: #fff6d8;
   text-shadow: 0 3px 0 #641817, 0 0 14px rgb(var(--heavy-tone) / .95), 0 0 5px #000;
@@ -142,7 +184,7 @@
 
 /* ---- Charge on the Boss --------------------------------------------------- */
 
-.enemy[data-heavy-attack] .enemy__portrait { animation: boss-heavy-tremble var(--heavy-contact) linear; }
+.enemy[data-heavy-attack]:not(.enemy--dead) .enemy__portrait { animation: boss-heavy-tremble var(--heavy-contact) linear; }
 @keyframes boss-heavy-tremble {
   0%, 18% { translate: 0 0; }
   26% { translate: -1.2px 1px; }
@@ -624,7 +666,7 @@
   --echo-delay: calc(var(--heavy-contact) + 140ms);
   --heavy-spin: 0deg;
 }
-.board:has(.enemy.enemy--acting[data-heavy-attack='heart-pulse'])::before {
+.board:has(.enemy[data-heavy-attack='heart-pulse'])::before {
   animation: boss-heavy-heartbeat var(--heavy-total) ease-out both;
 }
 @keyframes boss-heavy-heartbeat {
@@ -654,3 +696,263 @@
   animation-duration: 760ms;
 }
 .enemy[data-heavy-attack='heart-pulse'] .boss-heavy-charge__sparks { animation-name: boss-heavy-core; }
+
+/* ==== Downfall signatures ==================================================== */
+
+/* A foe from above: the shared fall lands a sprite on each hero. */
+@keyframes boss-heavy-drop {
+  0% { opacity: 0; translate: calc(var(--boss-projectile-x, -8rem) - 50% + 2.5rem) calc(var(--boss-projectile-y, 0px) - 50% - 22rem); scale: .7; }
+  14% { opacity: 1; }
+  90% { opacity: 1; scale: 1.1; }
+  100% { opacity: 0; translate: calc(var(--boss-projectile-x, -8rem) - 50%) calc(var(--boss-projectile-y, 0px) - 50%); scale: 1.15; }
+}
+/* A thrown blade points along its path. */
+@keyframes boss-heavy-throw {
+  0% { opacity: 0; translate: -50% -50%; }
+  12% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { opacity: 0; translate: calc(var(--boss-projectile-x, -8rem) - 50%) calc(var(--boss-projectile-y, 0px) - 50%); }
+}
+
+/* The Witch — Hex: a violet curse blooms on each hero and spills slime. */
+.enemy[data-heavy-attack='witch-hex'] {
+  --burst-art: url('/assets/combat/vfx/actions/magic-burst.webp');
+  --echo-art: url('/assets/combat/vfx/actions/turn-poison-impact.webp');
+  --echo-delay: calc(var(--heavy-contact) + 140ms);
+  --heavy-spin: 160deg;
+}
+.enemy[data-heavy-attack='witch-hex'] .boss-heavy-target__burst { width: calc(12rem * var(--size)); animation-name: boss-heavy-vortex; }
+.enemy[data-heavy-attack='witch-hex'] .boss-heavy-target__burst--echo { width: calc(8rem * var(--size)); translate: -50% -30%; }
+.enemy[data-heavy-attack='witch-hex'] .boss-heavy-charge__sparks { animation-name: boss-heavy-bubbles; }
+@keyframes boss-heavy-vortex {
+  0% { opacity: 0; scale: 1.7; rotate: 0deg; }
+  10% { opacity: 1; scale: 1.2; }
+  38% { opacity: 1; scale: 1; rotate: 140deg; }
+  100% { opacity: 0; scale: .5; rotate: 300deg; }
+}
+
+/* The Dark Core — Nova: the core implodes, then a vortex drowns every hero. */
+.enemy[data-heavy-attack='dark-core-nova'] {
+  --burst-art: url('/assets/combat/vfx/actions/dark-channel.webp');
+  --heavy-spin: -300deg;
+}
+.enemy[data-heavy-attack='dark-core-nova'] .boss-heavy-target__burst { width: calc(13rem * var(--size)); animation-name: boss-heavy-vortex; animation-duration: 760ms; }
+.enemy[data-heavy-attack='dark-core-nova'] .boss-heavy-target__burst--echo { display: none; }
+.enemy[data-heavy-attack='dark-core-nova'] .boss-heavy-charge__sparks { animation-name: boss-heavy-core; }
+.enemy[data-heavy-attack='dark-core-nova'] .boss-heavy-charge__aura {
+  background: radial-gradient(circle, rgb(10 4 24 / .95) 0, rgb(70 30 140 / .7) 28%, rgb(var(--heavy-tone) / .3) 54%, transparent 70%);
+}
+
+/* The Wrathful — Awakening: a rage ring detonates around the slam that wakes it. */
+.enemy[data-heavy-attack='wrathful-awakening'] {
+  --burst-art: url('/assets/combat/vfx/actions/ironclad-bash.webp');
+  --echo-art: url('/assets/combat/vfx/actions/watcher-wrath-aura.webp');
+  --echo-delay: calc(var(--heavy-contact) + 60ms);
+  --heavy-spin: 0deg;
+}
+.enemy[data-heavy-attack='wrathful-awakening'] .boss-heavy-target__burst { width: calc(11rem * var(--size)); }
+.enemy[data-heavy-attack='wrathful-awakening'] .boss-heavy-target__burst--echo { width: calc(13rem * var(--size)); translate: -50% -40%; animation-duration: 760ms; z-index: -1; }
+.enemy[data-heavy-attack='wrathful-awakening'] .boss-heavy-charge__sparks { animation-name: boss-heavy-dust; }
+
+/* The Wrathful in Wrath — Fury: red cuts, two beats, a streak ahead of each. */
+.enemy[data-heavy-attack='wrathful-fury'] {
+  --burst-art: url('/assets/combat/vfx/actions/ironclad-strike.webp');
+  --flight-art: url('/assets/combat/vfx/actions/speed-trail.webp');
+  --echo-rotate: -90deg;
+  --heavy-spin: 140deg;
+}
+.enemy[data-heavy-attack='wrathful-fury'] .boss-heavy-target__burst,
+.enemy[data-heavy-attack='wrathful-fury'] .boss-heavy-target__burst--echo {
+  width: calc(11.5rem * var(--size));
+  filter: hue-rotate(-14deg) saturate(1.6) drop-shadow(0 0 .8rem rgb(255 80 60 / .9));
+}
+.enemy[data-heavy-attack='wrathful-fury'] .boss-heavy-target__burst--echo { transform: scaleX(-1); }
+.enemy[data-heavy-attack='wrathful-fury'] .boss-heavy-target__flight {
+  width: calc(9rem * var(--size));
+  height: calc(4.5rem * var(--size));
+  aspect-ratio: auto;
+  filter: hue-rotate(-30deg) saturate(1.6);
+  animation:
+    boss-heavy-dash 230ms calc(var(--heavy-contact) - 230ms) cubic-bezier(.5, 0, .9, .6) both,
+    boss-heavy-dash 230ms calc(var(--heavy-contact) + var(--heavy-gap) - 230ms) cubic-bezier(.5, 0, .9, .6) forwards;
+}
+
+/* The Orb Master — Overload: lightning falls, frost shatters, the orbs answer. */
+.enemy[data-heavy-attack='orb-master-overload'] {
+  --burst-art: url('/assets/combat/vfx/actions/lightning-channel.webp');
+  --echo-art: url('/assets/combat/vfx/actions/frost-channel.webp');
+  --flight-art: url('/assets/combat/vfx/actions/turn-lightning-strike.webp');
+  --echo-delay: calc(var(--heavy-contact) + 120ms);
+  --heavy-spin: 200deg;
+}
+.enemy[data-heavy-attack='orb-master-overload'] .boss-heavy-target__flight {
+  width: calc(5.5rem * var(--size));
+  aspect-ratio: 1 / 2;
+  animation: boss-heavy-drop 300ms calc(var(--heavy-contact) - 300ms) cubic-bezier(.6, 0, .9, .5) both;
+}
+.enemy[data-heavy-attack='orb-master-overload'] .boss-heavy-target__burst { width: calc(9rem * var(--size)); }
+.enemy[data-heavy-attack='orb-master-overload'] .boss-heavy-target__burst--echo { width: calc(8rem * var(--size)); translate: -20% -60%; }
+
+/* The Inferno — Blaze: a roaring jet of fire washes across the party. */
+.enemy[data-heavy-attack='inferno-blaze'] {
+  --burst-art: url('/assets/combat/vfx/actions/hexaghost-flame-impact.webp');
+  --heavy-spin: 0deg;
+}
+.enemy[data-heavy-attack='inferno-blaze'] .boss-heavy-target__beam {
+  height: calc(5.5rem * var(--size));
+  background: url('/assets/combat/vfx/actions/awakened-blue-fire.webp') 100% 50% / 100% 100% no-repeat;
+  filter: hue-rotate(-172deg) saturate(1.8) drop-shadow(0 0 1rem rgb(255 120 40 / .95));
+  animation: boss-heavy-beam 700ms calc(var(--heavy-contact) - 120ms) cubic-bezier(.1, .8, .2, 1) both;
+}
+.enemy[data-heavy-attack='inferno-blaze'] .boss-heavy-target__burst { width: calc(11rem * var(--size)); filter: hue-rotate(-74deg) saturate(1.7); }
+.enemy[data-heavy-attack='inferno-blaze'] .boss-heavy-target__burst--echo { display: none; }
+.enemy[data-heavy-attack='inferno-blaze'] .boss-heavy-charge__sparks { animation-name: boss-heavy-bubbles; }
+
+/* The Trickster — Ambush: a hail of blades from nowhere. */
+.enemy[data-heavy-attack='trickster-ambush'] {
+  --burst-art: url('/assets/combat/vfx/actions/silent-shiv.webp');
+  --flight-art: url('/assets/combat/vfx/actions/silent-knife.webp');
+  --echo-rotate: 90deg;
+  --echo-delay: calc(var(--heavy-contact) + 110ms);
+  --heavy-spin: 220deg;
+}
+.enemy[data-heavy-attack='trickster-ambush'] .boss-heavy-target__flight {
+  width: calc(8rem * var(--size));
+  aspect-ratio: 1;
+  rotate: var(--boss-heavy-angle, 3.14rad);
+  animation: boss-heavy-throw 260ms calc(var(--heavy-contact) - 260ms) cubic-bezier(.5, 0, .9, .6) both;
+}
+.enemy[data-heavy-attack='trickster-ambush'] .boss-heavy-target__burst { width: calc(10.5rem * var(--size)); }
+.enemy[data-heavy-attack='trickster-ambush'] .boss-heavy-target__burst--echo { width: calc(8rem * var(--size)); }
+
+/* The Demon — Meteor Slam: a burning rock hammers each hero into the floor. */
+.enemy[data-heavy-attack='demon-slam'] {
+  --burst-art: url('/assets/combat/vfx/actions/watcher-meteor-impact.webp');
+  --flight-art: url('/assets/combat/vfx/actions/watcher-meteor.webp');
+  --echo-delay: calc(var(--heavy-contact) + 140ms);
+  --heavy-spin: 0deg;
+}
+.enemy[data-heavy-attack='demon-slam'] .boss-heavy-target__flight {
+  width: calc(8rem * var(--size));
+  animation: boss-heavy-meteor 330ms calc(var(--heavy-contact) - 330ms) cubic-bezier(.6, 0, .9, .5) both;
+}
+/* The painted rock flies down and to the right; its nose sits at about 78% / 78% of the sprite. */
+@keyframes boss-heavy-meteor {
+  0% { opacity: 0; translate: calc(var(--boss-projectile-x, -8rem) - 78% - 13rem * var(--size)) calc(var(--boss-projectile-y, 0px) - 78% - 15rem * var(--size)); scale: .8; }
+  14% { opacity: 1; }
+  90% { opacity: 1; scale: 1.1; }
+  100% { opacity: 0; translate: calc(var(--boss-projectile-x, -8rem) - 78%) calc(var(--boss-projectile-y, 0px) - 78%); scale: 1.15; }
+}
+.enemy[data-heavy-attack='demon-slam'] .boss-heavy-target__burst { width: calc(12rem * var(--size)); translate: -50% -80%; }
+.enemy[data-heavy-attack='demon-slam'] .boss-heavy-target__burst--echo { display: none; }
+.enemy[data-heavy-attack='demon-slam'] .boss-heavy-charge__sparks { animation-name: boss-heavy-dust; }
+
+/* The Wraith — Reap: one pale scythe stroke across the party. */
+.enemy[data-heavy-attack='wraith-reap'] {
+  --burst-art: url('/assets/combat/vfx/actions/ironclad-strike.webp');
+  --echo-delay: calc(var(--heavy-contact) + 100ms);
+  --echo-rotate: 14deg;
+  --heavy-spin: -200deg;
+}
+.enemy[data-heavy-attack='wraith-reap'] .boss-heavy-target__burst,
+.enemy[data-heavy-attack='wraith-reap'] .boss-heavy-target__burst--echo {
+  width: calc(17rem * var(--size));
+  filter: hue-rotate(172deg) saturate(.7) brightness(1.35) drop-shadow(0 0 1rem rgb(190 235 255 / .95));
+}
+.enemy[data-heavy-attack='wraith-reap'] .boss-heavy-target__burst--echo { width: calc(11rem * var(--size)); }
+
+/* The Blasphemer — Smite: a column of judgement falls on every hero. */
+.enemy[data-heavy-attack='blasphemer-smite'] {
+  --burst-art: url('/assets/combat/vfx/hit-burst.webp');
+  --echo-delay: calc(var(--heavy-contact) + 120ms);
+  --heavy-spin: 0deg;
+}
+.enemy[data-heavy-attack='blasphemer-smite'] .boss-heavy-target__flight {
+  left: var(--boss-projectile-x, -8rem);
+  top: calc(var(--boss-projectile-y, 0px) - 17rem * var(--size));
+  width: calc(4.2rem * var(--size));
+  height: calc(17rem * var(--size));
+  aspect-ratio: auto;
+  translate: -50% 0;
+  transform-origin: 50% 100%;
+  border-radius: 40% 40% 0 0;
+  background: linear-gradient(90deg, transparent, rgb(255 226 128 / .85) 30%, #fff 50%, rgb(255 226 128 / .85) 70%, transparent);
+  box-shadow: 0 0 1.6rem rgb(255 226 128 / .9);
+  animation: boss-heavy-column 560ms calc(var(--heavy-contact) - 120ms) cubic-bezier(.1, .8, .2, 1) both;
+}
+@keyframes boss-heavy-column {
+  0% { opacity: 0; scale: .2 0; }
+  16% { opacity: 1; scale: 1 1; }
+  60% { opacity: 1; scale: 1.15 1; }
+  100% { opacity: 0; scale: .3 1; }
+}
+.enemy[data-heavy-attack='blasphemer-smite'] .boss-heavy-target__burst { width: calc(11rem * var(--size)); }
+.enemy[data-heavy-attack='blasphemer-smite'] .boss-heavy-target__burst--echo { display: none; }
+
+/* Divinity — Ruin: the Blasphemer spends itself in one white-hot detonation. */
+.enemy[data-heavy-attack='divinity-ruin'] {
+  --burst-art: url('/assets/combat/vfx/hit-burst.webp');
+  --echo-delay: calc(var(--heavy-contact) + 90ms);
+  --echo-rotate: 45deg;
+  --heavy-spin: 720deg;
+}
+.enemy[data-heavy-attack='divinity-ruin'] .boss-heavy-target__burst { width: calc(15rem * var(--size)); filter: brightness(1.5) drop-shadow(0 0 1.4rem #fff); }
+.enemy[data-heavy-attack='divinity-ruin'] .boss-heavy-target__burst--echo { width: calc(13rem * var(--size)); filter: brightness(1.4); }
+.enemy[data-heavy-attack='divinity-ruin'] .boss-heavy-target__ring { animation-duration: 860ms; border-width: calc(.6rem * var(--size)); }
+.board:has(.enemy[data-heavy-attack='divinity-ruin'])::after {
+  background: radial-gradient(ellipse 80% 100% at 38% 62%, #fff, rgb(255 246 214 / .85) 50%, transparent 85%);
+}
+
+/* Neow — Judgement: a sealed sigil descends on each hero, then breaks. */
+.enemy[data-heavy-attack='neow-judgement'] {
+  --burst-art: url('/assets/combat/vfx/actions/magic-burst.webp');
+  --echo-art: url('/assets/combat/vfx/hit-burst.webp');
+  --echo-delay: calc(var(--heavy-contact) + 100ms);
+  --heavy-spin: 260deg;
+}
+.enemy[data-heavy-attack='neow-judgement'] .boss-heavy-target__flight {
+  left: var(--boss-projectile-x, -8rem);
+  top: var(--boss-projectile-y, 0);
+  width: calc(11rem * var(--size));
+  background: url('/assets/combat/vfx/actions/watcher-pray.webp') center / contain no-repeat;
+  translate: -50% -60%;
+  animation: boss-heavy-seal var(--heavy-contact) cubic-bezier(.3, 0, .6, 1) both;
+}
+@keyframes boss-heavy-seal {
+  0% { opacity: 0; scale: .4; rotate: 0deg; }
+  30% { opacity: .95; scale: 1.25; }
+  92% { opacity: 1; scale: .85; rotate: 300deg; }
+  100% { opacity: 0; scale: .8; rotate: 330deg; }
+}
+.enemy[data-heavy-attack='neow-judgement'] .boss-heavy-target__burst { width: calc(12rem * var(--size)); animation-name: boss-heavy-vortex; }
+.enemy[data-heavy-attack='neow-judgement'] .boss-heavy-target__burst--echo { width: calc(10rem * var(--size)); }
+
+/* The Doppelganger — Barrage: a mirrored volley of blades, two waves. */
+.enemy[data-heavy-attack='doppelganger-barrage'] {
+  --burst-art: url('/assets/combat/vfx/actions/silent-shiv.webp');
+  --flight-art: url('/assets/combat/vfx/actions/silent-knife.webp');
+  --echo-rotate: 90deg;
+  --heavy-spin: 140deg;
+}
+.enemy[data-heavy-attack='doppelganger-barrage'] .boss-heavy-target__flight {
+  width: calc(8rem * var(--size));
+  aspect-ratio: 1;
+  rotate: var(--boss-heavy-angle, 3.14rad);
+  filter: saturate(.4) brightness(1.3);
+  animation:
+    boss-heavy-throw 240ms calc(var(--heavy-contact) - 240ms) cubic-bezier(.5, 0, .9, .6) both,
+    boss-heavy-throw 240ms calc(var(--heavy-contact) + var(--heavy-gap) - 240ms) cubic-bezier(.5, 0, .9, .6) forwards;
+}
+.enemy[data-heavy-attack='doppelganger-barrage'] .boss-heavy-target__burst,
+.enemy[data-heavy-attack='doppelganger-barrage'] .boss-heavy-target__burst--echo { width: calc(10rem * var(--size)); filter: saturate(.5) brightness(1.3); }
+
+/* The Corrupted — Ruin: red crystal erupts from the corrupted ground. */
+.enemy[data-heavy-attack='corrupted-ruin'] {
+  --burst-art: url('/assets/combat/vfx/actions/turn-vulnerable-impact.webp');
+  --echo-art: url('/assets/combat/vfx/actions/turn-burn-impact.webp');
+  --echo-delay: calc(var(--heavy-contact) + 130ms);
+  --heavy-spin: -90deg;
+}
+.enemy[data-heavy-attack='corrupted-ruin'] .boss-heavy-target__burst { width: calc(12rem * var(--size)); }
+.enemy[data-heavy-attack='corrupted-ruin'] .boss-heavy-target__burst--echo { width: calc(9rem * var(--size)); translate: -50% -80%; }
+.enemy[data-heavy-attack='corrupted-ruin'] .boss-heavy-charge__sparks { animation-name: boss-heavy-dust; }

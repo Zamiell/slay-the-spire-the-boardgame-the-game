@@ -14,15 +14,26 @@ const CASES = [
   ['guardian_defensive', 1, 'guardian-bash', 1], ['the_collector', 2, 'collector-fireball', 1], ['the_champ', 2, 'champ-execute', 1],
   ['the_champ_fury', 1, 'champ-flurry', 2], ['awakened_one_phase_1', 1, 'awakened-rend', 1],
   ['awakened_one_phase_2', 0, 'awakened-eruption', 1], ['time_eater', 2, 'time-crush', 1], ['corrupt_heart', 1, 'heart-pulse', 1],
+  ['downfall_witch', 1, 'witch-hex', 1], ['downfall_dark_core', 1, 'dark-core-nova', 1], ['downfall_wrathful', 2, 'wrathful-awakening', 1],
+  ['downfall_wrathful_wrath', 0, 'wrathful-fury', 2], ['downfall_orb_master', 2, 'orb-master-overload', 1],
+  ['downfall_inferno', 1, 'inferno-blaze', 1], ['downfall_trickster', 1, 'trickster-ambush', 1], ['downfall_demon', 2, 'demon-slam', 1],
+  ['downfall_wraith', 3, 'wraith-reap', 1], ['downfall_blasphemer', 0, 'blasphemer-smite', 1],
+  ['downfall_blasphemer_divinity', 0, 'divinity-ruin', 2], ['downfall_neow', 2, 'neow-judgement', 1],
+  ['downfall_doppelganger', 2, 'doppelganger-barrage', 2], ['downfall_corrupted', 1, 'corrupted-ruin', 1],
 ]
-const PHONE_CASES = CASES.filter(([defId]) => ['hexaghost', 'bronze_automaton', 'the_champ_fury', 'time_eater'].includes(defId))
-const QUIET = [['slime_boss', 1], ['hexaghost', 0], ['hexaghost', 1], ['hexaghost', 3], ['donu', 1], ['deca', 0], ['guardian_attack', 0]]
+const PHONE_CASES = CASES.filter(([defId]) => ['hexaghost', 'bronze_automaton', 'the_champ_fury', 'time_eater', 'downfall_demon', 'downfall_blasphemer_divinity'].includes(defId))
+const QUIET = [['slime_boss', 1], ['hexaghost', 0], ['hexaghost', 1], ['hexaghost', 3], ['donu', 1], ['deca', 0], ['guardian_attack', 0],
+  ['downfall_witch', 3], ['downfall_inferno', 2], ['downfall_dark_core', 3], ['downfall_wrathful', 0]]
+const SCREENS = ['desktop', 'horizontal-phone']
+if (process.env.HEAVY_SCREEN && !SCREENS.includes(process.env.HEAVY_SCREEN)) throw new Error(`HEAVY_SCREEN must be one of ${SCREENS.join(', ')}`)
+for (const id of process.env.HEAVY_CASES?.split(',') ?? []) if (!CASES.some(([defId]) => defId === id)) throw new Error(`HEAVY_CASES names unknown boss ${id}`)
 const server = await createServer({ logLevel: 'silent', server: { port: 0 } })
 await server.listen()
 const browser = await chromium.launch({ headless: true })
 const errors = []
 try {
   for (const [screen, viewport] of [['desktop', { width: 1440, height: 900 }], ['horizontal-phone', { width: 844, height: 390 }]]) {
+    if (process.env.HEAVY_SCREEN && screen !== process.env.HEAVY_SCREEN) continue
     const context = await browser.newContext({ viewport, isMobile: screen === 'horizontal-phone', hasTouch: screen === 'horizontal-phone' })
     const page = await context.newPage()
     await page.addInitScript(identity => localStorage.setItem('sts-profile', JSON.stringify(identity)),
@@ -92,7 +103,10 @@ try {
 
     // The horizontal phone shares every rule; it samples the sets to keep the suite quick.
     const phone = screen !== 'desktop'
-    for (const [defId, index] of phone ? QUIET.slice(0, 4) : QUIET) {
+    // An explicit HEAVY_CASES list overrides the phone sampling.
+    const signatures = process.env.HEAVY_CASES ? CASES.filter(([id]) => process.env.HEAVY_CASES.split(',').includes(id)) : phone ? PHONE_CASES : CASES
+    assert.ok(signatures.length > 0, `${screen}: no signatures selected`)
+    for (const [defId, index] of phone ? QUIET.filter(([defId]) => ['slime_boss', 'hexaghost', 'downfall_witch', 'downfall_dark_core'].includes(defId)) : QUIET) {
       await page.evaluate(([defId, index]) => window.heavyFixture.install(defId, index), [defId, index])
       await ready(defId)
       await page.evaluate(() => window.heavyFixture.attack())
@@ -101,7 +115,7 @@ try {
       assert.equal(await page.locator('.boss-heavy-charge, .boss-heavy-target').count(), 0, `${screen}: ${defId}[${index}] mounts no signature layers`)
     }
 
-    for (const [defId, index, kind, hits] of phone ? PHONE_CASES : CASES) {
+    for (const [defId, index, kind, hits] of signatures) {
       await page.evaluate(([defId, index]) => window.heavyFixture.install(defId, index), [defId, index])
       await ready(defId)
       await page.evaluate(() => window.heavyFixture.attack())
@@ -123,7 +137,8 @@ try {
       })
       assert.ok(charge.aura > 0.2, `${screen}: ${defId} aura builds during the windup`)
       assert.ok(charge.width > 20 && charge.height > 20, `${screen}: ${defId} charge wraps the painted body`)
-      assert.ok(charge.inside, `${screen}: ${defId} charge stays within the artwork`)
+      // The Demon is already airborne at this moment, so its body has left the resting box.
+      if (defId !== 'downfall_demon') assert.ok(charge.inside, `${screen}: ${defId} charge stays within the artwork`)
 
       await scrub(860)
       await page.waitForTimeout(60)
@@ -148,10 +163,17 @@ try {
       assert.ok(landing.vignette.includes('boss-heavy-'), `${screen}: ${defId} darkens the edges`)
       assert.ok(landing.seats.every(name => name.includes('boss-heavy-recoil')), `${screen}: ${defId} knocks every hero back`)
       await page.locator('.board').screenshot({ path: resolve(output, `${screen}-${kind}.png`) })
+      // HEAVY_FILM=1 also saves frames of the whole swing for a visual review.
+      if (process.env.HEAVY_FILM) for (const frame of [300, 700, 1100]) {
+        await scrub(frame)
+        await page.waitForTimeout(60)
+        await page.locator('.board').screenshot({ path: resolve(output, `${screen}-${kind}-${frame}.png`) })
+      }
     }
 
     // The first flight of a two-hit swing is visible before the second one is due.
-    for (const [defId, index, selector, at] of [['hexaghost', 5, '.boss-heavy-target__flight', 600], ['the_champ_fury', 1, '.boss-heavy-target__flight', 600]]) {
+    for (const [defId, index, selector, at] of [['hexaghost', 5, '.boss-heavy-target__flight', 600], ['the_champ_fury', 1, '.boss-heavy-target__flight', 600],
+      ['downfall_wrathful_wrath', 0, '.boss-heavy-target__flight', 600], ['downfall_doppelganger', 2, '.boss-heavy-target__flight', 620]]) {
       await page.evaluate(([defId, index]) => window.heavyFixture.install(defId, index), [defId, index])
       await ready(defId)
       await page.evaluate(() => window.heavyFixture.attack())
@@ -162,18 +184,21 @@ try {
         `${screen}: ${defId} first strike is visible in flight`)
     }
 
-    // Resolution advances the rotation mid-swing; the landings must outlive it.
-    await page.evaluate(() => window.heavyFixture.install('the_champ_fury', 1))
-    await ready('the_champ_fury')
-    await page.evaluate(() => window.heavyFixture.attack())
-    await page.waitForSelector('.enemy--acting[data-heavy-attack]')
-    await page.evaluate(() => window.heavyFixture.resolve())
-    assert.notEqual(await page.evaluate(() => window.heavyFixture.state.phase), 'enemy', `${screen}: the engine resolved the enemy phase`)
-    await scrub(1100)
-    await page.waitForTimeout(60)
-    assert.equal(await page.locator('.boss-heavy-target__impact').count(), 2, `${screen}: landings survive the phase resolving`)
-    assert.ok(await page.evaluate(() => [...document.querySelectorAll('.boss-heavy-target__burst--echo')].every(element => Number(getComputedStyle(element).opacity) > 0.3)),
-      `${screen}: second strike lands after the phase resolved`)
+    // Resolution advances the rotation mid-swing (and Divinity dies in it); the landings must outlive it.
+    for (const [defId, index, at] of [['the_champ_fury', 1, 1100], ['downfall_blasphemer_divinity', 0, 900]]) {
+      await page.evaluate(([defId, index]) => window.heavyFixture.install(defId, index), [defId, index])
+      await ready(defId)
+      await page.evaluate(() => window.heavyFixture.attack())
+      await page.waitForSelector('.enemy--acting[data-heavy-attack]')
+      await page.evaluate(() => window.heavyFixture.resolve())
+      assert.notEqual(await page.evaluate(() => window.heavyFixture.state.phase), 'enemy', `${screen}: the engine resolved the enemy phase`)
+      await scrub(at)
+      await page.waitForTimeout(60)
+      assert.equal(await page.locator('.boss-heavy-target__impact').count(), 2, `${screen}: ${defId} landings survive the phase resolving`)
+      const echoes = await page.evaluate(() => [...document.querySelectorAll('.boss-heavy-target__burst--echo')].map(element => ({
+        opacity: Number(getComputedStyle(element).opacity), clocks: element.getAnimations().map(animation => animation.currentTime) })))
+      assert.ok(echoes.every(echo => echo.opacity > 0.3), `${screen}: ${defId} second strike lands after the phase resolved: ${JSON.stringify(echoes)}`)
+    }
 
     // A real swing ends cleanly: every layer unmounts and the stage stops shaking.
     await page.evaluate(() => { window.holdBossAttack = false; window.heavyFixture.install('slime_boss', 2) })

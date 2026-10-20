@@ -204,6 +204,10 @@ const HEAVY_RATE: Readonly<Record<BossHeavyAttack, number>> = {
   'slime-crush': .66, 'hexaghost-inferno': .84, 'automaton-beam': .72, 'guardian-bash': .62,
   'collector-fireball': .8, 'champ-execute': .7, 'champ-flurry': .92, 'awakened-rend': .76,
   'awakened-eruption': .68, 'time-crush': .6, 'heart-pulse': .58,
+  'witch-hex': .82, 'dark-core-nova': .64, 'wrathful-awakening': .66, 'wrathful-fury': .9,
+  'orb-master-overload': .78, 'inferno-blaze': .74, 'trickster-ambush': 1, 'demon-slam': .6,
+  'wraith-reap': .8, 'blasphemer-smite': .7, 'divinity-ruin': .6, 'neow-judgement': .68,
+  'doppelganger-barrage': .96, 'corrupted-ruin': .62,
 }
 
 /** A low charge swell, then a deep impact at every hit's contact beat. */

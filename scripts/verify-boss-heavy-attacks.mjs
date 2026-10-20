@@ -1,4 +1,4 @@
-// Every base-game Boss has one hardest-hitting turn that gets a signature effect.
+// Every Boss (base game and Downfall) has one hardest-hitting turn that gets a signature effect.
 // This pins which rotation slot that is, so a rebalanced rotation or a new Boss
 // cannot silently lose (or wrongly gain) the spectacle, and keeps the stylesheet
 // and the preloader in step with the rules.
@@ -25,23 +25,38 @@ const HEAVY_SLOTS = {
   donu: { slots: [] },
   deca: { slots: [] },
   corrupt_heart: { kind: 'heart-pulse', slots: [1] },
+  downfall_witch: { kind: 'witch-hex', slots: [1] },
+  downfall_dark_core: { kind: 'dark-core-nova', slots: [1] },
+  downfall_wrathful: { kind: 'wrathful-awakening', slots: [2], hardSlots: [1, 2] },
+  downfall_wrathful_wrath: { kind: 'wrathful-fury', slots: [0], hits: 2 },
+  downfall_orb_master: { kind: 'orb-master-overload', slots: [2] },
+  downfall_inferno: { kind: 'inferno-blaze', slots: [1] },
+  downfall_flame_barrier: { slots: [] },
+  downfall_trickster: { kind: 'trickster-ambush', slots: [1] },
+  downfall_demon: { kind: 'demon-slam', slots: [2] },
+  downfall_wraith: { kind: 'wraith-reap', slots: [3] },
+  downfall_blasphemer: { kind: 'blasphemer-smite', slots: [0] },
+  downfall_blasphemer_divinity: { kind: 'divinity-ruin', slots: [0], hits: 2 },
+  downfall_neow: { kind: 'neow-judgement', slots: [2] },
+  downfall_doppelganger: { kind: 'doppelganger-barrage', slots: [2], hits: 2 },
+  downfall_corrupted: { kind: 'corrupted-ruin', slots: [1] },
 }
 
 suite('boss heavy attacks › rotation')
-const baseBosses = Object.values(ENEMIES).filter(def => def.isBoss && !def.id.startsWith('downfall_')).map(def => def.id)
-check('every base Boss has a decision', () => {
-  assertDeepEqual([...baseBosses].sort(), Object.keys(HEAVY_SLOTS).sort())
+const bosses = Object.values(ENEMIES).filter(def => def.isBoss).map(def => def.id)
+check('every Boss has a decision', () => {
+  assertDeepEqual([...bosses].sort(), Object.keys(HEAVY_SLOTS).sort())
 })
 for (const [id, expected] of Object.entries(HEAVY_SLOTS)) {
-  for (const ascension of [0, 10, 13]) {
+  for (const ascension of [0, 10, 11, 13]) {
     check(`${id} A${ascension}`, () => {
       const def = enemyDef(id, ascension)
-      const slots = def.pattern.kind === 'cube' ? def.pattern.slots : []
+      const slots = def.pattern.kind === 'cube' ? def.pattern.slots : [null]
       const heavy = slots.flatMap((_, index) => {
         const result = bossHeavyAttackFor(id, actionsFor(def, 1, index))
         return result ? [{ index, ...result }] : []
       })
-      assertDeepEqual(heavy.map(entry => entry.index), expected.slots)
+      assertDeepEqual(heavy.map(entry => entry.index), ascension >= 10 && expected.hardSlots ? expected.hardSlots : expected.slots)
       for (const entry of heavy) {
         assertEqual(entry.kind, expected.kind)
         assertEqual(entry.hits, expected.hits ?? 1)

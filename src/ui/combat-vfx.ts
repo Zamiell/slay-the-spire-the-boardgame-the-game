@@ -50,8 +50,23 @@ export function enemyAttackTargetPlayerIds(state: CombatState, enemy: Enemy): st
 export type BossHeavyAttack =
   | 'slime-crush' | 'hexaghost-inferno' | 'automaton-beam' | 'guardian-bash' | 'collector-fireball'
   | 'champ-execute' | 'champ-flurry' | 'awakened-rend' | 'awakened-eruption' | 'time-crush' | 'heart-pulse'
+  | 'witch-hex' | 'dark-core-nova' | 'wrathful-awakening' | 'wrathful-fury' | 'orb-master-overload'
+  | 'inferno-blaze' | 'trickster-ambush' | 'demon-slam' | 'wraith-reap' | 'blasphemer-smite'
+  | 'divinity-ruin' | 'neow-judgement' | 'doppelganger-barrage' | 'corrupted-ruin'
 
-const HEAVY_ATTACK_RULES: Readonly<Record<string, Readonly<{ kind: BossHeavyAttack; min: number; times?: number }>>> = {
+type HeavyRule = Readonly<{
+  kind: BossHeavyAttack
+  /** Smallest printed hit (or, for a sequence, total of its hits) that counts. */
+  min: number
+  times?: number
+  sequence?: true
+  /** Rotations that share a hit size are told apart by what else the turn does. */
+  with?: EnemyAction['kind']
+  without?: EnemyAction['kind']
+}>
+
+/** A Boss may have several turns that earn its signature; the first matching rule decides. */
+const HEAVY_ATTACK_RULES: Readonly<Record<string, HeavyRule | readonly [HeavyRule, ...HeavyRule[]]>> = {
   slime_boss: { kind: 'slime-crush', min: 6 },
   hexaghost: { kind: 'hexaghost-inferno', min: 3, times: 2 },
   bronze_automaton: { kind: 'automaton-beam', min: 7 },
@@ -63,42 +78,89 @@ const HEAVY_ATTACK_RULES: Readonly<Record<string, Readonly<{ kind: BossHeavyAtta
   awakened_one_phase_2: { kind: 'awakened-eruption', min: 6 },
   time_eater: { kind: 'time-crush', min: 6 },
   corrupt_heart: { kind: 'heart-pulse', min: 5 },
+  downfall_witch: { kind: 'witch-hex', min: 3 },
+  downfall_dark_core: { kind: 'dark-core-nova', min: 4, without: 'block' },
+  downfall_wrathful: [{ kind: 'wrathful-awakening', min: 3, with: 'transform' }, { kind: 'wrathful-awakening', min: 4 }],
+  downfall_wrathful_wrath: { kind: 'wrathful-fury', min: 4, sequence: true },
+  downfall_orb_master: { kind: 'orb-master-overload', min: 4, with: 'addAbilityCube' },
+  downfall_inferno: { kind: 'inferno-blaze', min: 5 },
+  downfall_trickster: { kind: 'trickster-ambush', min: 5 },
+  downfall_demon: { kind: 'demon-slam', min: 5 },
+  downfall_wraith: { kind: 'wraith-reap', min: 7 },
+  downfall_blasphemer: { kind: 'blasphemer-smite', min: 5 },
+  downfall_blasphemer_divinity: { kind: 'divinity-ruin', min: 4, sequence: true },
+  downfall_neow: { kind: 'neow-judgement', min: 5 },
+  downfall_doppelganger: { kind: 'doppelganger-barrage', min: 4, sequence: true },
+  downfall_corrupted: { kind: 'corrupted-ruin', min: 5 },
 }
 
+const ACTIONS = 'combat/vfx/actions/'
 const HEAVY_ATTACK_ART: Readonly<Record<BossHeavyAttack, readonly string[]>> = {
-  'slime-crush': ['combat/vfx/actions/turn-poison-impact.webp'],
-  'hexaghost-inferno': ['combat/vfx/actions/hexaghost-flame.webp', 'combat/vfx/actions/hexaghost-flame-impact.webp'],
+  'slime-crush': [`${ACTIONS}turn-poison-impact.webp`],
+  'hexaghost-inferno': [`${ACTIONS}hexaghost-flame.webp`, `${ACTIONS}hexaghost-flame-impact.webp`],
   'automaton-beam': ['combat/vfx/hit-burst.webp'],
-  'guardian-bash': ['combat/vfx/actions/ironclad-bash.webp'],
-  'collector-fireball': ['combat/vfx/actions/hexaghost-flame.webp', 'combat/vfx/actions/ironclad-bash.webp',
-    'combat/vfx/actions/hexaghost-flame-impact.webp'],
-  'champ-execute': ['combat/vfx/actions/ironclad-strike.webp'],
-  'champ-flurry': ['combat/vfx/actions/ironclad-strike.webp', 'combat/vfx/actions/speed-trail.webp'],
-  'awakened-rend': ['combat/vfx/actions/awakened-claw-scratch.webp'],
-  'awakened-eruption': ['combat/vfx/actions/awakened-blue-fire.webp'],
-  'time-crush': ['combat/vfx/actions/turn-countdown-impact.webp', 'combat/vfx/hit-burst.webp'],
-  'heart-pulse': ['combat/vfx/actions/turn-damage-impact.webp'],
+  'guardian-bash': [`${ACTIONS}ironclad-bash.webp`],
+  'collector-fireball': [`${ACTIONS}hexaghost-flame.webp`, `${ACTIONS}ironclad-bash.webp`, `${ACTIONS}hexaghost-flame-impact.webp`],
+  'champ-execute': [`${ACTIONS}ironclad-strike.webp`],
+  'champ-flurry': [`${ACTIONS}ironclad-strike.webp`, `${ACTIONS}speed-trail.webp`],
+  'awakened-rend': [`${ACTIONS}awakened-claw-scratch.webp`],
+  'awakened-eruption': [`${ACTIONS}awakened-blue-fire.webp`],
+  'time-crush': [`${ACTIONS}turn-countdown-impact.webp`, 'combat/vfx/hit-burst.webp'],
+  'heart-pulse': [`${ACTIONS}turn-damage-impact.webp`],
+  'witch-hex': [`${ACTIONS}magic-burst.webp`, `${ACTIONS}turn-poison-impact.webp`],
+  'dark-core-nova': [`${ACTIONS}dark-channel.webp`],
+  'wrathful-awakening': [`${ACTIONS}ironclad-bash.webp`, `${ACTIONS}watcher-wrath-aura.webp`],
+  'wrathful-fury': [`${ACTIONS}ironclad-strike.webp`, `${ACTIONS}speed-trail.webp`],
+  'orb-master-overload': [`${ACTIONS}turn-lightning-strike.webp`, `${ACTIONS}lightning-channel.webp`, `${ACTIONS}frost-channel.webp`],
+  'inferno-blaze': [`${ACTIONS}awakened-blue-fire.webp`, `${ACTIONS}hexaghost-flame-impact.webp`],
+  'trickster-ambush': [`${ACTIONS}silent-knife.webp`, `${ACTIONS}silent-shiv.webp`],
+  'demon-slam': [`${ACTIONS}watcher-meteor.webp`, `${ACTIONS}watcher-meteor-impact.webp`],
+  'wraith-reap': [`${ACTIONS}ironclad-strike.webp`],
+  'blasphemer-smite': ['combat/vfx/hit-burst.webp'],
+  'divinity-ruin': ['combat/vfx/hit-burst.webp'],
+  'neow-judgement': [`${ACTIONS}watcher-pray.webp`, `${ACTIONS}magic-burst.webp`, 'combat/vfx/hit-burst.webp'],
+  'doppelganger-barrage': [`${ACTIONS}silent-knife.webp`, `${ACTIONS}silent-shiv.webp`],
+  'corrupted-ruin': [`${ACTIONS}turn-vulnerable-impact.webp`, `${ACTIONS}turn-burn-impact.webp`],
 }
 
 /** Artwork the boss's big-hit effect paints, so no frame of it waits on the network. */
 export function bossHeavyArtFor(defId: string): string[] {
-  const rule = HEAVY_ATTACK_RULES[defId]
+  const rule = rulesFor(defId)[0]
   return rule ? HEAVY_ATTACK_ART[rule.kind].map(path => assetPath(path)) : []
 }
 
-/** The baked boss swing lands at 730ms; each extra hit follows after this gap. */
+/** The baked boss swing lands at 730ms; each extra beat follows after this gap. */
 export const BOSS_CONTACT_MS = 730
 export const BOSS_HEAVY_HIT_GAP_MS = 320
 
-/** The printed rotation decides it, so Strength changes the number but never the spectacle. */
+/**
+ * The printed rotation decides it, so Strength changes the number but never the
+ * spectacle. `hits` counts presentation beats: a four-hit barrage still lands as
+ * two so it fits inside the swing.
+ */
 export function bossHeavyAttackFor(
   defId: string,
   actions: readonly EnemyAction[],
 ): Readonly<{ kind: BossHeavyAttack; hits: number }> | undefined {
-  const rule = HEAVY_ATTACK_RULES[defId]
-  const heavy = rule && actions.find((action): action is Extract<EnemyAction, { kind: 'attack' }> =>
-    action.kind === 'attack' && action.amount >= rule.min && (action.times ?? 1) >= (rule.times ?? 1))
-  return rule && heavy ? { kind: rule.kind, hits: heavy.times ?? 1 } : undefined
+  for (const rule of rulesFor(defId)) {
+    if (rule.with && !actions.some(action => action.kind === rule.with)) continue
+    if (rule.without && actions.some(action => action.kind === rule.without)) continue
+    for (const action of actions) {
+      if (rule.sequence && action.kind === 'attackSequence' &&
+        action.hits.reduce((total, hit) => total + hit.amount, 0) >= rule.min) {
+        return { kind: rule.kind, hits: Math.min(2, action.hits.length) }
+      }
+      if (!rule.sequence && action.kind === 'attack' && action.amount >= rule.min && (action.times ?? 1) >= (rule.times ?? 1)) {
+        return { kind: rule.kind, hits: Math.min(2, action.times ?? 1) }
+      }
+    }
+  }
+  return undefined
+}
+
+function rulesFor(defId: string): readonly HeavyRule[] {
+  const rules = HEAVY_ATTACK_RULES[defId]
+  return rules === undefined ? [] : 'kind' in rules ? [rules] : rules
 }
 
 export function bossAttackMotionFor(artId: string): 'melee' | 'ranged' {

@@ -505,6 +505,36 @@ check('Hermit passive powers modify starter attacks, Rapid Fire, and Curse loads
   }
 })
 
+check('Wrist Blade boosts each starter Strike made zero-cost by Maintenance', () => {
+  for (const relicId of [null, 'wrist_blade', 'downfall_wrist_blade']) {
+    for (const maintenanceUpgraded of [null, false, true]) {
+      for (const strikeUpgraded of [false, true]) {
+        const maintenance = instance('maintenance', 'hermit_maintenance', maintenanceUpgraded === true)
+        const strikes = [0, 1, 2].map((index) => instance(`strike-${index}`, 'hermit_strike', strikeUpgraded))
+        const foreignStrike = instance('foreign-strike', 'strike_ironclad')
+        let combat = createCombat(createRng(709), [player({
+          hand: [maintenance, ...strikes, foreignStrike], energy: 6,
+          relics: relicId ? [{ defId: relicId }] : [],
+        })], [enemy({ hp: 100, maxHp: 100 })])
+        skipSetupLoad(combat)
+        const maintained = maintenanceUpgraded !== null
+        if (maintained) combat = playCard(combat, 'p1', maintenance.uid)
+        const damage = (strikeUpgraded ? 2 : 1) + (maintenanceUpgraded === true ? 1 : 0) +
+          (maintained && relicId ? 1 : 0)
+        for (const [index, strike] of strikes.entries()) {
+          combat = playCard(combat, 'p1', strike.uid, { enemyUid: 'e1' })
+          assert.equal(combat.enemies[0].hp, 100 - (index + 1) * damage,
+            `${relicId}, Maintenance=${maintenanceUpgraded}, Strike+=${strikeUpgraded}`)
+          assert.equal(combat.players[0].energy, maintained ? 5 : 5 - index)
+        }
+        combat = playCard(combat, 'p1', foreignStrike.uid, { enemyUid: 'e1' })
+        assert.equal(combat.enemies[0].hp, 99 - 3 * damage)
+        assert.equal(combat.players[0].energy, maintained ? 4 : 2)
+      }
+    }
+  }
+})
+
 check('playing Overwhelming Power after two attacks grants its once-per-turn draw immediately', () => {
   for (const upgraded of [false, true]) {
     const power = instance('late-power', 'hermit_overwhelming_power', upgraded)

@@ -645,6 +645,7 @@ export function cardCost(
   lostHpThisCombat = false,
 ): number | 'X' {
   if (def.type === 'skill' && powers.some((held) => cardDef(held.defId).corruptSkills)) return 0
+  if (def.id === 'hermit_strike' && powers.some((held) => held.defId === 'hermit_maintenance')) return 0
   if (def.cost === 'X') return 'X'
   const cost = lostHpThisCombat ? (def.costAfterHpLoss ?? def.cost) : def.cost
   return Math.max(0, cost - (def.powerCostReduction ?? 0) * powers.length)

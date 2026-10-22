@@ -38,13 +38,14 @@ try {
         for (const name of ['Single Player', 'Standard', 'Embark', 'Start standard campaign']) {
           const button = page.getByRole('button', { name, exact: true })
           if (engineName === 'webkit' && screen === 'horizontal-phone') {
-            await button.scrollIntoViewIfNeeded()
+            await button.waitFor({ state: 'visible' })
             const box = await button.boundingBox()
             const visual = await page.evaluate(() => ({ x: visualViewport.offsetLeft, y: visualViewport.offsetTop, scale: visualViewport.scale }))
             await page.touchscreen.tap((box.x + box.width / 2 - visual.x) * visual.scale,
               (box.y + box.height / 2 - visual.y) * visual.scale)
           } else await button.click()
         }
+        await page.waitForFunction(() => window.__STS_DEBUG__?.getRun()?.phase === 'neow')
         const run = postNeowRun(47, [{ id: 'p1', name: 'Ironclad', character: 'ironclad' }])
         const id = run.map.rows[0][0]
         run.map.rooms[id].kind = 'encounter'

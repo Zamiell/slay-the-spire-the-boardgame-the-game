@@ -385,17 +385,17 @@
 
 .sts-scope .reward-screen--card-choice .reward-screen__cards > .card {
   width: min(13.4rem, calc((95vw - 9rem) / var(--reward-card-count, 3)));
-  transform-origin: center bottom;
-  transition: transform 150ms ease, filter 150ms ease;
+  transform-origin: center;
+  transform: scale(1);
+  /* STS2 grid holders snap from 0.8 to 1 on focus, then ease back over 0.5s. */
+  transition: transform 500ms cubic-bezier(0.19, 1, 0.22, 1);
 }
 
-.sts-scope .reward-screen--card-choice .reward-screen__cards > .card:hover,
-.sts-scope .reward-screen--card-choice .reward-screen__cards > .card:focus-visible {
+.sts-scope .reward-screen--card-choice .reward-screen__cards > .card:not([aria-disabled='true']):is(:hover, :focus-visible) {
   z-index: 2;
   filter: drop-shadow(0 0.55rem 0.6rem rgb(0 0 0 / 0.7));
-  /* Keep the resting hit area inside the enlarged card at every frame. Lifting
-     its bottom edge away from the pointer repeatedly toggles hover on/off. */
-  transform: scale(1.11);
+  transform: scale(1.25);
+  transition: none;
 }
 
 @media (max-height: 700px) {
@@ -415,7 +415,13 @@
   html:not([data-mobile-performance='true']) .sts-scope .reward-screen--card-choice .reward-screen__cards > .card {
     transition: none;
   }
-  html:not([data-mobile-performance='true']) .sts-scope .reward-screen--card-choice .reward-screen__cards > .card:is(:hover, :focus-visible) {
+  html:not([data-mobile-performance='true']) .sts-scope .reward-screen--card-choice .reward-screen__cards > .card:not([aria-disabled='true']):is(:hover, :focus-visible) {
     transform: none;
   }
+}
+
+html[data-reduced-motion='true'] .sts-scope .reward-screen--card-choice .reward-screen__cards > .card,
+html[data-reduced-motion='true'] .sts-scope .reward-screen--card-choice .reward-screen__cards > .card:not([aria-disabled='true']):is(:hover, :focus-visible) {
+  transform: none;
+  transition: none;
 }

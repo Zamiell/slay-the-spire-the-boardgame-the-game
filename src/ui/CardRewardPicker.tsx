@@ -50,6 +50,7 @@ export function CardRewardPicker({
     <div className="reward-screen__cards">
       {choices.map((defId, index) => <Card key={`${defId}-${index}`}
         card={{ uid: `${uidPrefix}-${index}`, defId, upgraded: upgraded || viewUpgrades && Boolean(cardDef(defId).upgrade) }} playable={!disabled}
+        hoverHelp={!disabled}
         tabIndex={disabled ? -1 : undefined}
         onClick={() => !disabled && onChoose(index)} />)}
     </div>

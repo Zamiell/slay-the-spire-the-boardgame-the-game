@@ -68,6 +68,7 @@ try {
     const endTurn = page.getByRole('button', { name: /^End Turn \d+/ })
     await endTurn.waitFor()
     assert(await endTurn.isEnabled())
+    assert.equal(await page.locator('.combat__turn').count(), 0, 'the redundant top-left turn number remains')
     assert.equal(await endTurn.textContent(), `End Turn ${await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.turn)}`)
     assert(await page.evaluate(async () => {
       const { queryRunLogControl } = await import('/src/ui/run-log.ts')

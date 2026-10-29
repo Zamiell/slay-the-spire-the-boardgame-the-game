@@ -59,7 +59,7 @@ const boxes = (page) => page.evaluate(() => {
       right: Math.max(...boxes.map((box) => box.right)), bottom: Math.max(...boxes.map((box) => box.bottom)) } : undefined
   }
   return { viewport: { width: innerWidth, height: innerHeight }, overflow: document.documentElement.scrollWidth > innerWidth,
-    occupied: [...document.querySelectorAll('.token--orb, .enemy__intent .icon-value, .combat__turn, .combat__phase')].map((element) => {
+    occupied: [...document.querySelectorAll('.token--orb, .enemy__intent .icon-value, .combat__phase')].map((element) => {
       const box = element.getBoundingClientRect()
       return { name: element.className, left: box.left, top: box.top, right: box.right, bottom: box.bottom }
     }),
@@ -257,7 +257,7 @@ async function localFlow(page, name, pause = 0) {
     choices.push(await page.evaluate(() => document.activeElement?.getAttribute('aria-label') === 'Courier choices'))
     choices.push(await page.getByRole('button', { name: 'Look at Relic' }).isHidden() && !(await page.locator('dialog.pause-menu[open]').count()))
     await press(toggle)
-    await page.locator('.combat__turn').click()
+    await page.locator('.combat__phase').click()
     choices.push(await page.getByRole('button', { name: 'Look at Relic' }).isHidden())
     await press(toggle)
     await page.getByRole('button', { name: 'Look at Potion' }).focus()

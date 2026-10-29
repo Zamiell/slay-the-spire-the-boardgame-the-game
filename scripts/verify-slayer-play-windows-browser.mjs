@@ -87,8 +87,8 @@ try {
       const overlapping = intents.filter((rect) => rect.x < box.x + box.width && box.x < rect.x + rect.width &&
         rect.y < box.y + box.height && box.y < rect.y + rect.height)
       assert.deepEqual(overlapping, [], `${screen}: the window prompt ${JSON.stringify(box)} covers no enemy intent`)
-      // Nor the turn label or the End turn button it shares the top row with on a phone.
-      for (const selector of ['.combat__turn', '.combat__phase', '.combat__end-turn']) {
+      // Nor the phase label or the End Turn button it shares the top row with on a phone.
+      for (const selector of ['.combat__phase', '.combat__end-turn']) {
         for (const rect of await page.locator(selector).evaluateAll((elements) => elements.map((element) => {
           const bounds = element.getBoundingClientRect()
           return { x: bounds.left, y: bounds.top, width: bounds.width, height: bounds.height }

@@ -5443,7 +5443,6 @@ function CombatScreenView({
     >
       {groundedVfx}
       <header className="combat__bar">
-        <span className="combat__turn">Turn {state.turn}</span>
         <span className="combat__die" title="The round's shared die">
           <Icon name={dieIcon(state.die)} size={26} decorative={false} />
         </span>

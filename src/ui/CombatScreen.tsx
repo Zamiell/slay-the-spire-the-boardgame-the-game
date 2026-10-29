@@ -208,7 +208,7 @@ import {
   releaseCardZoom,
   tryClaimCardZoom,
 } from './PowerRow.tsx'
-import { OrbRow, TokenRow, orbDisplayValue } from './TokenRow.tsx'
+import { ClawCubeIcon, OrbRow, TokenRow, orbDisplayValue } from './TokenRow.tsx'
 import {
   STAGE_GAP_REM,
   STAGE_MARGIN_REM,
@@ -5439,7 +5439,7 @@ function CombatScreenView({
         ? `${state.combatId}:${state.turn}` : undefined}
       onClick={(event) => {
         if (!(event.target instanceof Element) || event.target.closest(
-          'button, a, input, select, textarea, [role="button"], dialog, .card-keyword-tips',
+          'button, a, input, select, textarea, [role="button"], dialog, .card-keyword-tips, .combat__claw-cubes',
         )) return
         if (!pending || usingCard || pending.choiceCards || pending.card.uid === forcedCardUid ||
           (!pending.cardInHand && !pending.chamberPlay)) return
@@ -5489,6 +5489,13 @@ function CombatScreenView({
         {onCourierReveal && courierPeekPhase(state)
           ? <CourierPeek placement="bar" players={state.players} viewerId={viewerId} usedBy={courierUsedBy ?? []} onReveal={onCourierReveal} /> : null}
         <span className="combat__actions">
+          {(viewer.clawCubesGainedThisCombat ?? 0) > 0 ? <PotionTooltipAnchor
+            id="claw-cubes" className="combat__claw-cubes" focusable
+            name={`Claw cubes: ${viewer.clawCubesGainedThisCombat}`} kindLabel="Combat counter"
+            text="Claw (Claw Pack) gains a red cube before dealing damage. Each cube adds 1 damage to those Claws. Cubes last for this combat and are not spent.">
+            <ClawCubeIcon size={24} />
+            <strong aria-hidden="true">{viewer.clawCubesGainedThisCombat}</strong>
+          </PotionTooltipAnchor> : null}
           {/* Slayer Pack: a card-given choice (Heel Hook, Magnetism) docks in the bar, off the board,
               so it never covers an enemy or its intent. */}
           {playerChoicePrompt ? <span className="combat__power-hint" role="status">{playerChoicePrompt}</span> : null}

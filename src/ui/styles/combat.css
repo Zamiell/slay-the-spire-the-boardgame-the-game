@@ -76,6 +76,25 @@
 
 .combat__actions::-webkit-scrollbar { display: none; }
 
+.combat__actions .combat__claw-cubes {
+  display: inline-flex;
+  align-items: center;
+  align-self: start;
+  flex: none;
+  gap: 0.3rem;
+  min-height: 2.5rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #b9493d;
+  border-radius: 0.35rem;
+  background: #351a19;
+  color: #ffe8cf;
+  font-variant-numeric: tabular-nums;
+  cursor: help;
+}
+.combat__claw-cubes strong { font-size: 1.1rem; }
+.combat__claw-cubes:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.claw-cube-icon { flex: none; }
+
 .shiv-actions { display: inline-grid; flex: none; align-self: start; gap: 0.2rem; }
 .shiv-actions__stack { display: inline-grid; padding-inline: 0.2rem; }
 .shiv-actions__stack > img { grid-area: 1 / 1; }

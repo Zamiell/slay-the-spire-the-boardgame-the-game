@@ -5405,6 +5405,10 @@ function CombatScreenView({
     pending.choice?.kind === 'discard' && !pending.choiceCards && !pending.choiceConfirmed
   const timeWarpCardLimit = timeWarpLimit(state)
   const timeWarpCardsPlayed = viewer.cardsPlayedThisTurn ?? 0
+  const enemyInspectionEnabled = !Boolean(pending || cardDrag || cardInteraction.session ||
+    pendingPotion || pendingPowerUid || spendingShiv || spendingSoulburn ||
+    endTurnEffectAimed || endTurnEffectDrag || pendingStartChoice ||
+    pendingTrigger?.playerId === viewer.id)
 
   return (
     <div
@@ -6930,6 +6934,7 @@ function CombatScreenView({
                 onThrowSkipped={onCultistThrowSkipped}
                 // Stage slots count from the right; bosses retain printed left-to-right order.
                 stageIndex={stageEnemies.length + bosses.length - 1 - index}
+                inspectionEnabled={enemyInspectionEnabled}
                 // A boss stands in every row, so the only reading that means
                 // anything to the person looking at the screen is their own.
                 defender={viewer}
@@ -7522,6 +7527,7 @@ function CombatScreenView({
                       onThrowStart={onCultistThrowStart}
                       onThrowSkipped={onCultistThrowSkipped}
                       stageIndex={stageEnemies.findIndex((candidate) => candidate.uid === enemy.uid)}
+                      inspectionEnabled={enemyInspectionEnabled}
                       rowLabel={facingEnemies.some((facing) => facing.uid === enemy.uid) ? undefined : occupant?.name}
                       defender={facingEnemies.some((facing) => facing.uid === enemy.uid)
                         ? state.players.find((player) => !player.dead && player.id === viewerId && player.facingEnemyUid === enemy.uid) ??

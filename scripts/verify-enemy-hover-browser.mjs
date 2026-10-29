@@ -26,6 +26,7 @@ async function printedCard(tip, file) {
 try {
   for (const [engineName, engine] of Object.entries({ chromium, webkit })) {
     if (process.argv.includes('--webkit-only') && engineName !== 'webkit') continue
+    if (process.argv.includes('--chromium-only') && engineName !== 'chromium') continue
     const browser = await engine.launch()
     try {
       for (const [screen, viewport] of [['desktop', { width: 1440, height: 900 }], ['horizontal-phone', { width: 844, height: 390 }]]) {
@@ -40,6 +41,8 @@ try {
         run.map.rooms[id].kind = 'encounter'
         const combat = enterRoom(run, id)
         combat.combat.players[0].hand = Array.from({ length: 7 }, (_, i) => ({ uid: `hover-${i}`, defId: i % 2 ? 'defend_ironclad' : 'strike_ironclad', upgraded: false }))
+        combat.combat.players[0].shivs = 2
+        combat.combat.players[0].potions = ['fire_potion']
         combat.combat.enemies = ['fungi_beast', 'jaw_worm'].map((defId, i) => ({
           ...combat.combat.enemies[0], uid: `hover-enemy-${i}`, defId, row: 0, hp: 5, maxHp: 5, dead: false, isBoss: false,
         }))
@@ -121,6 +124,38 @@ try {
           await tip.waitFor({ state: 'hidden' })
           await page.waitForTimeout(250)
           await page.screenshot({ path: resolve(out, `${engineName}-${screen}-hand.png`) })
+          for (const action of [
+            page.locator('.hand .card[aria-label^="Strike,"]').first(),
+            page.getByRole('button', { name: 'Use Shiv', exact: true }),
+            page.getByRole('button', { name: 'Use all Shivs', exact: true }),
+            page.getByRole('button', { name: 'Use Fire Potion', exact: true }),
+          ]) {
+            await action.click()
+            await fungi.locator('.enemy__hit-area').hover()
+            await fungi.focus()
+            await page.keyboard.down('Shift')
+            assert.equal(await tip.count(), 0, 'an armed action must suppress enemy help, including focus and Shift')
+            await page.keyboard.up('Shift')
+            if (await page.locator('.card-interaction').count()) {
+              await page.keyboard.press('Escape')
+              await page.locator('.card-interaction').waitFor({ state: 'detached' })
+            } else await action.click()
+            await page.mouse.move(2, 2)
+            await fungi.locator('.enemy__hit-area').hover()
+            await tip.waitFor()
+          }
+          const draggedCard = page.locator('.hand .card[aria-label^="Strike,"]').first()
+          await draggedCard.hover()
+          const dragBox = await draggedCard.boundingBox()
+          await page.mouse.move(dragBox.x + dragBox.width / 2, dragBox.y + dragBox.height / 4)
+          await page.mouse.down()
+          await page.mouse.move(20, 150, { steps: 10 })
+          await page.mouse.up()
+          await page.locator('.card-interaction[data-stage="aiming"]').waitFor()
+          await fungi.locator('.enemy__hit-area').hover()
+          assert.equal(await tip.count(), 0, 'released drag still holds a card while aiming')
+          await page.keyboard.press('Escape')
+          await page.locator('.card-interaction').waitFor({ state: 'detached' })
           const beforeAttack = await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.players[0].hand.length)
           await page.locator('.hand .card[aria-label^="Strike,"]').first().click()
           await fungi.locator('.enemy__hit-area').click()
@@ -155,6 +190,10 @@ try {
             `wide boss reference must stay beside the enemy group: ${JSON.stringify({ bossTip, bossBox, targets })}`)
           assert(targets.every(box => bossTip.x >= box.right || bossTip.x + bossTip.width <= box.left ||
             bossTip.y >= box.bottom || bossTip.y + bossTip.height <= box.top), 'preview must not cover an enemy target')
+          await page.getByRole('button', { name: 'Use Shiv', exact: true }).click()
+          await boss.locator('.enemy__hit-area').hover()
+          assert.equal(await tip.count(), 0, 'boss previews must also stay hidden while aiming a Shiv')
+          await page.getByRole('button', { name: 'Use Shiv', exact: true }).click()
           await page.mouse.move(2, 2)
           await tip.waitFor({ state: 'hidden' })
           await page.keyboard.press('Tab')
@@ -212,6 +251,12 @@ try {
           await touchPage.screenshot({ path: resolve(out, `${engineName}-${screen}-touch.png`) })
           await touchPage.touchscreen.tap(3, 3)
           await touchPage.locator('.card-keyword-tips[data-open]').waitFor({ state: 'hidden' })
+          await touchPage.getByRole('button', { name: 'Use Shiv', exact: true }).tap()
+          await hit.locator('..').evaluate(element => element.closest('.enemy').focus())
+          assert.equal(await touchPage.locator('.card-keyword-tips[data-open]').count(), 0,
+            'a touch-armed Shiv must suppress enemy focus inspection')
+          await touchPage.getByRole('button', { name: 'Use Shiv', exact: true }).tap()
+          await touchPage.touchscreen.tap(3, 3)
           const defend = touchPage.locator('.hand .card[aria-label^="Defend,"]').first()
           const beforeTap = await touchPage.evaluate(() => structuredClone(window.__STS_DEBUG__.getRun().combat.players[0]))
           await tap(defend, .2)

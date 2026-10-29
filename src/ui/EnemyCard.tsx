@@ -56,6 +56,7 @@ type EnemyCardProps = {
   /** A player attack is still presenting; bosses begin only after it clears. */
   deferBossAttack?: boolean
   targeted?: boolean
+  inspectionEnabled?: boolean
   disabled?: boolean
   splitAttackEvents?: { seq: number; damage?: number; weights: readonly number[] }[]
   hitBeats?: { beat: number; damage: number; delayMs: number }[]
@@ -299,6 +300,7 @@ export function EnemyCard({
   animateArt = false,
   deferBossAttack = false,
   targeted = false,
+  inspectionEnabled = true,
   disabled = false,
   hitBeats = [],
   splitAttackEvents = [],
@@ -959,7 +961,8 @@ export function EnemyCard({
     .join(' ')
 
   const tips: { name: string, text: string }[] = []
-  if (!visibleEnemy.dead) for (const label of abilityLabels) {
+  const showHelp = inspectionEnabled && !visibleEnemy.dead
+  if (showHelp) for (const label of abilityLabels) {
     const separator = label.indexOf(':')
     const name = separator < 0 ? 'Special effects' : label.slice(0, separator)
     const text = separator < 0 ? label : label.slice(separator + 1).trim()
@@ -969,7 +972,7 @@ export function EnemyCard({
   }
   return (
     <CardKeywordHelp extraTips={tips} hover
-      image={visibleEnemy.dead ? undefined : {
+      image={!showHelp ? undefined : {
         ...enemyCardImage(def.id, visibleEnemy.ascension),
         alt: `${def.name} board-game card`,
       }}>{(helpProps) => (

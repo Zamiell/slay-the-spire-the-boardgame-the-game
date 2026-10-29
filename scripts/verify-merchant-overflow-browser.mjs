@@ -150,6 +150,32 @@ try {
     assert(greyed.every((item) => item.disabled &&
       item.filter.includes('grayscale(0.7)') && item.filter.includes('brightness(0.6)')),
     'unaffordable relics and potions must grey out like cards')
+    const removal = page.getByRole('button', { name: /Card Removal Service/ })
+    assert(await removal.isDisabled(), 'card removal must be disabled without Gold')
+    await removal.evaluate(button => button.click())
+    assert.equal(await page.locator('.merchant-removal-dialog').isVisible(), false,
+      'an unaffordable removal must not open the card picker')
+    for (const [ascension, gold, affordable] of [
+      [0, [2, 0, 0, 0], false],
+      [0, [1, 2, 0, 0], true],
+      [8, [1, 2, 0, 0], false],
+      [8, [1, 3, 0, 0], true],
+    ]) {
+      await page.evaluate(({ ascension, gold }) => {
+        const run = structuredClone(window.__STS_DEBUG__.getRun())
+        run.ascension = ascension
+        run.players.forEach((player, index) => { player.gold = gold[index] })
+        window.__STS_DEBUG__.setRun(run)
+      }, { ascension, gold })
+      assert.equal(await removal.isEnabled(), affordable,
+        `removal affordability at Ascension ${ascension} with ${gold.join('+')} Gold`)
+    }
+    await page.evaluate(() => {
+      const run = structuredClone(window.__STS_DEBUG__.getRun())
+      run.ascension = 0
+      run.players.forEach(player => { player.gold = 0 })
+      window.__STS_DEBUG__.setRun(run)
+    })
     await wares.first().hover()
     assert.deepEqual(await wareAppearance(), greyed, 'hover made an unaffordable item look buyable')
     await page.screenshot({ path: `${output}/${name}-unaffordable-wares.png` })

@@ -154,6 +154,7 @@ export {
   spendSoulburn,
   spendVigor,
   spendShiv,
+  spendAllShivs,
   startPlayerTurn,
   startPlayerTurnWithChoices,
   startTurnAbilities,

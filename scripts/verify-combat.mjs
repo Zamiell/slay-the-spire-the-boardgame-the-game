@@ -46,6 +46,7 @@ import {
   resolveStartTurnScry,
   spendMiracle,
   spendShiv,
+  spendAllShivs,
   startPlayerTurn,
   startPlayerTurnWithChoices,
   startTurnAbilities,
@@ -8766,6 +8767,25 @@ check('Miracle cubes are a shared supply usable by every character without tradi
   assertEqual(spent.players[0].miracles, 0, 'another character may use the Miracle mechanic')
   assertEqual(spent.players[0].energy, 3)
   assertEqual(spent.players[1].miracles, 0, 'using the token does not transfer it')
+})
+
+check('all Shivs match consecutive individual attacks and stop at a dead target', () => {
+  const armed = combat(
+    [makePlayer({ character: 'silent', shivs: 3, strength: 1, cardsPlayedThisTurn: 5 })],
+    [makeEnemy({ hp: 20, maxHp: 20, vulnerable: 2 })],
+  )
+  const individual = spendShiv(spendShiv(spendShiv(armed, 'p1', 'e1'), 'p1', 'e1'), 'p1', 'e1')
+  assertDeepEqual(spendAllShivs(armed, 'p1', 'e1'), individual)
+  const weakTarget = combat(
+    [makePlayer({ character: 'silent', shivs: 3 })],
+    [makeEnemy({ hp: 1, maxHp: 1 }), makeEnemy({ uid: 'e2', row: 1, hp: 10, maxHp: 10 })],
+  )
+  const stopped = spendAllShivs(weakTarget, 'p1', 'e1')
+  assertEqual(stopped.players[0].shivs, 2)
+  assertEqual(stopped.enemies[1].hp, 10)
+  assertEqual(spendAllShivs(weakTarget, 'p1', 'missing'), weakTarget)
+  const blocked = { ...weakTarget, phase: 'enemy' }
+  assertEqual(spendAllShivs(blocked, 'p1', 'e1'), blocked)
 })
 
 check('Shivs are separate attacks and overflow may attack immediately', () => {

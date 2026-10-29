@@ -76,6 +76,12 @@
 
 .combat__actions::-webkit-scrollbar { display: none; }
 
+.shiv-actions { display: inline-grid; flex: none; align-self: start; gap: 0.2rem; }
+.shiv-actions__stack { display: inline-grid; padding-inline: 0.2rem; }
+.shiv-actions__stack > img { grid-area: 1 / 1; }
+.shiv-actions__stack > img:first-child { translate: -0.2rem -0.1rem; }
+.shiv-actions__stack > img:last-child { translate: 0.2rem 0.1rem; }
+
 .combat__result {
   position: absolute;
   z-index: 80;

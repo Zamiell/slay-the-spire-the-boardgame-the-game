@@ -694,7 +694,7 @@ async function interactGame(input: unknown, options?: { signal?: AbortSignal }) 
       [...scope.querySelectorAll<HTMLElement>('.enemy')]).filter((enemy) => rendered(enemy) &&
         !available(enemy) && label(enemy) === targetLabel)
     if (targetLabel !== undefined && targets.length !== 1) throw new Error('targetLabel must identify one visible unavailable enemy.')
-    if (targetLabel !== undefined && !entry.element.matches('button.card') && entry.label !== 'Use Shiv' &&
+    if (targetLabel !== undefined && !entry.element.matches('button.card') && entry.label !== 'Use Shiv' && entry.label !== 'Use all Shivs' &&
       !entry.element.getAttribute('aria-describedby')?.startsWith('potion-action-')) {
       throw new Error('targetLabel can only follow a card, Shiv, or potion action.')
     }

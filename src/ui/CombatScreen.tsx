@@ -162,6 +162,7 @@ import {
   resolveStartTurnScry,
   spendMiracle,
   spendShiv,
+  spendAllShivs,
   spendSoulburn,
   spendVigor,
   startPlayerTurnWithChoices,
@@ -534,7 +535,8 @@ function CombatScreenView({
   const stageAct = Math.min(4, Math.max(1, act))
   const [pending, setPending] = useState<Pending | null>(null)
   const [miracleOnCard, setMiracleOnCard] = useState(false)
-  const [spendingShiv, setSpendingShiv] = useState(false)
+  const [spendingShiv, setSpendingShiv] = useState<false | 'one' | 'all'>(false)
+  const shivActionPending = useRef(false)
   const [spendingSoulburn, setSpendingSoulburn] = useState(false)
   const [extraCrispySoulburn, setExtraCrispySoulburn] = useState(false)
   const [chamberOpen, setChamberOpen] = useState(false)
@@ -4706,6 +4708,18 @@ function CombatScreenView({
   // below): the enemy is just the anchor, its row is the actual target. The
   // boss itself anchors a boss-only click; cleared rows can still be chosen
   // on their empty ground instead of showing another button.
+  function toggleShivs(mode: 'one' | 'all') {
+    if (shivActionPending.current) return
+    setPending(null)
+    setPendingPowerUid(null)
+    setMiracleOnCard(false)
+    setPendingPotion(null)
+    setPotionShivEnemyUids([])
+    setPotionOverflowRequired(0)
+    setSpendingShiv((current) => current === mode ? false : mode)
+    setSpendingSoulburn(false)
+  }
+
   function onEnemyClick(enemy: Enemy) {
     const endTurnTarget = endTurnTargetForEnemy(enemy)
     if (endTurnTarget && armedEndTurnAbilityId === endTurnEffect?.id) {
@@ -4794,17 +4808,25 @@ function CombatScreenView({
       return
     }
     if (spendingShiv) {
+      if (shivActionPending.current) return
       if (onAction) {
         const shivsBefore = viewer!.shivs
+        const mode = spendingShiv
+        shivActionPending.current = true
         setSpendingShiv(false)
-        Promise.resolve(onAction({ kind: 'spendShiv', enemyUid: enemy.uid })).then((outcome) => {
+        const finish = (outcome: ActionOutcome | void) => {
+          shivActionPending.current = false
           const current = stateRef.current.players.find((player) => player.id === viewerId)
           if ((outcome?.status === 'refused' || outcome?.status === 'reconciled') &&
-            current && current.shivs >= shivsBefore) setSpendingShiv(true)
+            stateRef.current.combatId === state.combatId && current && current.shivs >= shivsBefore) setSpendingShiv(mode)
+        }
+        Promise.resolve(onAction({ kind: 'spendShiv', enemyUid: enemy.uid, ...(mode === 'all' ? { all: true } : {}) })).then(finish, (error: unknown) => {
+          console.error('Could not spend Shivs.', error)
+          finish({ status: 'refused' })
         })
         return
       }
-      const result = spendShiv(state, viewer!.id, enemy.uid)
+      const result = (spendingShiv === 'all' ? spendAllShivs : spendShiv)(state, viewer!.id, enemy.uid)
       if (result !== state) {
         setSpendingShiv(false)
         onChange?.(result)
@@ -5288,7 +5310,7 @@ function CombatScreenView({
         ? `Choose overflow Shiv target ${potionShivEnemyUids.length + 1}/${pendingPotionOverflow}, or skip the rest`
         : `Choose ${pendingPotionNeedsEnemy ? 'an enemy' : 'a player'} for ${pendingPotionDef.name}`
     : spendingShiv
-    ? 'Choose an enemy for the Shiv'
+    ? spendingShiv === 'all' ? `Choose an enemy for all ${viewer.shivs} Shivs` : 'Choose an enemy for the Shiv'
     : spendingSoulburn
     ? 'Choose an enemy for Soulburn'
     : (pending?.choice?.kind === 'load' || pending?.choice?.kind === 'loadAny') && !pending.choiceConfirmed
@@ -5592,28 +5614,31 @@ function CombatScreenView({
               }) : null}
               {state.phase === 'player' && !forcedCard && !distilled && !relicScry && !endTurnResolving &&
               !pendingTrigger && !viewer.cardPlayLocked && viewer.shivs > 0 ? (
-                <button
-                  type="button"
-                  className={spendingShiv ? 'is-chosen' : undefined}
-                  disabled={Boolean(pending?.choiceCards)}
-                  aria-label="Use Shiv"
-                  aria-description={`${viewer.shivs} Shivs available`}
-                  title={`Use Shiv (${viewer.shivs} available)`}
-                  aria-pressed={spendingShiv}
-                  onClick={() => {
-                    setPending(null)
-                    setPendingPowerUid(null)
-                    setMiracleOnCard(false)
-                    setPendingPotion(null)
-                    setPotionShivEnemyUids([])
-                    setPotionOverflowRequired(0)
-                    setSpendingShiv((current) => !current)
-                    setSpendingSoulburn(false)
-                  }}
-                >
-                  <StatusIcon name="shiv" size={22} />
-                  <span aria-hidden="true">{viewer.shivs}</span>
-                </button>
+                <span className="shiv-actions">
+                  <button
+                    type="button"
+                    className={spendingShiv === 'one' ? 'is-chosen' : undefined}
+                    disabled={Boolean(pending?.choiceCards)}
+                    aria-label="Use Shiv"
+                    aria-description={`${viewer.shivs} Shivs available`}
+                    title={`Use Shiv (${viewer.shivs} available)`}
+                    aria-pressed={spendingShiv === 'one'}
+                    onClick={() => toggleShivs('one')}
+                  >
+                    <StatusIcon name="shiv" size={22} />
+                    <span aria-hidden="true">{viewer.shivs}</span>
+                  </button>
+                  <button type="button" className={spendingShiv === 'all' ? 'is-chosen' : undefined}
+                    disabled={Boolean(pending?.choiceCards)} aria-label="Use all Shivs"
+                    aria-description={`${viewer.shivs} Shivs available; stops if the target dies or a choice is required`}
+                    title={`Use all ${viewer.shivs} Shivs on one target`}
+                    aria-pressed={spendingShiv === 'all'} onClick={() => toggleShivs('all')}>
+                    <span className="shiv-actions__stack" aria-hidden="true">
+                      <StatusIcon name="shiv" size={22} /><StatusIcon name="shiv" size={22} />
+                    </span>
+                    <span aria-hidden="true">All</span>
+                  </button>
+                </span>
               ) : null}
               {state.phase === 'player' && viewer.guardianMode ? (
                 <button type="button"

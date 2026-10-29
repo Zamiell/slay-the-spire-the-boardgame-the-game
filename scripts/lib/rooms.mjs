@@ -132,6 +132,7 @@ import {
   rulesetForCharacters,
   spendMiracle,
   spendShiv,
+  spendAllShivs,
   spendSoulburn,
   spendVigor,
   tradePotion,
@@ -5401,7 +5402,10 @@ function dispatch(run, seat, action, lockedPreview) {
     }
     case 'spendShiv': {
       if (!run.combat) fail('No combat in progress')
-      const combat = spendShiv(run.combat, seat.playerId, action.enemyUid)
+      if (typeof action.enemyUid !== 'string' || action.all !== undefined && typeof action.all !== 'boolean') {
+        fail('Shivs need a valid enemy and an optional all flag')
+      }
+      const combat = (action.all ? spendAllShivs : spendShiv)(run.combat, seat.playerId, action.enemyUid)
       if (combat === run.combat) fail('That Shiv target is no longer legal')
       return { ...run, combat }
     }

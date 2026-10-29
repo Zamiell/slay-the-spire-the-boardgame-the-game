@@ -112,6 +112,7 @@ for (const resource of ['shivs', 'soulburn']) {
     }
     await refuse({ kind: 'playCard', cardUid: 'blocked-defend', preflight: true })
     await refuse({ kind: actionKind, enemyUid: 'missing-target' })
+    if (shiv) await refuse({ kind: 'spendShiv', enemyUid: 'time', all: 'yes' })
     await page.screenshot({ path: new URL('desktop-token-at-cap.png', out).pathname, fullPage: true })
     await token().click()
     await page.getByRole('button', { name: /^Time Eater,/ }).locator('.enemy__hit-area').click()
@@ -157,6 +158,41 @@ for (const resource of ['shivs', 'soulburn']) {
       await refuse({ kind: actionKind, enemyUid: 'time' })
       room.run.combat.phase = 'player'
       Object.assign(room.run.combat.players[0], { cardPlayLocked: false, dead: false })
+    }
+    if (shiv) {
+      Object.assign(room.run.combat.players[0], { shivs: 3, strength: 0, weak: 0, shivDamageBonus: 0, attacksPlayedThisTurn: 0 })
+      Object.assign(room.run.combat.enemies[0], { hp: 100, vulnerable: 0 })
+      room.version++
+      rooms.publishRoom(saved.code)
+      const all = page.getByRole('button', { name: 'Use all Shivs', exact: true })
+      await all.waitFor()
+      assert(await all.evaluate((button) => {
+        const one = button.parentElement.querySelector('[aria-label="Use Shiv"]').getBoundingClientRect()
+        const box = button.getBoundingClientRect()
+        return box.top >= one.bottom && box.left >= 0 && box.right <= innerWidth && box.bottom <= innerHeight
+      }), 'All Shivs must fit directly below the single-Shiv icon')
+      await page.screenshot({ path: new URL('phone-all-shivs.png', out).pathname, fullPage: true })
+      await all.click()
+      assert.equal(await all.getAttribute('aria-pressed'), 'true')
+      await page.getByRole('button', { name: /^Time Eater,/ }).locator('.enemy__hit-area').click()
+      await all.waitFor({ state: 'detached' })
+      assert.equal(room.run.combat.players[0].shivs, 0)
+      assert.equal(room.run.combat.players[0].attacksPlayedThisTurn, 3)
+      assert.equal(room.run.combat.players[0].cardsPlayedThisTurn, 3)
+      assert.equal(room.run.combat.enemies[0].hp, 97)
+      Object.assign(room.run.combat.players[0], { shivs: 3 })
+      Object.assign(room.run.combat.enemies[0], { hp: 1 })
+      room.run.combat.enemies.push({ ...room.run.combat.enemies[0], uid: 'surviving-target', hp: 20, maxHp: 20 })
+      room.version++
+      rooms.publishRoom(saved.code)
+      await all.waitFor()
+      await all.click()
+      await page.locator('[data-enemy-id="time"] .enemy__hit-area').click()
+      await page.waitForFunction(() => document.querySelector('[aria-label="Use Shiv"]')?.textContent.trim() === '2')
+      assert.equal(room.run.combat.players[0].shivs, 2, 'the batch wasted Shivs after the target died')
+      assert.equal(room.run.combat.enemies[1].hp, 20, 'the batch switched to another target')
+      room.run.combat.enemies.pop()
+      Object.assign(room.run.combat.enemies[0], { hp: 97, dead: false })
     }
     for (const [slot, limit] of [[0, 5], [1, 4], [2, 3]]) {
       room.run.combat.enemies[0].actionIndex = slot

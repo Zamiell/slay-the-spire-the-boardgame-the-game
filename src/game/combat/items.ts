@@ -266,6 +266,18 @@ export function spendShiv(state: CombatState, playerId: string, enemyUid: string
   return settle(next)
 }
 
+/** Spend the held Shivs as individual attacks, stopping when another attack is no longer legal. */
+export function spendAllShivs(state: CombatState, playerId: string, enemyUid: string): CombatState {
+  const count = Math.min(CAPS.shivs, state.players.find((player) => player.id === playerId)?.shivs ?? 0)
+  let next = state
+  for (let index = 0; index < count; index += 1) {
+    const spent = spendShiv(next, playerId, enemyUid)
+    if (spent === next) break
+    next = spent
+  }
+  return next
+}
+
 /** Move one available Vigor to the Spent zone whenever Guardian could play a card. */
 export function spendVigor(state: CombatState, playerId: string): CombatState {
   if (state.phase !== 'player' || state.pendingDistilled || state.pendingRelicScry || mandatoryChoicePending(state) ||

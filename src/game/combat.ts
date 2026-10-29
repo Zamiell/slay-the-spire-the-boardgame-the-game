@@ -164,6 +164,7 @@ export {
   spendSoulburn,
   spendVigor,
   spendShiv,
+  spendAllShivs,
   resolvePlunderRowSwitch,
 } from './combat/items.ts'
 export { createCombat } from './combat/create.ts'

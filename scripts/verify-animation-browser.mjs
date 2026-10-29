@@ -1409,7 +1409,7 @@ try {
   check(performanceModeHints.mobile[0] === 'auto' &&
     performanceModeHints.reduced.every((hint) => hint === 'auto'),
   `idle phone or desktop reduced-motion layers stayed promoted ${JSON.stringify(performanceModeHints)}`)
-  await page.getByRole('button', { name: /^End turn/ }).click()
+  await page.getByRole('button', { name: /^End Turn \d+/ }).click()
   await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.phase === 'enemy')
   check(await page.locator('.end-turn-effect').count() === 0, 'targetless Omega rendered an unresolved target source')
   check(await page.locator('.combat-error').count() === 0, 'targetless Omega was rejected by the local end-turn UI')

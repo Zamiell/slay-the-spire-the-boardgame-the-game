@@ -53,9 +53,15 @@ try {
     await page.locator('.room--reachable').first().click()
     if (phone) await page.locator('.room--reachable').first().click()
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat?.phase === 'player')
-    const endTurn = page.getByRole('button', { name: 'End turn', exact: true })
+    const endTurn = page.getByRole('button', { name: /^End Turn \d+/ })
     await endTurn.waitFor()
     assert(await endTurn.isEnabled())
+    assert.equal(await endTurn.textContent(), `End Turn ${await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.turn)}`)
+    assert(await page.evaluate(async () => {
+      const { queryRunLogControl } = await import('/src/ui/run-log.ts')
+      return queryRunLogControl(document, { selector: 'button', name: 'End turn' }) ===
+        document.querySelector('.combat__end-turn')
+    }), 'legacy replay logs no longer find the numbered End Turn button')
     await page.evaluate(() => {
       window.endTurnClicks = 0
       document.addEventListener('click', (event) => {
@@ -160,6 +166,8 @@ try {
       const combat = window.__STS_DEBUG__.getRun().combat
       return combat.turn > turn && combat.phase === 'player'
     }, turn)
+    assert.equal(await endTurn.textContent(), `End Turn ${await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.turn)}`,
+      'the End Turn label did not advance with the turn')
 
     await page.evaluate(() => {
       const run = structuredClone(window.__STS_DEBUG__.getRun())

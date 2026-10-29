@@ -153,7 +153,7 @@ try {
           })
           const snapshotPending = liveFirstUse ? observe() : null
           // Trigger through the real End turn -> Orb -> enemy click path.
-          await activate(page.getByRole('button', { name: 'End turn', exact: true }))
+          await activate(page.getByRole('button', { name: /^End Turn \d+/ }))
           const orb = page.locator('button.end-turn-effect--orb')
           const targetHitArea = page.locator(`[data-enemy-id="${targetId}"] .enemy__hit-area`)
           if (drag) {
@@ -248,7 +248,7 @@ assert sum(r > 220 and b > 200 and g > 210 for r, g, b in band.getdata()) >= 4, 
 
         // Promptly choosing a second orb must keep the recently hit target glowing.
         await install(2, 2)
-        await activate(page.getByRole('button', { name: 'End turn', exact: true }))
+        await activate(page.getByRole('button', { name: /^End Turn \d+/ }))
         await activate(page.locator('button.end-turn-effect--orb'))
         await freezeTime()
         await activate(page.locator('[data-enemy-id="bolt-normal"] .enemy__hit-area'))
@@ -270,7 +270,7 @@ assert sum(r > 220 and b > 200 and g > 210 for r, g, b in band.getdata()) >= 4, 
         // Same-batch passives keep separate flashes, and repeated uses restart.
         await install(3, 1)
         await freezeTime()
-        await activate(page.getByRole('button', { name: 'End turn', exact: true }))
+        await activate(page.getByRole('button', { name: /^End Turn \d+/ }))
         await page.waitForFunction(() => document.querySelectorAll('[data-lightning-strike]').length === 3)
         const delays = await strike.evaluateAll(nodes => nodes.map(n => getComputedStyle(n).animationDelay).sort())
         assert.deepEqual(delays, ['0.38s, 0.48s', '0.76s, 0.86s', '0s, 0.1s'])
@@ -286,7 +286,7 @@ assert sum(r > 220 and b > 200 and g > 210 for r, g, b in band.getdata()) >= 4, 
         assert.equal(await strike.count(), 0)
         await page.evaluate(() => { document.documentElement.dataset.reducedMotion = 'true' })
         await install(1, 1)
-        await activate(page.getByRole('button', { name: 'End turn', exact: true }))
+        await activate(page.getByRole('button', { name: /^End Turn \d+/ }))
         await page.waitForTimeout(100)
         assert.equal(await strike.count(), 0, 'reduced motion still flashes lightning')
         assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.enemies[0].hp), 29)

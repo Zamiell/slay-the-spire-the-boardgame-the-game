@@ -186,7 +186,7 @@ try {
     orbs: ['lightning', 'lightning', null],
     enemies: [{ uid: 'drag-e1', hp: 1 }, { uid: 'drag-e2', hp: 1, row: 1 }],
   })
-  await page.getByRole('button', { name: 'End turn', exact: true }).click()
+  await page.getByRole('button', { name: /^End Turn \d+/ }).click()
   const firstOrb = page.locator('button.end-turn-effect--orb')
   await firstOrb.waitFor()
   await page.waitForTimeout(320)
@@ -216,7 +216,7 @@ try {
       { uid: 'omega-boss', hp: 20, row: 0, isBoss: true },
     ],
   })
-  await page.getByRole('button', { name: 'End turn', exact: true }).click()
+  await page.getByRole('button', { name: /^End Turn \d+/ }).click()
   const omega = page.locator('.end-turn-effect--card')
   await omega.waitFor()
   await page.waitForTimeout(320)
@@ -255,7 +255,7 @@ try {
     debug.setRun(run)
   })
   await page.waitForFunction(() => document.querySelector('.hand')?.querySelectorAll('.card').length === 0)
-  await page.getByRole('button', { name: 'End turn', exact: true }).click()
+  await page.getByRole('button', { name: /^End Turn \d+/ }).click()
   const panache = page.locator('.end-turn-effect--card')
   await panache.waitFor()
   await panache.click()
@@ -270,7 +270,7 @@ try {
     orbs: ['lightning', null, null],
     enemies: [{ uid: 'click-loop-enemy', hp: 20 }],
   })
-  await page.getByRole('button', { name: 'End turn', exact: true }).click()
+  await page.getByRole('button', { name: /^End Turn \d+/ }).click()
   await waitForActiveFixture()
   const soleLoopHp = await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.enemies[0].hp)
   check('a sole Loop Orb and enemy resolve without redundant click, keyboard, or drag actions', () => {
@@ -290,7 +290,7 @@ try {
       { uid: 'loop-row-boss', hp: 20, row: 0, isBoss: true },
     ],
   })
-  await page.getByRole('button', { name: 'End turn', exact: true }).click()
+  await page.getByRole('button', { name: /^End Turn \d+/ }).click()
   const loop = page.locator('.end-turn-effect--card')
   await loop.waitFor()
   const loopOrb = page.getByRole('button', { name: 'Choose lightning Orb 1' })
@@ -469,7 +469,7 @@ try {
   })
   const beatPlayerIds = await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.players.map(player => player.id))
   assert(beatPlayerIds.length === 2, 'Beat of Death fixture needs two players')
-  await page.getByRole('button', { name: 'End turn', exact: true }).click()
+  await page.getByRole('button', { name: /^End Turn \d+/ }).click()
   await page.waitForFunction(playerIds => playerIds.every(id => document.querySelector(
     `.seat[data-player-id="${CSS.escape(id)}"] .combat-vfx[data-vfx-kind="turn"][data-vfx-asset="turn-damage-impact"]`,
   )), beatPlayerIds)

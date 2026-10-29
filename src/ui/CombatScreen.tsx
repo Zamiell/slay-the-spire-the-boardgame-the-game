@@ -5734,13 +5734,13 @@ function CombatScreenView({
                   waiting on is the whole reason a second screen existed. */}
               {!forcedCard && !distilled && !(playWindow && !playWindow.optional) ? <button type="button" ref={endTurnRef} className="combat__end-turn" onClick={finishTurn}
                 aria-keyshortcuts={state.phase === 'player' ? 'Space' : undefined}
-                title={state.phase === 'player' ? 'End turn (Space)' : undefined}
+                title={state.phase === 'player' ? `End Turn ${state.turn} (Space)` : undefined}
                 disabled={Boolean(pending?.choiceCards) || Boolean(pendingTrigger) || endTurnResolving || chamberClosing ||
                   state.phase === 'player' && voluntaryActionsBlocked ||
                   state.phase === 'discard' && !viewerNeedsEndTurnChoice}>
                 {state.phase === 'discard'
                   ? `${discardOrders[viewer.id] ? 'Update' : 'Confirm'} end-turn effect (${confirmedDiscards}/${endTurnParticipants.length})`
-                  : endTurnCount ? `End turn ${endTurnCount}` : 'End turn'}
+                  : `End Turn ${state.turn}${endTurnCount ? ` (${endTurnCount})` : ''}`}
               </button> : null}
             </>
           ) : null}

@@ -175,7 +175,7 @@ try {
     assert.equal(combat.players[0].hand.length, 9, 'one card was discarded')
     assert.equal(combat.players[0].discard.at(-1).uid, 's9', 'the one picked from the end of the row')
     assert.equal(await page.getByRole('dialog').count(), 0, 'the picker closes')
-    assert(await page.getByRole('button', { name: /^End turn/ }).isEnabled(), 'and End Turn is available again')
+    assert(await page.getByRole('button', { name: /^End Turn \d+/ }).isEnabled(), 'and End Turn is available again')
     assert.equal(combat.players[0].energy, 3, 'Heel Hook refunded its Energy')
     assert.equal(combat.enemies[0].hp, 38)
 
@@ -273,7 +273,7 @@ try {
     })
     await press(page.getByRole('button', { name: 'Use Master Reality+', exact: true }))
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.players[0].hand.some((card) => card.uid === 'back'))
-    await press(page.getByRole('button', { name: /^End turn/ }))
+    await press(page.getByRole('button', { name: /^End Turn \d+/ }))
     const retain = page.getByRole('button', { name: 'Retain Eruption', exact: true })
     await retain.waitFor()
     await settle(page)

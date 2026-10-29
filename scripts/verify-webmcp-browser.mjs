@@ -530,7 +530,7 @@ const chainedTarget = await page.evaluate(async () => {
   after.changes.screen.announcements = after.changes.screen.announcements.map((notice) => notice.slice(0, 80))
   fixture.remove()
   const second = document.createElement('section')
-  second.innerHTML = '<button class="card" aria-label="Replace target" aria-pressed="false">Replace</button><button class="enemy" aria-label="Twin Slime, 3 HP">Twin</button><button class="card" aria-label="Do not target" aria-pressed="false">No target</button><button class="card" aria-label="Picked card" aria-pressed="false">Picked</button><button aria-label="End turn">End</button><span role="status"></span>'
+  second.innerHTML = '<button class="card" aria-label="Replace target" aria-pressed="false">Replace</button><button class="enemy" aria-label="Twin Slime, 3 HP">Twin</button><button class="card" aria-label="Do not target" aria-pressed="false">No target</button><button class="card" aria-label="Picked card" aria-pressed="false">Picked</button><button class="combat__end-turn" aria-label="End Turn 1">End</button><span role="status"></span>'
   document.getElementById('root').append(second)
   let replacementHits = 0
   let endClicks = 0
@@ -559,7 +559,7 @@ const chainedTarget = await page.evaluate(async () => {
     second.querySelector('.enemy').classList.add('enemy--targeted')
     second.querySelector('[role="status"]').textContent = 'Choose an enemy'
   })
-  second.querySelector('[aria-label="End turn"]').addEventListener('click', () => { endClicks++ })
+  second.querySelector('[aria-label="End Turn 1"]').addEventListener('click', () => { endClicks++ })
   const getId = async (name) => JSON.parse(await document.modelContext.executeTool(inspect, {}))
     .controls.find((control) => control.label === name).id
   const replaced = JSON.parse(await document.modelContext.executeTool(interact, {
@@ -577,7 +577,7 @@ const chainedTarget = await page.evaluate(async () => {
   let unrelated = ''
   try {
     await document.modelContext.executeTool(interact, {
-      controlId: await getId('End turn'), targetLabel: 'Twin Slime, 3 HP',
+      controlId: await getId('End Turn 1'), targetLabel: 'Twin Slime, 3 HP',
     })
   } catch (error) { unrelated = String(error) }
   second.remove()
@@ -961,7 +961,7 @@ const afterAttack = await page.evaluate(() => {
   return { energy: state.players[0].energy, enemyHp: state.enemies.reduce((total, enemy) => total + enemy.hp, 0) }
 })
 const afterAttackInspection = await inspectAll()
-const endTurn = afterAttackInspection.controls.find((control) => control.label.startsWith('End turn'))
+const endTurn = afterAttackInspection.controls.find((control) => /^End Turn \d+/.test(control.label))
 if (!endTurn) throw new Error('WebMCP did not expose End turn after a real attack')
 const beforeEndTurnNumber = await page.evaluate(() => window.__STS_DEBUG__.getState().turn)
 const endTurnResult = await interact(endTurn.id)
@@ -984,7 +984,7 @@ const combatFlow = {
   targetReturnedState: Boolean(targetSettlement?.result.controls),
   changed: afterAttack.energy < beforeAttack.energy || afterAttack.enemyHp < beforeAttack.enemyHp,
   nextTurnReturned: afterEndTurnNumber === beforeEndTurnNumber + 1 &&
-    settledEndTurnInspection.controls.some((control) => control.label === 'End turn'),
+    settledEndTurnInspection.controls.some((control) => /^End Turn \d+/.test(control.label)),
   turnResult: { before: beforeEndTurnNumber, after: afterEndTurnNumber, response: endTurnResult },
 }
 
@@ -1020,7 +1020,7 @@ const sequences = await page.evaluate(async () => {
     for (let attempt = 0; attempt < 100; attempt++) {
       await new Promise((resolve) => setTimeout(resolve, 100))
       const state = await inspect.execute({})
-      if (!state.pending && state.controls.some((control) => control.label === 'End turn')) return state
+      if (!state.pending && state.controls.some((control) => /^End Turn \d+/.test(control.label))) return state
     }
     throw new Error('Sequence fixture did not reach a settled player turn.')
   }
@@ -1145,7 +1145,7 @@ const sequences = await page.evaluate(async () => {
   const chamberBoard = board()
   state = await reset()
   const turnBoundary = await interact.execute({ actions: [
-    { controlId: find(state, 'End turn').id }, { controlId: find(state, 'Strike,').id, targetLabel: target(state, 0) },
+    { controlId: find(state, 'End Turn ').id }, { controlId: find(state, 'Strike,').id, targetLabel: target(state, 0) },
   ] })
   const turnBoard = board()
   const autoRun = fresh()
@@ -1154,7 +1154,7 @@ const sequences = await page.evaluate(async () => {
   autoRun.combat.players[0].energy = 1
   state = await reset(autoRun)
   const automatic = await interact.execute({ actions: [
-    { controlId: find(state, 'Defend,').id }, { controlId: find(state, 'End turn').id },
+    { controlId: find(state, 'Defend,').id }, { controlId: find(state, 'End Turn ').id },
   ] })
   const autoBoard = board()
   const choiceRun = fresh()
@@ -1301,8 +1301,8 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 844, height: 390 
     await new Promise((resolve) => setTimeout(resolve, 0))
     debug.setRun(run)
   }, upgraded)
-  await page.getByRole('button', { name: 'End turn', exact: true }).waitFor()
-  await interact((await inspectAll()).controls.find((control) => control.label === 'End turn').id)
+  await page.getByRole('button', { name: /^End Turn \d+/ }).waitFor()
+  await interact((await inspectAll()).controls.find((control) => /^End Turn \d+/.test(control.label)).id)
   await page.getByRole('button', { name: 'Choose frost Orb 2', exact: true }).waitFor()
   let chosen
   for (let selection = 0; selection < (upgraded ? 2 : 1); selection++) {
@@ -1319,7 +1319,7 @@ await page.evaluate(async (run) => {
   await new Promise((resolve) => setTimeout(resolve, 0))
   window.__STS_DEBUG__.setRun(run)
 }, beforeLoop)
-await page.getByRole('button', { name: 'End turn', exact: true }).waitFor()
+await page.getByRole('button', { name: /^End Turn \d+/ }).waitFor()
 
 await page.evaluate(() => {
   const debug = window.__STS_DEBUG__
@@ -1346,7 +1346,7 @@ const activeRelicFlow = {
   opensResolution: activeRelicOpened.screen.headings.includes('Golden Eye — Scry 3'),
   resolved: await page.evaluate(() => window.__STS_DEBUG__.getState().players[0].relics
     .find((relic) => relic.defId === 'golden_eye')?.spent === true),
-  leavesPlayableState: activeRelicResolved.controls.some((control) => control.label.startsWith('End turn')),
+  leavesPlayableState: activeRelicResolved.controls.some((control) => /^End Turn \d+/.test(control.label)),
 }
 
 await page.evaluate(() => {
@@ -1385,7 +1385,7 @@ const startTurnFlow = {
     const state = window.__STS_DEBUG__.getState()
     return state.phase === 'player' && state.enemies.filter((enemy) => enemy.poison === 1).length === 1
   }),
-  leavesPlayableState: startTurnResolved.controls.some((control) => control.label.startsWith('End turn')),
+  leavesPlayableState: startTurnResolved.controls.some((control) => /^End Turn \d+/.test(control.label)),
 }
 
 const relicResolutionBefore = await page.evaluate(() => {
@@ -1827,7 +1827,7 @@ check('starts a real Watcher run through WebMCP and loads cleanly', () => {
       .map((control) => control.label).filter((label) => label.includes('Out of reach')).length <= futureRoomExamples.length &&
     futureRoomExamples.every((label) => mapInspection.unavailableControls.some((control) => control.label === label)) &&
     futureRoomContexts.some((context) => context.includes('; exits to floor ')) &&
-    automaticStartInspection.controls.some((control) => control.label === 'End turn'),
+    automaticStartInspection.controls.some((control) => /^End Turn \d+/.test(control.label)),
   'map inspection preserves future routes and the settled combat screen exposes End turn')
   assertDeepEqual({ phase: automaticStartPhase, resolveControls: automaticStartResolveControls.length }, {
     phase: 'player', resolveControls: 0,

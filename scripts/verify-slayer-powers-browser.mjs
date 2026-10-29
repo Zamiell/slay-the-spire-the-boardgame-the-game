@@ -132,7 +132,7 @@ try {
     await fixture(page, template, 'companion', {
       hand: [], powers: [{ uid: 'g2b-dragon', defId: 'slayer_companion', upgraded: true }], energy: 0,
     })
-    await press(page.getByRole('button', { name: 'End turn', exact: true }))
+    await press(page.getByRole('button', { name: /^End Turn \d+/ }))
     const toggle = page.getByRole('button', { name: 'Also Exhaust for Block' })
     await toggle.waitFor()
     await press(toggle)

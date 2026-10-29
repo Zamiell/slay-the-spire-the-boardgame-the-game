@@ -194,7 +194,7 @@ try {
 
     // End-of-turn Lightning keeps its drag source with only a short caption.
     await load({ player: { hand: [c('deflect', 'deflect')], orbs: ['lightning', 'lightning', null] } })
-    await page.getByRole('button', { name: 'End turn', exact: true }).click()
+    await page.getByRole('button', { name: /^End Turn \d+/ }).click()
     await page.locator('.end-turn-effects button.end-turn-effect--orb').waitFor()
     assert.equal(await visibleCaption(), 'Drag to an enemy')
     assert.match(await caption.textContent(), /Lightning Orb 1: Drag to an enemy$/)

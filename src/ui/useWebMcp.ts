@@ -680,7 +680,7 @@ async function interactGame(input: unknown, options?: { signal?: AbortSignal }) 
     if (total > 30) throw new Error('A sequence may execute at most 30 actions.')
     const entry = controls.find((control) => control.id === controlId)
     if (!entry || entry.kind !== 'button' || !available(entry.element) ||
-      !(entry.element.matches('button.card') || entry.label === 'End turn' || entry.label.startsWith('Use '))) {
+      !(entry.element.matches('button.card, button.combat__end-turn') || entry.label === 'End turn' || entry.label.startsWith('Use '))) {
       throw new Error('Each action requires a listed combat card, potion, relic, ability, or End turn controlId.')
     }
     if (value !== undefined) throw new Error('value must be omitted for a combat button.')

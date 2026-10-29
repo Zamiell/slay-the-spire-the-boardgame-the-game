@@ -102,7 +102,7 @@ try {
      }
      requestAnimationFrame(sample)
    })
-   await page.getByRole('button', { name: 'End turn', exact: true }).click()
+   await page.getByRole('button', { name: /^End Turn \d+/ }).click()
    await page.waitForFunction(() => window.attackComplete)
    const attackFrames = await page.evaluate(() => window.attackFrames)
    assert(attackFrames.some(frame => frame.phase === 'attack'), `${label}: Slaver never attacked`)

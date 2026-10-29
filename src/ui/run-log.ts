@@ -86,7 +86,7 @@ function normalizeLegacyRunLog(log: RunLog): RunLog {
 }
 
 const CANCEL_CHOICE = /^(cancel|close|back(?: to (?:choices|run))?)$/i
-const TURN_CONTROL = /^(End turn|Resolve (?:start|end)(?: of turn| turn \d+))$/
+const TURN_CONTROL = /^(End [Tt]urn(?: \d+(?:\/\d+)?(?: \(\d+\/\d+\))?)?|Resolve (?:start|end)(?: of turn| turn \d+))$/
 const QUICK_STEP = (ref: ControlRef) => Boolean(ref.target) || /\bOrb \d+$|^(?:Resolve|Move)\b/.test(ref.name ?? '')
 const semanticDeckMutation = (event: RunLogEvent) => Boolean(event.choice?.steps?.length && event.patch.some((change) =>
   change.path[0] === 'players' && change.path[2] === 'deck'))
@@ -1268,7 +1268,9 @@ export function downloadRunLog(log: RunLog) {
 
 export function queryRunLogControl(doc: Document, ref: ControlRef): HTMLElement | null {
   const name = ref.selector.startsWith('[data-room=') ? ref.name?.replace(/, Activate again to enter$/, '') : ref.name
-  const nameMatches = (element: HTMLElement) => !name || controlName(element) === name || controlName(element)?.startsWith(`${name} `)
+  const legacyEndTurn = /^End turn(?: \d+\/\d+)?$/.test(name ?? '')
+  const nameMatches = (element: HTMLElement) => !name || controlName(element) === name || controlName(element)?.startsWith(`${name} `) ||
+    legacyEndTurn && element.matches('button.combat__end-turn') && /^End Turn \d+(?: \(\d+\/\d+\))?$/.test(controlName(element) ?? '')
   const visible = (element: HTMLElement | null, requireName = true) => {
     if (!element || requireName && !nameMatches(element)) return null
     const view = element.ownerDocument.defaultView

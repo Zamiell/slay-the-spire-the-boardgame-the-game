@@ -5815,6 +5815,8 @@ await new Promise((resolve) => setTimeout(resolve, 100))
 assertEqual(await page.locator('.card-drag').count(), 0, 'a hand-choice card does not start play-dragging')
 await page.mouse.up()
 await discardChoice.click()
+await page.getByRole('dialog', { name: 'Discard 1 card', exact: true })
+  .getByRole('button', { name: 'Confirm discard', exact: true }).click()
 await page.waitForFunction(() => window.__STS_DEBUG__.getState().players[0].discard
   .some((card) => card.uid === 'choice-strike'))
 const resolvedHandChoice = await readState()
@@ -15626,8 +15628,10 @@ async function clickCard(uid) {
 
 // Survivor: stage it, then pick a card to discard.
 await clickCard('h-survivor')
-const stagedSurvivor = await page.locator('.prompt').textContent()
-await clickCard('h-spare1')
+const survivorPicker = page.getByRole('dialog', { name: 'Discard 1 card', exact: true })
+const stagedSurvivor = await survivorPicker.textContent()
+await survivorPicker.getByRole('group', { name: 'Cards available to discard' }).getByRole('button', { name: /^Strike,/ }).first().click()
+await survivorPicker.getByRole('button', { name: 'Confirm discard', exact: true }).click()
 const afterSurvivor = await readState()
 check('Survivor requires a discard choice and actually discards', () => {
   assert(/Discard 1/i.test(stagedSurvivor ?? ''), `expected a discard prompt, got ${stagedSurvivor}`)

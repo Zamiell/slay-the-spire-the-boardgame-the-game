@@ -7,6 +7,7 @@ import { StartTurnOrder } from './combat-screen/StartTurnOrder.tsx'
 import { simpleCardMode } from './combat-screen/card-interaction.ts'
 import { useCardInteraction } from './combat-screen/useCardInteraction.ts'
 import { CardInteractionLayer } from './combat-screen/CardInteractionLayer.tsx'
+import { HandDiscardSelection } from './combat-screen/HandDiscardSelection.tsx'
 import { useButtonShortcut } from './useButtonShortcut.ts'
 // The combat screen composes the board, hand and gameplay choices. Simple hand
 // cards use useCardInteraction; complex choices still use the legacy adapter
@@ -4213,7 +4214,7 @@ function CombatScreenView({
       setPending(next)
       // The card may already have been dragged onto its target. Let the shared
       // readiness check commit as soon as its fixed hand cost is satisfied.
-      if (!any && picked.length === need) stageOrCommit(next)
+      if (!any && picked.length === need && !survivorDiscard) stageOrCommit(next)
       return
     }
 
@@ -5377,6 +5378,9 @@ function CombatScreenView({
   const displayedPileCount = (kind: 'draw' | 'discard' | 'exhaust', count: number) =>
     Math.max(0, count - cardFlights.filter((flight) => flight.destination === kind && !flight.landed).length)
   const drawPileCount = drawCount ?? viewer.draw.length
+  const survivorDiscard = pending?.card.defId === 'survivor' &&
+    pending.cardInHand && !pending.chamberPlay && pending.card.uid !== forcedCardUid &&
+    pending.choice?.kind === 'discard' && !pending.choiceCards && !pending.choiceConfirmed
   const timeWarpCardLimit = timeWarpLimit(state)
   const timeWarpCardsPlayed = viewer.cardsPlayedThisTurn ?? 0
 
@@ -5400,6 +5404,7 @@ function CombatScreenView({
       data-act={stageAct}
       data-character={viewer.character}
       data-phase={state.phase}
+      data-hand-discard={survivorDiscard || undefined}
       data-party-size={state.players.length}
       data-stage-motion={stageMotionReady && !prefersReducedMotion || undefined}
       style={{
@@ -5867,7 +5872,14 @@ function CombatScreenView({
         </p>
       ) : null}
 
-      {prompt ? (
+      {survivorDiscard && pending ? <HandDiscardSelection
+        cards={viewer.hand.filter((card) => !pending.cardInHand || card.uid !== pending.card.uid)}
+        selectedUid={pending.picked[0]} disabled={usingCard || !mutationsEnabled || authoritativeConnected === false}
+        onSelect={onCardClick}
+        onConfirm={() => stageOrCommit(pending)}
+        onCancel={pending.cardInHand && pending.card.uid !== forcedCardUid ? () => setPending(null) : undefined}
+      /> : null}
+      {prompt && !survivorDiscard ? (
         // Slayer Pack: A card-play window has no glowing piece to point at, so its
         // instruction stays a readable banner even when there is no button.
         <div className={prompt === playWindowPrompt ? 'prompt prompt--status prompt--play-window'

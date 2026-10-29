@@ -12,6 +12,10 @@ import { checkStanding } from './profile.ts'
 const container = document.getElementById('root')
 if (!container) throw new Error('#root element is missing from index.html')
 
+const preventContextMenu = (event: MouseEvent) => event.preventDefault()
+document.addEventListener('contextmenu', preventContextMenu)
+import.meta.hot?.dispose(() => document.removeEventListener('contextmenu', preventContextMenu))
+
 void checkStanding()
 
 createRoot(container).render(

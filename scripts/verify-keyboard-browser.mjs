@@ -20,6 +20,17 @@ try {
     const page = await context.newPage()
     page.on('pageerror', (error) => errors.push(`${screen}: ${error.message}`))
     await page.goto(`http://127.0.0.1:${server.httpServer.address().port}`, { waitUntil: 'networkidle' })
+    await page.evaluate(() => {
+      window.contextMenus = []
+      document.addEventListener('contextmenu', (event) => window.contextMenus.push(event.defaultPrevented))
+    })
+    const rightClick = async (control) => {
+      const before = await page.evaluate(() => window.contextMenus.length)
+      await control.click({ button: 'right', force: true })
+      assert.equal(await page.evaluate(() => window.contextMenus.length), before + 1)
+      assert.equal(await page.evaluate(() => window.contextMenus.at(-1)), true, 'the browser context menu was not suppressed')
+    }
+    await rightClick(page.getByRole('button', { name: 'Single Player', exact: true }))
     for (const name of ['Single Player', 'Standard', 'Embark', 'Start standard campaign']) {
       await page.getByRole('button', { name, exact: true }).click()
     }
@@ -28,6 +39,7 @@ try {
     const map = page.getByRole('dialog', { name: 'Act 1 map', exact: true })
     await page.keyboard.press('d')
     await deck.waitFor()
+    await rightClick(deck.locator('.card').first())
     assert.equal(await deck.locator('.card').count(),
       await page.evaluate(() => window.__STS_DEBUG__.getRun().players[0].deck.length))
     await page.keyboard.press('d')

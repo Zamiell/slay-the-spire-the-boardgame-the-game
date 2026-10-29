@@ -174,8 +174,8 @@ try {
         state.players[0].energy = 3
         state.players[0].block = 0
         state.players[0].hand = [{ uid: 'network-defend', defId: 'defend_ironclad', upgraded: false }]
-        const [React, ReactDom, { CombatScreen }, { playCard }] = await Promise.all([
-          import('/@id/react'), import('/@id/react-dom/client'), import('/src/ui/CombatScreen.tsx'),
+        const [React, ReactDom, ReactDomCore, { CombatScreen }, { playCard }] = await Promise.all([
+          import('/@id/react'), import('/@id/react-dom/client'), import('/@id/react-dom'), import('/src/ui/CombatScreen.tsx'),
           import('/src/game/combat.ts'),
         ])
         document.querySelector('#root').style.display = 'none'
@@ -184,10 +184,11 @@ try {
         host.style.gridTemplateRows = 'minmax(0, 1fr)'
         document.body.append(host)
         const createElement = React.createElement ?? React.default.createElement
+        const flushSync = ReactDomCore.flushSync ?? ReactDomCore.default.flushSync
         const root = (ReactDom.createRoot ?? ReactDom.default.createRoot)(host)
         const fixture = window.networkFixture = { state, actions: [], connected: true, restoration: 0 }
-        fixture.render = () => root.render(createElement(CombatScreen, {
-          state: fixture.state, act: 1, viewerId: 'p1', autoAdvance: false,
+        fixture.render = () => flushSync(() => root.render(createElement(CombatScreen, {
+          state: fixture.state, act: 1, viewerId: 'p1', autoAdvance: false, animateOpeningHand: false,
           authoritativeConnected: fixture.connected, authoritativeRestoration: fixture.restoration,
           onAction: (action) => new Promise((resolve) => {
             fixture.actions.push(action)
@@ -199,7 +200,7 @@ try {
               resolve({ status: accepted ? 'accepted' : 'refused' })
             }
           }),
-        }))
+        })))
         fixture.render()
       })
       await page.emulateMedia({ reducedMotion: 'no-preference' })

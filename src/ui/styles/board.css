@@ -13,6 +13,11 @@
   justify-content: safe center;
 }
 
+/* Keep keyboard scrolling without outlining the entire battlefield. */
+.board:focus-visible {
+  outline: none;
+}
+
 .board__bosses {
   display: flex;
   gap: 0.5rem;

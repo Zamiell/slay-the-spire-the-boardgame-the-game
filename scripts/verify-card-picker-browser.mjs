@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict'
+import { mkdirSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from './lib/profile-browser.mjs'
 import { createServer } from 'vite'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const output = resolve(root, 'artifacts/card-picker-browser')
+mkdirSync(output, { recursive: true })
 const server = await createServer({ root, logLevel: 'silent', server: { port: 0 } })
 const browser = await chromium.launch({ headless: true })
 
@@ -153,6 +156,38 @@ try {
   assert(await picker.locator('.card-picker__grid > .card').count() > 0)
   assert(await picker.getByRole('button', { name: 'Confirm' }).isDisabled())
   const upgradeGrid = picker.locator('.card-picker__grid')
+  const viewUpgrades = picker.getByRole('checkbox', { name: 'View Upgrades', exact: true })
+  const originalDeck = await page.evaluate(() => structuredClone(window.__STS_DEBUG__.getRun().players[0].deck))
+  const baseLabels = await upgradeGrid.locator('> .card').evaluateAll((cards) => cards.map((card) => card.getAttribute('aria-label')))
+  for (const [screen, viewport] of [
+    ['desktop', { width: 1440, height: 900 }],
+    ['horizontal-phone', { width: 844, height: 390 }],
+  ]) {
+    await page.setViewportSize(viewport)
+    assert.equal(await viewUpgrades.isChecked(), false)
+    await viewUpgrades.focus()
+    await page.keyboard.press('Space')
+    assert(await viewUpgrades.isChecked(), `${screen}: keyboard could not enable upgrade previews`)
+    assert((await upgradeGrid.locator('> .card').evaluateAll((cards) =>
+      cards.map((card) => card.getAttribute('aria-label')))).every((label) => label.includes('+, ')),
+    `${screen}: the grid did not show upgraded card faces`)
+    assert.deepEqual(await page.evaluate(() => window.__STS_DEBUG__.getRun().players[0].deck), originalDeck,
+      'previewing upgraded cards modified the actual deck')
+    assert(await picker.locator('.card-picker__view-upgrades').evaluate((label) => {
+      const box = label.getBoundingClientRect()
+      return box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight
+    }), `${screen}: View Upgrades is clipped`)
+    await page.screenshot({ path: resolve(output, `${screen}-view-upgrades.png`) })
+    await page.keyboard.press('Shift+Tab')
+    assert(await backControl.evaluate((button) => document.activeElement === button))
+    await page.keyboard.press('Tab')
+    assert(await viewUpgrades.evaluate((checkbox) => document.activeElement === checkbox))
+    await page.keyboard.press('Space')
+    assert.deepEqual(await upgradeGrid.locator('> .card').evaluateAll((cards) => cards.map((card) => card.getAttribute('aria-label'))),
+      baseLabels, `${screen}: disabling previews did not restore the original faces`)
+  }
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await viewUpgrades.check()
   const upgradeScrollTop = await upgradeGrid.evaluate((grid) => {
     grid.scrollTop = grid.scrollHeight
     return grid.scrollTop
@@ -161,6 +196,8 @@ try {
   await upgradeGrid.locator('> .card').last().click()
   await picker.locator('.card-picker__preview').waitFor()
   assert.equal(await picker.locator('.card-picker__preview .card').count(), 2)
+  assert(!(await picker.locator('.card-picker__preview .card').first().getAttribute('aria-label')).includes('+, '),
+    'the comparison lost the original face when View Upgrades was enabled')
   assert(!await picker.getByRole('button', { name: 'Confirm' }).isDisabled())
   assert.equal(await picker.locator('.card-picker__grid > .card').first().getAttribute('aria-disabled'), 'true')
   assert.equal(await picker.locator('.card-picker__grid > .card').first().getAttribute('tabindex'), '-1')
@@ -171,11 +208,15 @@ try {
   assert(await page.evaluate(() => Boolean(document.activeElement?.closest('.card-picker'))))
   await picker.getByRole('button', { name: 'Back' }).click()
   await picker.locator('.card-picker__preview').waitFor({ state: 'detached' })
+  assert(await viewUpgrades.isChecked(), 'returning to the grid forgot View Upgrades')
   assert.equal(await upgradeGrid.evaluate((grid) => grid.scrollTop), upgradeScrollTop)
   assert(await page.evaluate(() => document.activeElement?.classList.contains('card-picker__back')))
   await picker.locator('.card-picker__grid > .card').first().click()
   await picker.getByRole('button', { name: 'Confirm' }).click()
   await picker.waitFor({ state: 'detached' })
+  const upgradedDeck = await page.evaluate(() => window.__STS_DEBUG__.getRun().players[0].deck)
+  assert.deepEqual(upgradedDeck, originalDeck.map((card, index) => index === 0 ? { ...card, upgraded: true } : card),
+    'confirming from the upgraded preview changed more than the selected card')
 
   await page.setViewportSize({ width: 1920, height: 1080 })
   await page.getByRole('button', { name: /^Current deck,/ }).click()

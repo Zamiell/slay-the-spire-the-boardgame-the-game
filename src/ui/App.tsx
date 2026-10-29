@@ -120,9 +120,11 @@ import { ACCOUNT_WALLETS, creditRunCoins, currentWalletKey, savedWallet, syncAcc
 import { CoinGainToast, type CoinGain } from './Coins.tsx'
 import { isRestricted, onProfileChange, PROFILE_KEY, savedProfile, SPIRE_REJECTION } from '../profile.ts'
 import {
+  applyRunLogEvent,
   discardRunLog,
   downloadRunLog,
   playRunLog,
+  readRunLog,
   startRunLog,
   useRunLog,
   type RunLog,
@@ -179,12 +181,28 @@ type SoloRunSave = {
   version: 1
   run: RunState
   built: BuiltRun
+  /** Whole-run opening snapshot, including RNG and shared supplies. */
+  combatStart?: RunState | null
+  lootStart?: RunState | null
   terminalRun?: RunState | null
   recordRunId?: string | null
   runLogExtractedRunId?: string | null
 }
 
 const RUN_PHASES = new Set(['neow', 'map', 'combat', 'reward', 'betweenCombat', 'room', 'setup', 'victory', 'defeat'])
+
+const sameCombat = (checkpoint: RunState | null | undefined, run: RunState): boolean =>
+  checkpoint?.phase === 'combat' && checkpoint.seed === run.seed &&
+  checkpoint.campaign.runId === run.campaign.runId && Boolean(checkpoint.combat) &&
+  checkpoint.combat?.combatId === run.combat?.combatId
+
+const unfinishedCombat = (run: RunState): boolean =>
+  run.phase === 'combat' && Boolean(run.combat) && run.combat?.phase !== 'won' && run.combat?.phase !== 'lost'
+
+const sameLoot = (checkpoint: RunState | null | undefined, run: RunState): boolean =>
+  checkpoint?.phase === 'reward' && run.phase === 'reward' && checkpoint.seed === run.seed &&
+  checkpoint.campaign.runId === run.campaign.runId && checkpoint.act === run.act &&
+  checkpoint.map.position === run.map.position && checkpoint.combatsFinished === run.combatsFinished
 
 function resumablePhase(run: Partial<RunState>): boolean {
   if (run.phase === 'combat') return run.combat !== null && typeof run.combat === 'object' &&
@@ -200,25 +218,31 @@ function resumablePhase(run: Partial<RunState>): boolean {
   return true
 }
 
+function validSoloRun(run: Partial<RunState> | undefined): run is RunState {
+  return run?.players?.length === 1 &&
+    typeof run.phase === 'string' && RUN_PHASES.has(run.phase) && typeof run.seed === 'number' &&
+    typeof run.rng?.seed === 'number' && typeof run.rng.calls === 'number' && run.campaignProgress !== null &&
+    typeof run.campaignProgress === 'object' && run.map?.rooms !== null && typeof run.map?.rooms === 'object' &&
+    Array.isArray(run.map.rows) && run.enemyDecks !== null && typeof run.enemyDecks === 'object' &&
+    Array.isArray(run.potionDeck) && Array.isArray(run.relicDeck) && Array.isArray(run.bossRelicDeck) &&
+    Array.isArray(run.guardianGemDeck) && Array.isArray(run.pendingGuardianSockets) && Array.isArray(run.rewards) &&
+    run.itemDecks !== null && typeof run.itemDecks === 'object' && Array.isArray(run.eventDeck) &&
+    run.courier !== null && typeof run.courier === 'object' && run.meta !== null &&
+    typeof run.meta === 'object' && Array.isArray(run.meta.modifierIds) && Array.isArray(run.log) &&
+    // A run saved when Kratos was a character cannot continue: the engine no longer has him.
+    run.players.every((player) => typeof player?.id === 'string' && CHARACTER_IDS.some((id) => id === player.character) && Array.isArray(player.deck) &&
+      Array.isArray(player.relics) && Array.isArray(player.potions)) && resumablePhase(run)
+}
+
 function savedSoloRun(): SoloRunSave | null {
   try {
     const saved = JSON.parse(localStorage.getItem(SOLO_RUN_KEY) ?? 'null') as Partial<SoloRunSave> | null
     const run = saved?.run as Partial<RunState> | undefined
     const built = saved?.built as Partial<BuiltRun> | undefined
     const completed = run?.campaign?.finalized === true && saved?.terminalRun?.campaign?.runId === run.campaign.runId
-    return saved?.version === 1 && (run?.campaign?.finalized === false || completed) && run.players?.length === 1 &&
-      typeof run.phase === 'string' && RUN_PHASES.has(run.phase) && typeof run.seed === 'number' &&
-      typeof run.rng?.seed === 'number' && typeof run.rng.calls === 'number' && run.campaignProgress !== null &&
-      typeof run.campaignProgress === 'object' && run.map?.rooms !== null && typeof run.map?.rooms === 'object' &&
-      Array.isArray(run.map.rows) && run.enemyDecks !== null && typeof run.enemyDecks === 'object' &&
-      Array.isArray(run.potionDeck) && Array.isArray(run.relicDeck) && Array.isArray(run.bossRelicDeck) &&
-      Array.isArray(run.guardianGemDeck) && Array.isArray(run.pendingGuardianSockets) && Array.isArray(run.rewards) &&
-      run.itemDecks !== null && typeof run.itemDecks === 'object' && Array.isArray(run.eventDeck) &&
-      run.courier !== null && typeof run.courier === 'object' && run.meta !== null &&
-      typeof run.meta === 'object' && Array.isArray(run.meta.modifierIds) && Array.isArray(run.log) &&
-      // A run saved when Kratos was a character cannot continue: the engine no longer has him.
-      run.players.every((player) => typeof player?.id === 'string' && CHARACTER_IDS.some((id) => id === player.character) && Array.isArray(player.deck) &&
-        Array.isArray(player.relics) && Array.isArray(player.potions)) &&
+    return saved?.version === 1 && (run?.campaign?.finalized === false || completed) && validSoloRun(run) &&
+      (saved.combatStart == null || validSoloRun(saved.combatStart) && sameCombat(saved.combatStart, run)) &&
+      (saved.lootStart == null || validSoloRun(saved.lootStart) && sameLoot(saved.lootStart, run)) &&
       built?.count === 1 && typeof built.seed === 'string' && typeof built.ascension === 'number' &&
       typeof built.chooseYourRelic === 'boolean' && typeof built.lastStand === 'boolean' &&
       Array.isArray(built.characters) && built.characters.every((character) => DEFAULT_CHARACTERS.includes(character)) &&
@@ -234,8 +258,7 @@ function savedSoloRun(): SoloRunSave | null {
       (built.coinKey === undefined || typeof built.coinKey === 'string' && built.coinKey.length > 0 && built.coinKey.length <= MAX_RUN_KEY_LENGTH) &&
       (built.owner === undefined || typeof built.owner === 'string' && built.owner.length > 0 && built.owner.length <= MAX_RUN_KEY_LENGTH) &&
       // Another account's run is never offered to the one signed in now.
-      ownsRun(built as BuiltRun) &&
-      resumablePhase(run)
+      ownsRun(built as BuiltRun)
       ? { ...saved as SoloRunSave, built: legacyDailyAsStandard(built as BuiltRun), run: completed ? run as RunState : resumeNeow(run as RunState) }
       : null
   } catch {
@@ -309,7 +332,7 @@ export function App() {
     settle()
     const changedAccount = () => {
       const next = savedProfile()?.token
-      if (next !== account) { setLocalOpen(false); setAccount(next) }
+      if (next !== account) setAccount(next)
       settle()
     }
     const stop = onProfileChange(changedAccount)
@@ -338,7 +361,6 @@ export function App() {
     }, () => { if (active) setOnline(false) })
     return () => { active = false }
   }, [online])
-  const [localOpen, setLocalOpen] = useState(false)
   const [settings, setSettings] = useGameSettings()
   useEffect(() => settings.sfxVolume > 0 ? installSoundEffects(true) : undefined, [settings.sfxVolume])
   useEffect(() => {
@@ -593,7 +615,7 @@ export function App() {
     <Suspense fallback={<main className="app-loading" role="status">Loading…</main>}>
       {online === null ? <main className="app-loading" role="status">Loading…</main> : <>
       <div className="game-mode" hidden={online}>
-        <LocalGame key={account} open={localOpen} onOpen={() => setLocalOpen(true)} onClose={() => setLocalOpen(false)} onOnline={SINGLE_PLAYER_ONLY ? undefined : () => setOnline(true)}
+        <LocalGame key={account} onOnline={SINGLE_PLAYER_ONLY ? undefined : () => setOnline(true)}
           settings={settings} onSettings={setSettings} active={!online} />
       </div>
       {online && OnlineGame ? <OnlineGame onLocal={() => setOnline(false)} settings={settings} onSettings={setSettings} /> : null}
@@ -603,15 +625,16 @@ export function App() {
   )
 }
 
-function LocalGame({ open, onOpen, onClose, onOnline, settings, onSettings, active }: {
-  open: boolean
-  onOpen: () => void
-  onClose: () => void
+function LocalGame({ onOnline, settings, onSettings, active }: {
   onOnline?: () => void
   settings: GameSettings
   onSettings: (settings: GameSettings) => void
   active: boolean
 }) {
+  // A remount must return to the menu, not autosave an unstarted replacement run.
+  const [open, setOpen] = useState(false)
+  const onOpen = () => setOpen(true)
+  const onClose = () => setOpen(false)
   const [seedText, setSeedText] = useState<string>(() => crypto.randomUUID())
   const [ascension, setAscension] = useState(0)
   const [characters, setCharacters] = useState<CharacterId[]>(() => [...DEFAULT_CHARACTERS])
@@ -623,6 +646,12 @@ function LocalGame({ open, onOpen, onClose, onOnline, settings, onSettings, acti
   const [run, setRun] = useState<RunState>(() => newRun(1, crypto.randomUUID()))
   const [journalAscension, setJournalAscension] = useState(() => savedCampaign().highestAscension)
   const [resume, setResume] = useState<SoloRunSave | null>(savedSoloRun)
+  const [resumePending, setResumePending] = useState(false)
+  const [resumeError, setResumeError] = useState<string | null>(null)
+  const resuming = useRef(false)
+  const combatStart = useRef<RunState | null>(null)
+  const lootStart = useRef<RunState | null>(null)
+  const [runLogRestoration, setRunLogRestoration] = useState(0)
   // Play in progress belongs to the account that started it: profile.ts clears the
   // saved run on an account change, so the Resume offered here follows the save.
   const ownership = useRef<{ open: boolean; built: Pick<BuiltRun, 'owner'>; playing: boolean }>({ open, built: {}, playing: false })
@@ -689,7 +718,7 @@ function LocalGame({ open, onOpen, onClose, onOnline, settings, onSettings, acti
   const tutorialCharacter = tutorial?.character
   const tutorialChapterList = useMemo(() => tutorialCharacter ? tutorialChapters(tutorialCharacter) : [], [tutorialCharacter])
   const { available: runLogAvailable, discard: discardLog, load: loadRunLog } = useRunLog(
-    run, active && open && !replayLog && !tutorial, viewerId,
+    run, active && open && !replayLog && !tutorial, viewerId, runLogRestoration,
   )
   const [today, refreshToday] = useUtcDay()
   const dailyModifiers = useMemo(() => rollDailyModifiers(createRng(seedFromString(dailySeedText(today)))).modifiers, [today])
@@ -714,31 +743,73 @@ function LocalGame({ open, onOpen, onClose, onOnline, settings, onSettings, acti
 
   const discardSoloRun = () => {
     try { localStorage.removeItem(SOLO_RUN_KEY) } catch { /* Storage is unavailable. */ }
+    combatStart.current = null
+    lootStart.current = null
     setResume(null)
+    setResumeError(null)
   }
 
-  const resumeSoloRun = () => {
-    if (!resume) return
-    // A Daily Climb's seed, Ascension and setup are fixed, not the player's menu choices.
-    if (resume.built.meta.dailyDate === undefined) {
-      setSeedText(resume.built.seed)
-      setAscension(resume.built.ascension)
-      setCustomModifierIds([...(resume.built.meta.modifiers ?? [])])
-      setQuickStartAct(resume.built.meta.quickStartAct ?? 1)
+  const resumeSoloRun = async () => {
+    if (!resume || resuming.current) return
+    resuming.current = true
+    setResumePending(true)
+    setResumeError(null)
+    const owner = currentWalletKey()
+    try {
+      let restored = resume.run
+      const combat = unfinishedCombat(restored)
+      if (combat || restored.phase === 'reward') {
+        const matches = combat ? sameCombat : sameLoot
+        let checkpoint = combat ? resume.combatStart : resume.lootStart
+        if (!checkpoint) {
+          const log = await readRunLog(restored.campaign.runId)
+          if (log) {
+            let state = log.initial
+            if (matches(state, restored)) checkpoint = state
+            for (const event of log.events) {
+              if (checkpoint) break
+              state = applyRunLogEvent(state, event)
+              if (matches(state, restored)) checkpoint = state
+            }
+          }
+        }
+        if (!checkpoint || !validSoloRun(checkpoint) || !matches(checkpoint, restored)) {
+          throw new Error(`The beginning of this ${combat ? 'combat' : 'loot screen'} could not be recovered. Your saved run has not been changed.`)
+        }
+        restored = structuredClone(checkpoint)
+      }
+      if (currentWalletKey() !== owner || !ownsRun(resume.built)) {
+        throw new Error('The account changed while loading. Please select Resume again.')
+      }
+      combatStart.current = unfinishedCombat(restored) ? structuredClone(restored) : null
+      lootStart.current = restored.phase === 'reward' ? structuredClone(restored) : null
+      // A Daily Climb's seed, Ascension and setup are fixed, not the player's menu choices.
+      if (resume.built.meta.dailyDate === undefined) {
+        setSeedText(resume.built.seed)
+        setAscension(resume.built.ascension)
+        setCustomModifierIds([...(resume.built.meta.modifiers ?? [])])
+        setQuickStartAct(resume.built.meta.quickStartAct ?? 1)
+      }
+      setCharacters(resume.built.characters)
+      setChooseYourRelic(resume.built.chooseYourRelic)
+      setLastStand(resume.built.lastStand)
+      setMode(resume.built.meta.mode ?? 'standard')
+      setBuilt(resume.built)
+      setRun(restored)
+      setRunLogRestoration((generation) => generation + 1)
+      terminalRun.current = resume.terminalRun ? structuredClone(resume.terminalRun) : null
+      setRecordRunId(resume.recordRunId ?? null)
+      setRunLogExtractedRunId(resume.runLogExtractedRunId ?? null)
+      setRunLogMessage(null)
+      setViewerId('p1')
+      setChoosingNextCharacter(false)
+      onOpen()
+    } catch (error) {
+      setResumeError(error instanceof Error ? error.message : 'Could not resume your saved run. Please try again.')
+    } finally {
+      resuming.current = false
+      setResumePending(false)
     }
-    setCharacters(resume.built.characters)
-    setChooseYourRelic(resume.built.chooseYourRelic)
-    setLastStand(resume.built.lastStand)
-    setMode(resume.built.meta.mode ?? 'standard')
-    setBuilt(resume.built)
-    setRun(resume.run)
-    terminalRun.current = resume.terminalRun ? structuredClone(resume.terminalRun) : null
-    setRecordRunId(resume.recordRunId ?? null)
-    setRunLogExtractedRunId(resume.runLogExtractedRunId ?? null)
-    setRunLogMessage(null)
-    setViewerId('p1')
-    setChoosingNextCharacter(false)
-    onOpen()
   }
 
   const flushQueuedRun = () => void flushLeaderboardOutbox().then(({ recorded, rejected }) => {
@@ -1087,8 +1158,14 @@ function LocalGame({ open, onOpen, onClose, onOnline, settings, onSettings, acti
     }
     // A run that belongs to another account is never saved for the one signed in now.
     if (!ownsRun(built)) return
+    if (unfinishedCombat(run)) {
+      if (!sameCombat(combatStart.current, run)) combatStart.current = structuredClone(run)
+    } else combatStart.current = null
+    if (run.phase === 'reward') {
+      if (!sameLoot(lootStart.current, run)) lootStart.current = structuredClone(run)
+    } else lootStart.current = null
     const saved: SoloRunSave = {
-      version: 1, run, built,
+      version: 1, run, built, combatStart: combatStart.current, lootStart: lootStart.current,
       terminalRun: terminalRun.current?.campaign.runId === run.campaign.runId ? terminalRun.current : null,
       recordRunId,
       runLogExtractedRunId,
@@ -1217,6 +1294,8 @@ function LocalGame({ open, onOpen, onClose, onOnline, settings, onSettings, acti
       }}
       onTutorial={() => startTutorial(characters[0] ?? 'ironclad')}
       onResume={resume ? resumeSoloRun : undefined}
+      resumePending={resumePending}
+      resumeError={resumeError}
       onOnline={onOnline}
       onLeaderboard={() => setLeaderboard(true)}
       onStats={() => setStats(true)}
@@ -1271,7 +1350,7 @@ function LocalGame({ open, onOpen, onClose, onOnline, settings, onSettings, acti
           ) : null}
         </div>
         {viewer ? (
-          <CardCollectionOverlay cards={viewer.deck} label="Current deck" triggerClassName="deck-peek__open">
+          <CardCollectionOverlay cards={viewer.deck} label="Current deck" triggerClassName="deck-peek__open" shortcut="d">
             <img src={assetPath('menu/current-deck.webp')} alt="" />
             <span aria-hidden="true">{viewer.deck.length}</span>
           </CardCollectionOverlay>
@@ -1326,7 +1405,9 @@ function LocalGame({ open, onOpen, onClose, onOnline, settings, onSettings, acti
             else if (replayLog) leaveReplay()
             // A recorded run resumes from its save (the campaign journal), never from the
             // victory it was recorded from.
-            else setResume(run.campaign.finalized ? savedSoloRun() : { version: 1, run, built })
+            else setResume(run.campaign.finalized ? savedSoloRun() : {
+              version: 1, run, built, combatStart: combatStart.current, lootStart: lootStart.current,
+            })
             onClose()
           }}>{tutorial ? 'Leave tutorial' : 'Return to main menu'}</button>
         </section>

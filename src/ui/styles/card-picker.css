@@ -97,8 +97,9 @@
 .card-collection .choice-modal__cards > .card { width: 100%; }
 .card-collection .choice-modal__cards .card--unplayable { filter: none; }
 .card-collection__footer { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-top: .75rem; }
-.card-collection__footer label { color: #f3d268; font-weight: 700; }
-.card-collection__footer input { width: 1.2rem; height: 1.2rem; vertical-align: -.2rem; }
+.card-collection__footer label, .card-picker__view-upgrades { color: #f3d268; font-weight: 700; }
+.card-collection__footer input, .card-picker__view-upgrades input { width: 1.2rem; height: 1.2rem; vertical-align: -.2rem; }
+.card-picker__view-upgrades { display: block; margin-top: .35rem; font-size: 1rem; }
 
 @media (max-width: 700px) {
   .card-picker__grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr)); gap: .65rem; padding: .75rem; }

@@ -139,6 +139,15 @@
 
 .relic-actions > section > details[open] > summary::before { transform: rotate(90deg); }
 
+.relic-actions > section > details > summary.relic-action__icon {
+  width: max-content;
+  padding: 0.2rem 0.45rem;
+}
+
+.relic-actions > section > details > summary.relic-action__icon::before { display: none; }
+
+.relic-action__icon .item-icon-image { width: 2.25rem; height: 2.25rem; }
+
 /* The start-turn-order disclosures get the same glyph. Their native marker is
    removed alongside the others, and a summary with no marker and no replacement
    is a control with nothing saying it opens — two of the three render closed.

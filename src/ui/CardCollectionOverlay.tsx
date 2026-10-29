@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { cardDef, faceOf } from '../game/cards.ts'
 import type { CardInstance } from '../game/types.ts'
 import { Card } from './Card.tsx'
+import { useButtonShortcut } from './useButtonShortcut.ts'
 
 type CardCollectionOverlayProps = {
   cards: readonly CardInstance[]
@@ -11,28 +12,35 @@ type CardCollectionOverlayProps = {
   children: ReactNode
   dataPile?: 'draw' | 'discard' | 'exhaust'
   ordered?: boolean
+  shortcut?: string
 }
 
 /** One read-only card viewer for the deck and combat piles. */
 export function CardCollectionOverlay({
-  cards, label, triggerClassName, children, dataPile, ordered = true,
+  cards, label, triggerClassName, children, dataPile, ordered = true, shortcut,
 }: CardCollectionOverlayProps) {
   const [open, setOpen] = useState(false)
+  const trigger = useRef<HTMLButtonElement | null>(null)
+  useButtonShortcut(trigger, shortcut, !open)
   return <>
-    <button type="button" className={triggerClassName} data-pile={dataPile}
+    <button type="button" ref={trigger} className={triggerClassName} data-pile={dataPile}
       aria-label={`${label}, ${cards.length} card${cards.length === 1 ? '' : 's'}`}
-      title={label} onClick={() => setOpen(true)}>{children}</button>
-    <CardCollectionDialog cards={cards} label={label} open={open} ordered={ordered} onClose={() => setOpen(false)} />
+      aria-keyshortcuts={shortcut?.toUpperCase()}
+      title={shortcut ? `${label} (${shortcut.toUpperCase()})` : label} onClick={() => setOpen(true)}>{children}</button>
+    <CardCollectionDialog cards={cards} label={label} open={open} ordered={ordered} shortcut={shortcut} onClose={() => setOpen(false)} />
   </>
 }
 
-export function CardCollectionDialog({ cards, label, onClose, open = true, ordered = true }: {
-  cards: readonly CardInstance[]; label: string; onClose: () => void; open?: boolean; ordered?: boolean
+export function CardCollectionDialog({ cards, label, onClose, open = true, ordered = true, shortcut }: {
+  cards: readonly CardInstance[]; label: string; onClose: () => void; open?: boolean; ordered?: boolean; shortcut?: string
 }) {
   const [sort, setSort] = useState<'obtained' | 'type' | 'cost' | 'name'>(() => ordered ? 'obtained' : 'name')
   const [ascending, setAscending] = useState(true)
   const [viewUpgrades, setViewUpgrades] = useState(false)
   const dialog = useRef<HTMLDialogElement | null>(null)
+  const suppressedCloses = useRef(0)
+  const closeButton = useRef<HTMLButtonElement | null>(null)
+  useButtonShortcut(closeButton, shortcut, open)
   const titleId = useId()
   const sortOptions = ordered
     ? ([['obtained', 'Obtained'], ['type', 'Card Type'], ['cost', 'Cost'], ['name', 'A - Z']] as const)
@@ -66,11 +74,15 @@ export function CardCollectionDialog({ cards, label, onClose, open = true, order
     if (!element) return
     if (open) {
       if (!element.open) element.showModal()
-    } else if (element.open) element.close()
+    } else if (element.open) {
+      // The queued close event must not dismiss a deck reopened by the next keypress.
+      suppressedCloses.current += 1
+      element.close()
+    }
   }, [open])
 
   return <dialog ref={dialog} className="choice-modal card-collection" aria-labelledby={titleId}
-      onClose={onClose}>
+      onClose={() => { if (suppressedCloses.current > 0) suppressedCloses.current -= 1; else onClose() }}>
       <div className="choice-modal__panel">
         <header className="card-collection__header"><h2 id={titleId}>{label}</h2>
           <span>{cards.length} card{cards.length === 1 ? '' : 's'}</span></header>
@@ -86,7 +98,8 @@ export function CardCollectionDialog({ cards, label, onClose, open = true, order
           {open && cards.length === 0 ? <span className="muted">No cards.</span> : null}
         </div>
         <footer className="card-collection__footer">
-          <button type="button" className="ribbon-back" aria-label="Back" title="Back" onClick={onClose}><span aria-hidden="true" /></button>
+          <button type="button" ref={closeButton} className="ribbon-back" aria-label="Back" title="Back"
+            aria-keyshortcuts={shortcut?.toUpperCase()} onClick={onClose}><span aria-hidden="true" /></button>
           <label><input type="checkbox" aria-label={`${label} upgrade preview`} checked={viewUpgrades}
           onChange={(event) => setViewUpgrades(event.target.checked)} /> View Upgrades</label>
         </footer>

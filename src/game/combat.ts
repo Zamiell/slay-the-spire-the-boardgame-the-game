@@ -77,6 +77,7 @@ export {
   powerActivationAllowed,
   reachesEnemy,
   reachedTimeWarpLimit,
+  timeWarpLimit,
   slimeChoiceIsAvailable,
   slimeCommandEnemyChoiceLabels,
   slimeCommandEnemyChoiceCount,

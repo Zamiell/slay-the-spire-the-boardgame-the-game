@@ -4,6 +4,7 @@ import { animateCardFlight, cardFlightPath } from './combat-screen/card-flight.t
 import { unknownPowerRefreshDecision } from './combat-screen/unknown-power.ts'
 import { HermitTriggerChoice } from './combat-screen/HermitTriggerChoice.tsx'
 import { StartTurnOrder } from './combat-screen/StartTurnOrder.tsx'
+import { useButtonShortcut } from './useButtonShortcut.ts'
 // The combat screen: the board, the hand, and every prompt a fight puts up.
 //
 // One component, because the fight is one interaction — a card being dragged
@@ -144,6 +145,7 @@ import {
   previewPowerChoice,
   reachesEnemy,
   reachedTimeWarpLimit,
+  timeWarpLimit,
   slimeChoiceIsAvailable,
   slimeCommandEnemyChoiceLabels,
   remainingRoundHpLoss,
@@ -2235,6 +2237,7 @@ function CombatScreenView({
   }, [savedDiscardKey, state.phase, viewerId])
 
   const endTurnRef = useRef<HTMLButtonElement | null>(null)
+  useButtonShortcut(endTurnRef, ' ', state.phase === 'player')
   // Focus is dropped to <body> when the enemy's turn replaces the board, so a
   // keyboard player restarted their Tab walk from the page header every round.
   // Put them back on End turn — only when focus is genuinely nowhere, so this
@@ -5350,6 +5353,8 @@ function CombatScreenView({
   const displayedPileCount = (kind: 'draw' | 'discard' | 'exhaust', count: number) =>
     Math.max(0, count - cardFlights.filter((flight) => flight.destination === kind && !flight.landed).length)
   const drawPileCount = drawCount ?? viewer.draw.length
+  const timeWarpCardLimit = timeWarpLimit(state)
+  const timeWarpCardsPlayed = viewer.cardsPlayedThisTurn ?? 0
 
   return (
     <div
@@ -5396,6 +5401,15 @@ function CombatScreenView({
           : hermitSetupPending ? 'Load 1 card'
           : hermitSetupOwner ? `${hermitSetupOwner.name} Loads a card`
           : PHASE_LABEL[state.phase]}</span>
+        {Number.isFinite(timeWarpCardLimit) ? <span className="combat__time-warp"
+          data-warning={timeWarpCardsPlayed >= timeWarpCardLimit - 1 || undefined}
+          data-limit-reached={timeWarpCardsPlayed >= timeWarpCardLimit || undefined}
+          aria-live="polite" aria-atomic="true"
+          title={`Time Eater's Time Warp: ${viewer.name} has played ${timeWarpCardsPlayed} of ${timeWarpCardLimit} cards this turn. Each player has a separate limit.`}>
+          <span>Time Warp</span>
+          <strong>{timeWarpCardsPlayed}/{timeWarpCardLimit}</strong>
+          <span>{timeWarpCardsPlayed >= timeWarpCardLimit ? 'Limit reached' : 'cards'}</span>
+        </span> : null}
         {onCourierReveal && courierPeekPhase(state)
           ? <CourierPeek placement="bar" players={state.players} viewerId={viewerId} usedBy={courierUsedBy ?? []} onReveal={onCourierReveal} /> : null}
         <span className="combat__actions">
@@ -5554,6 +5568,8 @@ function CombatScreenView({
                   className={spendingShiv ? 'is-chosen' : undefined}
                   disabled={Boolean(pending?.choiceCards)}
                   aria-label="Use Shiv"
+                  aria-description={`${viewer.shivs} Shivs available`}
+                  title={`Use Shiv (${viewer.shivs} available)`}
                   aria-pressed={spendingShiv}
                   onClick={() => {
                     setPending(null)
@@ -5567,6 +5583,7 @@ function CombatScreenView({
                   }}
                 >
                   <StatusIcon name="shiv" size={22} />
+                  <span aria-hidden="true">{viewer.shivs}</span>
                 </button>
               ) : null}
               {state.phase === 'player' && viewer.guardianMode ? (
@@ -5687,6 +5704,8 @@ function CombatScreenView({
                   ends when everyone says so, and being told who the table is
                   waiting on is the whole reason a second screen existed. */}
               {!forcedCard && !distilled && !(playWindow && !playWindow.optional) ? <button type="button" ref={endTurnRef} className="combat__end-turn" onClick={finishTurn}
+                aria-keyshortcuts={state.phase === 'player' ? 'Space' : undefined}
+                title={state.phase === 'player' ? 'End turn (Space)' : undefined}
                 disabled={Boolean(pending?.choiceCards) || Boolean(pendingTrigger) || endTurnResolving || chamberClosing ||
                   state.phase === 'player' && voluntaryActionsBlocked ||
                   state.phase === 'discard' && !viewerNeedsEndTurnChoice}>
@@ -6340,7 +6359,14 @@ function CombatScreenView({
                 Activate
               </button>
             </details>]
-            if (held.defId === 'charons_ashes') return [<details key={relicIndex}><summary>{def.name}</summary><p className="room-item-text">{def.text}</p>
+            if (held.defId === 'charons_ashes') return [<details key={relicIndex}>
+              <PotionTooltipAnchor as="summary" className="relic-action__icon" id={held.defId}
+                name={def.name} text={def.text} kindLabel="Relic" confirmLabel="choose a card and target"
+                aria-label={`Use ${def.name}: ${def.text}`}>
+                <img className="item-icon-image" src={relicIconPath(held.defId)} alt="" />
+                <span className="visually-hidden">{def.name}</span>
+              </PotionTooltipAnchor>
+              <p className="room-item-text">{def.text}</p>
               <div className="campfire__deck">{viewer.hand.map((card) => <Card key={card.uid} card={card}
                 selected={relicCardUids[0] === card.uid} onClick={() => setRelicCardUids([card.uid])} />)}</div>
               {state.enemies.filter((enemy) => !enemy.dead).map((enemy) => <button type="button" key={enemy.uid}

@@ -132,6 +132,34 @@ try {
     const stage = page.locator('.merchant-shop-stage')
     await stage.waitFor()
     await page.evaluate(() => document.fonts.ready)
+    const wares = stage.locator('.merchant-item:has(> .item-icon-image)')
+    const wareAppearance = () => wares.evaluateAll((items) => items.map((item) => ({
+      disabled: item.disabled,
+      filter: getComputedStyle(item.querySelector('.item-icon-image')).filter,
+    })))
+    const affordableAppearance = await wareAppearance()
+    assert.equal(affordableAppearance.length, 6, 'expected three relics and three potions')
+    assert(affordableAppearance.every((item) => !item.disabled && !item.filter.includes('grayscale')),
+      'affordable relics and potions must retain their colours')
+    await page.evaluate(() => {
+      const run = structuredClone(window.__STS_DEBUG__.getRun())
+      run.players.forEach((player) => { player.gold = 0 })
+      window.__STS_DEBUG__.setRun(run)
+    })
+    const greyed = await wareAppearance()
+    assert(greyed.every((item) => item.disabled &&
+      item.filter.includes('grayscale(0.7)') && item.filter.includes('brightness(0.6)')),
+    'unaffordable relics and potions must grey out like cards')
+    await wares.first().hover()
+    assert.deepEqual(await wareAppearance(), greyed, 'hover made an unaffordable item look buyable')
+    await page.screenshot({ path: `${output}/${name}-unaffordable-wares.png` })
+    await page.evaluate(() => {
+      const run = structuredClone(window.__STS_DEBUG__.getRun())
+      run.players.forEach((player) => { player.gold = 30 })
+      window.__STS_DEBUG__.setRun(run)
+    })
+    assert.deepEqual(await wareAppearance(), affordableAppearance,
+      'restoring Gold did not restore the relic and potion colours')
     const dimensions = () => stage.evaluate((element) => ({
       width: element.scrollWidth, height: element.scrollHeight,
       clientWidth: element.clientWidth, clientHeight: element.clientHeight,

@@ -9,7 +9,19 @@ import { assert, assertDeepEqual, assertEqual, check, report, suite } from './li
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const output = join(root, 'artifacts/solo-resume-browser')
 mkdirSync(output, { recursive: true })
-const server = await createServer({ root, logLevel: 'silent', server: { port: 0 } })
+let remountLocalGame = false
+const server = await createServer({ root, logLevel: 'silent', server: { port: 0 }, plugins: [{
+  name: 'resume-remount-fixture',
+  enforce: 'pre',
+  transform: {
+    order: 'pre',
+    handler(code, id) {
+      if (remountLocalGame && id === join(root, 'src/ui/App.tsx')) {
+        return code.replace('const [seedText, setSeedText]', 'useState(null)\n  const [seedText, setSeedText]')
+      }
+    },
+  },
+}] })
 await server.listen()
 const address = server.httpServer?.address()
 if (!address || typeof address === 'string') throw new Error('Vite did not report a port')
@@ -48,8 +60,8 @@ const reloadMenu = async () => {
   }
 }
 
-const reloadAndResume = async (selector) => {
-  const before = await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun()))
+const reloadAndResume = async (selector, expected) => {
+  const before = expected ?? await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun()))
   await reloadMenu()
   await page.getByRole('button', { name: 'Resume', exact: true }).click()
   await page.locator(selector).waitFor()
@@ -87,10 +99,16 @@ try {
   })
   await page.locator('.room--reachable').first().click()
   await page.locator('.combat').waitFor()
+  await waitForSavedRun('combat')
+  const combatStartSnapshot = await page.evaluate(() =>
+    JSON.stringify(JSON.parse(localStorage.getItem('sts-solo-run')).combatStart))
   await page.evaluate(() => {
     const run = structuredClone(window.__STS_DEBUG__.getRun())
     run.log.push('resume-check: mid-turn')
     run.combat.players[0].energy = 1
+    run.combat.players[0].hp -= 2
+    run.combat.enemies[0].hp -= 1
+    run.rng.calls += 1
     window.__STS_DEBUG__.setRun(run)
   })
   await waitForSavedRun('combat')
@@ -124,8 +142,9 @@ try {
     assert(failedWriteAttempts > 0, 'the checkpoint write was never attempted')
     assertEqual(checkpointAfterFailure, lastGoodCheckpoint)
   })
-  const combatSnapshot = await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun()))
   const validCheckpoint = await page.evaluate(() => localStorage.getItem('sts-solo-run'))
+  assertEqual(JSON.stringify(JSON.parse(validCheckpoint).combatStart), combatStartSnapshot,
+    'mid-combat saves overwrote the opening checkpoint')
   await page.evaluate(() => {
     const saved = JSON.parse(localStorage.getItem('sts-solo-run'))
     delete saved.run.map
@@ -161,9 +180,9 @@ try {
   await page.getByRole('button', { name: 'Resume', exact: true }).click()
   await page.locator('.combat').waitFor()
   const resumedCombatSnapshot = await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun()))
-  check('Resume sits above Single Player and restores a mid-turn combat byte-for-byte', () => {
+  check('Resume sits above Single Player and restores the whole fight-opening checkpoint', () => {
     assertDeepEqual(firstMenuActions, ['Resume', 'Single Player'])
-    assertEqual(resumedCombatSnapshot, combatSnapshot)
+    assertEqual(resumedCombatSnapshot, combatStartSnapshot)
   })
   check('a skinned run keeps its skin in the checkpoint and after Resume', () => {
     const [saved, resumed] = [JSON.parse(validCheckpoint).run, JSON.parse(resumedCombatSnapshot)]
@@ -173,10 +192,74 @@ try {
     assertEqual(resumed.combat.players[0].skin, 'kratos')
   })
 
+  // Pausing does not rewind; returning through the main menu does, even without a reload.
+  await page.evaluate(() => {
+    const run = structuredClone(window.__STS_DEBUG__.getRun())
+    run.combat.players[0].energy = 1
+    window.__STS_DEBUG__.setRun(run)
+  })
+  const beforePause = await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun()))
+  await page.keyboard.press('Escape')
+  await page.getByRole('dialog', { name: 'Slay the Spire' }).getByRole('button', { name: 'Resume', exact: true }).click()
+  assertEqual(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun())), beforePause,
+    'the pause menu restarted combat')
+  await page.keyboard.press('Escape')
+  await page.getByRole('dialog', { name: 'Slay the Spire' }).getByRole('button', { name: 'Return to main menu', exact: true }).click()
+  await page.getByRole('button', { name: 'Resume', exact: true }).click()
+  await page.locator('.combat').waitFor()
+  assertEqual(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun())), combatStartSnapshot,
+    'the in-memory Resume did not restart combat')
+
+  await page.evaluate(() => {
+    const run = structuredClone(window.__STS_DEBUG__.getRun())
+    run.combat.players[0].energy = 1
+    window.__STS_DEBUG__.setRun(run)
+  })
+  await waitForSavedRun('combat')
+  await page.evaluate(() => {
+    const saved = JSON.parse(localStorage.getItem('sts-solo-run'))
+    delete saved.combatStart
+    localStorage.setItem('sts-solo-run', JSON.stringify(saved))
+  })
+  await reloadMenu()
+  await page.getByRole('button', { name: 'Resume', exact: true }).click()
+  await page.locator('.combat').waitFor()
+  const legacyResumedSnapshot = await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun()))
+  await page.waitForFunction(async () => {
+    const { readRunLog, applyRunLogEvent } = await import('/src/ui/run-log.ts')
+    const run = window.__STS_DEBUG__.getRun()
+    const log = await readRunLog(run.campaign.runId)
+    return log && JSON.stringify(log.events.reduce(applyRunLogEvent, log.initial)) === JSON.stringify(run)
+  })
+  check('legacy saves recover combat openings and replay history records the rewind', () => {
+    assertEqual(legacyResumedSnapshot, combatStartSnapshot)
+  })
+
+  await page.evaluate(() => {
+    const run = structuredClone(window.__STS_DEBUG__.getRun())
+    run.combat.players[0].energy = 1
+    window.__STS_DEBUG__.setRun(run)
+  })
+  await waitForSavedRun('combat')
+  const beforeHotReload = await page.evaluate(() => localStorage.getItem('sts-solo-run'))
+  const appModule = server.moduleGraph.getModuleById(join(root, 'src/ui/App.tsx'))
+  assert(appModule, 'the App module was not loaded')
+  remountLocalGame = true
+  await server.reloadModule(appModule)
+  await page.getByRole('button', { name: 'Single Player', exact: true }).waitFor()
+  const afterHotReload = await page.evaluate(() => localStorage.getItem('sts-solo-run'))
+  check('hot reload cannot overwrite the saved run when LocalGame remounts', () => {
+    assertEqual(afterHotReload, beforeHotReload)
+  })
+  await page.getByRole('button', { name: 'Resume', exact: true }).click()
+  await page.locator('.combat').waitFor()
+  assertEqual(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun())), combatStartSnapshot)
+
   // Recorded attacks are history on Resume, not a fresh queue of Hermit volleys.
   await page.evaluate(() => {
     const run = structuredClone(window.__STS_DEBUG__.getRun())
     const combat = run.combat
+    combat.combatId = 'resume-hermit'
     run.players[0].character = 'hermit'
     run.players[0].name = 'Hermit'
     delete run.players[0].skin
@@ -219,16 +302,45 @@ try {
     run.phase = 'reward'
     run.combat = null
     run.rewardDestination = 'map'
-    const choices = run.players[0].deck.slice(0, 3).map((card) => card.defId)
+    run.players[0].potions = []
     run.rewards = [{
-      playerId: run.players[0].id, gold: 2, cardReward: true, choices,
-      upgraded: false, potion: false, relic: false, bossRelics: false,
+      playerId: run.players[0].id, gold: 2, cardReward: true, choices: null,
+      upgraded: false, potion: 'weak_potion', relic: false, bossRelics: false,
     }]
     run.log.push('resume-check: reward-resolution')
     window.__STS_DEBUG__.setRun(run)
   })
   await waitForSavedRun('reward')
-  await reloadAndResume('.reward-screen--card-choice')
+  const openingLoot = await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun()))
+  await page.getByRole('button', { name: '2 Gold', exact: true }).click()
+  await page.getByRole('button', { name: 'Weak Potion', exact: true }).click()
+  await page.getByRole('button', { name: 'Add a card to your deck.', exact: true }).click()
+  await page.locator('.reward-screen--card-choice').waitFor()
+  const originalChoices = await page.evaluate(() => window.__STS_DEBUG__.getRun().rewards[0].choices)
+  await waitForSavedRun('reward')
+  assertEqual(await page.evaluate(() => JSON.stringify(JSON.parse(localStorage.getItem('sts-solo-run')).lootStart)), openingLoot,
+    'claiming loot replaced its opening checkpoint')
+  await reloadAndResume('.reward-screen--loot', openingLoot)
+  await page.getByRole('button', { name: 'Add a card to your deck.', exact: true }).click()
+  await page.locator('.reward-screen--card-choice').waitFor()
+  assertDeepEqual(await page.evaluate(() => window.__STS_DEBUG__.getRun().rewards[0].choices), originalChoices,
+    'resetting loot rerolled the offered cards')
+  await page.locator('.reward-screen__cards .card').first().click()
+  await page.getByRole('button', { name: 'Weak Potion', exact: true }).click()
+  const claimedLoot = await page.evaluate(() => window.__STS_DEBUG__.getRun())
+  assertEqual(claimedLoot.players[0].deck.length, JSON.parse(openingLoot).players[0].deck.length + 1)
+  assertDeepEqual(claimedLoot.players[0].potions, ['weak_potion'])
+  await waitForSavedRun('reward')
+  await page.evaluate(() => {
+    const saved = JSON.parse(localStorage.getItem('sts-solo-run'))
+    delete saved.lootStart
+    localStorage.setItem('sts-solo-run', JSON.stringify(saved))
+  })
+  await reloadAndResume('.reward-screen--loot', openingLoot)
+  const recoveredLoot = await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun()))
+  check('loot resumes restore Gold, potions, cards and supplies, including legacy saves', () => {
+    assertEqual(recoveredLoot, openingLoot)
+  })
 
   await page.evaluate(() => {
     const run = structuredClone(window.__STS_DEBUG__.getRun())
@@ -253,7 +365,7 @@ try {
   await resume.click()
   await page.locator('.event-stage').waitFor()
   const resumedEventSnapshot = await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun()))
-  check('reward and event resolutions resume byte-for-byte', () => {
+  check('event resolutions resume byte-for-byte', () => {
     assertEqual(resumedEventSnapshot, eventSnapshot)
     assert(menuFits, 'the Resume menu overflowed the horizontal-phone viewport')
   })
@@ -315,6 +427,17 @@ try {
     assertEqual(finishedReturnResumeCount, 0)
     assertEqual(finishedResumeCount, 0)
   })
+  const legacyContext = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+  const missingOpening = JSON.parse(validCheckpoint)
+  delete missingOpening.combatStart
+  await legacyContext.addInitScript((saved) => localStorage.setItem('sts-solo-run', saved), JSON.stringify(missingOpening))
+  const legacyPage = await legacyContext.newPage()
+  await legacyPage.goto(base)
+  await legacyPage.getByRole('button', { name: 'Resume', exact: true }).click()
+  await legacyPage.getByRole('alert').filter({ hasText: 'beginning of this combat could not be recovered' }).waitFor()
+  assertEqual(await legacyPage.evaluate(() => localStorage.getItem('sts-solo-run')), JSON.stringify(missingOpening),
+    'a missing legacy checkpoint destroyed the saved run')
+  await legacyContext.close()
   check('resume flow has no browser errors', () => assertDeepEqual(errors, []))
   report('single-player resume browser')
 } finally {

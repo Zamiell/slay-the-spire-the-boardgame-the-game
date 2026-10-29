@@ -42,6 +42,25 @@
   border-color: var(--blood);
 }
 
+.combat__time-warp {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid #a48ac5;
+  border-radius: 0.35rem;
+  background: rgb(25 18 40 / 0.92);
+  color: #e9ddfa;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.combat__time-warp strong { font-size: 1rem; }
+.combat__time-warp[data-warning] { color: #ffdc60; border-color: #ffdc60; }
+.combat__time-warp[data-limit-reached] { color: #ffd2c5; border-color: #ed957b; background: rgb(63 21 21 / 0.92); }
+
 .combat__actions {
   margin-left: auto;
   flex: 1;

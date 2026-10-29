@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { assetPath } from '../game/assets.ts'
 import type { SpireMap } from '../game/map.ts'
 import { MapScreen } from './MapScreen.tsx'
+import { useButtonShortcut } from './useButtonShortcut.ts'
 
 type MapOverlayProps = {
   map: SpireMap
@@ -25,6 +26,11 @@ type MapOverlayProps = {
 export function MapOverlay({ map, act, bossDefId }: MapOverlayProps) {
   const [open, setOpen] = useState(false)
   const dialogRef = useRef<HTMLDialogElement | null>(null)
+  const triggerRef = useRef<HTMLButtonElement | null>(null)
+  const closeRef = useRef<HTMLButtonElement | null>(null)
+  const suppressedCloses = useRef(0)
+  useButtonShortcut(triggerRef, 'm', !open)
+  useButtonShortcut(closeRef, 'm', open)
 
   // Imperative `showModal`, matching every other dialog in the app: the `open`
   // attribute alone renders a non-modal dialog with no backdrop and no focus
@@ -32,19 +38,26 @@ export function MapOverlay({ map, act, bossDefId }: MapOverlayProps) {
   useEffect(() => {
     const dialog = dialogRef.current
     if (!dialog) return
-    if (open) { if (!dialog.open) dialog.showModal() } else if (dialog.open) dialog.close()
+    if (open) { if (!dialog.open) dialog.showModal() } else if (dialog.open) {
+      suppressedCloses.current += 1
+      dialog.close()
+    }
   }, [open])
 
   return (
     <>
-      <button className="map-peek__open" type="button" aria-label="Map" onClick={() => setOpen(true)}>
+      <button ref={triggerRef} className="map-peek__open" type="button" aria-label="Map"
+        aria-keyshortcuts="M" title="Map (M)" onClick={() => setOpen(true)}>
         <img src={assetPath('menu/map-scroll.png')} alt="" />
       </button>
-      <dialog className="map-peek" ref={dialogRef} onClose={() => setOpen(false)} aria-label={`Act ${act} map`}>
+      <dialog className="map-peek" ref={dialogRef}
+        onClose={() => { if (suppressedCloses.current > 0) suppressedCloses.current -= 1; else setOpen(false) }}
+        aria-label={`Act ${act} map`}>
         <div className="map-peek__panel">
           <header>
             <h2>Act {act}</h2>
-            <button type="button" onClick={() => setOpen(false)}>Close</button>
+            <button ref={closeRef} className="map-peek__close" type="button" aria-keyshortcuts="M"
+              title="Close map (M)" onClick={() => setOpen(false)}>Close</button>
           </header>
           {/* `readOnly`, not `blocked`: `blocked` marks the map `inert`, which
               would kill the hover the party opened this to use. With no

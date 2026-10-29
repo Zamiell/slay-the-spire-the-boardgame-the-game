@@ -39,7 +39,7 @@ export function cardReferencesGuardianMode(def: CardDef, attachedGemId?: string)
     attachedGemId !== undefined && cardReferencesGuardianMode(cardDef(attachedGemId))
 }
 
-function timeWarpLimit(state: CombatState): number {
+export function timeWarpLimit(state: CombatState): number {
   const eater = state.enemies.find((enemy) => !enemy.dead &&
     enemyAbilities(enemyDef(enemy.defId, enemy.ascension)).some((ability) => ability.kind === 'timeWarp'))
   const warp = eater && enemyAbilities(enemyDef(eater.defId, eater.ascension))

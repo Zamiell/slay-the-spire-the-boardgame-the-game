@@ -284,6 +284,11 @@
   filter: drop-shadow(0 0.3rem 0.35rem rgb(20 26 14 / 0.6));
 }
 
+/* Dim unavailable wares like cards, without dimming their prices or tooltips. */
+.sts-scope .merchant-board .merchant-item:disabled > .item-icon-image {
+  filter: grayscale(0.7) brightness(0.6) drop-shadow(0 0.3rem 0.35rem rgb(20 26 14 / 0.6));
+}
+
 /* The face takes its TRACK's width, not the module directly: the module is the
    track's max, so on a narrow window the track is the smaller of the two and a
    face still sized to the module overhung its neighbour. */

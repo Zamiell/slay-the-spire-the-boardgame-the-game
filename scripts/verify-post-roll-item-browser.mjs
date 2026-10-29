@@ -11,6 +11,7 @@ mkdirSync(output, { recursive: true })
 const server = await createServer({ root, logLevel: 'silent', server: { port: 0 } })
 await server.listen()
 const browser = await chromium.launch({ headless: true })
+let touchState
 
 try {
   for (const [screen, viewport] of [
@@ -88,11 +89,46 @@ try {
       fixture.render()
     })
     await page.locator('.combat[data-phase="start"]').waitFor()
+    touchState ??= await page.evaluate(() => structuredClone(window.postRollFixture.state))
     const charon = page.locator('.relic-actions details').filter({ hasText: "Charon's Ashes" })
-    await charon.locator('summary').click()
+    const charonIcon = page.getByRole('button', { name: /^Use Charon's Ashes:/ })
+    await charonIcon.waitFor()
+    assert(await charonIcon.locator('img').evaluate((image) => image.complete && image.naturalWidth > 0),
+      `${screen}: Charon's Ashes icon did not load`)
+    const iconBox = await charonIcon.boundingBox()
+    const abacusBox = await page.getByRole('button', { name: /^Use The Abacus/ }).boundingBox()
+    assert(iconBox && abacusBox && Math.abs(iconBox.width - abacusBox.width) < 1 &&
+      Math.abs(iconBox.height - abacusBox.height) < 1, `${screen}: Charon's Ashes is not a compact relic icon`)
+    await page.screenshot({ path: resolve(output, `${screen}-charon-icon.png`) })
+    const charonTip = page.locator('.potion-tip').filter({ hasText: "Charon's Ashes" })
+    await charonIcon.hover()
+    await charonTip.waitFor()
+    assert((await charonTip.innerText()).includes('On a 1 or 2: you may Exhaust a card to deal 2 damage.'))
+    assert(await charonTip.evaluate((tip) => {
+      const box = tip.getBoundingClientRect()
+      return box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight
+    }), `${screen}: Charon's Ashes tooltip is clipped`)
+    await page.screenshot({ path: resolve(output, `${screen}-charon-tooltip.png`) })
+    await page.mouse.move(500, 0)
+    await charonTip.waitFor({ state: 'hidden' })
+    await charonIcon.focus()
+    await charonTip.waitFor()
+    await page.keyboard.press('Enter')
+    await charonTip.waitFor({ state: 'hidden' })
+    await charon.locator('.card').first().waitFor()
+    assert.equal(await page.evaluate(() => window.postRollFixture.actions.length), 0,
+      `${screen}: opening Charon's Ashes activated it without a card and target`)
+    assert(await charon.getByRole('button', { name: /^Hit / }).first().isDisabled(),
+      `${screen}: Charon's Ashes did not require an exhaust choice`)
     await charon.locator('.card').first().click()
     assert.equal(await charon.locator('.card--selected').count(), 1,
       `${screen}: Charon's Ashes card was not staged`)
+    await charon.getByRole('button', { name: /^Hit / }).first().click()
+    const charonAction = await page.evaluate(() => window.postRollFixture.actions.at(-1))
+    assert.equal(charonAction.kind, 'activateRelic')
+    assert.equal(charonAction.relicIndex, 1)
+    assert.deepEqual(charonAction.cardUids, ['post-roll-relic-card'])
+    assert.equal(charonAction.enemyUid, 'left')
     await page.getByRole('button', { name: /^Use Gambler's Brew/ }).click()
     await page.locator('.prompt').getByRole('button', { name: '1', exact: true }).waitFor()
     await page.evaluate(() => {
@@ -191,6 +227,46 @@ try {
     assert.deepEqual(errors, [], `${screen}: browser errors after Mystery Potion`)
     await context.close()
   }
+  const touchContext = await browser.newContext({
+    viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true,
+  })
+  const touchPage = await touchContext.newPage()
+  const touchErrors = []
+  touchPage.on('pageerror', (error) => touchErrors.push(String(error)))
+  await touchPage.goto(`http://localhost:${server.httpServer.address().port}`)
+  await touchPage.evaluate(async (state) => {
+    document.querySelector('#root').style.display = 'none'
+    const host = document.createElement('div')
+    host.className = 'app-shell app-shell--combat sts-scope'
+    host.style.gridTemplateRows = 'minmax(0, 1fr)'
+    document.body.append(host)
+    const [React, ReactDom, { CombatScreen }] = await Promise.all([
+      import('/@id/react'), import('/@id/react-dom/client'), import('/src/ui/CombatScreen.tsx'),
+    ])
+    window.touchRelicActions = []
+    const createElement = React.createElement ?? React.default.createElement
+    const createRoot = ReactDom.createRoot ?? ReactDom.default.createRoot
+    createRoot(host).render(createElement(CombatScreen, {
+      state, act: 1, viewerId: 'p1', autoAdvance: false,
+      onAction: (action) => { window.touchRelicActions.push(action) },
+      partyStartTurnPostRollLocked: false, partyStartTurnAbilities: [],
+      requiredStartTurnPlayerIds: ['p1'], startTurnCoordinatorId: 'p1',
+    }))
+  }, touchState)
+  const touchIcon = touchPage.getByRole('button', { name: /^Use Charon's Ashes:/ })
+  await touchIcon.tap()
+  const touchTip = touchPage.locator('.potion-tip').filter({ hasText: "Charon's Ashes" })
+  await touchTip.getByText('Tap again to choose a card and target', { exact: true }).waitFor()
+  assert.equal(await touchIcon.evaluate((summary) => summary.parentElement.open), false,
+    'the first touch opened choices instead of showing the rules')
+  await touchPage.screenshot({ path: resolve(output, 'horizontal-phone-charon-touch-tooltip.png') })
+  await touchIcon.tap()
+  await touchTip.waitFor({ state: 'hidden' })
+  await touchPage.locator('.relic-actions details[open] .card').first().waitFor()
+  assert.deepEqual(await touchPage.evaluate(() => window.touchRelicActions), [],
+    'reading or opening Charon\'s Ashes spent the relic')
+  assert.deepEqual(touchErrors, [])
+  await touchContext.close()
   console.log('✓ post-roll item browser: 2/2 screen classes passed')
 } finally {
   await browser.close()

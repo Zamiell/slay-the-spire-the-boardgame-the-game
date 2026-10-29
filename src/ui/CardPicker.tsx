@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { cardDef } from '../game/cards.ts'
 import type { CardInstance } from '../game/types.ts'
 import { Card } from './Card.tsx'
 
@@ -43,6 +44,7 @@ export function CardPicker({
   const gridScrollTopRef = useRef(0)
   const lastSelectedUidRef = useRef<string | null>(null)
   const wasPreview = useRef(false)
+  const [viewUpgrades, setViewUpgrades] = useState(false)
   const selected = cards.filter((card) => selectedCardUids.includes(card.uid))
   const preview = maxSelections === 1 && selected.length === 1
   const chosen = selected[0]
@@ -52,7 +54,8 @@ export function CardPicker({
     const picker = pickerRef.current
     if (!picker) return undefined
     restoreFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
-    const controls = () => [...picker.querySelectorAll<HTMLButtonElement>('button:not([disabled]):not([aria-disabled="true"])')]
+    const controls = () => [...picker.querySelectorAll<HTMLElement>(
+      'button:not([disabled]):not([aria-disabled="true"]), input:not([disabled])')]
     const focusFirst = () => (controls()[0] ?? picker).focus()
     focusFirst()
     const retainFocus = (event: FocusEvent) => {
@@ -121,7 +124,9 @@ export function CardPicker({
     <h2 className="visually-hidden">Choose {selectionLabel} to {verb}</h2>
     <div className="card-picker__body">
       <div ref={gridRef} className="card-picker__grid">
-        {cards.map((card) => <Card key={card.uid} card={card} selected={selectedCardUids.includes(card.uid)}
+        {cards.map((card) => <Card key={card.uid}
+          card={verb === 'Upgrade' && viewUpgrades && cardDef(card.defId).upgrade ? { ...card, upgraded: true } : card}
+          selected={selectedCardUids.includes(card.uid)}
           playable={!preview && !disabled && (selectedCardUids.includes(card.uid) || selectedCardUids.length < maxSelections)}
           tabIndex={preview || disabled || !selectedCardUids.includes(card.uid) && selectedCardUids.length >= maxSelections ? -1 : undefined}
           onClick={() => selectCard(card.uid)} />)}
@@ -138,7 +143,12 @@ export function CardPicker({
     <footer className="card-picker__footer">
       {showBack ? <button type="button" className="card-picker__back" aria-label={backText} disabled={disabled || backDisabled}
         onClick={() => { rememberGridScroll(); preview ? onClear() : onBack?.() }}><svg viewBox="0 0 100 70" aria-hidden="true"><path d="M4 39 32 9v16h26c20 0 34 13 34 30v8H75v-8c0-8-6-13-17-13H32v15z" /></svg></button> : null}
-      <p>Choose {selectionLabel} to <strong>{verb}</strong>.</p>
+      <p>Choose {selectionLabel} to <strong>{verb}</strong>.
+        {verb === 'Upgrade' && !preview ? <label className="card-picker__view-upgrades">
+          <input type="checkbox" checked={viewUpgrades} disabled={disabled}
+            onChange={(event) => setViewUpgrades(event.target.checked)} /> View Upgrades
+        </label> : null}
+      </p>
       <PickerConfirmButton label={confirmLabel}
         disabled={disabled || confirmDisabled === true || selectionRequired && selected.length < maxSelections} onClick={onConfirm} />
     </footer>

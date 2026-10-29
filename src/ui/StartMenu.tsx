@@ -38,6 +38,8 @@ type StartMenuProps = {
   /** Starts the guided tutorial run for the selected hero. */
   onTutorial: () => void
   onResume?: () => void
+  resumePending?: boolean
+  resumeError?: string | null
   onOnline?: () => void
   onLeaderboard: () => void
   onStats: () => void
@@ -130,6 +132,8 @@ export function StartMenu({
   onStart,
   onTutorial,
   onResume,
+  resumePending = false,
+  resumeError,
   onOnline,
   onLeaderboard,
   onStats,
@@ -316,9 +320,9 @@ export function StartMenu({
         <section className="start-menu__title" aria-labelledby="game-title">
           <h1 id="game-title"><img src={assetPath('menu/title-logo.webp')} width="530" height="368" alt="Slay the Spire" /><span className="start-menu__title-flame" aria-hidden="true" /></h1>
         </section>
-        <nav className="start-menu__nav" aria-label="Main menu">
+        <nav className="start-menu__nav" aria-label="Main menu" inert={resumePending || undefined}>
         {onResume ? <button type="button" aria-label="Resume"
-          onClick={onResume}>Resume</button> : null}
+          disabled={resumePending} onClick={onResume}>Resume</button> : null}
         <button type="button" aria-label="Single Player"
           ref={mainMenuButton} onClick={() => { warmRunSetup(hero.id); setTutorialSetup(false); setScreen('mode') }}>Single Player</button>
         <button type="button" aria-label="Tutorial"
@@ -330,6 +334,8 @@ export function StartMenu({
         <button type="button" aria-label="Compendium" onClick={onCompendium}>Compendium</button>
         <button type="button" aria-label="Shop" onClick={onShop}>Shop</button>
         </nav>
+        {resumePending ? <p role="status">Restoring your run…</p> : null}
+        {resumeError ? <p role="alert">{resumeError}</p> : null}
       </div> : null}
 
       {screen === 'mode' ? <section className="start-menu__mode-select" aria-label="Run modes">

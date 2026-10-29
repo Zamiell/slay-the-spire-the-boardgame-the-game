@@ -7,6 +7,9 @@ import { POINTER_CLICK_WINDOW_MS, useHoverUnavailable } from './touch-input.ts'
 type AnchorProps = {
   id: string
   children: React.ReactNode
+  as?: 'span' | 'summary'
+  className?: string
+  'aria-label'?: string
   focusable?: boolean
   decorative?: boolean
   name?: string
@@ -34,11 +37,12 @@ const tooltipListeners = new Set<(owner: object) => void>()
 /** An unclipped Potion tooltip anchor for either an icon or an action button. */
 export function PotionTooltipAnchor({
   id, children, focusable = false, decorative = false, name, text, kindLabel = 'Potion', confirmLabel, tooltipContent, hoverable = false,
+  as: Tag = 'span', className, 'aria-label': ariaLabel,
 }: AnchorProps) {
   const def = name === undefined || text === undefined ? potionDef(id) : undefined
   const itemName = name ?? def!.name
   const itemText = text ?? def!.text
-  const anchor = useRef<HTMLSpanElement>(null)
+  const anchor = useRef<HTMLElement>(null)
   const tip = useRef<HTMLSpanElement>(null)
   const owner = useRef({}).current
   const leaveTimer = useRef<number | undefined>(undefined)
@@ -63,11 +67,11 @@ export function PotionTooltipAnchor({
 
   const claimTooltip = () => tooltipListeners.forEach((listener) => listener(owner))
 
-  /** True only for a button this anchor wraps — never one it merely sits in. */
-  const ownsPressedButton = (target: EventTarget | null) => {
+  /** True only for a control this anchor owns — never one it merely sits in. */
+  const ownsPressedControl = (target: EventTarget | null) => {
     if (!(target instanceof Element)) return false
-    const button = target.closest('button')
-    return Boolean(button && anchor.current?.contains(button))
+    const control = target.closest('button, summary')
+    return Boolean(control && anchor.current?.contains(control))
   }
 
   const enterAnchor = () => {
@@ -153,17 +157,17 @@ export function PotionTooltipAnchor({
 
   useEffect(() => () => window.clearTimeout(leaveTimer.current), [])
 
-  return <span ref={anchor} className="potion-chip" tabIndex={focusable ? 0 : undefined}
-    role={focusable ? 'img' : undefined} aria-hidden={decorative ? 'true' : undefined}
-    aria-label={focusable ? `${itemName}. ${kindLabel}. ${itemText}` : undefined}
+  return <Tag ref={anchor} className={`potion-chip${className ? ` ${className}` : ''}`} tabIndex={focusable ? 0 : undefined}
+    role={Tag === 'summary' ? 'button' : focusable ? 'img' : undefined} aria-hidden={decorative ? 'true' : undefined}
+    aria-label={ariaLabel ?? (focusable ? `${itemName}. ${kindLabel}. ${itemText}` : undefined)}
     onMouseEnter={enterAnchor} onMouseLeave={leaveAnchor}
     onPointerDownCapture={(event) => {
       pointerActivatedAt.current = Date.now()
-      const activatesButton = event.target instanceof Element && Boolean(event.target.closest('button'))
-      if (event.pointerType !== 'mouse' && !activatesButton) return
+      const activatesControl = event.target instanceof Element && Boolean(event.target.closest('button, summary'))
+      if (event.pointerType !== 'mouse' && !activatesControl) return
       // The arming tap must NOT pre-dismiss: this handler runs before the click
       // below, and dismissing here would close the panel that tap is opening.
-      if (tapToRead && ownsPressedButton(event.target) && !readingTap) return
+      if (tapToRead && ownsPressedControl(event.target) && !readingTap) return
       pointerActivating.current = true
       setDismissed('manual')
       queueMicrotask(() => { pointerActivating.current = false })
@@ -183,7 +187,7 @@ export function PotionTooltipAnchor({
       // spends their potion without ever showing them what it does.
       const keyboardActivated = event.detail === 0 &&
         Date.now() - pointerActivatedAt.current > POINTER_CLICK_WINDOW_MS
-      const button = event.target.closest('button')
+      const button = event.target.closest('button, summary')
       // A button this anchor does NOT own is somebody else's control — the seat
       // that a teammate's potion icon is drawn inside, for one. Its tap must go
       // through untouched, but the panel still has to get out of the way: left
@@ -271,7 +275,7 @@ export function PotionTooltipAnchor({
           ? <span className="relic-tip__confirm">Tap again to {confirmLabel}</span>
           : null}
       </span>, document.body) : null}
-  </span>
+  </Tag>
 }
 
 /** A held Potion icon that explains its printed effect on hover or focus. */

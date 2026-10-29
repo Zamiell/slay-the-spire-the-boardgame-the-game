@@ -373,12 +373,13 @@ function gameplayControl(target: EventTarget | null): HTMLElement | null {
   return element && replayableControl(element) ? element : null
 }
 
-export function useRunLog(run: RunState, active: boolean, viewerId: string) {
+export function useRunLog(run: RunState, active: boolean, viewerId: string, restoration = 0) {
   const log = useRef<RunLog | null>(null)
   const previous = useRef<RunState | null>(null)
   const pendingChoice = useRef<RunLogChoice | null>(null)
   const queuedEvents = useRef<RunLogEvent[]>([])
   const hydrationRun = useRef<string | null>(null)
+  const hydrationRestoration = useRef(restoration)
   const hydrationGeneration = useRef(0)
   const [available, setAvailable] = useState(false)
   const [logReady, setLogReady] = useState(false)
@@ -386,20 +387,31 @@ export function useRunLog(run: RunState, active: boolean, viewerId: string) {
   useLayoutEffect(() => {
     if (!active) return
     const runId = run.campaign.runId
-    if (hydrationRun.current === runId) return
+    if (hydrationRun.current === runId && hydrationRestoration.current === restoration) return
     hydrationRun.current = runId
+    hydrationRestoration.current = restoration
     const generation = ++hydrationGeneration.current
-    previous.current = structuredClone(run)
+    const opening = structuredClone(run)
+    previous.current = opening
     pendingChoice.current = null
     queuedEvents.current = []
     setLogReady(false)
     void persistedLog(runId).then((current) => {
       if (hydrationGeneration.current !== generation || hydrationRun.current !== runId) return
       log.current = current?.runId === runId ? current : null
+      if (restoration > 0 && log.current) {
+        // Record a checkpoint rewind before new actions, including after a page reload.
+        const last = log.current.events.reduce(applyRunLogEvent, structuredClone(log.current.initial))
+        const patch = statePatch(last, opening)
+        if (patch.length) queuedEvents.current.unshift({ patch, viewerId })
+      }
       setAvailable(Boolean(log.current?.events.length))
       setLogReady(true)
+    }).catch((error: unknown) => {
+      console.error('Could not restore the run log.', error)
+      if (hydrationGeneration.current === generation) setAvailable(false)
     })
-  }, [active, run.campaign.runId])
+  }, [active, run.campaign.runId, restoration])
 
   useLayoutEffect(() => {
     const before = previous.current ?? structuredClone(run)

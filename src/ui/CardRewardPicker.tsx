@@ -1,5 +1,6 @@
-import { useEffect, useRef, type CSSProperties } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { assetPath } from '../game/assets.ts'
+import { cardDef } from '../game/cards.ts'
 import { Card } from './Card.tsx'
 
 type Props = {
@@ -22,6 +23,7 @@ export function CardRewardPicker({
   title = 'Choose a Card', description, skipDisabled = false, skipLabel = 'Skip', style, onChoose, onSkip,
 }: Props) {
   const picker = useRef<HTMLElement>(null)
+  const [viewUpgrades, setViewUpgrades] = useState(false)
   const rewardKey = `${uidPrefix}:${upgraded}:${choices.join(',')}`
   const pickerStyle = { ...style, '--reward-card-count': Math.max(choices.length, 1) } as CSSProperties
   useEffect(() => {
@@ -30,7 +32,7 @@ export function CardRewardPicker({
     root?.focus()
     const trap = (event: KeyboardEvent) => {
       if (event.key !== 'Tab' || !root) return
-      const controls = [...root.querySelectorAll<HTMLElement>('button:not(:disabled):not([aria-disabled="true"]), [tabindex="0"]:not([aria-disabled="true"])')]
+      const controls = [...root.querySelectorAll<HTMLElement>('button:not(:disabled):not([aria-disabled="true"]), input:not(:disabled), [tabindex="0"]:not([aria-disabled="true"])')]
       const first = controls[0]
       const last = controls.at(-1)
       if (!first || !last) return event.preventDefault()
@@ -47,11 +49,15 @@ export function CardRewardPicker({
     {description ? <p className="muted" id={`${uidPrefix}-description`}>{description}</p> : null}
     <div className="reward-screen__cards">
       {choices.map((defId, index) => <Card key={`${defId}-${index}`}
-        card={{ uid: `${uidPrefix}-${index}`, defId, upgraded }} playable={!disabled}
+        card={{ uid: `${uidPrefix}-${index}`, defId, upgraded: upgraded || viewUpgrades && Boolean(cardDef(defId).upgrade) }} playable={!disabled}
         tabIndex={disabled ? -1 : undefined}
         onClick={() => !disabled && onChoose(index)} />)}
     </div>
     {onSkip ? <button className="reward-screen__skip" type="button" disabled={disabled || skipDisabled} onClick={onSkip}>{skipLabel}</button> : null}
+    {choices.some((defId) => cardDef(defId).upgrade) ? <label className="reward-screen__view-upgrades">
+      <input type="checkbox" checked={viewUpgrades} disabled={disabled}
+        onChange={(event) => setViewUpgrades(event.target.checked)} /> View Upgrades
+    </label> : null}
   </section>
 }
 

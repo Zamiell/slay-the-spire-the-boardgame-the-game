@@ -1205,7 +1205,7 @@ export function EnemyCard({
         ) : null}
         <span className="enemy__head">
           <Icon name={visibleEnemy.isBoss ? 'boss' : 'monster'} size={16} />
-          <span className="enemy__name">{def.name}</span>
+          <span className="enemy__name">{visibleLabel}</span>
         </span>
         {bulletNumbers.map(number => (
           <span key={number.id} className="hermit-damage-number" aria-hidden="true"

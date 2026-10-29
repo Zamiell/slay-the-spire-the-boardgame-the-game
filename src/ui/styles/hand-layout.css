@@ -1,0 +1,65 @@
+.combat { --hand-card-width: min(18.75rem, 27.8dvh, 15.625vw); }
+
+.hand-area .hand-scroll {
+  height: calc(var(--hand-card-width) * var(--card-ratio) + 4rem);
+  padding: 0;
+  overflow: auto hidden;
+}
+
+.hand-area .hand[data-hand-layout] {
+  top: 0;
+  height: 100%;
+  min-height: 0;
+  padding: 0 max(5rem, calc(var(--hand-card-width) * 0.9));
+  align-items: flex-end;
+  justify-content: safe center;
+  overflow: clip;
+}
+
+.hand[data-hand-layout] > .card {
+  transform-origin: center;
+  transition: none;
+  filter: drop-shadow(0 0.35rem 0.4rem #000b);
+}
+.hand[data-hand-layout] > .card[aria-disabled='false'] {
+  border-color: #52e4e6;
+  box-shadow: 0 0 0 2px #1c8b96, 0 0 0.55rem #35dce780;
+}
+.hand[data-hand-layout] > .card[data-hand-focused] {
+  filter: drop-shadow(0 0.6rem 0.65rem #000c);
+}
+.hand[data-hand-layout] > .card::before {
+  content: attr(data-hand-number);
+  position: absolute;
+  bottom: calc(100% + 0.35rem);
+  left: 0;
+  right: 0;
+  color: #fff3da;
+  font: 700 clamp(1rem, 1.4vw, 1.65rem) 'Kreon', Georgia, serif;
+  text-align: center;
+  text-shadow: 0 2px 3px #000;
+  pointer-events: none;
+}
+.hand[data-hand-layout] > .card:hover::after { content: none; }
+.hand[data-hand-layout] > .card[data-hand-focused]::after {
+  content: '';
+  position: absolute;
+  top: 80%;
+  left: 0;
+  right: 0;
+  height: 70%;
+}
+.hand[data-hand-layout] > :is(.card--drawn, .card--chamber-drawn) { animation-name: hand-layout-deal; }
+@keyframes hand-layout-deal {
+  from { opacity: 0; transform: translate3d(-42vw, -8rem, 0) rotate(-18deg) scale(0.4); }
+  to { opacity: 1; transform: var(--hand-transform); }
+}
+
+@media (min-height: 44rem) and (pointer: fine) {
+  .combat .pip--energy {
+    width: calc(var(--hand-card-width) / 3);
+    height: calc(var(--hand-card-width) / 3);
+    bottom: calc(var(--hand-card-width) * 0.48);
+  }
+  .combat .combat__end-turn { bottom: calc(var(--hand-card-width) * 0.5); }
+}

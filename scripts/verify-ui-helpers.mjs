@@ -3,6 +3,7 @@
 // card under the wrong directory, both went unnoticed.
 import { existsSync } from 'node:fs'
 import { dieIcon, iconPath, ICON_LABELS } from '../src/ui/icons.ts'
+import { handLayout } from '../src/ui/combat-screen/hand-layout.ts'
 import { cardArtPath, tierOf, cardImagePath, CARD_ART_ROOT, CARD_ASSET_ROOT } from '../src/game/assets.ts'
 import { CARDS, faceOf, releasedCardDefs } from '../src/game/cards.ts'
 import { POTIONS } from '../src/game/relics.ts'
@@ -41,6 +42,22 @@ import { EVENT_DEFINITIONS } from '../src/game/events.ts'
 import { suite, check, assert, assertDeepEqual, assertEqual, report } from './lib/harness.mjs'
 
 suite('ui helpers')
+
+check('hand layouts spread neighbouring cards while preserving order and crowded-hand readability', () => {
+  for (const count of [1, 3, 5, 7, 10, 12, 20]) {
+    const middle = Math.floor(count / 2)
+    const resting = handLayout(count)
+    const focused = handLayout(count, middle)
+    assertEqual(focused.cards[middle].x, resting.cards[middle].x)
+    assert(focused.cards.every((card, index) => Number.isFinite(card.x) && Number.isFinite(card.y) &&
+      card.scale >= .6 && (index === 0 || card.x > focused.cards[index - 1].x)))
+    if (middle > 0) assert(focused.cards[middle - 1].x < resting.cards[middle - 1].x)
+    if (middle + 1 < count) assert(focused.cards[middle + 1].x > resting.cards[middle + 1].x)
+    if (middle >= 4) assertEqual(focused.cards[middle - 4].x, resting.cards[middle - 4].x)
+  }
+  assert(handLayout(10).cards[0].scale < handLayout(5).cards[0].scale, 'crowded hands must shrink')
+  assertDeepEqual(handLayout(0).cards, [])
+})
 
 check('enemy projectiles respect row, facing, area and living targets', () => {
   const players = [{id:'p1',row:0,dead:false,facingEnemyUid:'e'},

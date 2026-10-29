@@ -113,14 +113,17 @@ try {
             })
             assert(samples.every(s => s.hover && s.scroll === 0), `${engineName}/${screen} card ${index} at ${JSON.stringify(point)}: ${JSON.stringify(samples)}`)
             assert(Math.max(...samples.map(s => s.width)) - Math.min(...samples.map(s => s.width)) < .5, 'card oscillates')
-            assert(samples.every(s => layoutViewport.height - s.bottom >= 0 && layoutViewport.height - s.bottom <= s.padding + 1),
-              `hover lifts beyond the hand's reserved bottom space: ${JSON.stringify(samples)}`)
+            assert(samples.every(s => layoutViewport.height - s.bottom >= 0 && layoutViewport.height - s.bottom <= 12),
+              `inspection must fully reveal the card near the bottom edge: ${JSON.stringify(samples)}`)
           }
           await center.hover()
-          assert.equal(await tip.count(), 0, 'card help remains Shift-only')
+          await tip.waitFor()
+          assert.equal(await tip.count(), 1, 'hand inspection should reveal keyword help without Shift')
           await page.keyboard.down('Shift')
           await tip.waitFor()
           await page.keyboard.up('Shift')
+          await tip.waitFor()
+          await page.mouse.move(2, 2)
           await tip.waitFor({ state: 'hidden' })
           await page.waitForTimeout(250)
           await page.screenshot({ path: resolve(out, `${engineName}-${screen}-hand.png`) })

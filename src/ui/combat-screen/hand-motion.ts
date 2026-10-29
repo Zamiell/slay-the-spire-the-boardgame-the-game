@@ -3,6 +3,11 @@ const motions = new WeakMap<HTMLElement, Animation>()
 /** Reflow the remaining holders without transferring pointer capture off the source. */
 export function liftFromHand(source: HTMLElement, lifted: boolean, reducedMotion: boolean) {
   if (source.hasAttribute('data-interaction-lifted') === lifted) return
+  if (source.parentElement?.hasAttribute('data-hand-layout')) {
+    source.toggleAttribute('data-interaction-lifted', lifted)
+    source.parentElement.dispatchEvent(new Event('hand-layout-change'))
+    return
+  }
   const cards = [...source.parentElement?.querySelectorAll<HTMLElement>(':scope > .card') ?? []]
   const before = new Map(cards.map((card) => [card, card.getBoundingClientRect()]))
   for (const card of cards) motions.get(card)?.cancel()

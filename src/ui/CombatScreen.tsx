@@ -20,7 +20,6 @@ import {
   canAfford,
   cardShivsOnPlay,
   describeSeat,
-  fanOf,
   gainedShivs,
   pendingFor,
   requirementsOf,
@@ -209,6 +208,7 @@ import {
   tryClaimCardZoom,
 } from './PowerRow.tsx'
 import { ClawCubeIcon, OrbRow, TokenRow, orbDisplayValue } from './TokenRow.tsx'
+import { useHandLayout } from './combat-screen/useHandLayout.ts'
 import {
   STAGE_GAP_REM,
   STAGE_MARGIN_REM,
@@ -728,6 +728,7 @@ function CombatScreenView({
     onLand: (destination) => { if (destination !== 'stage') pulseMotion([destination]) },
   })
   const viewerVisual = viewer ? playerVisualId(viewer) : undefined
+  useHandLayout(handRef, reducedMotion, Boolean(cardDrag || cardInteraction.session || chamberClosing))
   const skinOrb = viewerVisual !== undefined && skinTraits(viewerVisual)?.energyOrb === true
   // Hand Attacks show what they would deal now: to the enemy being dragged onto or last
   // pointed at, to the only enemy left, otherwise to a plain stand-in enemy.
@@ -1128,6 +1129,7 @@ function CombatScreenView({
   }
 
   function animateHandReflow(before: Map<string, DOMRect>, cards: readonly CardInstance[]) {
+    if (handRef.current?.hasAttribute('data-hand-layout')) return
     if (reducedMotion) return
     if (chamberReflowFrame.current !== null) window.cancelAnimationFrame(chamberReflowFrame.current)
     chamberReflowFrame.current = window.requestAnimationFrame(() => {
@@ -7781,9 +7783,6 @@ function CombatScreenView({
             ))}
           </span>
         </div>
-        {/* Fanned, the way a hand is actually held: each card tilted and
-            lifted by its distance from the middle. The angle is set here
-            because only the component knows how many cards there are. */}
         <div ref={handScrollRef} className="hand-scroll" onWheel={(event) => {
           event.currentTarget.scrollLeft += event.deltaX || (event.shiftKey ? event.deltaY : 0)
         }}><div ref={handRef} className="hand" data-count={visibleHand.length}>
@@ -7823,7 +7822,8 @@ function CombatScreenView({
                 card.playWindowCost !== undefined && !chamberCard ? 'card--play-window' : ''].filter(Boolean).join(' ') || undefined}
               style={{ '--deal-index': index } as React.CSSProperties}
               inspectOnTouch
-              fan={fanOf(index, visibleHand.length)}
+              hoverHelp={enemyInspectionEnabled}
+              shortcutKey={!cardDrag && !cardInteraction.session && index < 10 ? String((index + 1) % 10) : undefined}
               liveDamage={chamberCard ? undefined : cardDamage.get(card.uid)}
               card={chamberCard ? displayedCard : shownCard}
               gemPowerDamage={attachedGemId !== card.attachedGemId || undefined}

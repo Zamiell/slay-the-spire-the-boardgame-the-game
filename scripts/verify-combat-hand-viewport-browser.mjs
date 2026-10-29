@@ -14,6 +14,7 @@ const server = await preview({ root, logLevel: 'silent', preview: { port: 0 } })
 try {
   for (const [engineName, engine] of Object.entries({ chromium, webkit })) {
     if (process.argv.includes('--webkit-only') && engineName !== 'webkit') continue
+    if (process.argv.includes('--chromium-only') && engineName !== 'chromium') continue
     const browser = await engine.launch()
     let hardwareCompositing = false
     if (engineName === 'chromium') {
@@ -76,11 +77,11 @@ try {
               enemies: [...document.querySelectorAll('.enemy .bar')].map(rect).sort((a, b) => a.left - b.left) }
           })
           assert(geometry.cards.every(card =>
-            card.top >= geometry.hand.top - 1 && card.bottom <= geometry.handArea.bottom + 1),
+            card.top >= geometry.hand.top - 1 && (!card.revealed || card.bottom <= geometry.handArea.bottom + 1)),
           `${label}: hand card leaves its reserved area ${JSON.stringify(geometry)}`)
           assert([geometry.cards[0], geometry.cards.at(-1)].filter(card => !card.revealed)
-            .every(card => Math.abs(card.bottom - geometry.shell.bottom) <= 16),
-          `${label}: resting outer card does not touch the screen edge ${JSON.stringify(geometry)}`)
+            .every(card => card.bottom >= geometry.shell.bottom - 1 && card.top < geometry.shell.bottom),
+          `${label}: resting outer cards must tuck below the screen edge ${JSON.stringify(geometry)}`)
           assert(geometry.cards.filter(card => card.revealed).every(card =>
             card.right <= geometry.endTurn.left || card.left >= geometry.endTurn.right ||
             card.bottom <= geometry.endTurn.top || card.top >= geometry.endTurn.bottom),
@@ -173,6 +174,7 @@ try {
         })
         if (!phone) {
           const card = page.locator('.hand .card[title="Strike"]').first()
+          await card.hover()
           const [box, target] = await Promise.all([
             card.boundingBox(), page.locator('.enemy').last().locator('.enemy__hit-area').boundingBox(),
           ])
@@ -181,11 +183,15 @@ try {
           await page.mouse.move(point.x, point.y)
           await page.mouse.down()
           await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2, { steps: 8 })
-          const preview = page.locator('.card-drag')
+          const preview = page.locator('.card-interaction__card > .card')
           await preview.waitFor()
+          await page.waitForFunction(() => {
+            const box = document.querySelector('.card-interaction__card')?.getBoundingClientRect()
+            return box && Math.abs(box.x + box.width / 2 - innerWidth / 2) < 10
+          })
           const dragGeometry = await preview.evaluate(element => {
             const rect = element.getBoundingClientRect()
-            const arrow = document.querySelector('.card-target-arrow__line')
+            const arrow = document.querySelector('.card-interaction__path')
             const end = arrow?.getPointAtLength(arrow.getTotalLength())
             const arrowStyle = arrow && getComputedStyle(arrow)
             const cardStyle = getComputedStyle(element)
@@ -193,12 +199,12 @@ try {
               arrowStroke: arrowStyle?.stroke, arrowVisibility: arrowStyle?.visibility,
               cardFilter: cardStyle.filter, cardShadow: cardStyle.boxShadow }
           })
-          assert(Math.abs(dragGeometry.cardX - point.x) < 2 && dragGeometry.cardWidth <= await card.evaluate(e => e.offsetWidth * 1.4) &&
-            dragGeometry.arrowX > point.x + 90 &&
+          assert(Math.abs(dragGeometry.cardX - viewport.width / 2) < 12 && dragGeometry.cardWidth <= await card.evaluate(e => e.offsetWidth * 1.4) &&
+            Math.abs(dragGeometry.arrowX - target.x - target.width / 2) < 3 &&
             dragGeometry.arrowStroke !== 'none' && dragGeometry.arrowVisibility === 'visible' &&
-            dragGeometry.cardFilter.includes('drop-shadow') && dragGeometry.cardShadow === 'none',
-            `${engineName}: desktop card followed the cursor or lost its targeting arrow ${JSON.stringify(dragGeometry)}`)
-          await page.screenshot({ path: resolve(out, `${engineName}-desktop-anchored-card-drag.png`) })
+            dragGeometry.cardShadow !== 'none',
+            `${engineName}: desktop card did not dock for aiming ${JSON.stringify(dragGeometry)}`)
+          await page.screenshot({ path: resolve(out, `${engineName}-desktop-aimed-card-drag.png`) })
           await page.mouse.up()
           await preview.waitFor({ state: 'detached' })
         }
@@ -209,7 +215,7 @@ try {
             card.boundingBox(), page.locator('.enemy').last().locator('.enemy__hit-area').boundingBox(),
           ])
           assert(box && target, `${engineName}: touch drag card or target is not visible`)
-          const point = { x: box.x + box.width / 2, y: box.y + box.height / 2 }
+          const point = { x: box.x + box.width / 2, y: box.y + box.height * .25 }
           const targetPoint = { x: target.x + target.width / 2, y: target.y + target.height / 2 }
           const cdp = engineName === 'chromium' ? await context.newCDPSession(page) : null
           if (cdp) await cdp.send('Input.dispatchTouchEvent', {
@@ -253,7 +259,7 @@ try {
             type: 'touchMove', touchPoints: [{ ...moved, id: 1, radiusX: 1, radiusY: 1 }],
           })
           else await page.mouse.move(moved.x, moved.y, { steps: 4 })
-          const preview = page.locator('.card-drag')
+          const preview = page.locator('.card-interaction__card > .card')
           await preview.waitFor()
           const art = await preview.locator('.card__art').evaluate(image => ({
             complete: image.complete, width: image.naturalWidth, loading: image.loading,
@@ -278,8 +284,12 @@ try {
             await page.waitForTimeout(16)
           }
           await page.locator('.enemy--targeted').waitFor()
+          await page.waitForFunction(() => {
+            const box = document.querySelector('.card-interaction__card')?.getBoundingClientRect()
+            return box && Math.abs(box.x + box.width / 2 - innerWidth / 2) < 10
+          })
           const dragVisual = await preview.evaluate(element => {
-            const arrow = document.querySelector('.card-target-arrow__line')
+            const arrow = document.querySelector('.card-interaction__path')
             const style = getComputedStyle(element)
             const rect = element.getBoundingClientRect()
             const end = arrow?.getPointAtLength(arrow.getTotalLength())
@@ -297,10 +307,11 @@ try {
               cardShadow: style.boxShadow,
             }
           })
-          assert(Math.abs(dragVisual.cardX - point.x) < 2 && dragVisual.cardWidth <= await card.evaluate(e => e.offsetWidth * 1.4) &&
-            dragVisual.arrowX > point.x + 90 &&
+          assert(Math.abs(dragVisual.cardX - await page.evaluate(() => innerWidth / 2)) < 12 &&
+            dragVisual.cardWidth <= await card.evaluate(e => e.offsetWidth * 1.4) &&
+            Math.abs(dragVisual.arrowX - targetPoint.x) < 3 &&
             dragVisual.arrowStroke !== 'none' && dragVisual.arrowVisibility === 'visible' && dragVisual.targetVisible,
-            `${engineName}: phone card followed the cursor or lost its targeting arrow ${JSON.stringify(dragVisual)}`)
+            `${engineName}: phone card did not dock for aiming ${JSON.stringify(dragVisual)}`)
           assert.deepEqual({ animation: dragVisual.arrowAnimation, arrow: dragVisual.arrowFilter,
             card: dragVisual.cardFilter }, { animation: 'none', arrow: 'none', card: 'none' },
           `${engineName}: phone drag retained per-frame filter work ${JSON.stringify(dragVisual)}`)
@@ -349,14 +360,16 @@ try {
           } else await page.mouse.up()
           await preview.waitFor({ state: 'detached' })
         }
-        await page.evaluate(() => {
+        const largeHandCount = await page.evaluate(() => {
           const run = structuredClone(window.__STS_DEBUG__.getRun())
           const player = run.combat.players.find(p => p.character === 'ironclad'), template = player.hand[0]
-          player.hand = Array.from({ length: 20 }, (_, i) => ({ ...template, uid: `large-hand-${i}` }))
+          const count = Math.ceil(innerWidth / 64) + 8
+          player.hand = Array.from({ length: count }, (_, i) => ({ ...template, uid: `large-hand-${i}` }))
           window.__STS_DEBUG__.setRun(run)
+          return count
         })
         await ready()
-        assert.equal(await page.locator('.hand .card').count(), 20)
+        assert.equal(await page.locator('.hand .card').count(), largeHandCount)
         await page.locator('.hand .card').last().focus()
         await check('large-hand-focused')
         assert(await page.locator('.hand-scroll').evaluate(e => e.scrollLeft > 0), 'last card must scroll into view horizontally')
@@ -372,12 +385,16 @@ try {
           const before = await scroller.evaluate(e => e.scrollLeft)
           const x = r.x + r.width * (startAtEnd ? .25 : .75), y = r.y + r.height * .25
           await page.mouse.move(x, y)
-          await page.mouse.down()
-          await page.mouse.move(x + direction * 120, y, { steps: 12 })
-          await page.mouse.up()
+          await page.keyboard.down('Shift')
+          await page.mouse.wheel(0, -direction * 120)
+          await page.keyboard.up('Shift')
+          await page.waitForFunction(({ before, direction }) => {
+            const after = document.querySelector('.hand-scroll').scrollLeft
+            return direction === 1 ? after < before - 60 : after > before + 60
+          }, { before, direction })
           const after = await scroller.evaluate(e => e.scrollLeft)
           assert(direction === 1 ? after < before - 60 : after > before + 60,
-            `held-mouse hand pan failed: ${before} -> ${after}`)
+            `horizontal wheel hand pan failed: ${before} -> ${after}`)
           assert.equal(await page.locator('.hand .card').count(), handCount, 'horizontal panning played a card')
           assert.equal(await page.locator('.card-drag').count(), 0, 'panning left a card drag active')
         }

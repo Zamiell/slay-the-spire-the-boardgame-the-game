@@ -12,6 +12,7 @@ import { Icon, StatusIcon } from './Icon.tsx'
 import type { IconName, StatusIconName } from './icons.ts'
 import type { CardInstance } from '../game/types.ts'
 import type { Trigger } from '../game/triggers.ts'
+import { useButtonShortcut } from './useButtonShortcut.ts'
 
 type CardProps = {
   card: CardInstance
@@ -23,6 +24,7 @@ type CardProps = {
   /** Recessed combat cards reveal on the first tap, then activate on the next. */
   inspectOnTouch?: boolean
   hoverHelp?: boolean
+  shortcutKey?: string
   /** Transient copies must paint an already-visible scan on their first frame. */
   immediateArt?: boolean
   /** Staged for play, waiting on a target or a choice. */
@@ -744,6 +746,7 @@ export function Card({
   playable = true,
   inspectOnTouch = false,
   hoverHelp = false,
+  shortcutKey,
   immediateArt = false,
   selected = false,
   picked = false,
@@ -759,6 +762,8 @@ export function Card({
   onPointerCancel,
   onLostPointerCapture,
 }: CardProps) {
+  const buttonRef = useRef<HTMLButtonElement | null>(null)
+  useButtonShortcut(buttonRef, shortcutKey, playable)
   const touchNeedsInspection = useRef(false)
   const def = faceOf(cardDef(card.defId), card.upgraded)
   const attachedGem = card.attachedGemId ? faceOf(cardDef(card.attachedGemId), false) : null
@@ -781,10 +786,12 @@ export function Card({
     gemPowerDamage={gemPowerDamage} hover={hoverHelp}>{(keywordHelpProps) => (
     <button
       {...keywordHelpProps}
+      ref={(element) => { buttonRef.current = element; keywordHelpProps.ref?.(element) }}
       type="button"
       className={className}
       data-sfx="card"
       tabIndex={tabIndex}
+      aria-keyshortcuts={shortcutKey}
       style={{
         ...style,
         // Tilt with distance from the middle, and drop the outer cards a

@@ -66,9 +66,26 @@ try {
     })
     const resting = await card.boundingBox()
     await card.hover()
+    const growing = await card.evaluate(card => {
+      getComputedStyle(card).transform
+      const animation = card.getAnimations().find(animation => animation.transitionProperty === 'transform')
+      if (!animation) return null
+      animation.pause()
+      const duration = animation.effect.getTiming().duration
+      const widths = [0, 90, 180].map(time => {
+        animation.currentTime = time
+        return card.getBoundingClientRect().width
+      })
+      animation.finish()
+      return { duration, widths }
+    })
+    assert(growing && growing.duration === 180, 'entering a reward must tween up instead of snapping')
+    assert(growing.widths[0] < growing.widths[1] && growing.widths[1] < growing.widths[2] &&
+      Math.abs(growing.widths[0] - resting.width) < 1,
+    'reward enlargement must pass through intermediate sizes')
     const hovered = await card.boundingBox()
     assert(Math.abs(hovered.width / resting.width - 1.25) < .01,
-      `reward focus must immediately enlarge the card by 25%: ${JSON.stringify({ resting, hovered,
+      `reward focus must finish 25% larger: ${JSON.stringify({ resting, hovered,
         style: await card.evaluate(card => ({ transform: getComputedStyle(card).transform,
           duration: getComputedStyle(card).transitionDuration, hovered: card.matches(':hover'),
           reducedMotion: document.documentElement.dataset.reducedMotion })) })}`)
@@ -100,6 +117,7 @@ try {
     await help.waitFor({ state: 'hidden' })
     await page.keyboard.press('Tab')
     await card.focus()
+    await card.evaluate(card => Promise.all(card.getAnimations().map(animation => animation.finished)))
     assert(Math.abs((await card.boundingBox()).width / resting.width - 1.25) < .01,
       'keyboard focus must use the same reward-card enlargement')
     await help.waitFor({ state: 'visible' })

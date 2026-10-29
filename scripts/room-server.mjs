@@ -1121,7 +1121,7 @@ export function createRoomServer({
         if (room.seats.some((seat) => !seat.connected)) {
           return send(response, 409, { error: 'Every seat must be connected before starting' })
         }
-        snapshot = startRun(room, token, { campaign: body.campaign })
+        snapshot = startRun(room, token, { campaign: body.campaign, preventDuplicateCardRewards: body.preventDuplicateCardRewards })
       }
       else if (operation === 'action') {
         const result = applyAndRecord(room, token, body.action)

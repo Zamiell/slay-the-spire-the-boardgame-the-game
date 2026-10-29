@@ -22,6 +22,9 @@ export const hasPendingRelicAcquisition = (state: {
 export const hasModifier = (state: Pick<RunState, 'meta'>, id: DailyModifierId): boolean =>
   state.meta?.modifierIds?.includes(id) === true
 
+export const preventsDuplicateCardRewards = (state: Pick<RunState, 'meta'>): boolean =>
+  state.meta.ruleset === 'downfall' || state.meta.preventDuplicateCardRewards === true
+
 export const canUpgradeCard = (card: Pick<CardInstance, 'defId' | 'upgraded'>): boolean =>
   !card.upgraded && CARDS[card.defId]?.upgrade !== undefined
 

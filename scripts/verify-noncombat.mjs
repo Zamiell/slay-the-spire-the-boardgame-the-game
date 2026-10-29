@@ -324,6 +324,48 @@ check('taking one duplicate reward bottoms the other physical copy', () => {
   assertDeepEqual(bottomed.cardRewards.slice(-2), ['ball_lightning', 'cold_snap'])
 })
 
+check('optional duplicate prevention replaces repeated offers without removing physical cards or Tickets', () => {
+  for (const enabled of [false, true]) for (const skip of [false, true]) {
+    let run = postNeowRun(440, [{ id: 'p1', name: 'Ironclad', character: 'ironclad' }])
+    run.meta = { ...run.meta, preventDuplicateCardRewards: enabled }
+    run.phase = 'reward'
+    run.rewardDestination = 'map'
+    run.players[0].cardRewards = ['anger', 'anger', 'golden_ticket', 'cleave', 'body_slam']
+    run.players[0].rareRewards = ['feed']
+    run.rewards = [{ playerId: 'p1', cardReward: true, cardSource: 'card', choices: null,
+      upgraded: false, gold: false, potion: false, relic: false, bossRelics: false }]
+    run = revealCardReward(run, 'p1')
+    assertDeepEqual(run.rewards[0].choices, enabled ? ['anger', 'cleave', 'feed'] : ['anger', 'anger', 'feed'])
+    run = resolveCardRewards(run, { p1: skip ? null : 1 })
+    assertEqual(run.players[0].cardRewards.length, skip ? 5 : 4)
+    assertEqual(run.players[0].cardRewards.filter(id => id === 'anger').length, enabled || skip ? 2 : 1)
+    assertEqual(run.players[0].cardRewards.filter(id => id === 'golden_ticket').length, 1)
+    assertDeepEqual(run.players[0].rareRewards, ['feed'])
+  }
+})
+
+check('duplicate prevention handles short decks and reserved Orrery rewards', () => {
+  let run = postNeowRun(441, [{ id: 'p1', name: 'Ironclad', character: 'ironclad' }])
+  run.meta = { ...run.meta, preventDuplicateCardRewards: true }
+  run.players[0].cardRewards = Array.from({ length: 4 }, () => ['anger', 'anger', 'cleave', 'shrug_it_off']).flat()
+  const before = run.players[0].deck.length
+  run = acquireRelic(run, 'p1', 'orrery')
+  assertDeepEqual(pendingRelicPreview(run, 'p1').rewardChoices,
+    Array.from({ length: 4 }, () => ['anger', 'cleave', 'shrug_it_off']))
+  run = resolvePendingRelic(run, 'p1', [], [0, 0, 0, 0])
+  assertEqual(run.players[0].deck.length, before + 4)
+  assertEqual(run.players[0].cardRewards.length, 12)
+  run.players[0].cardRewards = ['anger', 'anger']
+  run.phase = 'reward'
+  run.rewardDestination = 'map'
+  run.rewards = [{ playerId: 'p1', cardReward: true, cardSource: 'card', choices: null,
+    upgraded: false, gold: false, potion: false, relic: false, bossRelics: false }]
+  run = revealCardReward(run, 'p1')
+  assertDeepEqual(run.rewards[0].choices, ['anger'])
+  run = resolveCardRewards(run, { p1: null })
+  assertDeepEqual(run.players[0].cardRewards, ['anger', 'anger'])
+})
+
 check('a mixed reward batch cannot resolve a player with a pending Relic', () => {
   let run = postNeowRun(43, [
     { id: 'p1', name: 'Ann', character: 'ironclad' },

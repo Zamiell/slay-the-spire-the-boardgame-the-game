@@ -18,6 +18,7 @@ import {
   hasPendingRelicAcquisition,
   hasRelic,
   nextRunUid,
+  preventsDuplicateCardRewards,
 } from './rules.ts'
 import { mirrorLegacySupplies } from './supplies.ts'
 import type { PotionRewardDecision, RewardSource, RunState } from './types.ts'
@@ -270,7 +271,7 @@ export function revealNeowReward(state: RunState, playerId: string, sources: rea
     offer = { kind, choices: reserved.choices, cardsDrawn: reserved.choices, raresDrawn: [],
       prismaticDraws: reserved.draws, ...progress.rewardRequest }
   } else offer = neowCardOffer(player, kind, progress.rewardRequest?.look, progress.rewardRequest?.upgraded,
-    state.meta.ruleset === 'downfall')
+    preventsDuplicateCardRewards(state))
   if (kind === 'card' || kind === 'rare') {
     const revealed = revealGuardianDraftGems(state, offer.choices)
     state = revealed.state

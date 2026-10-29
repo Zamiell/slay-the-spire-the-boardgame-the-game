@@ -16,7 +16,7 @@ import {
   acquireRelic,
   resolveCardRewards,
 } from './rewards.ts'
-import { canUpgradeCard, hasRelic, nextRunUid } from './rules.ts'
+import { canUpgradeCard, hasRelic, nextRunUid, preventsDuplicateCardRewards } from './rules.ts'
 import type { PendingRelicPreview, RunState } from './types.ts'
 import { acquisitionCardType, addCard, bottomCardChoices, drawCardChoices, removeCard } from '../acquisition.ts'
 import { CARDS, isStarterStrikeOrDefend } from '../cards.ts'
@@ -61,7 +61,7 @@ export function pendingRelicPreview(state: RunState, playerId: string): PendingR
   const owner = restorePendingRewardDraws(player, pending)
   if (['enchiridion', 'downfall_enchiridion', 'orrery', 'tiny_house', 'forbidden_fruit'].includes(pending.defId)) {
     return { id: pending.pendingId ?? 0, relicId: pending.defId,
-      rewardChoices: pendingRewardChoices(owner, pending.defId, state.meta.ruleset === 'downfall'),
+      rewardChoices: pendingRewardChoices(owner, pending.defId, preventsDuplicateCardRewards(state)),
       rewardUpgraded: pending.defId === 'forbidden_fruit' ? [true, false] : undefined,
       guardianGemGroups: pending.guardianGemGroups?.map((group) => [...group]),
       rewardIndices: pending.pendingRewardIndices ? { ...pending.pendingRewardIndices } : undefined }
@@ -88,7 +88,7 @@ export function choosePendingRelicReward(
   const player = state.players.find((candidate) => candidate.id === playerId)!
   const pending = player.relics.find((relic) => relic.pending)!
   const choices = pendingRewardChoices(restorePendingRewardDraws(player, pending), pending.defId,
-    state.meta.ruleset === 'downfall')
+    preventsDuplicateCardRewards(state))
   if (reward < 0 || reward >= choices.length || choice < -1 || choice >= choices[reward]!.length) return before
   return { ...state, players: state.players.map((candidate) => candidate.id !== playerId ? candidate : {
     ...candidate,
@@ -153,7 +153,7 @@ export function resolvePendingRelic(
     : ['war_paint', 'whetstone', 'tiny_house'].includes(id) ? 1 : 0
   const expectedRewards = id === 'orrery' ? 4 : id === 'forbidden_fruit' ? 2
     : ['enchiridion', 'downfall_enchiridion', 'tiny_house'].includes(id) ? 1 : 0
-  const rewardChoices = pendingRewardChoices(player, id, state.meta.ruleset === 'downfall')
+  const rewardChoices = pendingRewardChoices(player, id, preventsDuplicateCardRewards(state))
   const tinyHouseRewardIndex = id === 'tiny_house'
     ? pending.pendingRewardIndices?.[0] ?? rewardIndices[0]
     : undefined
@@ -254,7 +254,7 @@ export function resolvePendingRelic(
       }
       owner = { ...owner, rareRewards: [...rareSource, ...rareBottom] }
     } else {
-      const pending = pendingCommonRewardGroups(owner, expectedRewards, 3, state.meta.ruleset === 'downfall')
+      const pending = pendingCommonRewardGroups(owner, expectedRewards, 3, preventsDuplicateCardRewards(state))
       const bottomCards: string[] = []
       const bottomRares: string[] = []
       for (const [reward, group] of pending.groups.entries()) {

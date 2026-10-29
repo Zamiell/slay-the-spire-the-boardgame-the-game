@@ -600,6 +600,22 @@ check('fallen Last Stand players still vote before a multiplayer fight is given 
 
 suite('Neow authority')
 
+check('only the host selects duplicate prevention and the server applies it to reward draws', () => {
+  const room = createRoom(createStore(), { code: 'UNIQUE' })
+  const host = joinRoom(room, { name: 'Host', character: 'ironclad' })
+  const guest = joinRoom(room, { name: 'Guest', character: 'silent' })
+  assertThrows(() => startRun(room, guest.token, { preventDuplicateCardRewards: true }), 'guest changed the run rule')
+  assertThrows(() => startRun(room, host.token, { preventDuplicateCardRewards: 'true' }), 'invalid preference was accepted')
+  assertEqual(room.phase, 'lobby')
+  startRun(room, host.token, { seed: 442, preventDuplicateCardRewards: true })
+  assertEqual(snapshotFor(room, guest.token).run.meta.preventDuplicateCardRewards, true)
+  room.run.players[0].cardRewards = ['anger', 'anger', 'cleave', 'shrug_it_off']
+  apply(room, host.token, { kind: 'neow', stage: 'redGold', gain: true })
+  apply(room, host.token, { kind: 'neow', stage: 'reveal' })
+  assertDeepEqual(snapshotFor(room, host.token).run.neow.players[host.playerId].redReward.choices,
+    ['anger', 'cleave', 'shrug_it_off'])
+})
+
 check('Neow deals public faces without leaking its remaining deck and blocks normal play', () => {
   const room = createRoom(createStore(), { code: 'NEOWAA' })
   const seats = CHARACTERS.slice(0, MAX_SEATS).map((character, index) => joinRoom(room, { name: `Player ${index + 1}`, character }))

@@ -1164,6 +1164,7 @@ function validRunState(value: unknown, runId: string): value is RunState {
       campaign.bossCoins.every((award) => Boolean(award) && [1, 2, 3, 4].includes(award.act) &&
         Number.isInteger(award.coins) && award.coins >= 1 && award.coins <= MAX_BOSS_AWARD_COINS)))
   const metaValid = Boolean(state.meta && ['standard', 'daily', 'custom'].includes(state.meta.mode) &&
+    (state.meta.preventDuplicateCardRewards === undefined || typeof state.meta.preventDuplicateCardRewards === 'boolean') &&
     Array.isArray(state.meta.modifierIds) && state.meta.modifierIds.length <= DAILY_MODIFIERS.length &&
     new Set(state.meta.modifierIds).size === state.meta.modifierIds.length && state.meta.modifierIds.every((id) =>
       DAILY_MODIFIERS.some((modifier) => modifier.id === id)) &&

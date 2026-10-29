@@ -1591,12 +1591,15 @@ export function selectCampaign(room, seatToken, enabled) {
  * which is the very thing `snapshotFor` withholds the rng state to prevent.
  * Tests and playtests pass one explicitly.
  */
-export function startRun(room, seatToken, { seed, campaign } = {}) {
+export function startRun(room, seatToken, { seed, campaign, preventDuplicateCardRewards } = {}) {
   const seat = findSeat(room, seatToken) ?? fail('Claim a seat before starting')
   if (seat !== room.seats[0]) fail('Only the party leader may start the run')
   if (room.phase !== 'lobby') fail('The run has already started')
   if (room.seats.length === 0) fail('Nobody has claimed a seat')
   if (campaign !== undefined && !['base', 'downfall'].includes(campaign)) fail('Choose a valid campaign')
+  if (preventDuplicateCardRewards !== undefined && typeof preventDuplicateCardRewards !== 'boolean') {
+    fail('Choose a valid duplicate card reward setting')
+  }
 
   const party = room.seats.map((seat) => ({
     id: seat.playerId,
@@ -1607,7 +1610,7 @@ export function startRun(room, seatToken, { seed, campaign } = {}) {
   if (!Number.isInteger(room.ascension) || room.ascension < 0 || room.ascension > room.campaignProgress.highestAscension) {
     fail('That Ascension is not unlocked')
   }
-  room.run = createRun(seed ?? Number(BigInt('0x' + randomBytes(4).toString('hex'))), party, room.ascension, room.campaignProgress, room.chooseYourRelic && party.length > 1, room.lastStand && party.length > 1, { ...room.metaOptions, campaign, cardPacks: roomCardPacks(room) })
+  room.run = createRun(seed ?? Number(BigInt('0x' + randomBytes(4).toString('hex'))), party, room.ascension, room.campaignProgress, room.chooseYourRelic && party.length > 1, room.lastStand && party.length > 1, { ...room.metaOptions, campaign, cardPacks: roomCardPacks(room), preventDuplicateCardRewards })
   room.concurrentCardCopies = undefined
   room.concurrentDistilled = undefined
   room.concurrentRelicScries = undefined

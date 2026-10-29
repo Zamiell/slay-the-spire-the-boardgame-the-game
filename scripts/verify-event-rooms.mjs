@@ -1066,6 +1066,19 @@ check('inactive character rewards preserve an unchosen duplicate', () => {
   assertDeepEqual(run.itemDecks.characterCards.silent, ['backflip', 'acrobatics'])
 })
 
+check('duplicate prevention keeps Event previews and final physical draws consistent', () => {
+  let run = inEvent('note_for_yourself', 1)
+  run.meta = { ...run.meta, preventDuplicateCardRewards: true }
+  run.itemDecks.characterCards.silent = ['backflip', 'backflip', 'acrobatics', 'blade_dance']
+  run.itemDecks.characterRares.silent = []
+  run = chooseEvent(run, 'p1', { optionIds: ['take'], targetPlayerId: 'silent' })
+  assertDeepEqual(run.roomState.rewardOffers.p1[0], ['backflip', 'acrobatics', 'blade_dance'])
+  run = chooseEvent(run, 'p1', { optionIds: ['take'], targetPlayerId: 'silent', rewardIndexes: [1] })
+  assertEqual(run.phase, 'map')
+  assert(run.players[0].deck.some(card => card.defId === 'acrobatics'))
+  assertDeepEqual(run.itemDecks.characterCards.silent, ['backflip', 'backflip', 'blade_dance'])
+})
+
 check('revealed Event rewards ignore choices submitted before the reveal', () => {
   let library = inEvent('the_library', 1)
   library = chooseEvent(library, 'p1', { optionIds: ['read'], rewardIndexes: [4] })

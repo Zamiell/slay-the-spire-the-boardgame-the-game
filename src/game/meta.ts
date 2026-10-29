@@ -29,6 +29,8 @@ export type RunMode = 'standard' | 'daily' | 'custom'
 export type RuleSet = 'base' | 'downfall'
 
 export type RunMetaOptions = Readonly<{
+  /** Optional house rule, fixed for the run and ignored by Daily Climbs. */
+  preventDuplicateCardRewards?: boolean
   mode?: RunMode
   /** Custom Run choices. Daily choices are rolled authoritatively from the seed. */
   modifiers?: readonly DailyModifierId[]
@@ -45,6 +47,7 @@ export type RunMetaOptions = Readonly<{
 }>
 
 export type RunMetaState = Readonly<{
+  preventDuplicateCardRewards?: boolean
   mode: RunMode
   modifierIds: readonly DailyModifierId[]
   /** Absent on older saves and therefore equivalent to the base game. */

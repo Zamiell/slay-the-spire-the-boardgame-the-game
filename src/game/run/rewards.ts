@@ -13,6 +13,7 @@ import {
   hasPendingRelicAcquisition,
   hasRelic,
   nextRunUid,
+  preventsDuplicateCardRewards,
   victoryIsTerminal,
 } from './rules.ts'
 import { mirrorItemSupplies, mirrorLegacySupplies } from './supplies.ts'
@@ -181,7 +182,7 @@ export function migratePendingRelicRewardDraws(state: RunState): RunState {
     for (const [index, relic] of relics.entries()) {
       if (!relic.pending || relic.pendingRewardDraws ||
         !['enchiridion', 'downfall_enchiridion', 'orrery', 'tiny_house', 'forbidden_fruit'].includes(relic.defId)) continue
-      const reserved = reservePendingRelicRewardDraws(owner, relic.defId, next.meta.ruleset === 'downfall')
+      const reserved = reservePendingRelicRewardDraws(owner, relic.defId, preventsDuplicateCardRewards(next))
       relics[index] = { ...relic, pendingRewardDraws: reserved.draws }
       owner = { ...reserved.player, relics }
       changed = true
@@ -416,7 +417,7 @@ export function revealCardReward(state: RunState, playerId: string, sources: rea
         : candidate),
     })
   }
-  const draw = drawCardChoices(player, 3, state.meta.ruleset === 'downfall')
+  const draw = drawCardChoices(player, 3, preventsDuplicateCardRewards(state))
   const ordinaryChoiceCount = draw.choices.length - draw.raresDrawn.length
   const gemReveal = revealGuardianDraftGems(state, draw.choices)
   return refreshPrismaticRewardSources({
@@ -682,7 +683,7 @@ export function acquireRelic(state: RunState, playerId: string, relicId: string)
   let guardianGemDeck = [...(state.guardianGemDeck ?? [])]
   const draftsCards = ['enchiridion', 'downfall_enchiridion', 'orrery', 'tiny_house', 'forbidden_fruit'].includes(relicId)
   const reserved = draftsCards
-    ? reservePendingRelicRewardDraws(player, relicId, state.meta.ruleset === 'downfall')
+    ? reservePendingRelicRewardDraws(player, relicId, preventsDuplicateCardRewards(state))
     : undefined
   const guardianGemGroups = reserved
     ? reserved.choices.map((choices) => {
@@ -702,7 +703,7 @@ export function acquireRelic(state: RunState, playerId: string, relicId: string)
     const relic = gained.relics.at(-1)
     if (gained.relics.length === owner.relics.length || !relic?.pending) return gained
     const nested = ['enchiridion', 'downfall_enchiridion', 'orrery', 'tiny_house', 'forbidden_fruit'].includes(id)
-      ? reservePendingRelicRewardDraws(gained, id, state.meta.ruleset === 'downfall')
+      ? reservePendingRelicRewardDraws(gained, id, preventsDuplicateCardRewards(state))
       : undefined
     const guardianGemGroups = nested?.choices.map((choices) =>
       choices.some(cardHasGuardianSocket) ? drawGuardianGemChoices(guardianGemDeck, 2) : [])
@@ -842,7 +843,7 @@ export function resolveCardRewards(
       ? { choices: offer.choices ?? [], cardsDrawn: [], raresDrawn: offer.raresDrawn ?? [] }
       : offer.cardsDrawn && offer.raresDrawn
       ? { choices: offer.choices ?? [], cardsDrawn: offer.cardsDrawn, raresDrawn: offer.raresDrawn }
-      : drawCardChoices(player, 3, state.meta.ruleset === 'downfall')
+      : drawCardChoices(player, 3, preventsDuplicateCardRewards(state))
     const expected = draw.choices
     if (offer.choices !== null && (
       offer.choices.length !== expected.length ||
@@ -906,7 +907,7 @@ export function resolveCardRewards(
     }
     const draw = offer.cardsDrawn && offer.raresDrawn
       ? { choices: shown, cardsDrawn: offer.cardsDrawn, raresDrawn: offer.raresDrawn }
-      : drawCardChoices(player, 3, state.meta.ruleset === 'downfall')
+      : drawCardChoices(player, 3, preventsDuplicateCardRewards(state))
     const bottomed = bottomCardChoices(offer.drawsReserved ? {
       ...player,
       cardRewards: [...draw.cardsDrawn, ...player.cardRewards],

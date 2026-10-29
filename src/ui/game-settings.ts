@@ -8,6 +8,7 @@ export type GameSettings = {
   highContrast: boolean
   /** Live damage numbers and the area-of-effect symbol on cards. */
   cardHints: boolean
+  preventDuplicateCardRewards: boolean
 }
 
 export const GAME_SETTINGS_KEY = 'sts-game-settings'
@@ -20,6 +21,7 @@ const DEFAULTS: GameSettings = {
   reducedMotion: false,
   highContrast: false,
   cardHints: true,
+  preventDuplicateCardRewards: false,
 }
 let sfxVolume = 1
 
@@ -39,6 +41,8 @@ export function loadGameSettings(): GameSettings {
       reducedMotion: typeof saved.reducedMotion === 'boolean' ? saved.reducedMotion : DEFAULTS.reducedMotion,
       highContrast: typeof saved.highContrast === 'boolean' ? saved.highContrast : DEFAULTS.highContrast,
       cardHints: typeof saved.cardHints === 'boolean' ? saved.cardHints : DEFAULTS.cardHints,
+      preventDuplicateCardRewards: typeof saved.preventDuplicateCardRewards === 'boolean'
+        ? saved.preventDuplicateCardRewards : DEFAULTS.preventDuplicateCardRewards,
     }
   } catch {
     return { ...DEFAULTS }

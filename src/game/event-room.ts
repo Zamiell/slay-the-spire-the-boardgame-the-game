@@ -103,6 +103,7 @@ type Context = {
   moveTo?: string
   ascension: number
   ruleset: RuleSet
+  preventDuplicateCardRewards: boolean
   nextUid: () => string
   removedCardDefId?: string
   lostRelicCost?: number
@@ -404,7 +405,7 @@ function applyEffect(context: Context, effect: EventEffect): boolean {
         if (!rare && effect.source !== 'colorless' && (sourcePlayer || inactiveCards)) {
           const draw = drawCardChoices(inactiveCards
             ? { cardRewards: inactiveCards, rareRewards: inactiveRares ?? [] }
-            : liveSource!, reveal, context.ruleset === 'downfall')
+            : liveSource!, reveal, context.preventDuplicateCardRewards)
           if (draw.choices.length === 0) continue
           const choice = effect.random ? nextInt(context.rng, draw.choices.length) : context.rewardIndexes.shift()
           if (choice === -1) {
@@ -502,6 +503,7 @@ export function resolveEventDecision(
   forcedRolls: number[] = [],
   resumeAtRoll = false,
   ruleset: RuleSet = 'base',
+  preventDuplicateCardRewards = ruleset === 'downfall',
 ): EventOutcome | null {
   const player = players.find((candidate) => candidate.id === playerId && !candidate.dead)
   if (!player || event.decisions[playerId] || decision.optionIds.length === 0) return null
@@ -528,6 +530,7 @@ export function resolveEventDecision(
     rolls: [],
     ascension,
     ruleset,
+    preventDuplicateCardRewards,
     nextUid: nextCardUid(players),
     eventDecisions: event.decisions,
     forcedRolls: [...forcedRolls],
@@ -591,6 +594,7 @@ export function resolveEventBeforeRoll(
   playerId: string,
   decision: EventDecision,
   ruleset: RuleSet = 'base',
+  preventDuplicateCardRewards = ruleset === 'downfall',
 ): EventOutcome | null {
   const option = event.card.options.find((candidate) => candidate.id === decision.optionIds[0])
   const rollIndex = option?.effects.findIndex((effect) => effect.tag === 'roll-d6') ?? -1
@@ -598,5 +602,5 @@ export function resolveEventBeforeRoll(
   return resolveEventDecision({
     ...event,
     card: { ...event.card, options: [{ ...option, effects: option.effects.slice(0, rollIndex) }] },
-  }, rng, itemDecks, players, ascension, playerId, decision, [], false, ruleset)
+  }, rng, itemDecks, players, ascension, playerId, decision, [], false, ruleset, preventDuplicateCardRewards)
 }

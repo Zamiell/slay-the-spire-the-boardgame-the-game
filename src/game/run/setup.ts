@@ -313,6 +313,8 @@ export function createRun(
     lastStand: lastStand && party.length > 1,
     meta: {
       mode,
+      ...(mode !== 'daily' && metaOptions.preventDuplicateCardRewards === true
+        ? { preventDuplicateCardRewards: true } : {}),
       modifierIds,
       ruleset,
       campaign,

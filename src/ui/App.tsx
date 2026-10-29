@@ -910,7 +910,11 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
     terminalRun.current = null
     // Bought Shop packs join every new run except a Daily Climb, whose pools everyone shares.
     const packs = nextMeta.mode === 'daily' ? [] : enabledCardPacks(savedWallet())
-    const meta: RunMetaOptions = packs.length > 0 ? { ...nextMeta, cardPacks: packs } : nextMeta
+    const meta: RunMetaOptions = {
+      ...nextMeta,
+      ...(packs.length > 0 ? { cardPacks: packs } : {}),
+      preventDuplicateCardRewards: settings.preventDuplicateCardRewards,
+    }
     const next = newRun(count, seed, legalAscension, progress, nextChooseYourRelic, nextLastStand, nextCharacters, meta)
     // A Daily Climb's engine overrides the requested Ascension; record what was built.
     setBuilt({ count, seed, ascension: next.ascension, chooseYourRelic: nextChooseYourRelic, lastStand: nextLastStand, characters: nextCharacters, meta,

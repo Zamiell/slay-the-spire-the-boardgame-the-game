@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import type { GameSettings } from './game-settings.ts'
 import { defaultGameSettings } from './game-settings.ts'
 
-type Tab = 'general' | 'video' | 'audio'
+type Tab = 'general' | 'gameplay' | 'video' | 'audio'
 
 export function SettingsDialog({ open, onClose, settings, onChange, generalChildren }: {
   open: boolean
@@ -76,7 +76,7 @@ export function SettingsDialog({ open, onClose, settings, onChange, generalChild
           <h2 id={`${id}-title`}>Settings</h2>
         </header>
         <nav aria-label="Settings sections">
-          {(generalChildren ? ['general', 'video', 'audio'] as const : ['video', 'audio'] as const)
+          {(generalChildren ? ['general', 'gameplay', 'video', 'audio'] as const : ['gameplay', 'video', 'audio'] as const)
             .map((section) => <button type="button" className="settings-dialog__key" key={section}
             id={`${id}-${section}-tab`} aria-pressed={tab === section}
             aria-controls={`${id}-${section}-panel`} onClick={() => setTab(section)}>{section}</button>)}
@@ -84,6 +84,14 @@ export function SettingsDialog({ open, onClose, settings, onChange, generalChild
         <div className="settings-dialog__body">
           {tab === 'general' ? <section id={`${id}-general-panel`} role="tabpanel" aria-labelledby={`${id}-general-tab`}>
             {generalChildren}
+          </section> : null}
+          {tab === 'gameplay' ? <section id={`${id}-gameplay-panel`} role="tabpanel" aria-labelledby={`${id}-gameplay-tab`}>
+            <label className="settings-toggle">
+              <span><strong>Prevent Duplicate Card Rewards</strong>
+                <small>Draw replacement cards when a reward offers duplicates. Applies to new runs; online games use the host’s setting. Daily Climbs keep their fixed rules.</small></span>
+              <input type="checkbox" checked={settings.preventDuplicateCardRewards}
+                onChange={(event) => set('preventDuplicateCardRewards', event.target.checked)} />
+            </label>
           </section> : null}
           {tab === 'video' ? <section id={`${id}-video-panel`} role="tabpanel" aria-labelledby={`${id}-video-tab`}>
             <div className="settings-action">

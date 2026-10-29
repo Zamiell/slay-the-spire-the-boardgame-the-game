@@ -9,7 +9,7 @@
 import { BOSSES, buildEncounter, createEnemyDecks, readyForCombat } from './encounters.ts'
 import { availableRewardSources, reservePrismaticDraws, settlePrismaticDraws } from './rewards.ts'
 import { enterRoom } from './rooms.ts'
-import { applyDeadlyEvent, hasRelic, nextRunUid } from './rules.ts'
+import { applyDeadlyEvent, hasRelic, nextRunUid, preventsDuplicateCardRewards } from './rules.ts'
 import { merchantItemDecks, mirrorItemSupplies } from './supplies.ts'
 import type { CardRewardEffect, RunState } from './types.ts'
 import {
@@ -371,7 +371,7 @@ function chooseEventInternal(state: RunState, playerId: string, decision: EventD
     const rng = { ...state.rng }
     const itemDecks = structuredClone(state.itemDecks)
     const option = state.roomState.card.options.find((candidate) => candidate.id === 'take_and_give')!
-    const staged = resolveEventDecision({ ...state.roomState, card: { ...state.roomState.card, options: [{ ...option, effects: option.effects.slice(0, 1) }] } }, rng, itemDecks, state.players, state.ascension, playerId, decision, [], false, state.meta.ruleset)
+    const staged = resolveEventDecision({ ...state.roomState, card: { ...state.roomState.card, options: [{ ...option, effects: option.effects.slice(0, 1) }] } }, rng, itemDecks, state.players, state.ascension, playerId, decision, [], false, state.meta.ruleset, preventsDuplicateCardRewards(state))
     if (!staged) return state
     const pending = stageEventDecision(decision)
     delete pending.relicIds
@@ -381,7 +381,7 @@ function chooseEventInternal(state: RunState, playerId: string, decision: EventD
     const rng = { ...state.rng }
     const itemDecks = structuredClone(state.itemDecks)
     const option = state.roomState.card.options.find((candidate) => candidate.id === 'offer_relic')!
-    const staged = resolveEventDecision({ ...state.roomState, card: { ...state.roomState.card, options: [{ ...option, effects: option.effects.slice(0, 1) }] } }, rng, itemDecks, state.players, state.ascension, playerId, decision, [], false, state.meta.ruleset)
+    const staged = resolveEventDecision({ ...state.roomState, card: { ...state.roomState.card, options: [{ ...option, effects: option.effects.slice(0, 1) }] } }, rng, itemDecks, state.players, state.ascension, playerId, decision, [], false, state.meta.ruleset, preventsDuplicateCardRewards(state))
     if (!staged) return state
     const locked = { ...state, rng, itemDecks, players: staged.players, roomState: { ...state.roomState, pendingDecisions: { ...state.roomState.pendingDecisions, [playerId]: stageEventDecision(decision) } } }
     return chooseEventInternal(locked, playerId, decision, false)
@@ -454,7 +454,7 @@ function chooseEventInternal(state: RunState, playerId: string, decision: EventD
     if (currentOffers && (!submitted || submitted.length !== 1)) return state
     const indexes = [...(pending?.rewardIndexes ?? []), ...(submitted ?? [])]
     const preview = nextEventCardOffer(state, playerId, pending?.targetPlayerId ?? decision.targetPlayerId,
-      rewardEffects, indexes, state.meta.ruleset === 'downfall')
+      rewardEffects, indexes, preventsDuplicateCardRewards(state))
     if (!preview.valid) return state
     if (preview.offer) {
       const gemReveal = revealGuardianDraftGems(state, preview.offer)
@@ -503,7 +503,7 @@ function chooseEventInternal(state: RunState, playerId: string, decision: EventD
     }
     const rng = { ...state.rng }
     const itemDecks = structuredClone(state.itemDecks)
-    const staged = resolveEventBeforeRoll(state.roomState, rng, itemDecks, state.players, state.ascension, playerId, rollDecision, state.meta.ruleset)
+    const staged = resolveEventBeforeRoll(state.roomState, rng, itemDecks, state.players, state.ascension, playerId, rollDecision, state.meta.ruleset, preventsDuplicateCardRewards(state))
     if (!staged) return state
     if (staged.players.some((candidate) => candidate.dead)) return { ...state, rng, itemDecks, players: staged.players, phase: 'defeat', roomState: null, log: [...state.log, `${state.roomState.card.name} defeats the party.`] }
     const rolls = Array.from({ length: rollCount }, () => 1 + nextInt(rng, 6))
@@ -674,7 +674,7 @@ function chooseEventInternal(state: RunState, playerId: string, decision: EventD
       effects: option.effects.filter((effect) => !((effect.tag === 'card-reward' || effect.tag === 'rare-reward') && !effect.random && effect.source !== 'colorless')),
     } : option) },
   } : resumedRoom
-  const result = resolveEventDecision(resolutionRoom, rng, itemDecks, state.players, state.ascension, playerId, finalDecision, forcedRolls, forcedRolls.length > 0, state.meta.ruleset)
+  const result = resolveEventDecision(resolutionRoom, rng, itemDecks, state.players, state.ascension, playerId, finalDecision, forcedRolls, forcedRolls.length > 0, state.meta.ruleset, preventsDuplicateCardRewards(state))
   if (!result) return state
   if (faceTraderResume) result.event.card = state.roomState.card
   if (result.players.some((candidate) => candidate.dead)) return { ...state, rng, itemDecks, players: result.players, phase: 'defeat', roomState: null, log: [...state.log, `${result.event.card.name} defeats the party.`] }

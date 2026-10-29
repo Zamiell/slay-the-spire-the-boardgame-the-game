@@ -36,6 +36,22 @@ const beginBlue = (seed = 1, count = 2, progress = createCampaignProgress()) => 
   return resolveNeowReward(run, 'p1', null)
 }
 
+check('duplicate prevention is fixed at setup, applies to Neow, and cannot change Daily Climb rules', () => {
+  for (const preventDuplicateCardRewards of [false, true]) {
+    let run = createRun(442, party(1), 0, createCampaignProgress(), false, false, { preventDuplicateCardRewards })
+    run.players[0].cardRewards = ['anger', 'anger', 'cleave', 'shrug_it_off']
+    run = resolveNeowGold(run, 'p1', true)
+    run = revealNeowReward(run, 'p1')
+    assertDeepEqual(run.neow.players.p1.redReward.choices,
+      preventDuplicateCardRewards ? ['anger', 'cleave', 'shrug_it_off'] : ['anger', 'anger', 'cleave'])
+    run = resolveNeowReward(run, 'p1', null)
+    assertEqual(run.players[0].cardRewards.length, 4)
+  }
+  const daily = createRun(442, party(1), 0, createCampaignProgress(), false, false,
+    { mode: 'daily', dailyDate: '2026-10-29', preventDuplicateCardRewards: true })
+  assertEqual(daily.meta.preventDuplicateCardRewards, undefined)
+})
+
 const forceCard = (run, cardId) => ({
   ...run,
   neow: { ...run.neow, players: { ...run.neow.players, p1: { ...run.neow.players.p1, cardId } } },

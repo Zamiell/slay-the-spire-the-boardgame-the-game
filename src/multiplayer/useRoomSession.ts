@@ -952,7 +952,8 @@ export function useRoomSession() {
       : current.modifiers.filter((candidate) => candidate !== id) }
   }), [enqueue])
   const selectCampaign = useCallback((enabled: boolean) => enqueue('campaign-select', { enabled }), [enqueue])
-  const start = useCallback((campaign: 'base' | 'downfall') => enqueue('start', { campaign }), [enqueue])
+  const start = useCallback((campaign: 'base' | 'downfall', preventDuplicateCardRewards = false) =>
+    enqueue('start', { campaign, preventDuplicateCardRewards }), [enqueue])
   const act = useCallback((action: object) => enqueue('action', { action }), [enqueue])
   const sendVoiceSignal = useCallback((to: string, signal: VoiceSignal['signal']) => {
     if (socket.current?.readyState !== WebSocket.OPEN) return false

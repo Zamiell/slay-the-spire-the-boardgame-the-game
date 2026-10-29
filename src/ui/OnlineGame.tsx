@@ -633,7 +633,7 @@ export function OnlineGame({ onLocal, settings, onSettings }: Props) {
     const startLabel = connected && ready
       ? isPartyLeader ? 'Enter the Spire' : `${partyLeader?.name ?? 'The party leader'} starts the run`
       : 'Waiting for every seat'
-    if (snapshot.selectingCampaign) return <CampaignSelect onChoose={room.start}
+    if (snapshot.selectingCampaign) return <CampaignSelect onChoose={(campaign) => room.start(campaign, settings.preventDuplicateCardRewards)}
       onBack={isPartyLeader && connected && !room.mutationPending ? () => { void room.selectCampaign(false) } : undefined}
       disabled={!connected || !ready || !isPartyLeader || room.mutationPending}
       message={room.error || (!connected || !ready ? 'Waiting for every seat to connect.'

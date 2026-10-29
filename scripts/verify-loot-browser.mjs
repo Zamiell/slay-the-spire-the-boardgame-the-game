@@ -299,7 +299,8 @@ try {
   assert.deepEqual(await reducedCard.evaluate((card) => ({
     transform: getComputedStyle(card).transform,
     duration: getComputedStyle(card).transitionDuration,
-  })), { transform: 'none', duration: '0s' }, 'Card Reward hover ignores reduced motion')
+  })), { transform: 'matrix(1.25, 0, 0, 1.25, 0, 0)', duration: '0s' },
+  'reduced motion must preserve instant reward inspection without animated easing')
   await page.emulateMedia({ reducedMotion: 'no-preference' })
   await page.setViewportSize({ width: 1440, height: 900 })
   assert.equal(await fiveCardReward.getByRole('button', { name: /Confirm/ }).count(), 0,

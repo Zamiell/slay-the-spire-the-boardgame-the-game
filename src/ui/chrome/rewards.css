@@ -415,13 +415,8 @@
   html:not([data-mobile-performance='true']) .sts-scope .reward-screen--card-choice .reward-screen__cards > .card {
     transition: none;
   }
-  html:not([data-mobile-performance='true']) .sts-scope .reward-screen--card-choice .reward-screen__cards > .card:not([aria-disabled='true']):is(:hover, :focus-visible) {
-    transform: none;
-  }
 }
 
-html[data-reduced-motion='true'] .sts-scope .reward-screen--card-choice .reward-screen__cards > .card,
-html[data-reduced-motion='true'] .sts-scope .reward-screen--card-choice .reward-screen__cards > .card:not([aria-disabled='true']):is(:hover, :focus-visible) {
-  transform: none;
+html[data-reduced-motion='true'] .sts-scope .reward-screen--card-choice .reward-screen__cards > .card {
   transition: none;
 }

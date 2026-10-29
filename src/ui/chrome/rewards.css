@@ -385,12 +385,15 @@
 
 .sts-scope .reward-screen--card-choice .reward-screen__cards > .card {
   width: min(13.4rem, calc((95vw - 9rem) / var(--reward-card-count, 3)));
+}
+
+.sts-scope .reward-screen--card-choice .reward-screen__cards > :is(.card, .relic-reward__choice) {
   transform-origin: center;
   transform: scale(1);
   transition: transform 500ms cubic-bezier(0.19, 1, 0.22, 1);
 }
 
-.sts-scope .reward-screen--card-choice .reward-screen__cards > .card:not([aria-disabled='true']):where(:hover, :focus-visible) {
+.sts-scope .reward-screen--card-choice .reward-screen__cards > :is(.card, .relic-reward__choice):not([aria-disabled='true'], :disabled):where(:hover, :focus-visible) {
   z-index: 2;
   filter: drop-shadow(0 0.55rem 0.6rem rgb(0 0 0 / 0.7));
   transform: scale(1.25);
@@ -411,11 +414,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html:not([data-mobile-performance='true']) .sts-scope .reward-screen--card-choice .reward-screen__cards > .card {
+  html:not([data-mobile-performance='true']) .sts-scope .reward-screen--card-choice .reward-screen__cards > :is(.card, .relic-reward__choice) {
     transition: none;
   }
 }
 
-html[data-reduced-motion='true'] .sts-scope .reward-screen--card-choice .reward-screen__cards > .card {
+html[data-reduced-motion='true'] .sts-scope .reward-screen--card-choice .reward-screen__cards > :is(.card, .relic-reward__choice) {
   transition: none;
 }

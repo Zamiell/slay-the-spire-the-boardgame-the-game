@@ -66,11 +66,61 @@ try {
     assert.equal(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun())), before)
     await checkLoot(page)
     await picker(page).locator('.item-card-image').evaluateAll((images) => Promise.all(images.map((image) => image.decode())))
+    const hoverChoice = picker(page).getByRole('button', { name: 'Fusion Hammer', exact: true })
+    await page.mouse.move(5, 5)
+    await picker(page).evaluate(async dialog => {
+      document.activeElement?.blur()
+      await Promise.all(dialog.getAnimations({ subtree: true }).map(animation => animation.finished))
+    })
+    const resting = await hoverChoice.boundingBox()
+    const sampleTween = () => hoverChoice.evaluate(choice => {
+      getComputedStyle(choice).transform
+      const animation = choice.getAnimations().find(animation => animation.transitionProperty === 'transform')
+      if (!animation) return null
+      animation.pause()
+      const duration = animation.effect.getTiming().duration
+      const widths = [0, duration / 2, duration].map(time => {
+        animation.currentTime = time
+        return choice.getBoundingClientRect().width
+      })
+      animation.finish()
+      return { duration, widths }
+    })
+    await hoverChoice.hover()
+    const growing = await sampleTween()
+    assert(growing && growing.duration === 180 && growing.widths[0] < growing.widths[1] &&
+      growing.widths[1] < growing.widths[2], `${screen}: relic hover must tween up`)
+    assert(Math.abs(growing.widths[2] / resting.width - 1.25) < .01, 'relic hover must enlarge by 25%')
+    await page.screenshot({ path: `${output}/${screen}-hover.png` })
+    await page.mouse.move(5, 5)
+    const shrinking = await sampleTween()
+    assert(shrinking && shrinking.duration === 500 && shrinking.widths[0] > shrinking.widths[1] &&
+      shrinking.widths[1] > shrinking.widths[2], `${screen}: relic hover must ease back`)
+    assert(Math.abs(shrinking.widths[2] - resting.width) < 1)
+    await page.keyboard.press('Tab')
+    await hoverChoice.focus()
+    await hoverChoice.evaluate(choice => Promise.all(choice.getAnimations().map(animation => animation.finished)))
+    assert(Math.abs((await hoverChoice.boundingBox()).width / resting.width - 1.25) < .01,
+      'keyboard focus must use the same relic enlargement')
     assert(await picker(page).evaluate((dialog) => [...dialog.querySelectorAll('button')].every((button) => {
       const box = button.getBoundingClientRect()
       return box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight
     })), `${screen}: relic choices or navigation clipped`)
     await page.screenshot({ path: `${output}/${screen}.png`, animations: 'disabled' })
+    for (const mode of phone ? ['game'] : ['system', 'game']) {
+      await page.emulateMedia({ reducedMotion: mode === 'system' ? 'reduce' : 'no-preference' })
+      await page.evaluate(mode => { document.documentElement.dataset.reducedMotion = String(mode === 'game') }, mode)
+      await hoverChoice.evaluate(choice => choice.blur())
+      await page.mouse.move(5, 5)
+      await hoverChoice.hover()
+      assert(Math.abs((await hoverChoice.boundingBox()).width / resting.width - 1.25) < .01,
+        `${screen}/${mode}: reduced motion must preserve relic inspection`)
+      assert(await hoverChoice.evaluate(choice => getComputedStyle(choice).transitionDuration
+        .split(',').every(duration => parseFloat(duration) <= .001)),
+      `${screen}/${mode}: reduced motion must disable the tween`)
+    }
+    await page.emulateMedia({ reducedMotion: 'no-preference' })
+    await page.evaluate(() => { document.documentElement.dataset.reducedMotion = 'false' })
     await picker(page).getByRole('button', { name: 'Coffee Dripper', exact: true }).focus()
     await page.keyboard.press('Enter')
     await page.getByRole('heading', { name: 'Loot!', exact: true }).waitFor()

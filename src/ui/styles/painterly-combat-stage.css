@@ -204,7 +204,7 @@
   --orb-clearance: 2rem;
 }
 
-/* CombatScreen measures the painted head, so Orbs and held potions sit just above it
+/* CombatScreen measures the painted head, so Orbs sit just above it
    whatever the art's empty margin. The Guardian's mode-shift art is taller than its idle pose. */
 .seat__interactive { --hero-head-height: var(--hero-art-head-height); }
 .seat__interactive:has(.seat__portrait > [data-guardian-transition]) {
@@ -439,7 +439,6 @@
   box-shadow: 0 1px 0 rgb(255 255 255 / 0.2), 0 2px 6px #000;
 }
 
-.seat__potions,
 .seat__pending {
   max-width: 11rem;
   text-shadow: 0 1px 2px #000;

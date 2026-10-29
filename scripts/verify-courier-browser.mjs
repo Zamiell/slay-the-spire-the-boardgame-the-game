@@ -59,7 +59,7 @@ const boxes = (page) => page.evaluate(() => {
       right: Math.max(...boxes.map((box) => box.right)), bottom: Math.max(...boxes.map((box) => box.bottom)) } : undefined
   }
   return { viewport: { width: innerWidth, height: innerHeight }, overflow: document.documentElement.scrollWidth > innerWidth,
-    occupied: [...document.querySelectorAll('.seat__potions .potion-chip, .token--orb, .enemy__intent .icon-value, .combat__turn, .combat__phase')].map((element) => {
+    occupied: [...document.querySelectorAll('.token--orb, .enemy__intent .icon-value, .combat__turn, .combat__phase')].map((element) => {
       const box = element.getBoundingClientRect()
       return { name: element.className, left: box.left, top: box.top, right: box.right, bottom: box.bottom }
     }),

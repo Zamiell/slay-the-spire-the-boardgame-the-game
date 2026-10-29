@@ -200,7 +200,7 @@ import { Card, slimeCommandText } from './Card.tsx'
 import { CardCollectionOverlay } from './CardCollectionOverlay.tsx'
 import { EnemyCard } from './EnemyCard.tsx'
 import { Icon, IconValue, StatusIcon, dieIcon } from './Icon.tsx'
-import { PotionIcon, PotionTooltipAnchor } from './PotionIcon.tsx'
+import { PotionTooltipAnchor } from './PotionIcon.tsx'
 import {
   PowerGlyph,
   PowerRow,
@@ -6999,7 +6999,7 @@ function CombatScreenView({
           const characterArtScale = prefersReducedMotion || occupant?.dead || occupantVisual === 'watcher' ? 1
             : stagedSpec ? stagedSpec.displayScale
             : (rigMetadata as Record<string, { scale?: number }>)[`hero-${rigId}`]?.scale ?? 1
-          // Where the painted head ends, so held potions and Orbs float just above it.
+          // Where the painted head ends, so Orbs float just above it.
           const animatedPortrait = !prefersReducedMotion && !occupant?.dead && !slimeSpawnEvent
           const heroHeads = heroArtHeads as Record<string, number[]>
           // A skin may paint its own summon drawing (`<skin>-spawn.webp`) and calibrate its head; otherwise the idle drawing shows.
@@ -7316,12 +7316,6 @@ function CombatScreenView({
                       {remainingRoundHpLoss(occupant) !== undefined ? (
                         <span className="seat__pending">
                           {occupant.powers.some((power) => power.defId === 'wraith_form') ? 'Wraith Form' : 'Apparition'} · {remainingRoundHpLoss(occupant)} HP loss remaining
-                        </span>
-                      ) : null}
-                      {occupant.potions.length > 0 ? (
-                        <span className="seat__potions">
-                          {occupant.potions.map((id, index) => <PotionIcon id={id} focusable={false}
-                            key={`${id}-${index}`} />)}
                         </span>
                       ) : null}
                       </span>

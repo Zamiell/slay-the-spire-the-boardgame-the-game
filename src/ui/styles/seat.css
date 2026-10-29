@@ -25,7 +25,6 @@
   letter-spacing: 0.06em;
 }
 
-.seat__potions,
 .seat__pending {
   color: var(--ink-dim);
   font-size: 0.65rem;

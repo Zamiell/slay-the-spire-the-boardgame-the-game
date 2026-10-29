@@ -1224,8 +1224,8 @@ try {
   const [aView, bView] = await Promise.all([snapshot(a), snapshot(b)])
   const annSeat = a.locator('.seat', { hasText: 'Ann' })
   const boSeat = a.locator('.seat', { hasText: 'Bo' })
-  const annPotions = await annSeat.locator('.seat__potions .potion-chip').count()
-  const boPotions = await boSeat.locator('.seat__potions .potion-chip').count()
+  const annPotions = await a.locator('.app-shell__header .outside-potions .potion-chip').count()
+  const boPotions = await b.locator('.app-shell__header .outside-potions .potion-chip').count()
   const annSeatLabel = await annSeat.getAttribute('aria-label')
   const boSeatLabel = await boSeat.getAttribute('aria-label')
   const foreignPotionControls = await a.locator('.combat__actions').getByRole('button', { name: /Block Potion/ }).count()
@@ -1242,7 +1242,7 @@ try {
     assertEqual(bView.run.combat.players.find((player) => player.id === aId).draw, null)
     assertEqual(aView.run.players.find((player) => player.id === bId).deck, null)
   })
-  check('every online seat shows every face-up potion without granting its controls', () => {
+  check('each online header shows its held potions without granting another seat controls', () => {
     assertEqual(annPotions, 3)
     assertEqual(boPotions, 1)
     assert(annSeatLabel.includes('Energy Potion ×3: Gain 2 Energy.'))
@@ -5129,7 +5129,7 @@ try {
     b.locator('.combat[data-phase="enemy"]').waitFor(),
   ])
   const enemyTurn = await snapshot(a)
-  const enemyTurnPotions = await a.locator('.seat', { hasText: 'Bo' }).locator('.seat__potions .potion-chip').count()
+  const enemyTurnPotions = await b.locator('.app-shell__header .outside-potions .potion-chip').count()
   check('each seat independently confirms the shared end of turn', () => {
     const ann = enemyTurn.run.combat.players.find((player) => player.id === enemyTurn.you.playerId)
     const bo = enemyTurn.run.combat.players.find((player) => player.id !== enemyTurn.you.playerId)

@@ -6,13 +6,12 @@ import { postNeowRun } from './lib/post-neow-run.mjs'
 import { CHARACTER_IDS } from '../src/game/types.ts'
 import { enterRoom } from '../src/game/run.ts'
 
-// Held potions and Defect's Orbs float just above the painted head, not above the
-// empty margin of the art canvas, and the Orbs never sit on the potions.
+// Potions live in the header, never above heroes. Defect's Orbs still follow the painted head.
 const root = resolve(import.meta.dirname, '..')
 const server = await createServer({ root, logLevel: 'silent', server: { port: 0 } })
 await server.listen()
 try {
-  // Safari plays heroes as alpha video, which a canvas cannot read back, so only Chromium measures pixels.
+  // Chromium can measure the alpha bounds of both image and video hero art.
   for (const [engineName, engine] of Object.entries({ chromium })) {
     const browser = await engine.launch()
     try {
@@ -25,14 +24,13 @@ try {
         await page.goto(`http://localhost:${server.httpServer.address().port}`)
         for (const name of ['Single Player', 'Standard', 'Embark', 'Start standard campaign'])
           await page.getByRole('button', { name, exact: true }).click()
-        // The potions must sit just above the painted head on screen right now, with the Orbs above them.
         const assertHead = async (where) => {
           const m = await page.evaluate(() => {
             const seat = document.querySelector('.seat__interactive')
             const image = seat.querySelector('.seat__portrait > :is(img, video):not([style*="display: none"])')
             const canvas = document.createElement('canvas')
-            canvas.width = image.naturalWidth
-            canvas.height = image.naturalHeight
+            canvas.width = image instanceof HTMLVideoElement ? image.videoWidth : image.naturalWidth
+            canvas.height = image instanceof HTMLVideoElement ? image.videoHeight : image.naturalHeight
             const context = canvas.getContext('2d')
             context.drawImage(image, 0, 0)
             const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data
@@ -41,18 +39,13 @@ try {
               for (let x = 0; x < canvas.width; x++) if (pixels[(y * canvas.width + x) * 4 + 3] > 96) { top = y; break }
             const box = image.getBoundingClientRect()
             const fit = Math.min(box.width / canvas.width, box.height / canvas.height)
-            const icons = [...seat.querySelectorAll('.seat__potions .item-icon-image')].map((icon) => icon.getBoundingClientRect())
             const orbs = [...seat.querySelectorAll('.orbs > *')].map((orb) => orb.getBoundingClientRect())
-            return { headTop: box.bottom - (canvas.height - top) * fit, iconBottom: Math.max(...icons.map((icon) => icon.bottom)),
-              iconTop: Math.min(...icons.map((icon) => icon.top)), orbsBottom: orbs.length ? Math.max(...orbs.map((orb) => orb.bottom)) : null,
+            return { headTop: box.bottom - (canvas.height - top) * fit,
+              orbsBottom: orbs.length ? Math.max(...orbs.map((orb) => orb.bottom)) : null,
               orbsTop: orbs.length ? Math.min(...orbs.map((orb) => orb.top)) : null, boardTop: document.querySelector('.board').getBoundingClientRect().top }
           }).catch((error) => { throw new Error(`${where}: ${error.message}`) })
-          const gap = m.headTop - m.iconBottom
-          // The idle loop moves the head a few pixels either way.
-          assert(gap >= -8, `${where}: potions cover the head ${JSON.stringify(m)}`)
-          assert(gap <= 40, `${where}: potions float ${Math.round(gap)}px above the head ${JSON.stringify(m)}`)
           if (m.orbsBottom !== null) {
-            assert(m.orbsBottom <= m.iconTop + 2, `${where}: Orbs sit on the potions ${JSON.stringify(m)}`)
+            assert(m.orbsBottom <= m.headTop + 8, `${where}: Orbs cover the painted head ${JSON.stringify(m)}`)
             assert(m.orbsTop >= m.boardTop, `${where}: Orbs clipped by the board ${JSON.stringify(m)}`)
           }
         }
@@ -69,10 +62,14 @@ try {
           if (heat !== undefined) player.heat = heat
           if (guardianMode) player.guardianMode = guardianMode
           await page.evaluate((state) => window.__STS_DEBUG__.setRun(state), combat)
-          await page.locator('.seat__interactive .seat__potions').waitFor()
+          await page.locator('.seat__interactive').waitFor()
+          assert.equal(await page.locator('.seat__potions').count(), 0, `${where}: potions still float above the hero`)
+          assert.equal(await page.locator('.app-shell__header .outside-potions .item-icon-image').count(), 2,
+            `${where}: held potions disappeared from the header`)
           const art = page.locator('.seat__interactive .seat__portrait > :is(img, video):not([style*="display: none"])').first()
           await art.waitFor()
-          await art.evaluate((image) => image.decode())
+          await page.waitForFunction((media) => media instanceof HTMLVideoElement
+            ? media.readyState >= 2 : media.complete && media.naturalWidth > 0, await art.elementHandle())
           await page.waitForTimeout(900)
           await assertHead(where)
           if (guardianMode && screen !== 'desktop-reduced-motion') {
@@ -94,7 +91,7 @@ try {
         }
         assert.deepEqual(errors, [])
         await page.close()
-        console.log(`${engineName}/${screen}: held potions and Orbs sit on every hero's head`)
+        console.log(`${engineName}/${screen}: potions stay in the header and Orbs stay above every hero's head`)
       }
     } finally { await browser.close() }
   }

@@ -12851,15 +12851,15 @@ const combatPotionButton = page.locator('.combat__actions').getByRole('button', 
 const combatPotionDescriptionId = await combatPotionButton.getAttribute('aria-describedby')
 const combatPotionDescription = await page.locator(`[id="${combatPotionDescriptionId}"]`).textContent()
 const seatWithCunning = page.getByRole('button', { name: /Cunning Potion: Gain 3 Shivs/ })
-const seatPotionIcon = seatWithCunning.locator('.seat__potions .potion-chip').first()
-const seatPotionText = await seatWithCunning.locator('.seat__potions').textContent()
+const seatPotionIcon = page.locator('.app-shell__header .outside-potions .potion-chip').first()
+const seatPotionText = await seatPotionIcon.textContent()
 const seatPotionLabel = await seatWithCunning.getAttribute('aria-label')
 await seatPotionIcon.hover()
 const seatPotionTip = page.locator('.potion-tip').filter({ hasText: 'Cunning Potion' })
 await seatPotionTip.waitFor()
 const seatPotionTipBox = await seatPotionTip.boundingBox()
 const visibleSeatPotionTips = await page.locator('.potion-tip').count()
-check('seat-held Potions expose their effects and keep the tooltip inside the viewport', () => {
+check('header-held Potions expose their effects and keep the tooltip inside the viewport', () => {
   assertEqual(seatPotionText, '', 'Potion names rendered beside their icons')
   assert(seatPotionLabel.includes('Cunning Potion: Gain 3 Shivs. Treat each Shiv as a separate 0 cost Attack.'))
   assert(seatPotionTipBox && seatPotionTipBox.x >= 0 && seatPotionTipBox.y >= 0)
@@ -13059,7 +13059,7 @@ await page.evaluate(() => {
 })
 await page.waitForFunction(() => window.__STS_DEBUG__.getState().players[0].dead === true)
 const deadPotionControls = await page.locator('.combat__actions').getByRole('button', { name: /Energy Potion/ }).count()
-const deadPotionIcons = await page.locator('.seat--viewer .seat__potions .potion-chip').count()
+const deadPotionIcons = await page.locator('.app-shell__header .outside-potions .potion-chip').count()
 const deadSeatLabel = await page.locator('.seat--viewer').getAttribute('aria-label')
 check('a dead seat keeps public potion information but gets no Player Turn controls', () => {
   assertEqual(deadPotionControls, 0)

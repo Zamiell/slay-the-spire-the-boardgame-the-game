@@ -1,0 +1,24 @@
+.relic-reward[open] {
+  width: 100%;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  border: 0;
+}
+.relic-reward__choice {
+  flex: 0 1 auto;
+  width: min(14rem, 24vw, 35dvh);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  transition: transform 150ms ease, filter 150ms ease;
+}
+.relic-reward__choice > .item-card-image { display: block; width: 100%; height: auto; max-height: 48dvh; object-fit: contain; }
+.relic-reward__choice:is(:hover, :focus-visible):not(:disabled) { transform: scale(1.06); filter: brightness(1.1); }
+.relic-reward__choice:disabled { opacity: 0.6; cursor: wait; }
+.relic-reward__back { position: absolute; bottom: 1rem; left: 1rem; }
+@media (prefers-reduced-motion: reduce) {
+  .relic-reward__choice { transition: none; }
+  .relic-reward__choice:is(:hover, :focus-visible):not(:disabled) { transform: none; }
+}

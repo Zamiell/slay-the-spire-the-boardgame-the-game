@@ -5,6 +5,7 @@
 // scripts/verify-assets.mjs proves every card resolves to a file that exists.
 import type { CardDef } from './cards.ts'
 import type { EnemyDef } from './enemies.ts'
+import { ENEMY_CARD_IMAGES } from './enemy-card-images.ts'
 import type { PotionDef, RelicDef } from './relics.ts'
 import { SKIN_CARD_FACES } from './skin-card-faces.ts'
 import type { SkinId } from './skins.ts'
@@ -214,6 +215,12 @@ export function cardArtPath(def: CardDef, skin?: SkinId): string {
 export function enemyImagePath(def: EnemyDef): string {
   const artId = def.artId ?? def.id
   return assetPath(`combat/enemies/${artId}.webp`)
+}
+
+export function enemyCardImage(defId: string, ascension = 0) {
+  const image = ENEMY_CARD_IMAGES[defId]?.filter(card => card.minAscension <= ascension).at(-1)
+  if (!image) throw new Error(`Missing printed enemy card: ${defId}`)
+  return { src: assetPath(`enemy-cards/${image.file}.webp`), width: image.width, height: image.height }
 }
 
 export const WEBP_ONLY_ANIMATIONS = new Set(['byrd', 'cultist', 'looter', 'mugger', 'book_of_stabbing',

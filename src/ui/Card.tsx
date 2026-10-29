@@ -654,12 +654,13 @@ export function cardKeywordTips(def: CardDef): readonly CardKeywordTip[] {
 
 const EMPTY_KEYWORD_TIPS: readonly CardKeywordTip[] = []
 
-export function CardKeywordHelp({ def, additionalDef, gemPowerDamage, extraTips = EMPTY_KEYWORD_TIPS, hover = false, children }: {
+export function CardKeywordHelp({ def, additionalDef, gemPowerDamage, extraTips = EMPTY_KEYWORD_TIPS, image, hover = false, children }: {
   def?: CardDef
   hover?: boolean
   additionalDef?: CardDef | null
   gemPowerDamage?: boolean
   extraTips?: readonly { name: string, text: string, icon?: IconName, statusIcon?: StatusIconName }[]
+  image?: { src: string, alt: string, width: number, height: number }
   children: (props: {
     ref?: (element: HTMLElement | null) => void
     'aria-describedby'?: string
@@ -687,6 +688,7 @@ export function CardKeywordHelp({ def, additionalDef, gemPowerDamage, extraTips 
   const tooltipId = `card-keyword-help-${useId()}`
   const anchorRef = useRef<HTMLElement | null>(null)
   const [mounted, setMounted] = useState(false)
+  const hasHelp = tips.length > 0 || !!image
   const setAnchor = useCallback((element: HTMLElement | null) => {
     const previous = anchorRef.current as (HTMLElement & { mountKeywordHelp?: () => void }) | null
     if (previous) delete previous.mountKeywordHelp
@@ -694,10 +696,10 @@ export function CardKeywordHelp({ def, additionalDef, gemPowerDamage, extraTips 
     if (element) (element as HTMLElement & { mountKeywordHelp?: () => void }).mountKeywordHelp = () => setMounted(true)
   }, [])
   useEffect(() => {
-    if (mounted && tips.length > 0) anchorRef.current?.dispatchEvent(new Event('card-keyword-help-ready', { bubbles: true }))
-  }, [mounted, tipsKey])
+    if (mounted && hasHelp) anchorRef.current?.dispatchEvent(new Event('card-keyword-help-ready', { bubbles: true }))
+  }, [mounted, tipsKey, hasHelp, image?.src])
   const host = mounted && anchorRef.current ? anchorRef.current.closest('dialog') ?? document.body : null
-  const props = tips.length > 0 ? {
+  const props = hasHelp ? {
     ref: setAnchor,
     'aria-describedby': `${tooltipId}-description`,
     'data-keyword-help-id': tooltipId,
@@ -705,11 +707,15 @@ export function CardKeywordHelp({ def, additionalDef, gemPowerDamage, extraTips 
   } : mounted ? { ref: setAnchor } : {}
   return <>
     {children(props)}
-    {tips.length > 0 ? <span className="visually-hidden" id={`${tooltipId}-description`}>
-      {description}
+    {hasHelp ? <span className="visually-hidden" id={`${tooltipId}-description`}>
+      {image ? `${image.alt}. ` : ''}{description}
     </span> : null}
-    {host && tips.length > 0 ? createPortal(
-      <span className="card-keyword-tips" id={tooltipId} role="tooltip">
+    {host && hasHelp ? createPortal(
+      <span className={`card-keyword-tips${image ? ' card-keyword-tips--image' : ''}`}
+        data-landscape={image && image.width > image.height || undefined} id={tooltipId} role="tooltip">
+        {image ? <img className="card-keyword-image" src={image.src} alt={image.alt}
+          width={image.width} height={image.height} draggable={false}
+          onLoad={() => anchorRef.current?.dispatchEvent(new Event('card-keyword-help-ready', { bubbles: true }))} /> : null}
         {tips.map((tip) => (
           <span className="card-keyword-tip" key={tip.name}>
             <strong>{tip.icon ? <Icon name={tip.icon} size={18} />

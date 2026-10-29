@@ -2,9 +2,9 @@
 // every image path must be a safe, normalised browser path. A missing asset is
 // otherwise invisible until it renders as a broken box in a real game.
 //
-// Publisher card scans and reference crops remain optional local syncs.
-// Runtime icons, illustrations, and combat cutouts are committed and required
-// by the unconditional inventories below.
+// Player-card scans and rulebook crops remain optional local syncs.
+// Enemy reference faces, runtime icons, illustrations, and combat cutouts are
+// committed and required by the unconditional inventories below.
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { spawnSync } from 'node:child_process'
@@ -17,6 +17,7 @@ import {
   cardThumbPath,
   enemyAnimationImagePath,
   enemyImagePath,
+  enemyCardImage,
   relicIconPath,
   CARD_ART_ROOT,
   CARD_ASSET_ROOT,
@@ -676,6 +677,19 @@ check('every live enemy runtime image path exists', () => {
     return !existsSync(join(publicRoot, 'assets', relative))
   }).map((def) => `${def.id}: ${enemyImagePath(def)}`)
   assert(missing.length === 0, `missing runtime enemy images:\n    ${missing.join('\n    ')}`)
+})
+
+check('every enemy has a locally hosted printed reference at every Ascension', () => {
+  for (const id of Object.keys(ENEMIES)) for (let ascension = 0; ascension <= 13; ascension++) {
+    const image = enemyCardImage(id, ascension)
+    const path = join(publicRoot, image.src)
+    assert(existsSync(path), `${id} A${ascension}: missing ${image.src}`)
+    assertDeepEqual(webpSize(path), [image.width, image.height], `${id}: incorrect preview dimensions`)
+  }
+  assert(enemyCardImage('jaw_worm_first').src !== enemyCardImage('jaw_worm').src, 'opening Jaw Worm needs its own face')
+  assert(enemyCardImage('acid_slime').src !== enemyCardImage('acid_slime_daw').src, 'die-order variants need distinct faces')
+  assert(enemyCardImage('awakened_one_phase_1').src !== enemyCardImage('awakened_one_phase_2').src, 'Awakened One phases need distinct faces')
+  assert(enemyCardImage('time_eater', 9).src !== enemyCardImage('time_eater', 10).src, 'Ascension 10 needs the harder boss face')
 })
 
 // The calibration itself (pixel measurement) runs in verify-art-bakes; this keeps its keys in step with the roster.

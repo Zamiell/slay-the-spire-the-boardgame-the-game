@@ -1,5 +1,5 @@
 import { cardDef, faceOf } from '../game/cards.ts'
-import { assetPath, enemyAnimationImagePath, cardThumbPath, enemyImagePath } from '../game/assets.ts'
+import { assetPath, enemyAnimationImagePath, cardThumbPath, enemyImagePath, enemyCardImage } from '../game/assets.ts'
 import { cardSkin, useCardSkins } from './skin-context.tsx'
 import { abilityText, actionsForEnemy, enemyAbilities, enemyAttackBonus, enemyDef } from '../game/enemies.ts'
 import type { EnemyAction } from '../game/enemies.ts'
@@ -968,7 +968,11 @@ export function EnemyCard({
     else tips.push({ name, text })
   }
   return (
-    <CardKeywordHelp extraTips={tips} hover>{(helpProps) => (
+    <CardKeywordHelp extraTips={tips} hover
+      image={visibleEnemy.dead ? undefined : {
+        ...enemyCardImage(def.id, visibleEnemy.ascension),
+        alt: `${def.name} board-game card`,
+      }}>{(helpProps) => (
     <button
       {...helpProps}
       ref={(element) => { cardRef.current = element; helpProps.ref?.(element) }}

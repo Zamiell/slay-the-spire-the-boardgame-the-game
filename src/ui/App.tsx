@@ -415,6 +415,18 @@ export function App() {
         .map((element) => (element.querySelector('.enemy__hit-area') ?? element).getBoundingClientRect())
         .filter((box) => box.right > 0 && box.bottom > 0 && box.left < window.innerWidth && box.top < window.innerHeight)
       const powerZoom = document.querySelector<HTMLElement>('.power__zoom')?.getBoundingClientRect()
+      if (tooltip.classList.contains('card-keyword-tips--image')) {
+        const enemies = [...document.querySelectorAll<HTMLElement>('.enemy:not(.enemy--dead)')]
+          .filter(enemy => enemy.dataset.row === card.dataset.row)
+          .map(enemy => (enemy.querySelector('.enemy__hit-area') ?? enemy).getBoundingClientRect())
+        const groupLeft = Math.min(cardBox.left, ...enemies.map(box => box.left))
+        const groupRight = Math.max(cardBox.right, ...enemies.map(box => box.right))
+        for (const x of [groupRight + gap, groupLeft - width - gap]) {
+          for (const y of [(window.innerHeight - height) / 2, cardBox.bottom - height, margin]) {
+            candidates.unshift([x, y])
+          }
+        }
+      }
       const positioned = candidates.map(([candidateLeft, candidateTop]) => {
         const x = Math.max(margin, Math.min(candidateLeft, window.innerWidth - width - margin))
         const y = Math.max(margin, Math.min(candidateTop, window.innerHeight - height - margin))

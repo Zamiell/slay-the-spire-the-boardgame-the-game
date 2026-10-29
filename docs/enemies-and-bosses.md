@@ -6,6 +6,23 @@ summon, boss, and Ascension cards. The local reviewer pack in
 enemy/elite/summon scans used for the August 2026 audit. Video-game values are
 not used.
 
+## Printed hover references
+
+Enemy inspection shows locally hosted card faces from the official
+[base-game TTS mod](https://steamcommunity.com/sharedfiles/filedetails/?id=2884027954)
+and [Downfall public playtest](https://steamcommunity.com/sharedfiles/filedetails/?id=3687082014).
+`data/enemy-card-sheets.json` preserves the original sheet URLs and grid sizes;
+`scripts/lib/enemy-card-sources.mjs` maps definitions, die-order variants, and
+Ascension thresholds to cells. Downfall reuses its audited physical-card registry.
+Modes printed together share a face; Awakened One's separate phases do not.
+
+Run `node scripts/sync-enemy-card-assets.mjs` with Python Pillow installed to
+regenerate `public/assets/enemy-cards/` and `src/game/enemy-card-images.ts`.
+The original sheets are cached under ignored `tmp/enemy-card-sheets/`.
+Only the hovered enemy's image is loaded. These are printed references, not
+live state: current HP, effects and encounter rewards remain authoritative in
+the game UI, including where multiple physical encounters reuse one definition.
+
 ## Opening Red Louse reward source
 
 The opening Red Louse (3 HP, summoning one Green Louse) awards **1 Gold and

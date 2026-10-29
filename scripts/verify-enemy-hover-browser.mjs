@@ -11,6 +11,18 @@ const out = resolve(root, 'artifacts/enemy-hover')
 mkdirSync(out, { recursive: true })
 const server = await createServer({ root, logLevel: 'silent', server: { port: 0 } })
 await server.listen()
+async function printedCard(tip, file) {
+  const image = tip.locator('.card-keyword-image')
+  await image.waitFor()
+  await image.evaluate(image => image.decode())
+  assert((await image.getAttribute('src')).endsWith(`/enemy-cards/${file}.webp`))
+  assert.match(await image.getAttribute('alt'), /board-game card/)
+  const fit = await image.evaluate(image => {
+    const box = image.getBoundingClientRect()
+    return box.x >= 0 && box.y >= 0 && box.right <= innerWidth + 1 && box.bottom <= innerHeight + 1
+  })
+  assert(fit, 'the entire printed card must fit inside the viewport')
+}
 try {
   for (const [engineName, engine] of Object.entries({ chromium, webkit })) {
     if (process.argv.includes('--webkit-only') && engineName !== 'webkit') continue
@@ -40,6 +52,7 @@ try {
           await fungi.locator('.enemy__hit-area').hover()
           const tip = page.locator('.card-keyword-tips[data-open]')
           await tip.waitFor()
+          await printedCard(tip, 'base-3163-2')
           assert.match(await tip.innerText(), /Spore Cloud/)
           assert.equal(await page.locator('.enemy__ability').count(), 0)
           assert.match(await fungi.getAttribute('aria-label'), /Spore Cloud/)
@@ -55,8 +68,9 @@ try {
           await page.keyboard.press('Escape')
           await tip.waitFor({ state: 'hidden' })
           await page.locator('[data-enemy-def="jaw_worm"] .enemy__hit-area').hover()
-          await tip.waitFor({ state: 'hidden' })
-          assert.equal(await tip.count(), 0, 'enemy without abilities must not open a panel')
+          await tip.waitFor()
+          await printedCard(tip, 'base-3163-11')
+          assert.equal(await tip.locator('.card-keyword-tip').count(), 0, 'a plain enemy needs a card, not invented abilities')
           await fungi.focus()
           await page.keyboard.press('Tab')
           await fungi.focus()
@@ -107,6 +121,12 @@ try {
           await tip.waitFor({ state: 'hidden' })
           await page.waitForTimeout(250)
           await page.screenshot({ path: resolve(out, `${engineName}-${screen}-hand.png`) })
+          const beforeAttack = await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.players[0].hand.length)
+          await page.locator('.hand .card[aria-label^="Strike,"]').first().click()
+          await fungi.locator('.enemy__hit-area').click()
+          await page.waitForFunction(count => window.__STS_DEBUG__.getRun().combat.players[0].hand.length === count - 1, beforeAttack)
+          assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.enemies[0].hp), 4,
+            'enemy inspection must not consume or block an attack-target click')
           await page.mouse.move(2, 2)
           await page.evaluate(() => {
             const run = structuredClone(window.__STS_DEBUG__.getRun())
@@ -121,10 +141,20 @@ try {
           await page.waitForTimeout(1000)
           await boss.locator('.enemy__hit-area').hover()
           await tip.waitFor()
+          await printedCard(tip, 'base-3000-0')
           const bossTip = await tip.boundingBox()
           const bossBox = await boss.locator('.enemy__hit-area').boundingBox()
-          assert(Math.max(bossBox.x - (bossTip.x + bossTip.width), bossTip.x - (bossBox.x + bossBox.width)) <= 24,
-            `boss tooltip must open beside the boss, not at ${JSON.stringify(bossTip)}`)
+          const targets = await page.locator('.enemy:not(.enemy--dead) .enemy__hit-area').evaluateAll(elements =>
+            elements.map(element => {
+              const { left, right, top, bottom } = element.getBoundingClientRect()
+              return { left, right, top, bottom }
+            }))
+          await page.screenshot({ path: resolve(out, `${engineName}-${screen}-boss.png`) })
+          assert(Math.max(Math.min(...targets.map(box => box.left)) - (bossTip.x + bossTip.width),
+            bossTip.x - Math.max(...targets.map(box => box.right))) <= 24,
+            `wide boss reference must stay beside the enemy group: ${JSON.stringify({ bossTip, bossBox, targets })}`)
+          assert(targets.every(box => bossTip.x >= box.right || bossTip.x + bossTip.width <= box.left ||
+            bossTip.y >= box.bottom || bossTip.y + bossTip.height <= box.top), 'preview must not cover an enemy target')
           await page.mouse.move(2, 2)
           await tip.waitFor({ state: 'hidden' })
           await page.keyboard.press('Tab')
@@ -139,6 +169,20 @@ try {
           })
           await page.waitForFunction(() => document.querySelector('.card-keyword-tips[data-open]')?.textContent.includes('spent'))
           assert.match(await tip.innerText(), /Time Warp/, 'spent Haste must retain the other rule')
+          for (const [defId, ascension, file] of [
+            ['time_eater', 10, 'base-2997-0'],
+            ['awakened_one_phase_1', 0, 'base-2998-0'],
+            ['awakened_one_phase_2', 0, 'base-3003-0'],
+            ['downfall_witch', 0, 'downfall-4700-0'],
+          ]) {
+            await page.evaluate(({ defId, ascension }) => {
+              const run = structuredClone(window.__STS_DEBUG__.getRun())
+              Object.assign(run.combat.enemies[0], { defId, ascension })
+              window.__STS_DEBUG__.setRun(run)
+            }, { defId, ascension })
+            await page.waitForFunction(file => document.querySelector('.card-keyword-tips[data-open] img')?.getAttribute('src').endsWith(`${file}.webp`), file)
+            await printedCard(tip, file)
+          }
           await page.evaluate(() => {
             const run = structuredClone(window.__STS_DEBUG__.getRun())
             Object.assign(run.combat.enemies[0], { hp: 0, dead: true })
@@ -163,6 +207,7 @@ try {
           }
           await tap(hit)
           await touchPage.locator('.card-keyword-tips[data-open]').waitFor()
+          await printedCard(touchPage.locator('.card-keyword-tips[data-open]'), 'base-3163-2')
           assert.match(await touchPage.locator('.card-keyword-tips[data-open]').innerText(), /Spore Cloud/)
           await touchPage.screenshot({ path: resolve(out, `${engineName}-${screen}-touch.png`) })
           await touchPage.touchscreen.tap(3, 3)

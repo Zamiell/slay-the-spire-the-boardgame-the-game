@@ -338,6 +338,22 @@ html[data-card-hints='false'] :is(.card__live-damage, .card__aoe) { display: non
   line-height: 1.25;
 }
 
+.card-keyword-tips--image {
+  width: min(20rem, calc((100vh - 5rem) * 0.72), calc(100vw - 1rem));
+}
+
+.card-keyword-tips--image[data-landscape] {
+  width: min(28rem, calc(100vw - 1rem));
+}
+
+.card-keyword-image {
+  display: block;
+  flex: 0 0 auto;
+  width: 100%;
+  height: auto;
+  border-radius: 7px;
+}
+
 .card-keyword-tip strong {
   display: flex;
   align-items: center;

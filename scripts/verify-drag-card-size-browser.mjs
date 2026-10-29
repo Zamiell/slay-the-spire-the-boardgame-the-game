@@ -39,8 +39,13 @@ try {
         else { await page.mouse.move(point.x, point.y); await page.mouse.down() }
         if (touch) await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: point.x, y: point.y - 100, id: 1 }] })
         else await page.mouse.move(point.x, point.y - 100, { steps: 5 })
-        const preview = page.locator('.card-drag')
+        const preview = page.locator('.card-interaction__card')
         await preview.waitFor()
+        await page.waitForFunction(() => {
+          const card = document.querySelector('.card-interaction__card')
+          return card && document.querySelector('.card-interaction[data-stage="aiming"]') &&
+            Math.abs(card.getBoundingClientRect().width / parseFloat(getComputedStyle(card).width) - 0.85) < 0.03
+        })
         const handWidth = await card.evaluate(e => parseFloat(getComputedStyle(e).width))
         const drag = await preview.evaluate(e => ({
           width: parseFloat(getComputedStyle(e).width), renderedWidth: e.getBoundingClientRect().width,
@@ -48,7 +53,7 @@ try {
           artReady: e.querySelector('img').complete && e.querySelector('img').naturalWidth > 0,
         }))
         assert(Math.abs(drag.width - handWidth) < 1, `${name} ${screen}: preview does not share hand size ${JSON.stringify({ handWidth, ...drag })}`)
-        assert(drag.renderedWidth >= handWidth * 1.1 && drag.renderedWidth <= handWidth * 1.4,
+        assert(drag.renderedWidth >= handWidth * 0.82 && drag.renderedWidth <= handWidth * 0.88,
           `${name} ${screen}: dragged card has the wrong rendered scale ${JSON.stringify(drag)}`)
         assert(drag.artReady && drag.renderedHeight > drag.renderedWidth, 'drag art is missing or distorted')
         await page.screenshot({ path: resolve(out, `${name}-${screen}.png`) })

@@ -4,16 +4,13 @@ import { animateCardFlight, cardFlightPath } from './combat-screen/card-flight.t
 import { unknownPowerRefreshDecision } from './combat-screen/unknown-power.ts'
 import { HermitTriggerChoice } from './combat-screen/HermitTriggerChoice.tsx'
 import { StartTurnOrder } from './combat-screen/StartTurnOrder.tsx'
+import { simpleCardMode } from './combat-screen/card-interaction.ts'
+import { useCardInteraction } from './combat-screen/useCardInteraction.ts'
+import { CardInteractionLayer } from './combat-screen/CardInteractionLayer.tsx'
 import { useButtonShortcut } from './useButtonShortcut.ts'
-// The combat screen: the board, the hand, and every prompt a fight puts up.
-//
-// One component, because the fight is one interaction — a card being dragged
-// knows about the enemy under the pointer, the Energy it would spend, and the
-// prompt it would open, and splitting that across components would mean passing
-// the same twenty things back and forth. What CAN stand outside it does:
-// combat-screen/types.ts for the shapes, helpers.ts for the questions it asks
-// of the board, hooks.ts for the senses that watch the board change, and
-// vfx.tsx for the effect overlay a play puts on it.
+// The combat screen composes the board, hand and gameplay choices. Simple hand
+// cards use useCardInteraction; complex choices still use the legacy adapter
+// below while sharing the authoritative commit/reconciliation path.
 import rigMetadata from './rig-animation-metadata.json' with { type: 'json' }
 import { enemyAbilities, enemyDef } from '../game/enemies.ts'
 import { hasStagedAttack, playerVisualId, skinTraits, type VisualId } from '../game/skins.ts'
@@ -705,6 +702,28 @@ function CombatScreenView({
   }
   const forcedAutoAttempt = useRef<string | null>(null)
   const viewer = state.players.find((player) => player.id === viewerId)
+  const cardInteraction = useCardInteraction({
+    context: `${state.combatId}:${viewerId}:${authoritativeRestoration ?? 0}:${authoritativeConnected !== false}`,
+    combat: state,
+    reducedMotion,
+    canUse: (card) => Boolean(viewer && viewer.hand.some((held) => held.uid === card.uid) &&
+      mutationsEnabled && authoritativeConnected !== false && !voluntaryActionsBlocked &&
+      !document.querySelector('dialog[open], [role="dialog"][aria-modal="true"]') &&
+      cardCanStartDrag(card)),
+    targetAt: (point) => dragTargetAt(point.x, point.y, false),
+    submit: (card, targetUid) => {
+      if (!viewer) return
+      setPendingPowerUid(null)
+      setPendingPotion(null)
+      setSpendingShiv(false)
+      setSpendingSoulburn(false)
+      const next = pendingFor(card, null, state, viewer)
+      commit({ ...next, enemyUid: targetUid })
+    },
+    awaitingReply: () => cardActionPending.current,
+    onPickup: () => playSoundEffect('card'),
+    onLand: (destination) => { if (destination !== 'stage') pulseMotion([destination]) },
+  })
   const viewerVisual = viewer ? playerVisualId(viewer) : undefined
   const skinOrb = viewerVisual !== undefined && skinTraits(viewerVisual)?.energyOrb === true
   // Hand Attacks show what they would deal now: to the enemy being dragged onto or last
@@ -713,7 +732,7 @@ function CombatScreenView({
   const previewEnemyUid = (() => {
     const living = livingEnemies(state)
     if (living.length === 1) return living[0]!.uid
-    const picked = cardDrag?.targetUid ?? pointedEnemyUid
+    const picked = cardInteraction.session?.targetUid ?? cardDrag?.targetUid ?? pointedEnemyUid
     return living.some((enemy) => enemy.uid === picked) ? picked : null
   })()
   const cardHints = useCardHints()
@@ -1647,12 +1666,13 @@ function CombatScreenView({
         viewer,
         faceOf(cardDef(armed.card.defId), armed.card.upgraded).toDrawTop === true,
       )
+      const continuous = cardInteraction.accept(armed.card.uid, destination)
       landing = !reducedMotion && destination !== 'stage' ? destination : null
       flightBeat.current += 1
       const beat = flightBeat.current
-      if (!reducedMotion) setCardFlights((current) => [...current, { beat, card: armed.card, destination, ...cardFlightPath(destination) }])
+      if (!reducedMotion && !continuous) setCardFlights((current) => [...current, { beat, card: armed.card, destination, ...cardFlightPath(destination) }])
       armedCardFlight.current = null
-      if (!reducedMotion) {
+      if (!reducedMotion && !continuous) {
         const timerKey = `flight:${beat}` as const
         motionTimers.current.set(timerKey, setTimeout(() => {
           setCardFlights((current) => current.map((flight) => flight.beat === beat ? { ...flight, landed: true } : flight))
@@ -4465,6 +4485,10 @@ function CombatScreenView({
   function onCardPointerDown(card: CardInstance, event: React.PointerEvent<HTMLButtonElement>, chamber = false) {
     if (event.button !== 0) return
     const canDrag = chamber ? chamberCardCanStartDrag(card) : cardCanStartDrag(card)
+    const mode = !chamber && !chamberOpen && !miracleOnCard && !playWindow &&
+      !state.pendingCardCopy && !viewer?.doubledCardsThisTurn && !viewer?.doubledAttacksThisTurn &&
+      !viewer?.tripledAttacksThisTurn && !viewer?.doubledSkillsThisTurn && simpleCardMode(card, livingPlayers.length)
+    if (canDrag && mode && cardInteraction.begin(card, mode, event)) return
     const staged = chamber ? stageHermitChamberViewer(viewer!, card,
       state.pendingHermitChamberPlays?.[0]?.playerId === viewerId &&
       state.pendingHermitChamberPlays[0].cardUids[0] === card.uid &&
@@ -6868,6 +6892,7 @@ function CombatScreenView({
                 disabled={Boolean(pendingStartEnemy?.id.startsWith('facing:') && !startEnemyChoiceAvailable(enemy.uid) ||
                   pendingShivProgress && !pendingShivProgress.options.some((option) => option.uid === enemy.uid))}
                 targeted={(isEndTurnEnemyTarget(enemy) ||
+                  cardInteraction.session?.targetUid === enemy.uid ||
                   cardDrag?.targetUid === enemy.uid ||
                   cardDragTargetRow !== undefined && (cardDragTargetRow === enemy.row || enemy.isBoss) ||
                   isStartTurnEnemyTarget(enemy.uid) ||
@@ -7467,6 +7492,7 @@ function CombatScreenView({
                       disabled={Boolean(pendingStartEnemy?.id.startsWith('facing:') && !startEnemyChoiceAvailable(enemy.uid) ||
                         pendingShivProgress && !pendingShivProgress.options.some((option) => option.uid === enemy.uid))}
                       targeted={(isEndTurnEnemyTarget(enemy) ||
+                        cardInteraction.session?.targetUid === enemy.uid ||
                         cardDrag?.targetUid === enemy.uid ||
                         cardDragTargetRow !== undefined && (cardDragTargetRow === enemy.row || enemy.isBoss) ||
                         isStartTurnEnemyTarget(enemy.uid) ||
@@ -7709,6 +7735,7 @@ function CombatScreenView({
             return <Card
               key={card.uid}
               className={[drawnCards.has(card.uid) ? 'card--drawn' : '',
+                cardInteraction.session?.card.uid === card.uid ? 'card--interaction-source' : '',
                 cardDrag?.card.uid === card.uid ? 'card--dragging' : '',
                 chamberCard ? 'card--chamber-drawn' : '',
                 setupPlayable || exhaustChoice && pendingStartExhaust ? 'card--load-choice' : '',
@@ -7742,7 +7769,8 @@ function CombatScreenView({
                   pending?.card.uid === card.uid ||
                   (pending?.choice != null && card.uid !== pending.card.uid)))
               }
-              selected={pending?.card.uid === card.uid}
+              selected={pending?.card.uid === card.uid ||
+                cardInteraction.session?.card.uid === card.uid && cardInteraction.session.stage !== 'returning'}
               picked={pending?.picked.includes(card.uid) === true || chosenStartExhaustUids.has(card.uid)}
               onClick={chamberCard
                 ? () => {
@@ -7816,6 +7844,8 @@ function CombatScreenView({
           </div>
         </>
       ) : null}
+      <CardInteractionLayer interaction={cardInteraction}
+        damage={cardInteraction.session ? cardDamage.get(cardInteraction.session.card.uid) : undefined} />
       {endTurnEffectDrag ? (
         <>
           <svg className="card-target-arrow end-turn-target-arrow" aria-hidden="true">

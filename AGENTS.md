@@ -1,5 +1,11 @@
 # Project agent rules
 
+## Committing changes
+
+Commit each prompt's completed code or documentation changes before finishing the response.
+Keep unrelated work out of the commit, and do not commit secrets or local-only extracted game assets.
+Prompts that make no file changes do not need an empty commit.
+
 ## Supported UI screen classes
 
 UI layout and browser screenshot coverage targets only these two screen classes:

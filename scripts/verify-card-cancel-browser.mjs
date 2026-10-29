@@ -47,7 +47,10 @@ try {
         assert.equal(await card.getAttribute('aria-pressed'), 'true')
         const board = await page.locator('.board').boundingBox()
         await page.mouse.click(board.x + board.width / 2, board.y + 15)
-        await page.waitForTimeout(250)
+        await page.waitForFunction((transform) => {
+          const card = document.querySelector('.hand .card')
+          return card && !document.querySelector('.card-interaction') && getComputedStyle(card).transform === transform
+        }, restingTransform)
         assert.equal(await card.getAttribute('aria-pressed'), 'false', 'blank click must cancel targeting')
         assert(await card.evaluate(e => !e.matches(':hover, :focus, .card--selected')), 'cancelled card must lose its raised state')
         assert.equal(await card.evaluate((element) => getComputedStyle(element).transform), restingTransform,

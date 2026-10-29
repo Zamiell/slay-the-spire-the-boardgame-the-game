@@ -2024,7 +2024,6 @@ function CombatScreenView({
       const recoverExhaust = def.effects.find((effect) => effect.kind === 'recoverExhaust' ||
         effect.kind === 'recoverExhaustToDraw' || effect.kind === 'recoverExhaustToDiscard')
       const recoveryCards = recover ? viewer.discard : recoverExhaust ? viewer.exhaust : null
-      if ((recover || recoverExhaust) && recoveryCards?.length === 0) return null
       const choice = recover
         ? viewer.discard.length > 0 ? { kind: 'recover' as const, amount: recover.amount } : null
         : recoverExhaust

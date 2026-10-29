@@ -82,6 +82,7 @@ const focusedUiOwners = ownerMap([
     'verify-hero-potions-browser.mjs', 'verify-end-turn-drag-browser.mjs', 'verify-card-damage-preview-browser.mjs',
     'verify-skin-browser.mjs', 'verify-skin-attack-browser.mjs', 'verify-monogatari-animation-browser.mjs',
     'verify-monogatari-skins-browser.mjs', 'verify-monogatari-online-browser.mjs', 'verify-defect-chan-evoke-browser.mjs',
+    'verify-double-tap-recover-browser.mjs',
   ]],
   ['src/ui/CombatAnimation.tsx', ['verify-combat-video-browser.mjs', 'verify-combat-hand-viewport-browser.mjs']],
   ['src/ui/combat-webm-sources.json', ['verify-art-bakes.mjs', 'verify-combat-video-browser.mjs']],

@@ -7,8 +7,13 @@ See [ATTRIBUTION.md](ATTRIBUTION.md) for the provenance of the limited bundled a
 
 ```bash
 pnpm install
-pnpm dev             # play at http://localhost:5180
+pnpm dev             # start the client and API; play at http://localhost:5180
 ```
+
+The API/room server runs on `127.0.0.1:8787` and is required for accounts, even in
+single player. Local accounts and room data are saved in `.rooms/rooms.json`.
+`pnpm play` starts the same services. To run them in separate terminals, use
+`pnpm dev:client` and `pnpm dev:rooms`.
 
 Choose **Single Player** for a one-character run. The app handles setup, the shared die,
 enemy turns, rewards, rooms, campaign progress, and Acts II–IV. Click a card and then its

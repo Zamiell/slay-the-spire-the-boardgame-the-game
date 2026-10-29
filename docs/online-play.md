@@ -48,11 +48,13 @@ public IPv6 record. No Cloudflare or Pyjam data path is involved.
 Start Vite and the room server together:
 
 ```bash
-pnpm play
+pnpm dev
 ```
 
 Open `http://localhost:5180`. Vite proxies `/api` and `/ws` to the authoritative room
 process on `127.0.0.1:8787`.
+`pnpm play` is an alias for the same command. For separate terminals, use
+`pnpm dev:client` and `pnpm dev:rooms`; accounts also require the room server.
 
 ## Host bootstrap
 

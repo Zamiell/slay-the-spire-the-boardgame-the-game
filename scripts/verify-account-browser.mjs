@@ -46,8 +46,8 @@ try {
     const context = await browser.newContext({ viewport, isMobile: phone, hasTouch: phone })
     const page = await context.newPage()
     page.on('pageerror', (error) => errors.push(`${screen}: ${error.message}`))
-    page.on('console', (message) => { // The wrong password is answered with a 401 on purpose; the browser logs every such response.
-      if (message.type() === 'error' && !/status of (401|409)/.test(message.text())) errors.push(`${screen}: ${message.text()}`) })
+    page.on('console', (message) => { // Account refusals and simulated proxy failures intentionally return HTTP errors.
+      if (message.type() === 'error' && !/status of (400|401|409|500|502)/.test(message.text())) errors.push(`${screen}: ${message.text()}`) })
     const start = async () => {
       await page.getByRole('button', { name: 'Tap, click, or press any key to start' }).click({ timeout: 60_000 })
       await page.getByLabel('Password', { exact: true }).waitFor()
@@ -65,6 +65,28 @@ try {
     assert(await fits(page, create), `${screen}: the create account button is clipped`)
     assert(await fits(page, page.locator('.welcome__switch')), `${screen}: the log in link is clipped`)
     await page.screenshot({ path: join(output, `${screen}-create.png`) })
+    for (const [status, body, message, attempts] of [
+      [500, '', 'Could not save your account. Please try again.', 2],
+      [502, '<html>Bad gateway</html>', 'Could not save your account. Please try again.', 2],
+      [400, '', 'Could not save your account. Please try again.', 1],
+      [409, JSON.stringify({ error: 'That name is taken.' }), 'That name is taken.', 1],
+    ]) {
+      let requests = 0
+      await page.route('**/api/profile', (route) => {
+        requests += 1
+        return route.fulfill({ status, body })
+      })
+      await create.click()
+      await page.getByRole('alert').filter({ hasText: message }).waitFor()
+      check(`${screen}: HTTP ${status} shows a readable error with the expected retry count`, () => {
+        assertEqual(requests, attempts)
+      })
+      assertEqual(await saved(page), null, `${screen}: a failed registration saved a profile`)
+      assertEqual(await page.getByLabel('Username').inputValue(), username)
+      assertEqual(await page.getByLabel('Password', { exact: true }).inputValue(), password)
+      assert(await create.isEnabled(), `${screen}: registration cannot be retried`)
+      await page.unroute('**/api/profile')
+    }
     await create.click()
     await page.locator('.start-menu__nav').waitFor()
     const created = await saved(page)

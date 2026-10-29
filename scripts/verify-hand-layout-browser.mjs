@@ -73,6 +73,35 @@ try {
     assert(resting.every(card => card.top > size.height * .6), 'the resting hand covers too much of the battlefield')
     assert.equal(await cards.nth(1).getAttribute('aria-keyshortcuts'), '2')
     await page.screenshot({ path: `${output}/${screen}-resting.png` })
+    if (!phone) {
+      const beforeSweep = await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun()))
+      let previous = -1
+      for (const index of [0, 1, 2, 3, 4, 5, 6, 5, 4, 3, 2, 1, 0]) {
+        const box = await cards.nth(index).boundingBox()
+        await page.mouse.move(box.x + box.width / 2, size.height - 12, { steps: 2 })
+        const samples = await page.evaluate(async ({ index, previous }) => {
+          const cards = [...document.querySelectorAll('.hand > .card')]
+          const y = card => new DOMMatrixReadOnly(getComputedStyle(card).transform).m42
+          const samples = []
+          for (let frame = 0; frame < 6; frame++) {
+            await new Promise(requestAnimationFrame)
+            samples.push({ y: y(cards[index]), previousY: previous < 0 ? null : y(cards[previous]),
+              focused: cards[index].hasAttribute('data-hand-focused') })
+          }
+          return samples
+        }, { index, previous })
+        assert(samples.every(sample => sample.focused), `card ${index + 1} lost hover during the sweep`)
+        assert(samples[0].y > -7.5 && samples.at(-1).y < samples[0].y,
+          `card ${index + 1} must slide upward through intermediate positions, not snap: ${JSON.stringify(samples)}`)
+        if (previous >= 0) assert(samples.at(-1).previousY > samples[0].previousY,
+          `card ${previous + 1} must slide back down while the next card rises`)
+        previous = index
+      }
+      await page.mouse.move(2, 2)
+      await settle()
+      assert.equal(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun())), beforeSweep,
+        'sweeping the hand must not play or modify cards')
+    }
     const middle = cards.nth(3)
     if (phone) await tap(middle)
     else await middle.hover()

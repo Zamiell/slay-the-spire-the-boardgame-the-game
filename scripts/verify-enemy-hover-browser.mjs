@@ -99,7 +99,7 @@ try {
             })
             assert(point, `${screen}: card ${index} has no resting hit area`)
             await page.mouse.move(point.x, point.y)
-            await page.waitForTimeout(250)
+            await page.waitForFunction(() => !document.querySelector('.hand').hasAttribute('data-hand-moving'))
             const samples = await card.evaluate(async node => {
               const result = []
               for (let i = 0; i < 30; i++) {
@@ -263,7 +263,7 @@ try {
           const defend = touchPage.locator('.hand .card[aria-label^="Defend,"]').first()
           const beforeTap = await touchPage.evaluate(() => structuredClone(window.__STS_DEBUG__.getRun().combat.players[0]))
           await tap(defend, .2)
-          await touchPage.waitForTimeout(250)
+          await touchPage.waitForFunction(() => !document.querySelector('.hand').hasAttribute('data-hand-moving'))
           assert.deepEqual(await touchPage.evaluate(() => window.__STS_DEBUG__.getRun().combat.players[0]), beforeTap,
             'first touch must reveal the card without spending energy or applying its effect')
           assert(await defend.evaluate(e => document.activeElement === e && e.getBoundingClientRect().bottom <= innerHeight),

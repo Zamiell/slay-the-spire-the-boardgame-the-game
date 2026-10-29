@@ -77,7 +77,7 @@ export function useHandLayout(rootRef: RefObject<HTMLDivElement | null>, reduced
         const holder = holders.get(card) ?? { pose: { ...target }, target, center: 0 }
         holder.center = card.offsetLeft + width / 2
         holder.target = target
-        if (selected) Object.assign(holder.pose, { y: target.y, angle: 0, scale: 1 })
+        if (selected) Object.assign(holder.pose, { angle: 0, scale: 1 })
         if (options.current.reducedMotion || card.classList.contains('card--interaction-source')) holder.pose = { ...target }
         holders.set(card, holder)
         card.toggleAttribute('data-hand-focused', selected)

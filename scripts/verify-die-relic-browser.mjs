@@ -60,6 +60,29 @@ try {
     assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.enemies[0].weak), 1,
       `${name}: selecting Red Mask did not apply Weak`)
     assert.equal(await mirror.count(), 0, `${name}: the spent Mirror still offers choices`)
+    const loadedRun = structuredClone(run)
+    loadedRun.combat.die = 6
+    loadedRun.combat.players[0].relics[0] = { defId: 'loaded_die', spent: false }
+    await page.evaluate(run => window.__STS_DEBUG__.setRun(run), loadedRun)
+    const loadedDie = page.getByRole('button', { name: /^Use Loaded Die:/ })
+    const loadedIcon = loadedDie.locator('img.item-icon-image')
+    await loadedIcon.evaluate(image => image.decode())
+    assert.match(await loadedIcon.getAttribute('src'), /\/relic-icons\/loaded_die\.png$/)
+    await loadedDie.hover()
+    const loadedTip = page.locator('.potion-tip').filter({ hasText: 'Loaded Die' })
+    await loadedTip.waitFor({ state: 'visible' })
+    assert.match(await loadedTip.innerText(), /trigger a die relic ability on another relic/)
+    await page.keyboard.press('Escape')
+    await loadedDie.click()
+    const loadedChoices = page.locator('.relic-actions details[open]')
+    await loadedChoices.getByRole('group', { name: /Red Mask · die 5\/6/ }).waitFor()
+    assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.players[0].relics[0].spent), false,
+      `${name}: opening Loaded Die spent it before choosing an ability`)
+    await page.screenshot({ path: `${out}/${name}-loaded-die-icon.png` })
+    await loadedChoices.getByRole('group', { name: /Red Mask · die 5\/6/ }).getByRole('button').first().click()
+    await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.players[0].relics[0].spent)
+    assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.enemies[0].weak), 1,
+      `${name}: the Loaded Die icon did not preserve its selected relic ability`)
     run.combat.players[0].relics[0].spent = false
     Object.assign(run.combat, { phase: 'player', die: 3 })
     run.combat.players[0].potions = ['destiny_draught']

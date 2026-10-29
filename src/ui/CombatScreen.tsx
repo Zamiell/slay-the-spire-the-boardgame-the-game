@@ -6456,7 +6456,14 @@ function CombatScreenView({
             }
             if (reroute) {
               const face = heldId === 'nilrys_codex' ? 2 : null
-              return [<details key={relicIndex}><summary>{def.name}</summary><p className="room-item-text">{def.text}</p>
+              return [<details key={relicIndex}>
+                {heldId === 'loaded_die' ? <PotionTooltipAnchor as="summary" className="relic-action__icon" id={held.defId}
+                  name={def.name} text={def.text} kindLabel="Relic" confirmLabel="choose a relic ability"
+                  aria-label={`Use ${def.name}: ${def.text}`}>
+                  <img className="item-icon-image" src={relicIconPath(held.defId)} alt="" />
+                  <span className="visually-hidden">{def.name}</span>
+                </PotionTooltipAnchor> : <summary>{def.name}</summary>}
+                <p className="room-item-text">{def.text}</p>
                 <DieRelicChoiceList state={state}
                   choices={dieRelicChoices(state, { skip: (owner, targetRelicIndex, faces) =>
                     face !== null && !faces.includes(face) ||

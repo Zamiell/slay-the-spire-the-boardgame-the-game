@@ -458,9 +458,18 @@ button.end-turn-effect--relic[aria-pressed='true'] {
 
 .end-turn-effect--orb .token--orb,
 .end-turn-effect-drag > .token--orb {
+  position: relative;
   width: 3.6rem;
   height: 3.6rem;
   pointer-events: none;
+}
+
+.end-turn-effect--orb .orb__value,
+.end-turn-effect-drag .orb__value {
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 1.75rem;
 }
 
 .end-turn-effect__slime {

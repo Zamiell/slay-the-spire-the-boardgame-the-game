@@ -208,7 +208,7 @@ import {
   releaseCardZoom,
   tryClaimCardZoom,
 } from './PowerRow.tsx'
-import { OrbRow, TokenRow } from './TokenRow.tsx'
+import { OrbRow, TokenRow, orbDisplayValue } from './TokenRow.tsx'
 import {
   STAGE_GAP_REM,
   STAGE_MARGIN_REM,
@@ -2523,6 +2523,9 @@ function CombatScreenView({
   const endTurnEffectPlayer = endTurnEffect
     ? state.players.find((player) => player.id === endTurnEffect.playerId)
     : undefined
+  const endTurnOrbValue = endTurnEffectVisual?.kind === 'orb' && endTurnEffectPlayer
+    ? orbDisplayValue(endTurnEffectPlayer, endTurnEffectVisual.orb)
+    : undefined
   const endTurnOrbChoices = canResolveEndTurn && endTurnEffect?.orbChoice
     ? [...new Map((endTurnEffect.targets ?? []).flatMap((target) => {
         const slot = Number(target.uid.slice(4))
@@ -3657,6 +3660,16 @@ function CombatScreenView({
     label: `Evoke ${evokeTargetOrb} Orb`,
     targets: pendingStartEvokeTarget ? pendingStartEvokeTarget.ability.evokeTargets ?? [] : pendingEvokeTargetOptions,
   } : undefined
+  const evokeTargetPlayer = state.players.find(player => player.id === evokeTargetSource?.playerId)
+  const evokeTargetValue = evokeTargetOrb && evokeTargetPlayer
+    ? orbDisplayValue(evokeTargetPlayer, evokeTargetOrb, true)
+    : undefined
+  const draggedOrb = endTurnEffectDrag?.sourceOrb ??
+    (endTurnEffectDragVisual?.kind === 'orb' ? endTurnEffectDragVisual.orb : undefined)
+  const draggedOrbPlayer = state.players.find(player => player.id === endTurnEffectDrag?.ability.playerId)
+  const draggedOrbValue = draggedOrb && draggedOrbPlayer
+    ? orbDisplayValue(draggedOrbPlayer, draggedOrb, endTurnEffectDrag?.ability.id === 'evoke-target')
+    : undefined
   const evokeTargetStep = evokeTargetSource
     ? `${pendingStartEvokeTarget ? `${pendingStartEvokeTarget.ability.id}:${pendingStartEvokeTarget.index}`
       : `${pending?.card.uid}:${pendingEvokeTarget}`}`
@@ -6782,6 +6795,7 @@ function CombatScreenView({
             type="button"
             className="end-turn-effect end-turn-effect--orb"
             aria-label={`Aim ${evokeTargetSource.label}`}
+            aria-description={evokeTargetValue !== undefined ? `${evokeTargetValue} damage` : undefined}
             aria-pressed={armedEndTurnAbilityId === evokeTargetSource.id}
             onClick={() => activateEndTurnEffect(evokeTargetSource)}
             onPointerDown={(event) => onEndTurnEffectPointerDown(evokeTargetSource, event)}
@@ -6790,7 +6804,9 @@ function CombatScreenView({
             onPointerCancel={cancelEndTurnEffectDrag}
             onLostPointerCapture={cancelEndTurnEffectDrag}
           >
-            <span className={`token--orb token--orb-${evokeTargetOrb}`} aria-hidden="true" />
+            <span className={`token--orb token--orb-${evokeTargetOrb}`} aria-hidden="true">
+              {evokeTargetValue !== undefined ? <span className="orb__value">{evokeTargetValue}</span> : null}
+            </span>
           </button>
         </section>
       ) : null}
@@ -6842,6 +6858,7 @@ function CombatScreenView({
               className={`end-turn-effect end-turn-effect--${endTurnEffectSlimeAsset ? 'slime' : 'orb'}`}
               disabled={!canResolveEndTurn}
               aria-label={`Resolve ${endTurnEffect.label}`}
+              aria-description={endTurnOrbValue !== undefined ? `${endTurnOrbValue} damage` : undefined}
               aria-pressed={armedEndTurnAbilityId === endTurnEffect.id}
               onClick={() => activateEndTurnEffect(endTurnEffect)}
               onPointerDown={(event) => onEndTurnEffectPointerDown(endTurnEffect, event)}
@@ -6854,7 +6871,9 @@ function CombatScreenView({
                 ? <img className="end-turn-effect__slime" src={endTurnEffectSlimeAsset} alt="" />
                 : <span className={`token--orb token--orb-${endTurnEffect.visual?.kind === 'orb'
                   ? endTurnEffect.visual.orb
-                  : 'lightning'}`} aria-hidden="true" />}
+                  : 'lightning'}`} aria-hidden="true">
+                    {endTurnOrbValue !== undefined ? <span className="orb__value">{endTurnOrbValue}</span> : null}
+                  </span>}
             </button>
           )}
           {endTurnOrbChoices.length > 0 ? (
@@ -7915,9 +7934,9 @@ function CombatScreenView({
               : endTurnEffectDragSlimeAsset ? (
                 <img className="end-turn-effect__slime" src={endTurnEffectDragSlimeAsset} alt="" />
               ) : (
-              <span className={`token--orb token--orb-${endTurnEffectDrag.sourceOrb ?? (endTurnEffectDrag.ability.visual?.kind === 'orb'
-                ? endTurnEffectDrag.ability.visual.orb
-                : 'lightning')}`} />
+              <span className={`token--orb token--orb-${draggedOrb ?? 'lightning'}`}>
+                {draggedOrbValue !== undefined ? <span className="orb__value">{draggedOrbValue}</span> : null}
+              </span>
             )}
           </div>
         </>

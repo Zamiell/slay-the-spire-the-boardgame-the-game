@@ -58,7 +58,7 @@ try {
       await page.locator('[data-enemy-id="e1"]').waitFor()
       await page.waitForTimeout(400)
     }
-    async function drag(source, enemyUid) {
+    async function drag(source, enemyUid, orbDamage) {
       const from = await source.boundingBox()
       const to = await page.locator(`[data-enemy-id="${enemyUid}"]`).evaluate((element) => {
         const rect = (element.querySelector('.enemy__hit-area') ?? element).getBoundingClientRect()
@@ -67,6 +67,10 @@ try {
       await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2)
       await page.mouse.down()
       await page.mouse.move(to.x, to.y, { steps: 10 })
+      if (orbDamage !== undefined) {
+        assert.equal(await page.locator('.end-turn-effect-drag .orb__value').innerText(), String(orbDamage),
+          `${name}: the dragged Orb lost its damage number`)
+      }
       await page.mouse.up()
     }
     const caption = page.locator('.end-turn-effects__prompt')
@@ -82,8 +86,27 @@ try {
         (!value || orb.contains(document.elementFromPoint(value.x + value.width / 2, value.y + value.height / 2)))
     }))
 
+    for (const [orbEndTurnBonus, lightningEndTurnBonus, expected] of [[0, 0, 1], [1, 2, 4]]) {
+      await load({ player: { orbs: ['lightning', null, null], orbEndTurnBonus, lightningEndTurnBonus } })
+      await page.getByRole('button', { name: /^End Turn \d+/ }).click()
+      const lightning = page.locator('button.end-turn-effect--orb')
+      await lightning.waitFor()
+      assert.equal(await lightning.locator('.orb__value').innerText(), String(expected))
+      assert.equal(await lightning.getAttribute('aria-description'), `${expected} damage`)
+      assert(await lightning.locator('.orb__value').evaluate(value => {
+        const box = value.getBoundingClientRect()
+        const icon = value.parentElement.getBoundingClientRect()
+        return box.width > 0 && box.height > 0 && box.left >= icon.left && box.right <= icon.right + 1 &&
+          box.top >= icon.top && box.bottom <= icon.bottom + 1
+      }), `${name}: Lightning damage must be legible over the icon`)
+      await page.screenshot({ path: `${out}/${name}-lightning-${expected}-damage.png` })
+      await drag(lightning, 'e0', expected)
+      await page.waitForFunction(expected => window.__STS_DEBUG__.getRun().combat.enemies[0].hp === 30 - expected, expected)
+      assert.equal((await hp())[1], 30, `${name}: Lightning hit an unselected target`)
+    }
+
     // A card Evoke chooses the Orb on the hero, then aims each Lightning Evoke.
-    await load({ player: { hand: [c('dual', 'dual_cast')], orbs: ['lightning', 'frost', 'dark'] } })
+    await load({ player: { hand: [c('dual', 'dual_cast')], orbs: ['lightning', 'frost', 'dark'], orbEvokeBonus: 1 } })
     await page.locator('.hand .card[title="Dual Cast"]').click()
     await orbButton('lightning', 1).waitFor()
     assert.equal(await page.locator('.orbs__target').count(), 3)
@@ -99,6 +122,8 @@ try {
     await evokeTarget.waitFor()
     assert.equal(await visibleCaption(), 'Drag to an enemy')
     assert.equal(await evokeTarget.locator('.token--orb-lightning').count(), 1)
+    assert.equal(await evokeTarget.locator('.orb__value').innerText(), '3', 'Evoke must show 2 plus its bonus, not passive damage')
+    assert.equal(await evokeTarget.locator('button').getAttribute('aria-description'), '3 damage')
     await page.screenshot({ path: `${out}/${name}-card-evoke-target.png` })
     assert.match(await caption.textContent(), /lightning Orb 1: Drag to an enemy$/)
     await evokeTarget.locator('button').click()
@@ -111,10 +136,10 @@ try {
     assert.match(await caption.textContent(), /lightning Orb 2: Drag to an enemy$/, `${name}: the second aim was not announced`)
     assert.equal(await page.locator('.seat__interactive .token--orb-lightning').count(), 0,
       `${name}: the aimed Lightning still sits in its slot`)
-    await drag(evokeTarget.locator('button'), 'e0')
+    await drag(evokeTarget.locator('button'), 'e0', 3)
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.players[0].hand.length === 0)
     const dualHp = await hp()
-    assert(dualHp[0] < 30 && dualHp[1] < 30, `${name}: Dual Cast Lightning did not hit both aimed enemies: ${dualHp}`)
+    assert.deepEqual(dualHp, [27, 27], `${name}: Dual Cast damage must match both displayed Evoke values`)
     assert.equal(await evokeTarget.count(), 0)
 
     // Row-targeting Lightning aims at rows; a boss stands in every row and cannot be picked alone.

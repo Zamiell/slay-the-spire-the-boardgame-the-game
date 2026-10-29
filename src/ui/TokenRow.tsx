@@ -49,12 +49,13 @@ export function TokenRow(props: TokenRowProps) {
   )
 }
 
-function orbDisplayValue(player: Player, orb: OrbType): number {
+export function orbDisplayValue(player: Player, orb: OrbType, evoked = false): number {
   // Slayer Pack: orbEndTurnAmount keeps Biased Cognition's -1 from showing below 0.
   if (orb === 'lightning') {
-    return player.damageDealtZeroThisTurn ? 0 : orbEndTurnAmount(player, orb)
+    return player.damageDealtZeroThisTurn ? 0
+      : evoked ? 2 + (player.orbEvokeBonus ?? 0) : orbEndTurnAmount(player, orb)
   }
-  if (orb === 'frost') return orbEndTurnAmount(player, orb)
+  if (orb === 'frost') return evoked ? 1 + (player.orbEvokeBonus ?? 0) : orbEndTurnAmount(player, orb)
   return player.damageDealtZeroThisTurn ? 0
     : 3 + player.powers.length + (player.orbEvokeBonus ?? 0) + (player.darkOrbEvokeBonus ?? 0)
 }

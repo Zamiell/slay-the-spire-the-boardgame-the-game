@@ -9,9 +9,11 @@ import type { CardInstance } from '../game/types.ts'
 import type { StatusIconName } from './Icon.tsx'
 import { statusIconPath } from './icons.ts'
 import { CardFace } from './CardFace.tsx'
-import { CardKeywordHelp, cardRuleDescription, cardRulesText } from './Card.tsx'
+import { blockedCardDrawRules, CardKeywordHelp, cardRuleDescription, cardRulesText } from './Card.tsx'
+import { DrawLockedRules } from './DrawLockedRules.tsx'
+import { KeywordText } from './KeywordText.tsx'
 
-type PowerRowProps = { powers: CardInstance[] }
+type PowerRowProps = { powers: CardInstance[]; drawLocked?: boolean; sharedDrawLocked?: boolean }
 
 /** The enlarged card or text fallback, and where to put it. */
 type Zoom = { uid: string; src: string; def: CardDef; attachedGem?: CardDef; description: string; x: number; y: number; pinned: boolean; loaded: boolean }
@@ -70,9 +72,10 @@ export function releaseCardZoom(close: () => void) {
   if (pinnedBy === close) pinnedBy = null
 }
 
-export function PowerRow({ powers }: PowerRowProps) {
+export function PowerRow({ powers, drawLocked = false, sharedDrawLocked = drawLocked }: PowerRowProps) {
   const skins = useCardSkins()
   const [zoom, setZoom] = useState<Zoom | null>(null)
+  const blockedRules = zoom ? blockedCardDrawRules(zoom.def, drawLocked, sharedDrawLocked, zoom.attachedGem) : null
   // The SAME function object that is registered below, so this row can ask the
   // others to close without also closing itself.
   const close = useRef(() => setZoom(null))
@@ -243,9 +246,9 @@ export function PowerRow({ powers }: PowerRowProps) {
               style={{ left: `${Math.round(zoom.x)}px`, top: `${Math.round(zoom.y)}px` }}
             >
               <span className={zoom.loaded ? 'visually-hidden' : 'power__zoom-description'}>
-                {zoom.description}
+                <KeywordText text={zoom.description} drawLocked={Boolean(blockedRules)} />
               </span>
-              <CardFace def={zoom.def} rules={cardRulesText(zoom.def)} className="power__zoom-card" />
+              <CardFace def={zoom.def} rules={cardRulesText(zoom.def)} className="power__zoom-card" drawLocked={Boolean(blockedRules)} />
               {zoom.attachedGem && !zoom.loaded ? <img className="card__gem"
                 src={cardThumbPath(zoom.attachedGem, false)} alt="" draggable={false}
                 title={`${zoom.attachedGem.name}: ${cardRuleDescription(zoom.attachedGem)}`} /> : null}
@@ -261,6 +264,7 @@ export function PowerRow({ powers }: PowerRowProps) {
                 ) }}
                 style={{ visibility: zoom.loaded ? 'visible' : 'hidden' }}
               />
+              {blockedRules && zoom.loaded ? <DrawLockedRules rules={blockedRules} /> : null}
             </span>,
             document.body,
           )

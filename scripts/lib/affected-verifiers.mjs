@@ -154,6 +154,8 @@ const focusedUiOwners = ownerMap([
   ['src/ui/styles/title-menu.css', ['verify-run-replay-browser.mjs', 'verify-replay-controls-browser.mjs', 'verify-title-menu-browser.mjs']],
 ])
 const focusedOnlyUiOwners = ownerMap([
+  ...['src/ui/draw-lock-text.ts', 'src/ui/DrawLockedRules.tsx', 'src/ui/styles/draw-locked-rules.css', 'src/ui/KeywordText.tsx']
+    .map(file => [file, ['verify-draw-lock-browser.mjs']]),
   ['src/ui/OutsidePotionBar.tsx', ['verify-potion-header-browser.mjs']],
   ...['src/ui/IncomingDamage.tsx', 'src/ui/styles/incoming-damage.css']
     .map(file => [file, ['verify-incoming-damage-browser.mjs']]),

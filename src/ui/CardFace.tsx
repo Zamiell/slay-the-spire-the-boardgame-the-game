@@ -12,6 +12,7 @@ type CardFaceProps = {
   className?: string
   /** The full scan normally covers this fallback art; defer its decode until the scan fails. */
   illustration?: boolean
+  drawLocked?: boolean
 }
 
 export function cardTypeLabel(def: CardDef): string {
@@ -20,7 +21,7 @@ export function cardTypeLabel(def: CardDef): string {
 
 /** Repo-native card face shown underneath an optional publisher scan. */
 export const CardFace = memo(function CardFace({
-  def, cost = def.cost, rules, className = '', illustration = true,
+  def, cost = def.cost, rules, className = '', illustration = true, drawLocked = false,
 }: CardFaceProps) {
   const skin = useCardSkin(def)
   const shownCost = def.unplayable ? '—' : cost
@@ -39,7 +40,7 @@ export const CardFace = memo(function CardFace({
         ? <img className="card-face__illustration" src={cardArtPath(def, skin)} alt="" loading="lazy" />
         : <span className="card-face__illustration card-face__illustration--empty" />}
       <span className="card-face__type">{cardTypeLabel(def)}</span>
-      <span className="card-face__rules"><KeywordText text={rules} /></span>
+      <span className="card-face__rules"><KeywordText text={rules} drawLocked={drawLocked} /></span>
     </span>
   )
 })

@@ -1389,7 +1389,9 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
           ) : null}
         </div>
         {viewer ? (
-          <CardCollectionOverlay cards={viewer.deck} label="Current deck" triggerClassName="deck-peek__open" shortcut="d">
+          <CardCollectionOverlay cards={viewer.deck} label="Current deck" triggerClassName="deck-peek__open" shortcut="d"
+            drawLocked={run.phase === 'combat' && headerViewer?.drawLocked}
+            sharedDrawLocked={run.combat?.players.filter(player => !player.dead).every(player => player.drawLocked)}>
             <img src={assetPath('menu/current-deck.webp')} alt="" />
             <span aria-hidden="true">{viewer.deck.length}</span>
           </CardCollectionOverlay>

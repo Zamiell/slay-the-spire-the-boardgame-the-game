@@ -13,11 +13,13 @@ type CardCollectionOverlayProps = {
   dataPile?: 'draw' | 'discard' | 'exhaust'
   ordered?: boolean
   shortcut?: string
+  drawLocked?: boolean
+  sharedDrawLocked?: boolean
 }
 
 /** One read-only card viewer for the deck and combat piles. */
 export function CardCollectionOverlay({
-  cards, label, triggerClassName, children, dataPile, ordered = true, shortcut,
+  cards, label, triggerClassName, children, dataPile, ordered = true, shortcut, drawLocked, sharedDrawLocked,
 }: CardCollectionOverlayProps) {
   const [open, setOpen] = useState(false)
   const trigger = useRef<HTMLButtonElement | null>(null)
@@ -27,12 +29,14 @@ export function CardCollectionOverlay({
       aria-label={`${label}, ${cards.length} card${cards.length === 1 ? '' : 's'}`}
       aria-keyshortcuts={shortcut?.toUpperCase()}
       title={shortcut ? `${label} (${shortcut.toUpperCase()})` : label} onClick={() => setOpen(true)}>{children}</button>
-    <CardCollectionDialog cards={cards} label={label} open={open} ordered={ordered} shortcut={shortcut} onClose={() => setOpen(false)} />
+    <CardCollectionDialog cards={cards} label={label} open={open} ordered={ordered} shortcut={shortcut}
+      drawLocked={drawLocked} sharedDrawLocked={sharedDrawLocked} onClose={() => setOpen(false)} />
   </>
 }
 
-export function CardCollectionDialog({ cards, label, onClose, open = true, ordered = true, shortcut }: {
+export function CardCollectionDialog({ cards, label, onClose, open = true, ordered = true, shortcut, drawLocked, sharedDrawLocked }: {
   cards: readonly CardInstance[]; label: string; onClose: () => void; open?: boolean; ordered?: boolean; shortcut?: string
+  drawLocked?: boolean; sharedDrawLocked?: boolean
 }) {
   const [sort, setSort] = useState<'obtained' | 'type' | 'cost' | 'name'>(() => ordered ? 'obtained' : 'name')
   const [ascending, setAscending] = useState(true)
@@ -94,7 +98,8 @@ export function CardCollectionDialog({ cards, label, onClose, open = true, order
             </button>)}
         </div>
         <div className="choice-modal__cards">
-          {open ? sortedCards.map((card) => <Card key={card.uid} card={card} playable={false} hoverHelp />) : null}
+          {open ? sortedCards.map((card) => <Card key={card.uid} card={card} playable={false} hoverHelp
+            drawLocked={drawLocked} sharedDrawLocked={sharedDrawLocked} />) : null}
           {open && cards.length === 0 ? <span className="muted">No cards.</span> : null}
         </div>
         <footer className="card-collection__footer">

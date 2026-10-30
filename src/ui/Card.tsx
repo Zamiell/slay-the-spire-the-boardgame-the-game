@@ -14,6 +14,8 @@ import type { CardInstance } from '../game/types.ts'
 import type { Trigger } from '../game/triggers.ts'
 import { useButtonShortcut } from './useButtonShortcut.ts'
 import { COMBAT_TOKEN_HELP } from './combat-token-help.ts'
+import { drawLockText } from './draw-lock-text.ts'
+import { DrawLockedRules } from './DrawLockedRules.tsx'
 
 type CardProps = {
   card: CardInstance
@@ -38,6 +40,8 @@ type CardProps = {
   fan?: number
   /** Damage the card would deal now, against the same play with no Strength, Weak or Vulnerable. */
   liveDamage?: { damage: number, baseline: number }
+  drawLocked?: boolean
+  sharedDrawLocked?: boolean
   /** Removes an otherwise-real card button from sequential keyboard navigation. */
   tabIndex?: number
   /** Appended to the accessible name, e.g. to tell a just-drawn duplicate apart. */
@@ -597,6 +601,15 @@ function flattenEffects(effects: readonly Effect[]): Effect[] {
   })
 }
 
+export function blockedCardDrawRules(def: CardDef, drawLocked: boolean, sharedDrawLocked = drawLocked, gem?: CardDef | null): string | null {
+  if (!drawLocked || def.trigger?.kind === 'startOfTurn' && !def.resolvesOnPlay) return null
+  const effects = flattenEffects([...def.effects, ...(def.modes ?? []).flatMap(mode => mode.effects), ...(gem?.effects ?? [])])
+  if (!sharedDrawLocked && effects.some(effect => effect.kind === 'drawOrDiscardChoice' ||
+    /draw/i.test(effect.kind) && 'toChosen' in effect && effect.toChosen)) return null
+  const rules = cardRuleDescription(def) + (gem ? `; ${gem.name}: ${cardRuleDescription(gem)}` : '')
+  return drawLockText(rules).some(part => part.blocked) ? rules : null
+}
+
 type CardKeywordTip = {
   name: string; text: string; icon?: IconName; statusIcon?: StatusIconName
 }
@@ -671,6 +684,10 @@ export function cardKeywordTips(def: CardDef): readonly CardKeywordTip[] {
 }
 
 const EMPTY_KEYWORD_TIPS: readonly CardKeywordTip[] = []
+const BLOCKED_DRAW_TIPS: readonly CardKeywordTip[] = [{
+  name: 'Drawing disabled',
+  text: 'You cannot draw more cards this turn. Other card effects still resolve.',
+}]
 
 export function CardKeywordHelp({ def, additionalDef, gemPowerDamage, extraTips = EMPTY_KEYWORD_TIPS, image, hover = false, children }: {
   def?: CardDef
@@ -771,6 +788,8 @@ export function Card({
   gemPowerDamage,
   fan = 0,
   liveDamage,
+  drawLocked = false,
+  sharedDrawLocked = drawLocked,
   tabIndex,
   accessibleNote,
   onClick,
@@ -791,6 +810,7 @@ export function Card({
     ? effectiveCost > def.cost ? 'up' : 'down'
     : effectiveCost === 0 ? 'down' : 'changed'
   const attachedGem = card.attachedGemId ? faceOf(cardDef(card.attachedGemId), false) : null
+  const blockedRules = blockedCardDrawRules(def, drawLocked, sharedDrawLocked, attachedGem)
   const skin = useCardSkin(def)
   const scan = cardThumbPath(def, card.upgraded, attachedGem ?? undefined, skin)
   const hasPublisherScan = def.publisherScan !== false
@@ -807,6 +827,7 @@ export function Card({
     .join(' ')
 
   return <CardKeywordHelp def={def} additionalDef={attachedGem}
+    extraTips={blockedRules ? BLOCKED_DRAW_TIPS : undefined}
     gemPowerDamage={gemPowerDamage} hover={hoverHelp}>{(keywordHelpProps) => (
     <button
       {...keywordHelpProps}
@@ -884,7 +905,8 @@ export function Card({
           setScanUnavailable(true)
         }}
       /> : null}
-      <CardFace def={def} cost={effectiveCost} rules={cardRulesText(def)} illustration={scanUnavailable} />
+      <CardFace def={def} cost={effectiveCost} rules={cardRulesText(def)} illustration={scanUnavailable} drawLocked={Boolean(blockedRules)} />
+      {blockedRules && !scanUnavailable ? <DrawLockedRules rules={blockedRules} /> : null}
       {attachedGem && scanUnavailable ? <img className="card__gem" src={cardThumbPath(attachedGem, false)} alt=""
         draggable={false} title={`${attachedGem.name}: ${cardRuleDescription(attachedGem)}`} /> : null}
       {liveDamage ? (

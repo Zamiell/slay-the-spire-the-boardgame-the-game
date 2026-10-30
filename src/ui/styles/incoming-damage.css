@@ -1,0 +1,29 @@
+.seat__status-strip > .seat__incoming-damage {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  min-height: 1.25rem;
+  margin-right: 0.2rem;
+  padding: 0.12rem 0.3rem;
+  border: 1px solid #a85850;
+  border-radius: 0.25rem;
+  background: #291311eb;
+  color: #ffb0a5;
+  font-size: 0.75rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.seat__status-strip > .seat__incoming-damage--clear {
+  border-color: #587464;
+  background: #10201beb;
+  color: #b4d2c4;
+}
+
+.seat__status-strip > .seat__incoming-damage--pending {
+  border-color: #756d60;
+  background: #191714eb;
+  color: #c5bca9;
+}
+
+.seat__incoming-damage:focus-visible { outline: 2px solid #efd07e; outline-offset: -2px; }

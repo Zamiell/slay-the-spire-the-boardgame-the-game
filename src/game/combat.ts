@@ -153,7 +153,7 @@ export {
   resolvePendingTrigger,
   validEndTurnOrder,
 } from './combat/end-turn.ts'
-export { enemyActingOrder, enemyTurn } from './combat/enemy-turn.ts'
+export { enemyActingOrder, enemyTurn, previewIncomingDamage } from './combat/enemy-turn.ts'
 export {
   activatePotion,
   activateRelic,

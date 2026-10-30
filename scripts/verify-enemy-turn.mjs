@@ -5,6 +5,7 @@ import {
   enemyLabel,
   enemyTurn,
   playCard,
+  previewIncomingDamage,
   startPlayerTurn,
 } from '../src/game/combat.ts'
 import { actionsFor, advanceCube, createSummonSupply, enemyDef, startingHp } from '../src/game/enemies.ts'
@@ -37,6 +38,83 @@ const inEnemyPhase = (players, enemies) => ({
 })
 
 suite('enemy turn')
+
+const incoming = (players, enemies, extra = {}) => ({
+  ...inEnemyPhase(players, enemies), phase: 'player', ...extra,
+})
+
+check('incoming damage spends Block once across attacks and includes overkill without mutating state', () => {
+  const state = incoming([player({ hp: 1, block: 2 })], [
+    enemy({ uid: 'a', defId: 'small_slime', strength: 2 }),
+    enemy({ uid: 'b', defId: 'small_slime' }),
+    enemy({ uid: 'dead', defId: 'small_slime', strength: 8, dead: true }),
+  ])
+  const before = structuredClone(state)
+  assertEqual(previewIncomingDamage(state).get('p1'), 2)
+  state.players[0].block = 10
+  assertEqual(previewIncomingDamage(state).get('p1'), 0)
+  state.players[0].block = 2
+  assertDeepEqual(state, before)
+})
+
+check('incoming damage uses Weak, Vulnerable and Strength for the whole multi-hit action', () => {
+  const state = incoming([player({ hp: 100, maxHp: 100, vulnerable: 1, block: 2 })], [
+    enemy({ uid: 'plant', defId: 'snake_plant', strength: 1, weak: 1 }),
+    enemy({ uid: 'slime', defId: 'small_slime' }),
+  ], { die: 1 })
+  const before = structuredClone(state)
+  assertEqual(previewIncomingDamage(state).get('p1'), 6, '7 from Plant, 1 from Slime, minus 2 Block')
+  assertEqual(enemyTurn({ ...state, phase: 'enemy' }).players[0].hp, 94)
+  assertDeepEqual(state, before)
+})
+
+check('incoming damage respects row targets, mixed AoE hits and Act IV Facing', () => {
+  const players = [player({ id: 'p1', row: 0, block: 1 }), player({ id: 'p2', row: 1, block: 2 })]
+  const state = incoming(players, [
+    enemy({ uid: 'plant', defId: 'snake_plant', ascension: 7, row: 0 }),
+    enemy({ uid: 'slime', defId: 'small_slime', row: 1 }),
+  ], { die: 1 })
+  assertDeepEqual([...previewIncomingDamage(state)], [['p1', 4], ['p2', 1]])
+  const facing = incoming([
+    player({ id: 'p1', row: 1, facingEnemyUid: 'shield', block: 3 }),
+    player({ id: 'p2', row: 2, facingEnemyUid: 'spear', block: 1 }),
+  ], [
+    enemy({ uid: 'shield', defId: 'spire_shield', actionIndex: 1 }),
+    enemy({ uid: 'spear', defId: 'spire_spear', row: 3 }),
+  ])
+  assertDeepEqual([...previewIncomingDamage(facing)], [['p1', 5], ['p2', 3]])
+})
+
+check('incoming damage includes earlier enemy buffs and follows enemy acting order', () => {
+  const state = incoming([player({ block: 2 })], [
+    enemy({ uid: 'donu', defId: 'donu', isBoss: true }),
+    enemy({ uid: 'deca', defId: 'deca', isBoss: true }),
+  ])
+  assertEqual(previewIncomingDamage(state).get('p1'), 6, 'Donu buffs both Deca hits before they land')
+  state.enemies.reverse()
+  assertEqual(previewIncomingDamage(state).get('p1'), 4, 'Deca acts before the buff in the reversed order')
+})
+
+check('incoming means after Block, not final HP loss, and does not apply end-turn effects', () => {
+  const state = incoming([player({ powers: [instance('buffer')], block: 1 })], [
+    enemy({ defId: 'jaw_worm', hp: 10, poison: 30 }),
+  ], { die: 3 })
+  assertEqual(previewIncomingDamage(state).get('p1'), 3, 'Buffer and later Poison do not change current unblocked attack intents')
+  assertEqual(enemyTurn({ ...state, phase: 'enemy' }).players[0].hp, 10, 'the real Enemy Turn still applies Buffer')
+  assertEqual(previewIncomingDamage({ ...state, phase: 'start' }), null)
+  assertEqual(previewIncomingDamage({ ...state, phase: 'enemy' }), null)
+  assertEqual(previewIncomingDamage({ ...state, pendingTriggers: [{ playerId: 'p1' }] }), null)
+})
+
+check('forecasting random enemy actions does not advance RNG or expose private card order', () => {
+  const state = incoming([player({ draw: [instance('bash'), instance('strike_ironclad')] })], [
+    enemy({ defId: 'corrupt_heart', isBoss: true, actionIndex: 0 }),
+  ])
+  const before = structuredClone(state)
+  assertEqual(previewIncomingDamage(state).get('p1'), 0)
+  assertDeepEqual(state, before)
+  assertEqual(previewIncomingDamage({ ...state, players: state.players.map(player => ({ ...player, hand: [], draw: [] })) }).get('p1'), 0)
+})
 
 check('enemies attack the player in their own row', () => {
   const state = inEnemyPhase(

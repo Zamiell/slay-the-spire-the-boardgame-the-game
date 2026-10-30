@@ -132,6 +132,7 @@ import {
   powerActivationAllowed,
   previewCardShivTargets,
   previewCardDamage,
+  previewIncomingDamage,
   previewPowerChoice,
   reachesEnemy,
   reachedTimeWarpLimit,
@@ -201,6 +202,7 @@ import {
   tryClaimCardZoom,
 } from './PowerRow.tsx'
 import { RedCubeIcon, OrbRow, TokenRow, orbDisplayValue } from './TokenRow.tsx'
+import { IncomingDamage } from './IncomingDamage.tsx'
 import { COMBAT_TOKEN_HELP } from './combat-token-help.ts'
 import { useHandLayout } from './combat-screen/useHandLayout.ts'
 import {
@@ -676,6 +678,7 @@ function CombatScreenView({
   }
   const forcedAutoAttempt = useRef<string | null>(null)
   const viewer = state.players.find((player) => player.id === viewerId)
+  const incomingDamage = useMemo(() => previewIncomingDamage(state), [state])
   const [resourceHistory, setResourceHistory] = useState(() => trackCombatResources(undefined, state))
   const resourceVisibility = trackCombatResources(resourceHistory, state)
   if (resourceVisibility !== resourceHistory) setResourceHistory(resourceVisibility)
@@ -7085,6 +7088,8 @@ function CombatScreenView({
                     </div>
                     <div className="seat__status-strip" data-guardian-mode={occupant.guardianMode ?? undefined} tabIndex={0}
                       aria-label={`${occupant.name} combat effects`}>
+                      {!occupant.dead && ['start', 'player', 'copy', 'discard'].includes(state.phase) ?
+                        <IncomingDamage name={occupant.name} damage={incomingDamage?.get(occupant.id)} block={occupant.block} /> : null}
                       <TokenRow
                         showHelp
                         block={occupant.block}

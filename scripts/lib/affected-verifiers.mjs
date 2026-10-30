@@ -28,6 +28,7 @@ export function ownerMap(entries) {
 // too broad for dependency inference. Keep the few domain owners explicit so
 // an engine helper change does not launch the entire visual matrix.
 const focusedEngineOwners = ownerMap([
+  ['src/game/combat/enemy-turn.ts', ['verify-incoming-damage-browser.mjs']],
   ['src/game/types.ts', ['verify-skins.mjs']],
   // The registry: registering a skin extends every verifier below (they iterate SKINS), so a registry change reruns them all.
   ['src/game/skins.ts', ['verify-skins.mjs', 'verify-skin-browser.mjs', 'verify-test-skins-browser.mjs', 'verify-assets.mjs',
@@ -150,6 +151,8 @@ const focusedUiOwners = ownerMap([
   ['src/ui/styles/title-menu.css', ['verify-run-replay-browser.mjs', 'verify-replay-controls-browser.mjs', 'verify-title-menu-browser.mjs']],
 ])
 const focusedOnlyUiOwners = ownerMap([
+  ...['src/ui/IncomingDamage.tsx', 'src/ui/styles/incoming-damage.css']
+    .map(file => [file, ['verify-incoming-damage-browser.mjs']]),
   ...['src/ui/DeveloperConsole.tsx', 'src/ui/developer-commands.ts', 'src/ui/console-rewind.ts', 'src/ui/styles/developer-console.css']
     .map(file => [file, ['verify-developer-console-browser.mjs']]),
   ['src/ui/combat-token-help.ts', ['verify-resource-tooltips-browser.mjs', 'verify-card-tooltip-browser.mjs']],

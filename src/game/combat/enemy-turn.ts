@@ -9,7 +9,7 @@ import { clone, combatIsOver, enemyLabel, playersInRowOf } from './board.ts'
 import { damagePlayer, settle, shedSlayerCardsOnLeave, triggerEnemyDeath } from './effects.ts'
 import { addDaze, addStatus, playerCanGainDebuffs, reviveAll } from './pieces.ts'
 import type { CombatState } from './types.ts'
-import { attackerModsOfEnemy, gainBlock, gainStrength, gainVulnerable, gainWeak, hitDamage } from '../damage.ts'
+import { applyDamage, attackerModsOfEnemy, gainBlock, gainStrength, gainVulnerable, gainWeak, hitDamage } from '../damage.ts'
 import { actionsForEnemy, advanceCube, enemyAbilities, enemyAttackBonus, enemyDef, startingHp } from '../enemies.ts'
 import type { EnemyAction } from '../enemies.ts'
 import { CARDS } from '../cards.ts'
@@ -35,6 +35,10 @@ function matchesSummon(defId: string, summonId: string): boolean {
  * player. Block and Strength always land on the enemy itself, never on a player.
  */
 export function enemyTurn(state: CombatState): CombatState {
+  return resolveEnemyTurn(state, damagePlayer)
+}
+
+function resolveEnemyTurn(state: CombatState, receiveAttack: typeof damagePlayer): CombatState {
   if (state.phase !== 'enemy' || (state.pendingTriggers?.length ?? 0) > 0 || mandatoryChoicePending(state)) return state
   const next = clone(state)
 
@@ -50,7 +54,7 @@ export function enemyTurn(state: CombatState): CombatState {
     // exception keeps this loop going while any player survives.
     if (combatIsOver(next)) break
     for (const action of actionsForEnemy(enemy, next.die)) {
-      applyEnemyAction(next, enemy, action)
+      applyEnemyAction(next, enemy, action, receiveAttack)
       if (combatIsOver(next)) break
     }
     const grant = enemyAbilities(enemyDef(enemy.defId, enemy.ascension))
@@ -90,6 +94,24 @@ export function enemyTurn(state: CombatState): CombatState {
   return settle(next)
 }
 
+/**
+ * Current enemy attacks after Block, before HP-loss prevention or end-of-turn
+ * effects. Use the real action order and targeting, but don't stop at lethal
+ * damage or consume Buffer/Fairy effects. Only the throwaway copy is changed.
+ */
+export function previewIncomingDamage(state: CombatState): ReadonlyMap<string, number> | null {
+  if (state.phase !== 'player' || state.pendingCardPlayWindows?.length) return null
+  const incoming = new Map(state.players.filter(player => !player.dead).map(player => [player.id, 0]))
+  const probe = { ...state, phase: 'enemy' as const, log: [], presentationEvents: [] }
+  const next = resolveEnemyTurn(probe, (_state, player, amount) => {
+    const outcome = applyDamage(player.block, Number.MAX_SAFE_INTEGER, amount)
+    player.block = outcome.block
+    incoming.set(player.id, (incoming.get(player.id) ?? 0) + outcome.hpLost)
+    return outcome
+  })
+  return next === probe ? null : incoming
+}
+
 /** Highest row first, then left to right, with bosses and "acts last" at the end. */
 export function enemyActingOrder(state: CombatState): Enemy[] {
   const order = state.enemies.filter((enemy) => !enemy.dead)
@@ -104,7 +126,12 @@ export function enemyActingOrder(state: CombatState): Enemy[] {
   })
 }
 
-export function applyEnemyAction(state: CombatState, enemy: Enemy, action: EnemyAction): void {
+export function applyEnemyAction(
+  state: CombatState,
+  enemy: Enemy,
+  action: EnemyAction,
+  receiveAttack: typeof damagePlayer = damagePlayer,
+): void {
   const living = state.players.filter((player) => !player.dead)
   const name = enemyLabel(state.enemies, enemy)
 
@@ -140,7 +167,7 @@ export function applyEnemyAction(state: CombatState, enemy: Enemy, action: Enemy
             mods, { vulnerable: before.vulnerable },
           )
           before.attempted += amount
-          before.lost += damagePlayer(state, target, amount).hpLost
+          before.lost += receiveAttack(state, target, amount).hpLost
           if (target.dead && combatIsOver(state)) break attack
         }
       }
@@ -340,7 +367,7 @@ export function applyEnemyAction(state: CombatState, enemy: Enemy, action: Enemy
     case 'guardianModeShift':
       if (enemy.block > 0) {
         enemy.block = 0
-        applyEnemyAction(state, enemy, { kind: 'attack', amount: action.amount })
+        applyEnemyAction(state, enemy, { kind: 'attack', amount: action.amount }, receiveAttack)
       } else {
         enemy.pendingDefId = 'guardian_defensive'
         state.log = [...state.log, `${name} will enter Defensive Mode at the start of the next turn`]

@@ -108,7 +108,7 @@ export function PotionTooltipAnchor({
     // click, so `showing` turns true one commit BEFORE the confirm line is
     // added — and the guard above would place the panel using a height that is
     // one line short of what it renders.
-  }, [showing, readingTap])
+  }, [showing, readingTap, itemName, itemText])
 
   useEffect(() => {
     if (!showing) return undefined

@@ -4,6 +4,7 @@ import { createServer } from 'vite'
 import { chromium } from './lib/profile-browser.mjs'
 import { postNeowRun } from './lib/post-neow-run.mjs'
 import { enterRoom } from '../src/game/run.ts'
+import { relicDef } from '../src/game/relics.ts'
 
 const output = 'artifacts/relic-refresh'
 mkdirSync(output, { recursive: true })
@@ -91,9 +92,65 @@ try {
     assert.match(await tip.innerText(), /Once per combat: Scry 3/)
     assert.doesNotMatch(await tip.innerText(), /Face down/)
     await page.screenshot({ path: `${output}/${screen}-event.png` })
+    await page.keyboard.press('Escape')
+    const headerRules = new Map()
+    for (const relic of state.players[0].relics) {
+      await page.mouse.move(2, 2)
+      if (phone) { await page.keyboard.press('Tab'); await chip(relic.defId).focus() }
+      else await chip(relic.defId).hover()
+      const help = chip(relic.defId).locator('.relic-tip')
+      await help.waitFor()
+      headerRules.set(relic.defId, await help.innerText())
+      await page.keyboard.press('Escape')
+    }
+    await page.locator('[data-event-option="exchange"]').click()
+    const picker = page.getByRole('group', { name: 'Your relic', exact: true })
+    await picker.waitFor()
+    const beforeInspection = await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun()))
+    for (const relic of state.players[0].relics) {
+      const option = picker.getByRole('button', { name: new RegExp(`^${relicDef(relic.defId).name}`) })
+      if (phone) await option.focus()
+      else await option.hover()
+      const help = page.locator('.potion-tip').filter({ hasText: relicDef(relic.defId).name })
+      await help.waitFor()
+      assert.equal(await help.innerText(), headerRules.get(relic.defId),
+        `${screen}: event choices must match the header's rules, remaining uses and spent status`)
+      assert.equal(await option.getAttribute('aria-pressed'), 'false')
+      assert.equal(await option.getAttribute('title'), null, 'native tooltips must not compete with the shared tooltip')
+      assert(await help.evaluate(help => {
+        const box = help.getBoundingClientRect()
+        return help.parentElement === document.body && box.left >= 0 && box.top >= 0 &&
+          box.right <= innerWidth && box.bottom <= innerHeight
+      }), 'event relic help must escape the picker and fit the viewport')
+      await page.keyboard.press('Escape')
+    }
+    assert.equal(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun())), beforeInspection)
+    const goldenEye = picker.getByRole('button', { name: /^Golden Eye/ })
+    if (phone) await goldenEye.tap()
+    else await goldenEye.click()
+    assert.equal(await goldenEye.getAttribute('aria-pressed'), 'true', 'one activation must still select the relic')
+    assert(await page.getByRole('button', { name: /Confirm choice/ }).isEnabled())
+    assert.equal(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun())), beforeInspection,
+      'selecting an exchange must still wait for confirmation')
+    await goldenEye.focus()
+    await page.screenshot({ path: `${output}/${screen}-event-choices.png` })
+    if (phone) await goldenEye.tap()
+    else await goldenEye.click()
+    assert.equal(await goldenEye.getAttribute('aria-pressed'), 'false')
+    await page.evaluate(async () => {
+      const { EVENT_DEFINITIONS } = await import('/src/game/events.ts')
+      const { createEventRoom } = await import('/src/game/event-room.ts')
+      const run = structuredClone(window.__STS_DEBUG__.getRun())
+      run.roomState = createEventRoom({ ...EVENT_DEFINITIONS.moai_head,
+        instanceId: 'tooltip-moai', act: 3, minAscension: 0, requiresColorlessUnlock: false })
+      window.__STS_DEBUG__.setRun(run)
+    })
+    await page.locator('[data-event-option="offer"]').click()
+    assert.match(await picker.getByRole('button', { name: /^Golden Eye/ }).innerText(), /7 Gold/,
+      'replacing native tooltips must not hide an event-specific relic sale price')
     assert.deepEqual(errors, [])
     await page.close()
-    console.log(`PASS ${screen}: end-of-combat relic refresh and legacy event resume`)
+    console.log(`PASS ${screen}: relic refresh, legacy resume, shared event tooltips and unchanged selection`)
   }
 } finally {
   await browser.close()

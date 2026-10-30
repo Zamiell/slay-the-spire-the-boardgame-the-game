@@ -94,19 +94,19 @@ const remainingTargetContactMs = (
   targetId: string,
 ): number => Math.max(0, (deadlines.get(targetId)?.at ?? 0) - performance.now())
 
-function shouldReduceMotion(): boolean {
+function shouldReduceMotion(respectSystemPreference = true): boolean {
   const root = document.documentElement.dataset
   // Phones expose this choice in-game; do not let an invisible iOS preference
   // erase combat while the visible toggle is off.
   return root.reducedMotion === 'true' ||
-    root.mobilePerformance !== 'true' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    respectSystemPreference && root.mobilePerformance !== 'true' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
-export function useReducedEffects(): boolean {
-  const [reduced, setReduced] = useState(shouldReduceMotion)
+export function useReducedEffects(respectSystemPreference = true): boolean {
+  const [reduced, setReduced] = useState(() => shouldReduceMotion(respectSystemPreference))
   useEffect(() => {
     const query = window.matchMedia('(prefers-reduced-motion: reduce)')
-    const sync = () => setReduced(shouldReduceMotion())
+    const sync = () => setReduced(shouldReduceMotion(respectSystemPreference))
     const observer = new MutationObserver(sync)
     sync()
     query.addEventListener('change', sync)
@@ -118,7 +118,7 @@ export function useReducedEffects(): boolean {
       query.removeEventListener('change', sync)
       observer.disconnect()
     }
-  }, [])
+  }, [respectSystemPreference])
   return reduced
 }
 

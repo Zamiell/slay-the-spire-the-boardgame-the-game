@@ -16,7 +16,8 @@ try {
     ['desktop', { width: 1920, height: 1080 }, false],
     ['horizontal-phone', { width: 844, height: 390 }, true],
   ]) {
-    const page = await browser.newPage({ viewport, hasTouch: phone, isMobile: phone })
+    const page = await browser.newPage({ viewport, hasTouch: phone, isMobile: phone,
+      reducedMotion: phone ? 'no-preference' : 'reduce' })
     page.on('pageerror', error => errors.push(String(error)))
     await page.goto(`http://localhost:${server.httpServer.address().port}`)
     for (const name of ['Single Player', 'Standard', 'Embark', 'Start standard campaign']) {
@@ -81,11 +82,15 @@ try {
         await page.mouse.move(box.x + box.width / 2, size.height - 12, { steps: 2 })
         const samples = await page.evaluate(async ({ index, previous }) => {
           const cards = [...document.querySelectorAll('.hand > .card')]
-          const y = card => new DOMMatrixReadOnly(getComputedStyle(card).transform).m42
+          const pose = card => {
+            const matrix = new DOMMatrixReadOnly(getComputedStyle(card).transform)
+            return { y: matrix.m42, scale: Math.hypot(matrix.a, matrix.b),
+              angle: Math.atan2(matrix.b, matrix.a) * 180 / Math.PI }
+          }
           const samples = []
           for (let frame = 0; frame < 6; frame++) {
             await new Promise(requestAnimationFrame)
-            samples.push({ y: y(cards[index]), previousY: previous < 0 ? null : y(cards[previous]),
+            samples.push({ ...pose(cards[index]), previousY: previous < 0 ? null : pose(cards[previous]).y,
               focused: cards[index].hasAttribute('data-hand-focused') })
           }
           return samples
@@ -93,6 +98,10 @@ try {
         assert(samples.every(sample => sample.focused), `card ${index + 1} lost hover during the sweep`)
         assert(samples[0].y > -7.5 && samples.at(-1).y < samples[0].y,
           `card ${index + 1} must slide upward through intermediate positions, not snap: ${JSON.stringify(samples)}`)
+        assert(samples[0].scale < .999 && samples.at(-1).scale > samples[0].scale,
+          `card ${index + 1} must enlarge smoothly, not jump between sizes`)
+        if (index !== 3) assert(Math.abs(samples.at(-1).angle) < Math.abs(samples[0].angle),
+          `card ${index + 1} must straighten smoothly`)
         if (previous >= 0) assert(samples.at(-1).previousY > samples[0].previousY,
           `card ${previous + 1} must slide back down while the next card rises`)
         previous = index
@@ -131,7 +140,20 @@ try {
       await page.keyboard.press('1')
       assert.equal(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun())), before,
         'hand shortcuts must not play behind a dialog')
-      await page.getByRole('dialog', { name: 'Settings', exact: true }).getByRole('button', { name: 'Back', exact: true }).click()
+      const settings = page.getByRole('dialog', { name: 'Settings', exact: true })
+      await settings.getByRole('button', { name: 'video', exact: true }).click()
+      await settings.getByRole('checkbox', { name: 'Reduce motion', exact: true }).check()
+      await settings.getByRole('button', { name: 'Back', exact: true }).click()
+      await cards.first().hover()
+      const reduced = await cards.first().evaluate(card => {
+        const matrix = new DOMMatrixReadOnly(getComputedStyle(card).transform)
+        return { y: matrix.m42, scale: Math.hypot(matrix.a, matrix.b) }
+      })
+      assert.deepEqual(reduced, { y: -8, scale: 1 }, 'the visible Reduce motion toggle must still disable hand animation')
+      await page.getByRole('button', { name: 'Settings', exact: true }).click()
+      await settings.getByRole('button', { name: 'video', exact: true }).click()
+      await settings.getByRole('checkbox', { name: 'Reduce motion', exact: true }).uncheck()
+      await settings.getByRole('button', { name: 'Back', exact: true }).click()
     } else {
       await tap(cards.first())
       assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.players[0].hand.length), 7,

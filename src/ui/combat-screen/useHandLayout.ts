@@ -77,7 +77,6 @@ export function useHandLayout(rootRef: RefObject<HTMLDivElement | null>, reduced
         const holder = holders.get(card) ?? { pose: { ...target }, target, center: 0 }
         holder.center = card.offsetLeft + width / 2
         holder.target = target
-        if (selected) Object.assign(holder.pose, { angle: 0, scale: 1 })
         if (options.current.reducedMotion || card.classList.contains('card--interaction-source')) holder.pose = { ...target }
         holders.set(card, holder)
         card.toggleAttribute('data-hand-focused', selected)
@@ -89,8 +88,12 @@ export function useHandLayout(rootRef: RefObject<HTMLDivElement | null>, reduced
       if (focus && focus === active && root.parentElement) {
         const box = focus.getBoundingClientRect()
         const viewport = root.parentElement.getBoundingClientRect()
-        root.parentElement.scrollLeft += box.left < viewport.left
-          ? box.left - viewport.left - 8 : Math.max(0, box.right - viewport.right + 8)
+        const target = holders.get(focus)!.target
+        const center = root.getBoundingClientRect().left + target.x
+        const left = Math.min(box.left, center - width * target.scale / 2)
+        const right = Math.max(box.right, center + width * target.scale / 2)
+        root.parentElement.scrollLeft += left < viewport.left
+          ? left - viewport.left - 8 : Math.max(0, right - viewport.right + 8)
       }
       root.dataset.handMoving = ''
       if (!frame) { previous = performance.now(); frame = requestAnimationFrame(tick) }

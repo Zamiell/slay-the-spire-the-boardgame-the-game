@@ -108,8 +108,10 @@ export function useCardInteraction(options: Options) {
     if (live.current) return true
     const source = event.currentTarget
     const rect = source.getBoundingClientRect()
-    const width = parseFloat(getComputedStyle(source).width)
-    const height = parseFloat(getComputedStyle(source).height)
+    const style = getComputedStyle(source)
+    const transform = new DOMMatrixReadOnly(style.transform)
+    const width = parseFloat(style.width)
+    const height = parseFloat(style.height)
     const pointer = { x: event.clientX, y: event.clientY }
     source.setPointerCapture(event.pointerId)
     live.current = {
@@ -118,7 +120,9 @@ export function useCardInteraction(options: Options) {
       stage: 'dragging', gesture: beginGesture(pointer, innerHeight, width / 180),
       pointerId: event.pointerId, captured: true, touch: event.pointerType !== 'mouse', clickToTarget: false,
       scrollLeft: source.closest('.hand-scroll')?.scrollLeft ?? 0,
-      pose: { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2, angle: 0, scale: rect.width / width },
+      pose: { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2,
+        angle: Math.atan2(transform.b, transform.a) * 180 / Math.PI,
+        scale: Math.hypot(transform.a, transform.b) },
       targetUid: null, stageStarted: performance.now(),
     }
     // Touch needs to distinguish an inspection tap, a horizontal scroll, and a lift first.

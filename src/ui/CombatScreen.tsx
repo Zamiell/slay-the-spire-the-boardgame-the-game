@@ -620,6 +620,8 @@ function CombatScreenView({
   const [stageMotionReady, setStageMotionReady] = useState(false)
   const fittedStage = useRef<{ combatId: typeof state.combatId; restoration: number | undefined } | null>(null)
   const reducedMotion = useReducedEffects()
+  // Keep hand feedback under the visible game toggle; larger effects still respect the OS preference.
+  const handReducedMotion = useReducedEffects(false)
 
   useEffect(() => registerCardZoomCloser(closeSlimeCardZoom.current), [])
   const prefersReducedMotion = reducedMotion
@@ -728,7 +730,7 @@ function CombatScreenView({
     onLand: (destination) => { if (destination !== 'stage') pulseMotion([destination]) },
   })
   const viewerVisual = viewer ? playerVisualId(viewer) : undefined
-  useHandLayout(handRef, reducedMotion, Boolean(cardDrag || cardInteraction.session || chamberClosing))
+  useHandLayout(handRef, handReducedMotion, Boolean(cardDrag || cardInteraction.session || chamberClosing))
   const skinOrb = viewerVisual !== undefined && skinTraits(viewerVisual)?.energyOrb === true
   // Hand Attacks show what they would deal now: to the enemy being dragged onto or last
   // pointed at, to the only enemy left, otherwise to a plain stand-in enemy.

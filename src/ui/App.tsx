@@ -78,7 +78,7 @@ import { MapOverlay } from './MapOverlay.tsx'
 import { CardCollectionOverlay } from './CardCollectionOverlay.tsx'
 import { CampfireScreen } from './CampfireScreen.tsx'
 import { RewardScreen } from './RewardScreen.tsx'
-import { relicDef } from '../game/relics.ts'
+import { refreshCombatRelic, relicDef } from '../game/relics.ts'
 import { IconValue } from './Icon.tsx'
 import { RelicBar } from './RelicChip.tsx'
 import { OutsidePotionBar } from './OutsidePotionBar.tsx'
@@ -806,6 +806,10 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
           throw new Error(`The beginning of this ${combat ? 'combat' : 'loot screen'} could not be recovered. Your saved run has not been changed.`)
         }
         restored = structuredClone(checkpoint)
+      }
+      if (restored.phase !== 'combat') restored = {
+        ...restored,
+        players: restored.players.map(player => ({ ...player, relics: player.relics.map(refreshCombatRelic) })),
       }
       if (currentWalletKey() !== owner || !ownsRun(resume.built)) {
         throw new Error('The account changed while loading. Please select Resume again.')

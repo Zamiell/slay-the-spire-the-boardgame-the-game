@@ -64,8 +64,34 @@ try {
     const loadedRun = structuredClone(run)
     loadedRun.combat.die = 6
     loadedRun.combat.players[0].relics[0] = { defId: 'loaded_die', spent: false }
-    loadedRun.combat.players[0].relics.push({ defId: 'vajra', spent: false })
+    loadedRun.combat.players[0].relics.push(
+      { defId: 'vajra', spent: false }, { defId: 'toolbox', spent: false },
+      { defId: 'the_courier', spent: false }, { defId: 'holy_water', spent: false, cubes: 2 },
+    )
+    loadedRun.players[0].relics = structuredClone(loadedRun.combat.players[0].relics)
     await page.evaluate(run => window.__STS_DEBUG__.setRun(run), loadedRun)
+    const relicsClearOfBar = () => page.waitForFunction(() => {
+      const bar = document.querySelector('.combat__bar').getBoundingClientRect()
+      const actions = document.querySelector('.relic-actions > section')?.getBoundingClientRect()
+      return actions && actions.height > 0 && actions.top >= bar.bottom + 4 &&
+        actions.left >= 0 && actions.right <= innerWidth && actions.bottom <= innerHeight
+    })
+    await page.getByRole('button', { name: /^Use Loaded Die:/ }).waitFor()
+    await page.locator('.courier--bar:visible, .courier--header:visible').first().waitFor()
+    await relicsClearOfBar()
+    const barHeight = (await page.locator('.combat__bar').boundingBox()).height
+    const stackedRun = structuredClone(loadedRun)
+    Object.assign(stackedRun.combat, { phase: 'player' })
+    Object.assign(stackedRun.combat.players[0], { shivs: 2, miracles: 2 })
+    await page.evaluate(run => window.__STS_DEBUG__.setRun(run), stackedRun)
+    await page.getByRole('button', { name: 'Use all Shivs', exact: true }).waitFor()
+    await relicsClearOfBar()
+    assert((await page.locator('.combat__bar').boundingBox()).height > barHeight,
+      'the fixture must exercise a turn bar taller than its minimum height')
+    await page.screenshot({ path: `${out}/${name}-relic-toolbar-clearance.png` })
+    await page.evaluate(run => window.__STS_DEBUG__.setRun(run), loadedRun)
+    await page.getByRole('button', { name: 'Use all Shivs', exact: true }).waitFor({ state: 'detached' })
+    await relicsClearOfBar()
     const barVajra = page.locator('.relic-bar [data-relic="vajra"]')
     await barVajra.hover()
     await barVajra.locator('.relic-tip').waitFor()
@@ -82,6 +108,7 @@ try {
     await loadedDie.click()
     const loadedChoices = page.locator('.relic-actions details[open]')
     await loadedChoices.getByRole('group', { name: /Red Mask · die 5\/6/ }).waitFor()
+    await relicsClearOfBar()
     assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.players[0].relics[0].spent), false,
       `${name}: opening Loaded Die spent it before choosing an ability`)
     const beforeInspection = await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun().combat))

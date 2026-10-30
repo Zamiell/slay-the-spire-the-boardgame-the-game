@@ -601,6 +601,7 @@ function CombatScreenView({
   useEffect(() => registerCardZoomCloser(closeSlimeCardZoom.current), [])
   const prefersReducedMotion = reducedMotion
   const boardRef = useRef<HTMLDivElement | null>(null)
+  const combatBarRef = useRef<HTMLElement | null>(null)
   const choiceDialogRef = useRef<HTMLDialogElement | null>(null)
   const itemDialogRef = useRef<HTMLDialogElement | null>(null)
   const startTurnScryDialogRef = useRef<HTMLDialogElement | null>(null)
@@ -2239,6 +2240,25 @@ function CombatScreenView({
   const stagePresentationBusy = !prefersReducedMotion && (stageAttacksActive || falling.size > 0 || state.phase === 'enemy')
   const largestSlimeParty = Math.max(0, ...state.players.map(player => player.character === 'slime_boss' ? player.slimes.length : 0))
   const statusPlayerIds = state.players.map(player => player.id).join('\0')
+
+  useLayoutEffect(() => {
+    const bar = combatBarRef.current
+    const combat = bar?.parentElement
+    if (!bar || !combat) return
+    const measure = () => {
+      combat.style.setProperty('--combat-bar-bottom', `${bar.offsetTop + bar.offsetHeight}px`)
+      combat.style.setProperty('--combat-bar-viewport-bottom', `${bar.getBoundingClientRect().bottom}px`)
+    }
+    measure()
+    const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(measure)
+    observer?.observe(bar)
+    observer?.observe(combat)
+    window.addEventListener('resize', measure)
+    return () => {
+      observer?.disconnect()
+      window.removeEventListener('resize', measure)
+    }
+  }, [state.combatId])
 
   useLayoutEffect(() => {
     const statuses = boardRef.current?.querySelectorAll<HTMLElement>('.seat__meta') ?? []
@@ -4996,7 +5016,7 @@ function CombatScreenView({
       } as React.CSSProperties}
     >
       {groundedVfx}
-      <header className="combat__bar">
+      <header ref={combatBarRef} className="combat__bar">
         <span className="combat__die" title="The round's shared die">
           <Icon name={dieIcon(state.die)} size={26} decorative={false} />
         </span>

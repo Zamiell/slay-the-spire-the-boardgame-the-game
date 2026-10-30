@@ -1,0 +1,46 @@
+.developer-console {
+  position: fixed;
+  inset: 0.75rem 0 auto;
+  width: min(64rem, calc(100vw - 1.5rem));
+  height: min(32rem, calc(100dvh - 1.5rem));
+  max-width: none;
+  max-height: none;
+  margin: 0 auto;
+  padding: 1rem;
+  border: 1px solid #ba9a5b;
+  border-radius: 0.4rem;
+  background: #101417f5;
+  color: #eee7d6;
+  box-shadow: 0 0.5rem 2rem #0009;
+  font: 0.9rem/1.4 ui-monospace, monospace;
+}
+
+.developer-console[open] {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+  gap: 0.5rem;
+}
+
+.developer-console::backdrop { background: #0006; }
+.developer-console header, .developer-console form { display: flex; gap: 0.6rem; align-items: center; }
+.developer-console header { justify-content: space-between; }
+.developer-console h2 { margin: 0; font-size: 1rem; }
+.developer-console__warning { margin: 0; color: #e7c77f; font-size: 0.8rem; }
+.developer-console__output { min-height: 0; overflow: auto; overflow-wrap: anywhere; }
+.developer-console__output p { margin: 0 0 0.7rem; }
+.developer-console__output pre { white-space: pre-wrap; font: inherit; margin: 0 0 0.7rem; }
+.developer-console__command { color: #94d9d3; }
+.developer-console__output [data-error] pre { color: #ffaba2; }
+.developer-console input { flex: 1; min-width: 0; font: inherit; font-size: 1rem; }
+.developer-console button, .developer-console input {
+  min-height: 2.5rem;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid #786a4e;
+  border-radius: 0.25rem;
+  background: #202a30;
+  color: inherit;
+}
+.developer-console button { cursor: pointer; font: inherit; }
+.developer-console :is(button, input):focus-visible { outline: 2px solid #f1cf7e; outline-offset: 1px; }
+.developer-console__suggestions { display: flex; gap: 0.35rem; overflow-x: auto; }
+.developer-console__suggestions button { flex: 0 0 auto; font-size: 0.75rem; }

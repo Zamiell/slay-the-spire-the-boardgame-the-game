@@ -643,7 +643,7 @@ export function finishRun(state: RunState): RunState {
     hasPendingRelicAcquisition(state)) return state
   // A Daily Climb is played on a shared, fully unlocked baseline and never
   // feeds the player's campaign journal.
-  if (state.meta.dailyDate !== undefined) return { ...state, campaign: { ...state.campaign, finalized: true } }
+  if (state.meta.dailyDate !== undefined || state.consoleModified) return { ...state, campaign: { ...state.campaign, finalized: true } }
   const campaignProgress = finishCampaign(state.campaignProgress, {
     runId: state.campaign.runId,
     characters: state.players.map((player) => player.character),

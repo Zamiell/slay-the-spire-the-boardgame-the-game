@@ -1,5 +1,7 @@
 import { TreasureEffects } from "./TreasureEffects.tsx"
 import { cardTooltipPosition } from './card-tooltip-position.ts'
+import { DeveloperConsole } from './DeveloperConsole.tsx'
+import { executeConsoleCommand } from './developer-commands.ts'
 import { PlayerTitle } from './PlayerTitle.tsx'
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
@@ -961,7 +963,7 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
   const recordRunResult = () => {
     // Recording the result is what pays the run's boss coins, once: the ledger
     // refuses a second payment however often this is reached for the same run.
-    if (!replayLog && !tutorial) {
+    if (!replayLog && !tutorial && !run.consoleModified) {
       if (!ownsRun(built)) {
         // Another account signed in since this run began (possibly in another tab): its coins are not theirs.
         if (coinsOwed(run.campaign.bossCoins) > 0) setRunLogMessage('This run was started by another account, so its coins were not paid. Sign in to that account to play its runs.')
@@ -1160,7 +1162,7 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
   const announcedAwards = useRef<{ key: string; count: number } | null>(null)
   useEffect(() => {
     // A tutorial or replay is not the parked run: leave its count alone, so returning announces nothing.
-    if (replayLog || tutorial) return
+    if (replayLog || tutorial || run.consoleModified) return
     const count = run.campaign.bossCoins?.length ?? 0
     const key = `${coinKey}|${run.campaign.runId}`
     const previous = announcedAwards.current
@@ -1168,7 +1170,7 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
     if (previous?.key !== key || count <= previous.count) return
     const coins = coinsOwed(run.campaign.bossCoins?.slice(previous.count))
     if (coins > 0) setCoinGain((current) => ({ coins, total: coinsOwed(run.campaign.bossCoins), pending: true, id: (current?.id ?? 0) + 1 }))
-  }, [coinKey, replayLog, run.campaign.bossCoins, tutorial])
+  }, [coinKey, replayLog, run.campaign.bossCoins, run.consoleModified, tutorial])
 
   useLayoutEffect(() => {
     if (!open || replayLog || tutorial) return
@@ -1645,7 +1647,7 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
         <section className="room-screen">
           <h2>{run.act >= 4 ? 'The Spire is conquered' : `Act ${run.act} complete`}</h2>
           <RunSummary act={run.act} roomsCleared={roomsCleared}
-            ascension={run.ascension} seats={run.players.map(summarySeat)} coins={coinsOwed(run.campaign.bossCoins)}
+            ascension={run.ascension} seats={run.players.map(summarySeat)} coins={run.consoleModified ? 0 : coinsOwed(run.campaign.bossCoins)}
             coinsClaimed={Boolean(replayLog) || resultRecorded} />
           {run.lastStand && run.players.some((player) => player.dead) && run.act < 4 ? (
             <p role="status">Last Stand won the Act, but a fallen hero means the party cannot continue to the next Act.</p>
@@ -1679,7 +1681,7 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
           {lostToSpire ? <div className="room-screen__actions">
             <button type="button" onClick={() => { discardSoloRun(); onClose() }}>Return to main menu</button>
           </div> : <RunSummary act={run.act} roomsCleared={roomsCleared}
-            ascension={run.ascension} seats={run.players.map(summarySeat)} coins={coinsOwed(run.campaign.bossCoins)}
+            ascension={run.ascension} seats={run.players.map(summarySeat)} coins={run.consoleModified ? 0 : coinsOwed(run.campaign.bossCoins)}
             coinsClaimed={Boolean(replayLog) || resultRecorded} />}
           {!lostToSpire && !run.campaign.finalized && !replayLog ? <><div className="room-screen__actions">
             <button type="button" onClick={recordRunResult} disabled={extractingRunLog} data-run-log-control>Record campaign result</button>
@@ -1690,6 +1692,8 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
       ) : null}
 
       {allocatingCampaignMarks ? <section className="campaign-end">{run.meta.dailyDate !== undefined ? <><span>Daily Climb · {run.meta.dailyDate}</span><h2>{run.floorsCleared ?? 0} floor{run.floorsCleared === 1 ? '' : 's'} reached</h2><p>Daily Climbs rank on the Daily Climb leaderboard and do not earn campaign marks.</p></> : <><span>Campaign journal</span><h2>Marks earned</h2><p>{run.campaignProgress.unspentMarks} shared mark{run.campaignProgress.unspentMarks === 1 ? '' : 's'} remain. Assign each to Colorless or Act IV.</p></>}{!replayLog && run.campaign.finalized && leaderboardStatus ? <p key={leaderboardStatus} aria-live="polite" data-webmcp-transient-status data-webmcp-pending={leaderboardStatus === 'pending' ? 'true' : undefined}>{leaderboardStatus === 'pending' ? 'Recording run on the leaderboard…' : leaderboardStatus === 'recorded' ? 'Run recorded on the leaderboard.' : leaderboardStatus === 'queued' ? 'Leaderboard unavailable — run saved for automatic retry.' : 'Leaderboard rejected this run.'}</p> : null}{runLogMessage && !replayLog ? <p aria-live="polite">{runLogMessage}</p> : null}{!replayLog ? <div>{run.campaignProgress.unspentMarks > 0 && run.campaignProgress.colorless < 3 ? <button type="button" onClick={() => allocateCampaignMark(1, 0)}>Mark Colorless · {run.campaignProgress.colorless}/3</button> : null}{run.campaignProgress.unspentMarks > 0 && run.campaignProgress.actIV < 5 ? <button type="button" onClick={() => allocateCampaignMark(0, 1)}>Mark Act IV · {run.campaignProgress.actIV}/5</button> : null}{run.campaign.finalized && !resultRecorded ? <button type="button" onClick={recordRunResult} disabled={extractingRunLog} data-run-log-control>Record campaign result</button> : null}{run.campaign.finalized ? <button type="button" onClick={() => void extractRunLog()} disabled={!runLogAvailable || extractingRunLog} data-run-log-control>{runLogExtracted ? 'Extract run logs again' : 'Extract run logs'}</button> : null}{resultRecorded && run.campaignProgress.unspentMarks === 0 ? <button type="button" disabled={extractingRunLog} onClick={prepareNextRun}>Prepare next run →</button> : null}</div> : null}</section> : null}
+      {run.consoleModified && (run.phase === 'victory' || run.phase === 'defeat') ?
+        <p>Console run: unranked. No account Coins or campaign progress are awarded.</p> : null}
       <TreasureEffects room={run.roomState?.kind === 'treasure' ? run.roomState : null}
         players={run.players} runId={run.campaign.runId} resolved={run.log.at(-1) === 'The relics are resolved.'} />
       {replayLog && (replayFinished || runLogMessage) ? <section className={`run-replay__banner${runLogMessage ? ' run-replay__banner--error' : ''}`}
@@ -1711,6 +1715,18 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
         name={(card) => faceOf(cardDef(card.defId), card.upgraded).name} />
     </main>
     </SkinProvider>
+    {active && !replayLog && !tutorial && !compendium ? <DeveloperConsole key={run.campaign.runId}
+      modified={Boolean(run.consoleModified)} onExecute={command => {
+        const result = executeConsoleCommand(run, viewerId, command)
+        if (result.run !== run) {
+          setCoinGain(null)
+          combatStart.current = unfinishedCombat(result.run) ? structuredClone(result.run) : null
+          lootStart.current = result.run.phase === 'reward' ? structuredClone(result.run) : null
+          setRunLogRestoration(value => value + 1)
+          setRun(result.run)
+        }
+        return result.output
+      }} /> : null}
     {replayLog && replaySession && !compendium ? <ReplayBar session={replaySession} onSeek={seekReplay}
       onExit={() => { leaveReplay(); onClose() }} /> : null}
     {compendium ? <CompendiumScreen onBack={() => {

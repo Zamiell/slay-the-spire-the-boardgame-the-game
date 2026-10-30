@@ -78,7 +78,7 @@ function installationId() {
 }
 
 export function queueFinishedSoloRun(run: RunState) {
-  if (!run.campaign.finalized || run.players.length !== 1) return null
+  if (!run.campaign.finalized || run.players.length !== 1 || run.consoleModified) return null
   const totals = damageTotals(run.players[0]?.damageStats)
   const submission: LeaderboardSubmission = {
     id: `${installationId()}:${run.campaign.runId}:${run.seed}`,

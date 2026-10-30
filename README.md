@@ -23,6 +23,26 @@ For 2–4 friends, choose **Multiplayer**, share the room code, and play from on
 person. For the always-on authoritative room server and voice chat setup, see
 [`docs/online-play.md`](docs/online-play.md).
 
+## Developer console
+
+Press the backtick key (`) during a local run to open the console; press it again
+or Escape to close. Type `help` for usage, use Tab to complete commands and IDs,
+and Up/Down to recall commands. Names are case-insensitive; quoted names also work.
+
+The STS2-style commands are `gold`, `heal`, `energy`, `block`, `draw`, `card`,
+`remove_card`, `upgrade`, `relic`, `potion`, `power`, `damage`, `kill`, `win`, and
+`die`. For example: `gold 10`, `card BASH+`, `relic VAJRA`, `potion ENERGY_POTION`,
+or `power STRENGTH 3`. Use `list cards bash`, `list relics`, or `status` to find
+IDs and targets. Target 0 is your character; enemies start at 1. Card positions
+start at 0. Commands use this adaptation's cards and board-game limits, not STS2's
+content or numeric balance.
+
+Using a state-changing command permanently makes the run **unranked**, including
+after saving/resuming: no leaderboard submission, account Coins, or campaign
+progress. Opening the console, reading help, and invalid commands do not change
+the run. Multiplayer, tutorials, and replays do not expose this console.
+STS2-specific navigation, unlocks, achievements, and godmode are not implemented.
+
 ## Assets
 
 The repository includes optimized card, relic, and potion scans; original generated combat art

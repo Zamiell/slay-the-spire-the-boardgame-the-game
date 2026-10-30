@@ -38,6 +38,8 @@ export type RunState = {
   ascension: number
   act: number
   phase: RunPhase
+  /** Local developer commands permanently exclude this run from account rewards and rankings. */
+  consoleModified?: boolean
   neow: NeowState | null
   map: SpireMap
   enemyDecks: EnemyDecks

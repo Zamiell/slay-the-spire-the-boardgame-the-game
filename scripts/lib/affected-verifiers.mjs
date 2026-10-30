@@ -147,6 +147,8 @@ const focusedUiOwners = ownerMap([
   ['src/ui/styles/title-menu.css', ['verify-run-replay-browser.mjs', 'verify-replay-controls-browser.mjs', 'verify-title-menu-browser.mjs']],
 ])
 const focusedOnlyUiOwners = ownerMap([
+  ...['src/ui/DeveloperConsole.tsx', 'src/ui/developer-commands.ts', 'src/ui/styles/developer-console.css']
+    .map(file => [file, ['verify-developer-console-browser.mjs']]),
   ['src/ui/combat-token-help.ts', ['verify-resource-tooltips-browser.mjs', 'verify-card-tooltip-browser.mjs']],
   ['src/ui/combat-screen/resource-visibility.ts', ['verify-resource-tooltips-browser.mjs', 'verify-claw-cubes-browser.mjs']],
   ['src/ui/card-tooltip-position.ts', ['verify-card-tooltip-browser.mjs']],

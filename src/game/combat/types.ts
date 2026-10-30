@@ -366,6 +366,8 @@ export type StartTurnAbility = {
     | { kind: 'card'; cardUid: string }
   /** A recurring single-enemy effect still needs its owner to choose. */
   targets?: { uid: string; label: string }[]
+  /** Public effect and destination for a valid choice in the planned start-turn order. */
+  targetDescription?: string
   /** A supporting relic may give its effect to any living player. */
   players?: { id: string; label: string }[]
   exhaustCards?: CardInstance[]

@@ -182,6 +182,9 @@
 
 /* A choice still owed reads as a call to act; a made one settles to green. */
 .start-turn-order__badge {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
   color: #1b130c;
   background: var(--gold);
 }

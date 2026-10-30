@@ -38,7 +38,7 @@ try {
     await page.waitForFunction(() => window.__STS_DEBUG__?.getRun()?.phase === 'neow')
     const viewerId = await page.evaluate(() => window.__STS_DEBUG__.getRun().players[0].id)
     let fixtureId = 0
-    async function load({ phase = 'start', character = 'silent', player = {}, teammate } = {}) {
+    async function load({ phase = 'start', die = 1, character = 'silent', player = {}, teammate } = {}) {
       await page.mouse.move(2, 2)
       await page.evaluate(() => document.activeElement?.blur())
       await page.waitForFunction(() => !document.querySelector('.card-flight-effect'))
@@ -55,7 +55,7 @@ try {
       if (teammate) Object.assign(run.combat.players[1], {
         hand: [], draw: [], discard: [], exhaust: [], powers: [], relics: [], potions: [], ...teammate,
       })
-      Object.assign(run.combat, { combatId, phase, die: 1, turn: phase === 'start' ? 2 : 1,
+      Object.assign(run.combat, { combatId, phase, die, turn: phase === 'start' ? 2 : 1,
         startTurnStage: phase === 'start' ? 'effects' : undefined, startTurnProgress: undefined,
         endTurnProgress: undefined, pendingTriggers: [], presentationEvents: [], powerTriggersUsedThisTurn: [] })
       run.phase = 'combat'
@@ -128,7 +128,7 @@ try {
     await page.locator('[data-enemy-id="e1"] .enemy__head').click()
     await page.locator('.start-turn-effects').waitFor({ state: 'detached' })
     assert(await list.isVisible(), `${name}: the order list is hidden once targets are chosen`)
-    assert.deepEqual(await panel.locator('.start-turn-order__badge--done').allTextContents(), ['Target set'])
+    assert.deepEqual(await panel.locator('.start-turn-order__badge--done').allTextContents(), ['Applying 1 Poison to Jaw Worm #2'])
     await settle()
     await page.screenshot({ path: `${out}/${name}-solo.png` })
     assertLayout(await layout(), 'solo')
@@ -157,6 +157,23 @@ try {
     const solo = await page.evaluate(() => window.__STS_DEBUG__.getRun().combat)
     assert.deepEqual(solo.enemies.map((enemy) => enemy.poison), [0, 1], `${name}: Noxious Fumes poisoned the wrong enemy`)
     assert.equal(await panel.count(), 0, `${name}: the order panel outlived the start of turn`)
+
+    await load({ die: 4, player: { relics: [{ defId: 'duality', spent: false }] } })
+    const beforeTarget = await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun().combat))
+    for (const [uid, label] of [['e1', 'Jaw Worm #2'], ['e0', 'Jaw Worm #1']]) {
+      if (uid === 'e0') await page.getByRole('button', { name: 'Reset start choices', exact: true }).click()
+      await page.locator('.start-turn-effects .end-turn-effect--relic').click()
+      await page.locator(`[data-enemy-id="${uid}"] .enemy__hit-area`).click()
+      const badge = panel.locator('.start-turn-order__badge--done')
+      assert.equal(await badge.innerText(), `Dealing 2 damage to ${label}`)
+      assert(await badge.evaluate(element => element.scrollWidth <= element.clientWidth + 1),
+        `${name}: the selected effect summary overflows its badge`)
+      assert.equal(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun().combat)), beforeTarget,
+        'previewing a selected target must not apply its damage')
+    }
+    await page.getByRole('button', { name: 'Resolve start of turn 2', exact: true }).click()
+    await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.phase === 'player')
+    assert.deepEqual(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.enemies.map(enemy => enemy.hp)), [28, 30])
 
     // Local party: each step names its owner.
     await load({

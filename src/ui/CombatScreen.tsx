@@ -5375,12 +5375,16 @@ function CombatScreenView({
                   const decided = (startTurnTargets[ability.id] ?? [])
                     .filter((target) => target !== undefined).length
                   const evoked = startTurnEvokeSlots[ability.id]?.length ?? 0
-                  const targetChosen = startTurnEnemyTargets[ability.id] !== undefined
+                  const chosenTarget = ability.targets?.find(target => target.uid === startTurnEnemyTargets[ability.id])
+                  const targetChosen = chosenTarget !== undefined
                   const exhaustChosen = startTurnExhaustUids[ability.id] !== undefined
                   return {
                     ...ability,
                     badges: [
-                      ...ability.targets?.length ? [{ text: targetChosen ? 'Target set' : 'Choose target', done: targetChosen }]
+                      ...ability.targets?.length ? [{
+                        text: chosenTarget ? ability.targetDescription ?? `Targeting ${chosenTarget.label}` : 'Choose target',
+                        done: targetChosen,
+                      }]
                         : ability.exhaustCards ? [ability.playerId === viewer.id || exhaustChosen
                           ? { text: exhaustChosen ? 'Exhaust set' : 'Choose a card to Exhaust', done: exhaustChosen }
                           : { text: `Waiting for ${state.players.find((player) => player.id === ability.playerId)?.name ??

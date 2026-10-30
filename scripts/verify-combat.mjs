@@ -11029,6 +11029,38 @@ check('the real table turn keeps the post-roll item window open', () => {
   assertEqual(activatePotion(starting, 'p1', 'gamblers_brew', { die: 6 }).die, 6)
 })
 
+check('chosen start-turn targets describe their effect without resolving it', () => {
+  for (const [relic, power, die, description] of [
+    ['duality', null, 4, 'Dealing 2 damage to Jaw Worm #2'],
+    ['red_mask', null, 5, 'Applying 1 Weak to Jaw Worm #2'],
+    ['pen_nib', null, 5, 'Applying 1 Vulnerable to Jaw Worm #2'],
+    [null, 'noxious_fumes', 1, 'Applying 1 Poison to Jaw Worm #2'],
+  ]) {
+    const state = { ...combat([makePlayer({
+      relics: relic ? [{ defId: relic, spent: false }] : [],
+      powers: power ? [instance(power)] : [],
+    })], [makeEnemy({ uid: 'left', defId: 'jaw_worm' }), makeEnemy({ uid: 'right', defId: 'jaw_worm', block: 3 })]),
+    phase: 'start', turn: 2, die }
+    const ability = startTurnAbilities(state)[0]
+    const choices = [{ id: ability.id, enemyUid: 'right', shivEnemyUids: [] }]
+    const before = structuredClone(state)
+    assertEqual(startTurnAbilities(state, [ability.id], choices)[0].targetDescription, description)
+    assertDeepEqual(state, before)
+    if (relic === 'duality') {
+      const resolved = resolveStartPlayerTurn(state, choices)
+      assertEqual(resolved.enemies[1].block, 1, 'the summary describes damage, not just unblocked HP loss')
+      state.players[0].damageDealtZeroThisTurn = true
+      const target = startTurnAbilities(state)[0].targets[0]
+      assertEqual(startTurnAbilities(state, [ability.id], [{ ...choices[0], enemyUid: target.uid }])[0].targetDescription,
+        `Dealing 0 damage to ${target.label}`)
+    }
+    state.enemies[1].dead = true
+    state.enemies[1].hp = 0
+    assertEqual(startTurnAbilities(state, [ability.id], choices)[0].targetDescription, undefined,
+      'a dead target must not keep an actionable effect description')
+  }
+})
+
 check('ordinary player-turn relic activations do not create start-turn work', () => {
   const starting = startPlayerTurnWithChoices({
     ...combat([makePlayer({ relics: [

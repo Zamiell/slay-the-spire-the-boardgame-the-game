@@ -566,6 +566,31 @@ function startTurnTriggerTargets(state: CombatState, player: Player, source: Tri
   return equivalentTriggerTargets(state, player, source, rowTargets)
 }
 
+function startTurnTargetDescription(state: CombatState, player: Player, source: TriggerSource, enemyUid: string) {
+  const enemy = state.enemies.find(enemy => enemy.uid === enemyUid && !enemy.dead)
+  if (!enemy) return undefined
+  const name = enemyLabel(state.enemies, enemy)
+  const destination = source.scope === 'row' ? `the row containing ${name}`
+    : source.scope === 'allEnemies' ? 'all enemies' : name
+  const effects = source.effects.filter(effect => effectIsActive(effect, state, player) && reachesEnemy(effect, player))
+  const effect = effects.length === 1 ? effects[0] : undefined
+  // Counted effects can depend on earlier private draws; do not promise an uncertain amount.
+  const amount = effect && 'amount' in effect && typeof effect.amount === 'number' ? effect.amount : undefined
+  if (amount === undefined) return `Targeting ${destination}`
+  switch (effect?.kind) {
+    case 'damage':
+      return `Dealing ${player.damageDealtZeroThisTurn ? 0 : amount} damage to ${destination}`
+    case 'poison':
+      return `Applying ${amount} Poison to ${destination}`
+    case 'applyWeak':
+      return `Applying ${amount} Weak to ${destination}`
+    case 'applyVulnerable':
+      return `Applying ${amount} Vulnerable to ${destination}`
+    default:
+      return `Targeting ${destination}`
+  }
+}
+
 function startTurnTriggerPlayers(state: CombatState, player: Player, source: TriggerSource) {
   return triggerNeedsPlayerChoice(state, source)
     ? equivalentTriggerTargets(state, player, source, state.players
@@ -873,6 +898,8 @@ function startTurnAbilitiesFor(
       !targets.some((target) => target.uid === choice.enemyUid))
     if (entry.ability.targets && targets!.length > 0 &&
       (choice?.enemyUid === undefined || enemyTargetStale)) planningBlocked = true
+    const targetDescription = !planningBlocked && choice?.enemyUid && targets?.some(target => target.uid === choice.enemyUid)
+      ? startTurnTargetDescription(plannedState, player, entry.source, choice.enemyUid) : undefined
     let staleShivIndex: number | undefined
     let shivTargets: StartTurnAbility['shivTargets']
     let shivEndedCombat = false
@@ -985,6 +1012,7 @@ function startTurnAbilitiesFor(
     }
     return {
       ...entry.ability, targets, enemyTargetStale, players,
+      ...(targetDescription ? { targetDescription } : {}),
       exhaustCards: entry.source.effects.some((effect) => effect.kind === 'exhaustFromHand')
         ? planningPlayer.hand.length > 0 ? planningPlayer.hand : undefined
         : undefined,

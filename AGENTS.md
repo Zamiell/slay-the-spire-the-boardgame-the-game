@@ -3,6 +3,7 @@
 ## Committing changes
 
 Commit each prompt's completed code or documentation changes before finishing the response.
+After committing, push the changes to the current branch's remote before finishing the response.
 Keep unrelated work out of the commit, and do not commit secrets or local-only extracted game assets.
 Prompts that make no file changes do not need an empty commit.
 

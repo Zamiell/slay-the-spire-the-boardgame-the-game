@@ -25,6 +25,12 @@ export function findPlayer(state: CombatState, playerId: string): Player | undef
   return state.players.find((player) => player.id === playerId)
 }
 
+export function retainedBlockAtStartOfTurn(player: Pick<Player, 'block' | 'powers' | 'calipersArmed'>): number {
+  const charger = player.powers.find(power => power.defId === 'guardian_shield_charger')
+  if (charger) return Math.min(player.block, charger.upgraded ? 3 : 2)
+  return player.calipersArmed || player.powers.some(power => cardDef(power.defId).retainBlock) ? player.block : 0
+}
+
 /** Public remaining HP-loss allowance from Apparition and persistent Powers. */
 export function remainingRoundHpLoss(player: Player): number | undefined {
   const powerLimit = player.powers.flatMap((held) =>

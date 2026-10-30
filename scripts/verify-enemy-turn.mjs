@@ -6,6 +6,7 @@ import {
   enemyTurn,
   playCard,
   previewIncomingDamage,
+  preparePlayerTurn,
   startPlayerTurn,
 } from '../src/game/combat.ts'
 import { actionsFor, advanceCube, createSummonSupply, enemyDef, startingHp } from '../src/game/enemies.ts'
@@ -50,9 +51,9 @@ check('incoming damage spends Block once across attacks and includes overkill wi
     enemy({ uid: 'dead', defId: 'small_slime', strength: 8, dead: true }),
   ])
   const before = structuredClone(state)
-  assertEqual(previewIncomingDamage(state).get('p1'), 2)
+  assertDeepEqual(previewIncomingDamage(state).get('p1'), { damage: 2, wastedBlock: 0 })
   state.players[0].block = 10
-  assertEqual(previewIncomingDamage(state).get('p1'), 0)
+  assertDeepEqual(previewIncomingDamage(state).get('p1'), { damage: 0, wastedBlock: 6 })
   state.players[0].block = 2
   assertDeepEqual(state, before)
 })
@@ -60,18 +61,20 @@ check('incoming damage spends Block once across attacks and includes overkill wi
 check('incoming damage includes Wrath before enemies and cannot spend the same Block twice', () => {
   const state = incoming([player({ stance: 'wrath' })], [enemy({ defId: 'jaw_worm' })], { die: 6 })
   const before = structuredClone(state)
-  assertEqual(previewIncomingDamage(state).get('p1'), 1, 'Wrath hurts even when enemies do not attack')
+  assertEqual(previewIncomingDamage(state).get('p1').damage, 1, 'Wrath hurts even when enemies do not attack')
   assertEqual(endPlayerTurn(state).players[0].hp, 9, 'the forecast matches the real Wrath effect')
   assertDeepEqual(state, before)
   state.players[0].block = 1
-  assertEqual(previewIncomingDamage(state).get('p1'), 0, 'Block can absorb Wrath')
+  assertDeepEqual(previewIncomingDamage(state).get('p1'), { damage: 0, wastedBlock: 0 }, 'Block can absorb Wrath')
   state.enemies[0].defId = 'small_slime'
-  assertEqual(previewIncomingDamage(state).get('p1'), 1, 'the Block spent on Wrath cannot also stop the enemy')
+  assertEqual(previewIncomingDamage(state).get('p1').damage, 1, 'the Block spent on Wrath cannot also stop the enemy')
   state.players[0].block = 2
-  assertEqual(previewIncomingDamage(state).get('p1'), 0)
+  assertDeepEqual(previewIncomingDamage(state).get('p1'), { damage: 0, wastedBlock: 0 })
+  state.players[0].block = 3
+  assertDeepEqual(previewIncomingDamage(state).get('p1'), { damage: 0, wastedBlock: 1 })
   state.players[0].stance = 'calm'
   state.players[0].block = 0
-  assertEqual(previewIncomingDamage(state).get('p1'), 1, 'leaving Wrath removes only its self-damage')
+  assertEqual(previewIncomingDamage(state).get('p1').damage, 1, 'leaving Wrath removes only its self-damage')
 })
 
 check('incoming damage uses Weak, Vulnerable and Strength for the whole multi-hit action', () => {
@@ -80,7 +83,7 @@ check('incoming damage uses Weak, Vulnerable and Strength for the whole multi-hi
     enemy({ uid: 'slime', defId: 'small_slime' }),
   ], { die: 1 })
   const before = structuredClone(state)
-  assertEqual(previewIncomingDamage(state).get('p1'), 6, '7 from Plant, 1 from Slime, minus 2 Block')
+  assertEqual(previewIncomingDamage(state).get('p1').damage, 6, '7 from Plant, 1 from Slime, minus 2 Block')
   assertEqual(enemyTurn({ ...state, phase: 'enemy' }).players[0].hp, 94)
   assertDeepEqual(state, before)
 })
@@ -91,7 +94,7 @@ check('incoming damage respects row targets, mixed AoE hits and Act IV Facing', 
     enemy({ uid: 'plant', defId: 'snake_plant', ascension: 7, row: 0 }),
     enemy({ uid: 'slime', defId: 'small_slime', row: 1 }),
   ], { die: 1 })
-  assertDeepEqual([...previewIncomingDamage(state)], [['p1', 4], ['p2', 1]])
+  assertDeepEqual([...previewIncomingDamage(state)], [['p1', { damage: 4, wastedBlock: 0 }], ['p2', { damage: 1, wastedBlock: 0 }]])
   const facing = incoming([
     player({ id: 'p1', row: 1, facingEnemyUid: 'shield', block: 3 }),
     player({ id: 'p2', row: 2, facingEnemyUid: 'spear', block: 1 }),
@@ -99,7 +102,7 @@ check('incoming damage respects row targets, mixed AoE hits and Act IV Facing', 
     enemy({ uid: 'shield', defId: 'spire_shield', actionIndex: 1 }),
     enemy({ uid: 'spear', defId: 'spire_spear', row: 3 }),
   ])
-  assertDeepEqual([...previewIncomingDamage(facing)], [['p1', 5], ['p2', 3]])
+  assertDeepEqual([...previewIncomingDamage(facing)], [['p1', { damage: 5, wastedBlock: 0 }], ['p2', { damage: 3, wastedBlock: 0 }]])
 })
 
 check('incoming damage includes earlier enemy buffs and follows enemy acting order', () => {
@@ -107,16 +110,16 @@ check('incoming damage includes earlier enemy buffs and follows enemy acting ord
     enemy({ uid: 'donu', defId: 'donu', isBoss: true }),
     enemy({ uid: 'deca', defId: 'deca', isBoss: true }),
   ])
-  assertEqual(previewIncomingDamage(state).get('p1'), 6, 'Donu buffs both Deca hits before they land')
+  assertEqual(previewIncomingDamage(state).get('p1').damage, 6, 'Donu buffs both Deca hits before they land')
   state.enemies.reverse()
-  assertEqual(previewIncomingDamage(state).get('p1'), 4, 'Deca acts before the buff in the reversed order')
+  assertEqual(previewIncomingDamage(state).get('p1').damage, 4, 'Deca acts before the buff in the reversed order')
 })
 
 check('incoming means after Block, not final HP loss, and does not apply end-turn effects', () => {
   const state = incoming([player({ powers: [instance('buffer')], block: 1 })], [
     enemy({ defId: 'jaw_worm', hp: 10, poison: 30 }),
   ], { die: 3 })
-  assertEqual(previewIncomingDamage(state).get('p1'), 3, 'Buffer and later Poison do not change current unblocked attack intents')
+  assertEqual(previewIncomingDamage(state).get('p1').damage, 3, 'Buffer and later Poison do not change current unblocked attack intents')
   assertEqual(enemyTurn({ ...state, phase: 'enemy' }).players[0].hp, 10, 'the real Enemy Turn still applies Buffer')
   assertEqual(previewIncomingDamage({ ...state, phase: 'start' }), null)
   assertEqual(previewIncomingDamage({ ...state, phase: 'enemy' }), null)
@@ -128,9 +131,25 @@ check('forecasting random enemy actions does not advance RNG or expose private c
     enemy({ defId: 'corrupt_heart', isBoss: true, actionIndex: 0 }),
   ])
   const before = structuredClone(state)
-  assertEqual(previewIncomingDamage(state).get('p1'), 0)
+  assertEqual(previewIncomingDamage(state).get('p1').damage, 0)
   assertDeepEqual(state, before)
-  assertEqual(previewIncomingDamage({ ...state, players: state.players.map(player => ({ ...player, hand: [], draw: [] })) }).get('p1'), 0)
+  assertEqual(previewIncomingDamage({ ...state, players: state.players.map(player => ({ ...player, hand: [], draw: [] })) }).get('p1').damage, 0)
+})
+
+check('excess Block excludes retained Block and matches the actual start-turn reset', () => {
+  for (const [powers, calipersArmed, wastedBlock] of [
+    [[], false, 4],
+    [[instance('barricade')], false, 0],
+    [[], true, 0],
+    [[instance('guardian_shield_charger')], false, 2],
+    [[instance('guardian_shield_charger', true)], false, 1],
+  ]) {
+    const state = incoming([player({ block: 5, powers, calipersArmed })], [enemy({ defId: 'small_slime' })])
+    assertDeepEqual(previewIncomingDamage(state).get('p1'), { damage: 0, wastedBlock })
+    const after = enemyTurn({ ...state, phase: 'enemy' })
+    const started = preparePlayerTurn(after)
+    assertEqual(after.players[0].block - started.players[0].block, wastedBlock)
+  }
 })
 
 check('enemies attack the player in their own row', () => {

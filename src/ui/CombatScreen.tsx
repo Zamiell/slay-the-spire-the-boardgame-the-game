@@ -7100,7 +7100,7 @@ function CombatScreenView({
                     <div className="seat__status-strip" data-guardian-mode={occupant.guardianMode ?? undefined} tabIndex={0}
                       aria-label={`${occupant.name} combat effects`}>
                       {!occupant.dead && ['start', 'player', 'copy', 'discard'].includes(state.phase) ?
-                        <IncomingDamage name={occupant.name} damage={incomingDamage?.get(occupant.id)}
+                        <IncomingDamage name={occupant.name} preview={incomingDamage?.get(occupant.id)}
                           block={occupant.block} wrath={occupant.stance === 'wrath'} /> : null}
                       <TokenRow
                         showHelp

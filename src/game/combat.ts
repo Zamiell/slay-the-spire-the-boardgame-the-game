@@ -154,6 +154,7 @@ export {
   validEndTurnOrder,
 } from './combat/end-turn.ts'
 export { enemyActingOrder, enemyTurn, previewIncomingDamage } from './combat/enemy-turn.ts'
+export type { IncomingDamagePreview } from './combat/enemy-turn.ts'
 export {
   activatePotion,
   activateRelic,

@@ -13,6 +13,7 @@ import {
   lightningTargetOptions,
   livingEnemies,
   orbDamageTargets,
+  retainedBlockAtStartOfTurn,
 } from './board.ts'
 import {
   applyEffect,
@@ -301,10 +302,7 @@ function beginPlayerTurn(next: CombatState, pauseAfterDraw = false): CombatState
     player.energy = Math.min(CAPS.energy, 3 + leftover)
     player.nextCardCost = null
     player.enemyNextCardCost = null
-    const shieldCharger = player.powers.find((power) => power.defId === 'guardian_shield_charger')
-    if (shieldCharger) player.block = Math.min(player.block, shieldCharger.upgraded ? 3 : 2)
-    const keepBlock = Boolean(shieldCharger) || player.powers.some((power) => cardDef(power.defId).retainBlock) || player.calipersArmed
-    if (!keepBlock) player.block = 0
+    player.block = retainedBlockAtStartOfTurn(player)
     player.calipersArmed = false
     player.drawLocked = false
     // Slayer Pack: Brutality reads the round that just ended; kept only when true so

@@ -5,7 +5,7 @@
 // resolver is not what drives this phase. It is still what an action's
 // consequences run through: damage to a player, a death, and settling the
 // fight once every enemy has acted.
-import { clone, combatIsOver, enemyLabel, playersInRowOf } from './board.ts'
+import { clone, combatIsOver, enemyLabel, playersInRowOf, retainedBlockAtStartOfTurn } from './board.ts'
 import { damagePlayer, settle, shedSlayerCardsOnLeave, triggerEnemyDeath } from './effects.ts'
 import { addDaze, addStatus, playerCanGainDebuffs, reviveAll } from './pieces.ts'
 import type { CombatState } from './types.ts'
@@ -25,6 +25,11 @@ function matchesSummon(defId: string, summonId: string): boolean {
   const id = defId.replace(/^downfall_/, '')
   const group = summonId.replace(/^downfall_/, '')
   return id === group || id.startsWith(`${group}_`)
+}
+
+export type IncomingDamagePreview = {
+  damage: number
+  wastedBlock: number
 }
 
 /**
@@ -99,7 +104,7 @@ function resolveEnemyTurn(state: CombatState, receiveAttack: typeof damagePlayer
  * other end-of-turn effects. Use the real enemy action order and targeting, but
  * don't stop at lethal damage or consume Buffer/Fairy effects.
  */
-export function previewIncomingDamage(state: CombatState): ReadonlyMap<string, number> | null {
+export function previewIncomingDamage(state: CombatState): ReadonlyMap<string, IncomingDamagePreview> | null {
   if (state.phase !== 'player' || state.pendingCardPlayWindows?.length) return null
   const incoming = new Map(state.players.filter(player => !player.dead).map(player => [player.id, 0]))
   const probe = clone({ ...state, phase: 'enemy' as const, log: [], presentationEvents: [] })
@@ -113,7 +118,11 @@ export function previewIncomingDamage(state: CombatState): ReadonlyMap<string, n
     if (!player.dead && player.stance === 'wrath') receiveDamage(probe, player, 1)
   }
   const next = resolveEnemyTurn(probe, receiveDamage)
-  return next === probe ? null : incoming
+  if (next === probe) return null
+  return new Map(next.players.filter(player => incoming.has(player.id)).map(player => {
+    const retained = next.phase === 'won' || next.phase === 'lost' ? 0 : retainedBlockAtStartOfTurn(player)
+    return [player.id, { damage: incoming.get(player.id)!, wastedBlock: Math.max(0, player.block - retained) }]
+  }))
 }
 
 /** Highest row first, then left to right, with bosses and "acts last" at the end. */

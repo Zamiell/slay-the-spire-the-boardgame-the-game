@@ -77,7 +77,36 @@ try {
     await page.screenshot({ path: `${output}/${screen}-blocked.png` })
     await page.evaluate(() => {
       const run = structuredClone(window.__STS_DEBUG__.getRun())
+      run.combat.players[0].block = 3
+      window.__STS_DEBUG__.setRun(run)
+    })
+    await page.waitForFunction(() => document.querySelector('.seat__incoming-damage')?.textContent === 'Incoming: 0 (+1)')
+    if (phone) await counter.tap()
+    else { await page.mouse.move(2, 2); await counter.hover() }
+    const excessTip = page.locator('.potion-tip').filter({ hasText: '1 excess Block' })
+    await excessTip.waitFor()
+    assert.match(await excessTip.innerText(), /\(\+1\) means 1 excess Block would go unused/)
+    assert.match(await counter.getAttribute('aria-label'), /1 excess Block/)
+    assert(await counter.evaluate(counter => {
+      const box = counter.getBoundingClientRect()
+      const strip = counter.closest('.seat__status-strip').getBoundingClientRect()
+      return box.left >= strip.left && box.right <= strip.right && box.bottom <= innerHeight
+    }), `${screen}: the extra Block count must not clip`)
+    await page.screenshot({ path: `${output}/${screen}-excess-block.png` })
+    await page.keyboard.press('Escape')
+    await page.mouse.move(2, 2)
+    await counter.evaluate(counter => counter.blur())
+    await page.waitForTimeout(180)
+    await page.evaluate(() => {
+      const run = structuredClone(window.__STS_DEBUG__.getRun())
+      run.combat.players[0].powers.push({ uid: 'retain-block', defId: 'barricade', upgraded: false })
+      window.__STS_DEBUG__.setRun(run)
+    })
+    await page.waitForFunction(() => document.querySelector('.seat__incoming-damage')?.textContent === 'Incoming: 0')
+    await page.evaluate(() => {
+      const run = structuredClone(window.__STS_DEBUG__.getRun())
       Object.assign(run.combat.players[0], { stance: 'wrath', block: 0 })
+      run.combat.players[0].powers = run.combat.players[0].powers.filter(power => power.defId !== 'barricade')
       run.combat.enemies.forEach(enemy => { enemy.defId = 'jaw_worm'; enemy.strength = 0; enemy.weak = 0 })
       run.combat.die = 6
       window.__STS_DEBUG__.setRun(run)

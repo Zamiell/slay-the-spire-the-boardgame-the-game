@@ -37,6 +37,27 @@ const checkLoot = async (page) => {
   await picker(page).waitFor()
   assert.equal(await picker(page).locator('.relic-reward__choice').count(), 3)
 }
+const checkDeckShortcut = async (page) => {
+  const offered = await picker(page).locator('.relic-reward__choice').evaluateAll(buttons =>
+    buttons.map(button => button.getAttribute('aria-label')))
+  const deck = page.getByRole('dialog', { name: 'Current deck', exact: true })
+  for (const close of ['d', 'Escape']) {
+    await page.keyboard.press('d')
+    await deck.waitFor()
+    assert(await deck.locator('.card').count() > 0, 'D must show the current deck above relic choices')
+    assert.equal(await page.locator('dialog.relic-reward[open]').count(), 1,
+      'opening the deck must not dismiss the relic picker')
+    await page.keyboard.press('1')
+    await page.keyboard.press(close)
+    await deck.waitFor({ state: 'hidden' })
+    await picker(page).waitFor()
+    assert.deepEqual(await picker(page).locator('.relic-reward__choice').evaluateAll(buttons =>
+      buttons.map(button => button.getAttribute('aria-label'))), offered,
+    'deck inspection must preserve all relic choices')
+    assert(await picker(page).evaluate(dialog => dialog.contains(document.activeElement)),
+      'closing the deck must restore focus to the relic picker')
+  }
+}
 
 try {
   const origin = `http://127.0.0.1:${server.httpServer.address().port}`
@@ -58,6 +79,9 @@ try {
     await page.getByRole('heading', { name: 'Loot!', exact: true }).waitFor()
     const before = await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun()))
     await checkLoot(page)
+    await checkDeckShortcut(page)
+    assert.equal(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun())), before,
+      'deck inspection must not claim or skip rewards')
     await picker(page).getByRole('button', { name: 'Back to loot', exact: true }).click()
     assert.equal(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun())), before)
     await checkLoot(page)
@@ -162,6 +186,9 @@ try {
     room.version++
     rooms.publishRoom(session.code)
     await checkLoot(tab)
+    const beforeInspection = JSON.stringify(room.run)
+    await checkDeckShortcut(tab)
+    assert.equal(JSON.stringify(room.run), beforeInspection, 'online deck inspection must not submit a reward choice')
     // An authoritative refresh can remove a shared choice while the picker stays open.
     room.run.rewards[0].bossRelics = ['coffee_dripper', 'fusion_hammer']
     room.version++

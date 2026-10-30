@@ -18,10 +18,12 @@ export function useButtonShortcut(ref: RefObject<HTMLButtonElement | null>, key:
         button.closest('[inert], [hidden], [aria-hidden="true"]') || !button.getClientRects().length ||
         getComputedStyle(button).visibility === 'hidden') return
       const dialogs = document.querySelectorAll('dialog[open], [role="dialog"][aria-modal="true"]')
-      // Card rewards allow read-only deck/map inspection, but not gameplay shortcuts.
-      const inspectingRun = button.matches('.deck-peek__open, .card-collection .ribbon-back, .map-peek__open, .map-peek__close')
+      // Reward pickers allow read-only inspection without enabling gameplay shortcuts behind them.
+      const inspectingDeck = button.matches('.deck-peek__open, .card-collection .ribbon-back')
+      const inspectingRun = inspectingDeck || button.matches('.map-peek__open, .map-peek__close')
       if ([...dialogs].some((dialog) => !dialog.contains(button) &&
-        !(inspectingRun && dialog.matches('section.reward-screen--card-choice')))) return
+        !(inspectingRun && dialog.matches('section.reward-screen--card-choice')) &&
+        !(inspectingDeck && dialog.matches('dialog.relic-reward')))) return
       event.preventDefault()
       button.click()
     }

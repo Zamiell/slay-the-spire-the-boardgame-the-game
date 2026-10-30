@@ -141,7 +141,7 @@ try {
     ])
     assert.deepEqual(await form(desktop).getByRole('button').evaluateAll(buttons =>
       buttons.map(button => button.disabled)), [true, true])
-    assert.equal(await desktop.getByRole('button', { name: /^Resolve start turn/ }).count(), 0)
+    assert.equal(await desktop.getByRole('button', { name: /^Resolve start of turn/ }).count(), 0)
   } finally {
     clearTimeout(timeout)
     releaseStartTurn()
@@ -157,7 +157,7 @@ try {
   assert(!staged.startTurnDecided?.includes(phonePlayerId),
     'the other Guardian form choice was incorrectly resolved')
   await form(phone).waitFor()
-  assert.equal(await desktop.getByRole('button', { name: /^Resolve start turn/ }).count(), 0)
+  assert.equal(await desktop.getByRole('button', { name: /^Resolve start of turn/ }).count(), 0)
   for (let index = errors.length - 1; index >= 0; index -= 1) {
     if (errors[index].includes('ERR_CONNECTION_RESET')) errors.splice(index, 1)
   }

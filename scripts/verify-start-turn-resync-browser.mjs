@@ -97,6 +97,16 @@ try {
   rooms.publishRoom(code)
   await resolveButton(desktop).waitFor()
   await resolveButton(phone).waitFor()
+  for (const page of [desktop, phone]) {
+    assert.match(await resolveButton(page).innerText(),
+      new RegExp(`^Resolve start of turn ${room.run.combat.turn} \\(\\d+/\\d+\\)$`))
+    assert(await resolveButton(page).evaluate(async button => {
+      const { queryRunLogControl } = await import('/src/ui/run-log.ts')
+      const count = button.textContent.match(/\((\d+\/\d+)\)$/)[1]
+      return queryRunLogControl(document, { selector: 'button.combat__end-turn',
+        name: `Resolve start turn ${count}` }) === button
+    }), 'legacy co-op replay controls must find the numbered resolve button')
+  }
 
   // Bo's tab closes: the server readies Bo with fallback picks so Ann is not blocked.
   await phone.close()

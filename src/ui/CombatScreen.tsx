@@ -2584,6 +2584,7 @@ function CombatScreenView({
   const startTurnCount = startTurnDecidedPlayerIds && requiredStartTurnPlayerIds?.length
     ? `${startTurnDecidedPlayerIds.filter((id) => requiredStartTurnPlayerIds.includes(id)).length}/${requiredStartTurnPlayerIds.length}`
     : null
+  const startTurnLabel = `Resolve start of turn ${state.turn}${startTurnCount ? ` (${startTurnCount})` : ''}`
   const orderTargetIndex = startTurnChoiceId
     ? orderedStartAbilities.findIndex((ability) => ability.id === startTurnChoiceId)
     : -1
@@ -5369,7 +5370,7 @@ function CombatScreenView({
           ) : null}
           {stagedStartTurnTriggerPending && startTurnCount ? (
             <button type="button" className="combat__end-turn" disabled>
-              Resolve start turn {startTurnCount}
+              {startTurnLabel}
             </button>
           ) : null}
           {startTurnOpen && !stagedStartTurnTriggerPending && !activeStartTurnScry &&
@@ -5475,8 +5476,8 @@ function CombatScreenView({
                   : canResolveStartTurn
                   ? partyStartTurnOrderPending && viewer.id === startTurnCoordinatorId ? 'Confirm start-of-turn order'
                     : startTurnChoiceId && viewer.id === fumesOwnerId ? 'Confirm Noxious Fumes target'
-                      : startTurnCount ? `Resolve start turn ${startTurnCount}` : `Resolve start of turn ${state.turn}`
-                  : startTurnCount ? `Resolve start turn ${startTurnCount}` : startTurnCoordinator
+                      : startTurnLabel
+                  : startTurnCount ? startTurnLabel : startTurnCoordinator
                     ? `Waiting for ${startTurnCoordinator.name}` : 'Waiting for start-turn order'}
                 </button> : null}
             </>

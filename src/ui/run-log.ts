@@ -1270,8 +1270,12 @@ export function downloadRunLog(log: RunLog) {
 export function queryRunLogControl(doc: Document, ref: ControlRef): HTMLElement | null {
   const name = ref.selector.startsWith('[data-room=') ? ref.name?.replace(/, Activate again to enter$/, '') : ref.name
   const legacyEndTurn = /^End turn(?: \d+\/\d+)?$/.test(name ?? '')
+  const legacyStartTurn = name?.match(/^Resolve start turn (\d+\/\d+)$/)
   const nameMatches = (element: HTMLElement) => !name || controlName(element) === name || controlName(element)?.startsWith(`${name} `) ||
-    legacyEndTurn && element.matches('button.combat__end-turn') && /^End Turn \d+(?: \(\d+\/\d+\))?$/.test(controlName(element) ?? '')
+    legacyEndTurn && element.matches('button.combat__end-turn') && /^End Turn \d+(?: \(\d+\/\d+\))?$/.test(controlName(element) ?? '') ||
+    legacyStartTurn && element.matches('button.combat__end-turn') &&
+      /^Resolve start of turn \d+ \(\d+\/\d+\)$/.test(controlName(element) ?? '') &&
+      controlName(element)?.endsWith(` (${legacyStartTurn[1]})`)
   const visible = (element: HTMLElement | null, requireName = true) => {
     if (!element || requireName && !nameMatches(element)) return null
     const view = element.ownerDocument.defaultView

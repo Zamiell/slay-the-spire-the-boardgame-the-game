@@ -138,7 +138,7 @@ async function resolveAutomaticStartOwners(...pages) {
   for (let attempt = 0; attempt < pages.length + 1; attempt += 1) {
     let clicked = false
     for (const page of pages) {
-      const button = page.getByRole('button', { name: /^Resolve start turn \d+\/\d+$/ })
+      const button = page.getByRole('button', { name: /^Resolve start of turn \d+ \(\d+\/\d+\)$/ })
       if (await button.isVisible().catch(() => false) && !await button.isDisabled()) {
         await button.click()
         clicked = true
@@ -4203,8 +4203,8 @@ try {
     b.locator('.combat[data-phase="player"]').waitFor(),
   ])
   const [annAutomaticButtons, boAutomaticButtons, automaticSnapshot] = await Promise.all([
-    a.getByRole('button', { name: /^Resolve start turn/ }).count(),
-    b.getByRole('button', { name: /^Resolve start turn/ }).count(),
+    a.getByRole('button', { name: /^Resolve start of turn/ }).count(),
+    b.getByRole('button', { name: /^Resolve start of turn/ }).count(),
     snapshot(a),
   ])
   await a.screenshot({ path: join(outDir, '02c-deterministic-start-auto-desktop.png'), fullPage: true })
@@ -4235,7 +4235,7 @@ try {
   rooms.publishRoom(code)
   await roomAction(a, { kind: 'startTurn' })
   const [annMixedButton, boMixedButton] = [a, b].map((page) =>
-    page.getByRole('button', { name: 'Resolve start turn 0/1' }))
+    page.getByRole('button', { name: /^Resolve start of turn \d+ \(0\/1\)$/ }))
   await Promise.all([annMixedButton.waitFor(), boMixedButton.waitFor()])
   const boFrostChoice = b.getByRole('button', { name: 'Evoke frost Orb 1', exact: true })
   await boFrostChoice.waitFor()
@@ -4445,7 +4445,7 @@ try {
     a.locator('.combat[data-phase="start"]').waitFor(),
     b.locator('.combat[data-phase="start"]').waitFor(),
   ])
-  const teammateStartButton = b.getByRole('button', { name: /^Resolve start turn/ })
+  const teammateStartButton = b.getByRole('button', { name: /^Resolve start of turn/ })
   const teammateStartButtonDisabled = await teammateStartButton.isDisabled()
   const teammateStartPrompts = await b.locator('.prompt').count()
   const teammateStartTargets = await b.locator('.enemy--targeted').count()
@@ -6045,7 +6045,7 @@ try {
   }
   assert(fourRoom.startTurnReady?.[combatPlayers[0].id] === true, 'the reconnected Facing owner did not become ready')
   await waitForRoomVersion(fourPages[1], fourRoom.version)
-  await fourPages[1].getByRole('button', { name: 'Resolve start turn 1/4' }).waitFor()
+  await fourPages[1].getByRole('button', { name: /^Resolve start of turn \d+ \(1\/4\)$/ }).waitFor()
   await fourPages[1].waitForFunction(() => document.querySelector('.prompt')?.textContent?.includes('choose an enemy'))
   await fourPages[1].getByRole('button', { name: /^Spire Spear,/ }).dispatchEvent('click')
   await fourPages[1].getByRole('button', { name: /^Resolve start (?:of )?turn/ }).click()
@@ -6054,7 +6054,7 @@ try {
   }
   assert(fourRoom.startTurnReady?.[combatPlayers[1].id] === true, 'the second Facing owner did not become ready')
   await waitForRoomVersion(fourPages[2], fourRoom.version)
-  await fourPages[2].getByRole('button', { name: 'Resolve start turn 2/4' }).waitFor()
+  await fourPages[2].getByRole('button', { name: /^Resolve start of turn \d+ \(2\/4\)$/ }).waitFor()
   await fourPages[2].waitForFunction(() => document.querySelector('.prompt')?.textContent?.includes('choose an enemy'))
   await fourPages[2].getByRole('button', { name: /^Spire Shield,/ }).dispatchEvent('click')
   await fourPages[2].getByRole('button', { name: /^Resolve start (?:of )?turn/ }).click()
@@ -6063,7 +6063,7 @@ try {
   }
   assert(fourRoom.startTurnReady?.[combatPlayers[2].id] === true, 'the third Facing owner did not become ready')
   await waitForRoomVersion(fourPages[3], fourRoom.version)
-  await fourPages[3].getByRole('button', { name: 'Resolve start turn 3/4' }).waitFor()
+  await fourPages[3].getByRole('button', { name: /^Resolve start of turn \d+ \(3\/4\)$/ }).waitFor()
   await fourPages[3].waitForFunction(() => document.querySelector('.prompt')?.textContent?.includes('choose an enemy'))
   const stagedFacing = await snapshot(fourPages[3])
   const facingCapacity = await fourPages[3].locator('.enemy').evaluateAll((cards) => Object.fromEntries(cards.map((card) => [

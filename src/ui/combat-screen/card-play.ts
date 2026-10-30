@@ -78,6 +78,8 @@ export function createCardPlayCoordinator(options: Options) {
   const viewerId = viewer.id
 
   function cancel(): CardPlayResult {
+    const forced = state.startTurnProgress?.forcedCard
+    if (pending && forced?.playerId === viewerId && forced.cardUid === pending.card.uid) return 'choosing'
     if (pending?.choiceCards && pending.choice?.kind !== 'recover' && pending.choice?.kind !== 'recoverExhaust') return 'choosing'
     setPending(null)
     return 'cancelled'

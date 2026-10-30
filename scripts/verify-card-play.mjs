@@ -77,6 +77,25 @@ pending = revealed
 assert.equal(createCardPlayCoordinator({ ...options, pending }).cancel(), 'choosing')
 assert.equal(pending, revealed, 'revealing private cards must prevent cancellation')
 
+viewer.hand = [card('sever_soul'), card('defend_ironclad')]
+state.startTurnProgress = { choices: [], forcedCard: {
+  playerId: viewer.id, cardUid: 'sever_soul', sourceCardId: 'havoc', exhaustNonPower: true,
+} }
+pending = { ...pendingFor(viewer.hand[0], null, state, viewer), picked: ['defend_ironclad'], choiceConfirmed: true }
+const forcedPending = pending
+const forcedCoordinator = createCardPlayCoordinator({ ...options, pending })
+assert.equal(forcedCoordinator.cancel(), 'choosing', 'a forced play cannot be abandoned')
+assert.equal(forcedCoordinator.confirm(viewer.hand[0], 'hand'), 'choosing',
+  'clicking the staged forced card must not cancel its choices')
+assert.equal(pending, forcedPending)
+pending = null
+assert.equal(createCardPlayCoordinator({ ...options, pending }).confirm(viewer.hand[0], 'hand'), 'choosing')
+assert.equal(pending.card.uid, 'sever_soul', 'clicking an abandoned forced card must reopen its choices')
+assert.equal(pending.energyCharged, 0)
+state.startTurnProgress = undefined
+assert.equal(createCardPlayCoordinator({ ...options, pending }).cancel(), 'cancelled')
+assert.equal(pending, null, 'an ordinary uncommitted play remains cancellable')
+
 for (const defId of ['third_eye', 'cut_through_fate', 'secret_technique']) {
   for (const network of [false, true]) {
     commits = []

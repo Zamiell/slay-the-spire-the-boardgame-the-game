@@ -44,13 +44,15 @@ try {
     base.combat.enemies = [{ ...base.combat.enemies[0], uid: 'target', defId: 'small_slime',
       hp: 30, maxHp: 30, block: 0, vulnerable: 0, dead: false }]
     let fixtureNumber = 0
-    const setHand = async (hand) => {
+    const setHand = async (hand, draw = [], energy = 2) => {
       const fixture = structuredClone(base)
       fixture.combat.combatId = `sever-${screen}-${fixtureNumber++}`
       fixture.combat.players[0].hand = hand
+      fixture.combat.players[0].draw = draw
+      fixture.combat.players[0].energy = energy
       await page.evaluate(run => window.__STS_DEBUG__.setRun(run), fixture)
       await page.waitForFunction(id => window.__STS_DEBUG__.getState()?.combatId === id, fixture.combat.combatId)
-      await page.locator('.hand .card[data-card-name^="Sever Soul"]').waitFor()
+      await page.locator('.hand .card').first().waitFor()
     }
     const activate = locator => phone ? locator.tap() : locator.click()
     const play = async (name) => {
@@ -61,6 +63,37 @@ try {
     const dialog = page.getByRole('dialog', { name: /Choose .* in your hand to Exhaust/ })
     const read = () => page.evaluate(() => structuredClone(window.__STS_DEBUG__.getState()))
     const confirm = () => dialog.getByRole('button', { name: /^Exhaust / })
+
+    for (const [drawn, count, damage] of [[sever, 1, 3], [upgraded, 2, 4]]) {
+      await setHand([card('havoc', 'havoc'), ...fuel], [drawn], 1)
+      await play('Havoc')
+      await dialog.waitFor()
+      assert.equal(await dialog.getByRole('button', { name: 'Cancel', exact: true }).count(), 0,
+        'Havoc has committed the forced play: cancelling must not abandon its required Exhaust choice')
+      await dialog.focus()
+      await page.keyboard.press('Escape')
+      assert(await dialog.isVisible(), 'Escape must not dismiss Havoc’s mandatory Exhaust choice')
+      await activate(dialog.locator('.card[data-card-name="Defend"]'))
+      if (count === 2) await activate(dialog.locator('.card[data-card-name="Daze"]'))
+      await page.screenshot({ path: `${output}/${screen}-havoc-${count}-choice.png` })
+      await activate(confirm())
+      await dialog.waitFor({ state: 'detached' })
+      await activate(page.locator('[data-enemy-id="target"] .enemy__hit-area'))
+      await page.waitForFunction(() => !window.__STS_DEBUG__.getState().startTurnProgress?.forcedCard)
+      const havocPlayed = await read()
+      assert.equal(havocPlayed.enemies[0].hp, 30 - damage)
+      assert.equal(havocPlayed.players[0].energy, 0, 'Havoc must not charge Sever Soul’s printed cost')
+      assert.deepEqual(havocPlayed.players[0].exhaust.map(card => card.uid).sort(),
+        [...['defend', 'daze'].slice(0, count), drawn.uid].sort())
+      assert(havocPlayed.players[0].discard.some(card => card.uid === 'havoc'))
+    }
+    await setHand([card('havoc', 'havoc-empty')], [sever], 1)
+    await play('Havoc')
+    await page.waitForFunction(() => {
+      const state = window.__STS_DEBUG__.getState()
+      return !state.startTurnProgress?.forcedCard && state.players[0].exhaust.some(card => card.uid === 'sever')
+    })
+    assert.equal(await dialog.count(), 0, 'forced Sever Soul with no Exhaust choices must finish automatically')
 
     await setHand([sever, ...fuel])
     const before = await read()

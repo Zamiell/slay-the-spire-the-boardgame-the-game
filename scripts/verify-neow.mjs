@@ -40,7 +40,6 @@ check('duplicate prevention is fixed at setup, applies to Neow, and cannot chang
   for (const preventDuplicateCardRewards of [false, true]) {
     let run = createRun(442, party(1), 0, createCampaignProgress(), false, false, { preventDuplicateCardRewards })
     run.players[0].cardRewards = ['anger', 'anger', 'cleave', 'shrug_it_off']
-    run = resolveNeowGold(run, 'p1', true)
     run = revealNeowReward(run, 'p1')
     assertDeepEqual(run.neow.players.p1.redReward.choices,
       preventDuplicateCardRewards ? ['anger', 'cleave', 'shrug_it_off'] : ['anger', 'anger', 'cleave'])

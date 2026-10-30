@@ -4,6 +4,7 @@ import { createServer } from 'vite'
 import { chromium, devices } from './lib/profile-browser.mjs'
 import { postNeowRun } from './lib/post-neow-run.mjs'
 import { enterRoom } from '../src/game/run.ts'
+import { pickUpCard, confirmCardPlay } from './lib/card-interactions.mjs'
 
 // Double Tap queues a Headbutt copy. When the first Headbutt takes the only
 // discarded card, the copy sees an empty discard pile and must still ask for its target.
@@ -43,16 +44,18 @@ try {
     const hp = () => page.locator('[data-enemy-def="jaw_worm"]').getAttribute('aria-label')
       .then((label) => Number(label.match(/(\d+) of 60/)[1]))
     const handCard = (name) => page.locator(`.hand .card[aria-label^="${name}"]`)
-    await handCard('Double Tap').click()
-    await handCard('Headbutt').click()
+    await pickUpCard(page, handCard('Double Tap'))
+    await confirmCardPlay(page)
+    await page.locator('.card-interaction').waitFor({ state: 'detached' })
+    await pickUpCard(page, handCard('Headbutt'))
+    await confirmCardPlay(page, page.locator('[data-enemy-def="jaw_worm"] .enemy__hit-area'))
     // The first Headbutt recovers the only card in the discard pile: Double Tap.
     await page.locator('dialog[open] .card').click()
     await page.getByRole('button', { name: 'Put selected card on top', exact: true }).click()
-    await page.locator('[data-enemy-def="jaw_worm"] .enemy__head').click()
     await page.waitForFunction(() => document.querySelectorAll('.hand .card').length === 1)
     // The copy now has an empty discard pile; it must go straight to targeting.
     assert.match(await page.locator('.prompt').first().innerText(), /Choose an enemy/, `${screen}: copy asks for a target`)
-    await page.locator('[data-enemy-def="jaw_worm"] .enemy__head').click()
+    await page.locator('[data-enemy-def="jaw_worm"] .enemy__hit-area').click()
     await page.waitForFunction(() => document.querySelector('[data-enemy-def="jaw_worm"]')?.getAttribute('aria-label')?.includes('56 of 60'),
       undefined, { timeout: 5000 })
     assert.equal(await hp(), 56, `${screen}: both Headbutts hit`)

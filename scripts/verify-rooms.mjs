@@ -622,7 +622,6 @@ check('only the host selects duplicate prevention and the server applies it to r
   startRun(room, host.token, { seed: 442, preventDuplicateCardRewards: true })
   assertEqual(snapshotFor(room, guest.token).run.meta.preventDuplicateCardRewards, true)
   room.run.players[0].cardRewards = ['anger', 'anger', 'cleave', 'shrug_it_off']
-  apply(room, host.token, { kind: 'neow', stage: 'redGold', gain: true })
   apply(room, host.token, { kind: 'neow', stage: 'reveal' })
   assertDeepEqual(snapshotFor(room, host.token).run.neow.players[host.playerId].redReward.choices,
     ['anger', 'cleave', 'shrug_it_off'])

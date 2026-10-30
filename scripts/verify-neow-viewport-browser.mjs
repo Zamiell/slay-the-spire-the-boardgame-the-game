@@ -7,6 +7,7 @@ import { chromium, webkit } from './lib/profile-browser.mjs'
 import { createRoomServer } from './room-server.mjs'
 import { createRoom, joinRoom, startRun } from './lib/rooms.mjs'
 import { installScreenAudit } from './lib/browser-screen-audit.mjs'
+import { checkRewardSweep } from './lib/reward-hover.mjs'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const out = join(root, 'artifacts/neow-viewport')
@@ -43,12 +44,18 @@ try {
         const buttons = [...document.querySelectorAll('.neow-action button')].filter(button => !button.disabled)
         return { height: innerHeight, width: innerWidth, scene: scene.toJSON(), action: action.toJSON(),
           scrollHeight: document.documentElement.scrollHeight, scrollWidth: document.documentElement.scrollWidth,
+          overflowing: [...document.querySelectorAll('body *')].filter(element => {
+            const box = element.getBoundingClientRect()
+            return box.width > 0 && box.right > innerWidth + 1
+          }).slice(0, 12).map(element => ({ tag: element.tagName, className: element.getAttribute('class'),
+            box: element.getBoundingClientRect().toJSON() })),
           buttons: buttons.map(button => ({ text: button.textContent, rect: button.getBoundingClientRect().toJSON() })) }
       })
       assert(layout.scene.bottom <= layout.height + 1, `${label}: Neow extends below viewport`)
       assert(layout.action.top >= layout.scene.top && layout.action.bottom <= layout.height + 1, `${label}: controls extend outside scene`)
       assert(layout.scrollHeight <= layout.height + 1, `${label}: document scrolls vertically`)
-      assert(layout.scrollWidth <= layout.width + 1, `${label}: document scrolls horizontally`)
+      if (layout.scrollWidth > layout.width + 1) await page.screenshot({ path: join(out, `${label}-${viewport.width}-overflow.png`) })
+      assert(layout.scrollWidth <= layout.width + 1, `${label}: document scrolls horizontally ${JSON.stringify(layout.overflowing)}`)
       for (const button of layout.buttons) {
         assert(button.rect.left >= 0 && button.rect.right <= layout.width + 1, `${label}: ${button.text} overflows horizontally`)
       }
@@ -97,18 +104,22 @@ try {
         await page.emulateMedia({ reducedMotion: mode === 'system' ? 'reduce' : 'no-preference' })
         await page.evaluate(mode => { document.documentElement.dataset.reducedMotion = String(mode === 'game') }, mode)
         await page.mouse.move(5, 5)
+        if (mode === 'system') await checkRewardSweep(page, page.locator('.reward-screen__cards .card'))
         const resting = await card.boundingBox()
         await card.hover()
+        await card.evaluate(element => Promise.all(element.getAnimations().map(animation => animation.finished)))
         const hovered = await card.boundingBox()
         assert(Math.abs(hovered.width / resting.width - 1.25) < .01,
           `${mode}: reduced motion suppressed Neow reward inspection`)
-        assert(await card.evaluate(element => getComputedStyle(element).transitionDuration
-          .split(',').every(duration => parseFloat(duration) <= .001)),
-        `${mode}: reduced-motion inspection must not animate`)
+        assert(await card.evaluate((element, mode) => {
+          const durations = getComputedStyle(element).transitionDuration.split(',').map(parseFloat)
+          return mode === 'game' ? durations.every(duration => duration <= .001) : durations.some(duration => duration >= .5)
+        }, mode), `${mode}: only the in-game reduced-motion setting disables reward animation`)
         await page.locator('.card-keyword-tips[data-open]').waitFor()
         await page.mouse.move(5, 5)
+        await card.evaluate(element => Promise.all(element.getAnimations().map(animation => animation.finished)))
         assert(Math.abs((await card.boundingBox()).width - resting.width) < 1,
-          `${mode}: reduced-motion inspection must return immediately`)
+          `${mode}: inspection must return to its resting size`)
       }
       await page.emulateMedia({ reducedMotion: 'no-preference' })
       await page.evaluate(previous => {
@@ -154,6 +165,15 @@ try {
     await page.evaluate(() => window.__NEOW_SOCKETS__.at(-1).close())
     await page.locator('.connection--reconnecting').waitFor()
     await capture('party-disconnected')
+    const relic = page.locator('.app-shell__header .relic-chip').first()
+    await relic.focus()
+    await relic.locator('.relic-tip').waitFor({ state: 'visible' })
+    assert(await relic.locator('.relic-tip').evaluate(tip => {
+      const box = tip.getBoundingClientRect()
+      return box.left >= 0 && box.right <= innerWidth && box.bottom <= innerHeight
+    }), 'reconnecting must not push the relic explanation outside the viewport')
+    await page.keyboard.press('Escape')
+    await relic.evaluate(element => element.blur())
     assert.equal(await page.locator('.neow-action button:enabled').count(), 0)
     await context.setOffline(false)
     // Reconnect preserves the viewer and pending choices in the same bounded shell.

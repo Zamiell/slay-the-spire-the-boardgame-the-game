@@ -9,7 +9,8 @@ import type { Enemy, Player } from '../game/types.ts'
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { Icon, IconValue } from './Icon.tsx'
 import type { IconName } from './Icon.tsx'
-import { TokenRow } from './TokenRow.tsx'
+import { RedCubeIcon, TokenRow } from './TokenRow.tsx'
+import { enemyCardCube } from './enemy-card-cube.ts'
 import { splitAttackAnimationPending } from './combat-screen/vfx.tsx'
 import { healthBand } from './board-signals.ts'
 import { animationSfxRecipe, bossHeavySfxRecipe } from './combat-sfx.ts'
@@ -962,6 +963,8 @@ export function EnemyCard({
 
   const tips: { name: string, text: string }[] = []
   const showHelp = inspectionEnabled && !visibleEnemy.dead
+  const preview = showHelp ? enemyCardImage(def.id, visibleEnemy.ascension) : undefined
+  const cube = preview ? enemyCardCube(visibleEnemy, preview.file) : undefined
   if (showHelp) for (const label of abilityLabels) {
     const separator = label.indexOf(':')
     const name = separator < 0 ? 'Special effects' : label.slice(0, separator)
@@ -972,9 +975,14 @@ export function EnemyCard({
   }
   return (
     <CardKeywordHelp extraTips={tips} hover
-      image={!showHelp ? undefined : {
-        ...enemyCardImage(def.id, visibleEnemy.ascension),
-        alt: `${def.name} board-game card`,
+      image={!preview ? undefined : {
+        ...preview,
+        alt: `${def.name} board-game card${cube ? `. ${cube.description}` : ''}`,
+        overlay: cube ? <span className="enemy-card-cube" aria-hidden="true"
+          data-action-index={cube.actionIndex}
+          style={{ left: `${cube.x}%`, top: `${cube.y}%`, width: `${cube.size}%` }}>
+          <RedCubeIcon />
+        </span> : undefined,
       }}>{(helpProps) => (
     <button
       {...helpProps}

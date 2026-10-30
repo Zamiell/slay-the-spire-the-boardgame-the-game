@@ -16,6 +16,12 @@ and [Downfall public playtest](https://steamcommunity.com/sharedfiles/filedetail
 Ascension thresholds to cells. Downfall reuses its audited physical-card registry.
 Modes printed together share a face; Awakened One's separate phases do not.
 
+The hover cube uses the enemy's live `actionIndex`, not the round number.
+`src/ui/enemy-card-cube-tracks.ts` calibrates action-square centers and sizes
+against the committed scans; `enemy-card-cube.ts` selects the correct track
+for shared boss modes. Multi-column tracks follow their printed arrows, and
+secondary counters (such as Beat of Death and Buffer) are not action slots.
+
 Run `node scripts/sync-enemy-card-assets.mjs` with Python Pillow installed to
 regenerate `public/assets/enemy-cards/` and `src/game/enemy-card-images.ts`.
 The original sheets are cached under ignored `tmp/enemy-card-sheets/`.

@@ -30,8 +30,8 @@ const TOKENS: { key: CountKey; icon: StatusIconName; label: string }[] = [
   { key: 'clawCubes', icon: 'attack', label: 'Claw cubes' },
 ]
 
-export function ClawCubeIcon({ size = 18 }: { size?: number }) {
-  return <svg className="claw-cube-icon" width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+export function RedCubeIcon({ size = 18 }: { size?: number }) {
+  return <svg className="red-cube-icon" width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
     <path d="M12 2 22 7 12 12 2 7Z" fill="#ff6558" stroke="#ffac8c" strokeLinejoin="round" />
     <path d="M2 7 12 12 12 23 2 18Z" fill="#c52d26" stroke="#7d1918" strokeLinejoin="round" />
     <path d="M12 12 22 7 22 18 12 23Z" fill="#8f1b20" stroke="#641317" strokeLinejoin="round" />
@@ -49,7 +49,7 @@ export function TokenRow(props: TokenRowProps) {
         <span key={key} className={`token token--${key}`} title={`${label} ${props[key]}`}>
           {/* No hidden label: describeSeat and describeEnemy already carry the
               announcement, while title exposes it to pointer users. */}
-          {key === 'clawCubes' ? <ClawCubeIcon /> : <StatusIcon name={icon} />}
+          {key === 'clawCubes' ? <RedCubeIcon /> : <StatusIcon name={icon} />}
           <span className="token__count">{props[key]}</span>
         </span>
       ))}

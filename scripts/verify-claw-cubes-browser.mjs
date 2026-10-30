@@ -52,8 +52,8 @@ try {
       await page.waitForFunction(count => document.querySelector('.combat__claw-cubes strong')?.textContent === String(count), count)
     }
     assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.enemies[0].hp), 46)
-    assert.equal(await counter.locator('.claw-cube-icon').count(), 1)
-    assert.equal(await page.locator('.seat__status-strip .token--clawCubes .claw-cube-icon').count(), 1)
+    assert.equal(await counter.locator('.red-cube-icon').count(), 1)
+    assert.equal(await page.locator('.seat__status-strip .token--clawCubes .red-cube-icon').count(), 1)
     const beforeInspection = await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun().combat))
     if (phone) await counter.tap()
     else { await page.keyboard.press('Tab'); await counter.focus() }

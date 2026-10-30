@@ -207,7 +207,7 @@ import {
   releaseCardZoom,
   tryClaimCardZoom,
 } from './PowerRow.tsx'
-import { ClawCubeIcon, OrbRow, TokenRow, orbDisplayValue } from './TokenRow.tsx'
+import { RedCubeIcon, OrbRow, TokenRow, orbDisplayValue } from './TokenRow.tsx'
 import { useHandLayout } from './combat-screen/useHandLayout.ts'
 import {
   STAGE_GAP_REM,
@@ -5497,7 +5497,7 @@ function CombatScreenView({
             id="claw-cubes" className="combat__claw-cubes" focusable
             name={`Claw cubes: ${viewer.clawCubesGainedThisCombat}`} kindLabel="Combat counter"
             text="Claw (Claw Pack) gains a red cube before dealing damage. Each cube adds 1 damage to those Claws. Cubes last for this combat and are not spent.">
-            <ClawCubeIcon size={24} />
+            <RedCubeIcon size={24} />
             <strong aria-hidden="true">{viewer.clawCubesGainedThisCombat}</strong>
           </PotionTooltipAnchor> : null}
           {/* Slayer Pack: a card-given choice (Heel Hook, Magnetism) docks in the bar, off the board,

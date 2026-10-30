@@ -93,7 +93,7 @@
 }
 .combat__claw-cubes strong { font-size: 1.1rem; }
 .combat__claw-cubes:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-.claw-cube-icon { flex: none; }
+.red-cube-icon { flex: none; }
 
 .shiv-actions { display: inline-grid; flex: none; align-self: start; gap: 0.2rem; }
 .shiv-actions__stack { display: inline-grid; padding-inline: 0.2rem; }

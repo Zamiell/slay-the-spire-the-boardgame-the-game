@@ -220,7 +220,7 @@ export function enemyImagePath(def: EnemyDef): string {
 export function enemyCardImage(defId: string, ascension = 0) {
   const image = ENEMY_CARD_IMAGES[defId]?.filter(card => card.minAscension <= ascension).at(-1)
   if (!image) throw new Error(`Missing printed enemy card: ${defId}`)
-  return { src: assetPath(`enemy-cards/${image.file}.webp`), width: image.width, height: image.height }
+  return { src: assetPath(`enemy-cards/${image.file}.webp`), file: image.file, width: image.width, height: image.height }
 }
 
 export const WEBP_ONLY_ANIMATIONS = new Set(['byrd', 'cultist', 'looter', 'mugger', 'book_of_stabbing',

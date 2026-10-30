@@ -4,7 +4,9 @@
 import { existsSync } from 'node:fs'
 import { dieIcon, iconPath, ICON_LABELS } from '../src/ui/icons.ts'
 import { handLayout } from '../src/ui/combat-screen/hand-layout.ts'
-import { cardArtPath, tierOf, cardImagePath, CARD_ART_ROOT, CARD_ASSET_ROOT } from '../src/game/assets.ts'
+import { cardArtPath, tierOf, cardImagePath, enemyCardImage, CARD_ART_ROOT, CARD_ASSET_ROOT } from '../src/game/assets.ts'
+import { ENEMIES, advanceCube, enemyDef } from '../src/game/enemies.ts'
+import { enemyCardCube } from '../src/ui/enemy-card-cube.ts'
 import { CARDS, faceOf, releasedCardDefs } from '../src/game/cards.ts'
 import { POTIONS } from '../src/game/relics.ts'
 import {
@@ -42,6 +44,49 @@ import { EVENT_DEFINITIONS } from '../src/game/events.ts'
 import { suite, check, assert, assertDeepEqual, assertEqual, report } from './lib/harness.mjs'
 
 suite('ui helpers')
+
+check('every printed cube track maps all live actions into the card face', () => {
+  for (const defId of Object.keys(ENEMIES)) for (let ascension = 0; ascension <= 13; ascension++) {
+    const def = enemyDef(defId, ascension)
+    const count = def.pattern.kind === 'cube' ? def.pattern.slots.length : defId === 'downfall_wrathful_wrath' ? 1 : 0
+    const image = enemyCardImage(defId, ascension)
+    const enemy = { defId, ascension, actionIndex: 0, dead: false }
+    if (!count) {
+      assertEqual(enemyCardCube(enemy, image.file), undefined, `${defId}: a non-track enemy gained a cube`)
+      continue
+    }
+    const positions = []
+    for (let actionIndex = 0; actionIndex < count; actionIndex++) {
+      const marker = enemyCardCube({ ...enemy, actionIndex }, image.file)
+      assert(marker, `${defId} A${ascension}: missing action ${actionIndex}`)
+      const halfHeight = marker.size * image.width / image.height / 2
+      assert(marker.x > marker.size / 2 && marker.x + marker.size / 2 < 100 &&
+        marker.y > halfHeight && marker.y + halfHeight < 100, `${defId}: cube lies outside the scan`)
+      positions.push(`${marker.x},${marker.y}`)
+    }
+    assertEqual(new Set(positions).size, count, `${defId}: different actions share a cube square`)
+    assertEqual(enemyCardCube({ ...enemy, dead: true }, image.file), undefined)
+    assertEqual(enemyCardCube({ ...enemy, actionIndex: count }, image.file), undefined)
+  }
+})
+
+check('cube markers follow loop order, multi-column tracks and shared boss modes', () => {
+  const marker = (defId, actionIndex, ascension = 0) =>
+    enemyCardCube({ defId, actionIndex, ascension, dead: false }, enemyCardImage(defId, ascension).file)
+  assertEqual(advanceCube(enemyDef('lagavulin'), 3), 1)
+  assert(marker('lagavulin', 1).y > marker('lagavulin', 0).y, 'looping must skip the initial sleep square')
+  for (const id of ['giant_head', 'transient']) {
+    assert(marker(id, 1).y > marker(id, 0).y)
+    assert(marker(id, 2).x > marker(id, 1).x && marker(id, 2).y < marker(id, 1).y,
+      `${id}: the track must read down then across`)
+  }
+  assert(marker('guardian_defensive', 0).x > marker('guardian_attack', 1).x)
+  assert(marker('the_champ_fury', 0).y > marker('the_champ', 2).y)
+  assert(marker('downfall_wrathful_wrath', 0).y > marker('downfall_wrathful', 2).y)
+  assert(marker('downfall_blasphemer_divinity', 0).y > marker('downfall_blasphemer', 2).y)
+  assertEqual(marker('corrupt_heart', 3).x, marker('corrupt_heart', 0).x,
+    'the action cube must not move onto the Beat of Death counter')
+})
 
 check('hand layouts spread neighbouring cards while preserving order and crowded-hand readability', () => {
   for (const count of [1, 3, 5, 7, 10, 12, 20]) {

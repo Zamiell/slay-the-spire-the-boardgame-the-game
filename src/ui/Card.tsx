@@ -663,7 +663,7 @@ export function CardKeywordHelp({ def, additionalDef, gemPowerDamage, extraTips 
   additionalDef?: CardDef | null
   gemPowerDamage?: boolean
   extraTips?: readonly { name: string, text: string, icon?: IconName, statusIcon?: StatusIconName }[]
-  image?: { src: string, alt: string, width: number, height: number }
+  image?: { src: string, alt: string, width: number, height: number, overlay?: React.ReactNode }
   children: (props: {
     ref?: (element: HTMLElement | null) => void
     'aria-describedby'?: string
@@ -716,9 +716,12 @@ export function CardKeywordHelp({ def, additionalDef, gemPowerDamage, extraTips 
     {host && hasHelp ? createPortal(
       <span className={`card-keyword-tips${image ? ' card-keyword-tips--image' : ''}`}
         data-landscape={image && image.width > image.height || undefined} id={tooltipId} role="tooltip">
-        {image ? <img className="card-keyword-image" src={image.src} alt={image.alt}
-          width={image.width} height={image.height} draggable={false}
-          onLoad={() => anchorRef.current?.dispatchEvent(new Event('card-keyword-help-ready', { bubbles: true }))} /> : null}
+        {image ? <span className="card-keyword-image-frame">
+          <img className="card-keyword-image" src={image.src} alt={image.alt}
+            width={image.width} height={image.height} draggable={false}
+            onLoad={() => anchorRef.current?.dispatchEvent(new Event('card-keyword-help-ready', { bubbles: true }))} />
+          {image.overlay}
+        </span> : null}
         {tips.map((tip) => (
           <span className="card-keyword-tip" key={tip.name}>
             <strong>{tip.icon ? <Icon name={tip.icon} size={18} />

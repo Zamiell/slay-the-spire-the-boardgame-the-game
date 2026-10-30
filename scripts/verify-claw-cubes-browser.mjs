@@ -49,7 +49,7 @@ try {
     for (const [name, count] of [['Claw (Claw Pack)', 1], ['Claw (Claw Pack)+', 2]]) {
       await page.locator(`.hand .card[title="${name}"]`).click()
       await page.locator('[data-enemy-id="target"] .enemy__hit-area').click()
-      await page.waitForFunction(count => document.querySelector('.combat__claw-cubes strong')?.textContent === String(count), count)
+      await page.waitForFunction(count => document.querySelector('.combat__claw-cubes strong')?.textContent === `x${count}`, count)
     }
     assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.enemies[0].hp), 46)
     assert.equal(await counter.locator('.red-cube-icon').count(), 1)
@@ -78,7 +78,7 @@ try {
       const state = window.__STS_DEBUG__.getRun().combat
       return state.turn === 2 && state.phase === 'player'
     })
-    assert.equal(await counter.locator('strong').innerText(), '2', 'Claw cubes must persist between turns')
+    assert.equal(await counter.locator('strong').innerText(), 'x2', 'Claw cubes must persist between turns')
     await page.evaluate(() => {
       const run = structuredClone(window.__STS_DEBUG__.getRun())
       const teammate = { ...structuredClone(run.combat.players[0]), id: 'p2', name: 'Teammate', row: 1,
@@ -88,7 +88,7 @@ try {
       window.__STS_DEBUG__.setRun(run)
       window.__STS_DEBUG__.setViewer('p2')
     })
-    await page.waitForFunction(() => document.querySelector('.combat__claw-cubes strong')?.textContent === '5')
+    await page.waitForFunction(() => document.querySelector('.combat__claw-cubes strong')?.textContent === 'x5')
     await page.evaluate(async () => {
       const { createCombat } = await import('/src/game/combat.ts')
       const run = structuredClone(window.__STS_DEBUG__.getRun())

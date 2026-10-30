@@ -5022,7 +5022,7 @@ function CombatScreenView({
             name={`Claw cubes: ${viewer.clawCubesGainedThisCombat}`} kindLabel="Combat counter"
             text="Claw (Claw Pack) gains a red cube before dealing damage. Each cube adds 1 damage to those Claws. Cubes last for this combat and are not spent.">
             <RedCubeIcon size={24} />
-            <strong aria-hidden="true">{viewer.clawCubesGainedThisCombat}</strong>
+            <strong aria-hidden="true">x{viewer.clawCubesGainedThisCombat}</strong>
           </PotionTooltipAnchor> : null}
           {/* Slayer Pack: a card-given choice (Heel Hook, Magnetism) docks in the bar, off the board,
               so it never covers an enemy or its intent. */}
@@ -5169,6 +5169,7 @@ function CombatScreenView({
                     }}
                   >
                     <img className="item-icon-image" src={potionIconPath(potionId)} alt="" />
+                    <span aria-hidden="true">x{count}</span>
                   </button>
                 </PotionTooltipAnchor>
               }) : null}
@@ -5189,7 +5190,7 @@ function CombatScreenView({
                     else onChange?.(spendVigor(state, viewer.id))
                   }}>
                   <StatusIcon name="vigor" size={22} />
-                  <span aria-hidden="true">{viewer.vigor}</span>
+                  <span aria-hidden="true">x{viewer.vigor}</span>
                 </button>
               ) : null}
               {state.phase === 'player' && !forcedCard && !distilled && !relicScry && !endTurnResolving &&
@@ -5213,7 +5214,7 @@ function CombatScreenView({
                   }}
                 >
                   <img className="item-icon-image" src={assetPath('icons/hexaghost-flame.png')} alt="" />
-                  <span aria-hidden="true">{viewer.soulburn}</span>
+                  <span aria-hidden="true">x{viewer.soulburn}</span>
                 </button>
               ) : null}
               {spendingSoulburn && extraCrispyPower ? (
@@ -5291,7 +5292,7 @@ function CombatScreenView({
                 onClick={() => toggleShivs('one')}
               >
                 <StatusIcon name="shiv" size={22} />
-                <span aria-hidden="true">{viewer.shivs}</span>
+                <span aria-hidden="true">x{viewer.shivs}</span>
               </button>
               </PotionTooltipAnchor>
               {!startResourceInventory ? <PotionTooltipAnchor id="all-shivs" name={`Shivs: ${viewer.shivs}`} kindLabel="Combat resource"
@@ -5304,7 +5305,7 @@ function CombatScreenView({
                 <span className="shiv-actions__stack" aria-hidden="true">
                   <StatusIcon name="shiv" size={22} /><StatusIcon name="shiv" size={22} />
                 </span>
-                <span aria-hidden="true">All</span>
+                <span aria-hidden="true">All x{viewer.shivs}</span>
               </button>
               </PotionTooltipAnchor> : null}
             </span>

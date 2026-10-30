@@ -57,6 +57,23 @@ check('incoming damage spends Block once across attacks and includes overkill wi
   assertDeepEqual(state, before)
 })
 
+check('incoming damage includes Wrath before enemies and cannot spend the same Block twice', () => {
+  const state = incoming([player({ stance: 'wrath' })], [enemy({ defId: 'jaw_worm' })], { die: 6 })
+  const before = structuredClone(state)
+  assertEqual(previewIncomingDamage(state).get('p1'), 1, 'Wrath hurts even when enemies do not attack')
+  assertEqual(endPlayerTurn(state).players[0].hp, 9, 'the forecast matches the real Wrath effect')
+  assertDeepEqual(state, before)
+  state.players[0].block = 1
+  assertEqual(previewIncomingDamage(state).get('p1'), 0, 'Block can absorb Wrath')
+  state.enemies[0].defId = 'small_slime'
+  assertEqual(previewIncomingDamage(state).get('p1'), 1, 'the Block spent on Wrath cannot also stop the enemy')
+  state.players[0].block = 2
+  assertEqual(previewIncomingDamage(state).get('p1'), 0)
+  state.players[0].stance = 'calm'
+  state.players[0].block = 0
+  assertEqual(previewIncomingDamage(state).get('p1'), 1, 'leaving Wrath removes only its self-damage')
+})
+
 check('incoming damage uses Weak, Vulnerable and Strength for the whole multi-hit action', () => {
   const state = incoming([player({ hp: 100, maxHp: 100, vulnerable: 1, block: 2 })], [
     enemy({ uid: 'plant', defId: 'snake_plant', strength: 1, weak: 1 }),

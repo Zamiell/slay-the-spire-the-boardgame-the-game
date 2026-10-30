@@ -95,20 +95,24 @@ function resolveEnemyTurn(state: CombatState, receiveAttack: typeof damagePlayer
 }
 
 /**
- * Current enemy attacks after Block, before HP-loss prevention or end-of-turn
- * effects. Use the real action order and targeting, but don't stop at lethal
- * damage or consume Buffer/Fairy effects. Only the throwaway copy is changed.
+ * Wrath and current enemy attacks after Block, before HP-loss prevention or
+ * other end-of-turn effects. Use the real enemy action order and targeting, but
+ * don't stop at lethal damage or consume Buffer/Fairy effects.
  */
 export function previewIncomingDamage(state: CombatState): ReadonlyMap<string, number> | null {
   if (state.phase !== 'player' || state.pendingCardPlayWindows?.length) return null
   const incoming = new Map(state.players.filter(player => !player.dead).map(player => [player.id, 0]))
-  const probe = { ...state, phase: 'enemy' as const, log: [], presentationEvents: [] }
-  const next = resolveEnemyTurn(probe, (_state, player, amount) => {
+  const probe = clone({ ...state, phase: 'enemy' as const, log: [], presentationEvents: [] })
+  const receiveDamage: typeof damagePlayer = (_state, player, amount) => {
     const outcome = applyDamage(player.block, Number.MAX_SAFE_INTEGER, amount)
     player.block = outcome.block
     incoming.set(player.id, (incoming.get(player.id) ?? 0) + outcome.hpLost)
     return outcome
-  })
+  }
+  for (const player of probe.players) {
+    if (!player.dead && player.stance === 'wrath') receiveDamage(probe, player, 1)
+  }
+  const next = resolveEnemyTurn(probe, receiveDamage)
   return next === probe ? null : incoming
 }
 

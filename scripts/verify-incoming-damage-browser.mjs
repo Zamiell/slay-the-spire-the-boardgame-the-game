@@ -48,7 +48,7 @@ try {
     const tip = page.locator('.potion-tip').filter({ hasText: 'incoming unblocked damage 2' })
     await tip.waitFor()
     assert.match(await tip.innerText(), /current 1 Block/)
-    assert.match(await tip.innerText(), /before end-of-turn effects and HP-loss prevention/)
+    assert.match(await tip.innerText(), /Other end-of-turn effects and HP-loss prevention/)
     assert.equal(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun())), before,
       'reading incoming damage must not mutate combat or advance RNG')
     assert(await counter.evaluate(counter => {
@@ -75,6 +75,35 @@ try {
     await page.waitForFunction(() => document.querySelector('.seat__incoming-damage')?.textContent === 'Incoming: 0')
     assert(await counter.evaluate(counter => counter.classList.contains('seat__incoming-damage--clear')))
     await page.screenshot({ path: `${output}/${screen}-blocked.png` })
+    await page.evaluate(() => {
+      const run = structuredClone(window.__STS_DEBUG__.getRun())
+      Object.assign(run.combat.players[0], { stance: 'wrath', block: 0 })
+      run.combat.enemies.forEach(enemy => { enemy.defId = 'jaw_worm'; enemy.strength = 0; enemy.weak = 0 })
+      run.combat.die = 6
+      window.__STS_DEBUG__.setRun(run)
+    })
+    await page.waitForFunction(() => document.querySelector('.seat__incoming-damage')?.textContent === 'Incoming: 1')
+    if (phone) await counter.tap()
+    else { await page.mouse.move(2, 2); await counter.hover() }
+    const wrathTip = page.locator('.potion-tip').filter({ hasText: 'incoming unblocked damage 1' })
+    await wrathTip.waitFor()
+    assert.match(await wrathTip.innerText(), /Wrath adds 1 damage before enemy attacks/)
+    assert.match(await wrathTip.innerText(), /Block absorbs 0 of it/)
+    await page.screenshot({ path: `${output}/${screen}-wrath.png` })
+    await page.evaluate(() => {
+      const run = structuredClone(window.__STS_DEBUG__.getRun())
+      run.combat.players[0].block = 1
+      window.__STS_DEBUG__.setRun(run)
+    })
+    await page.waitForFunction(() => document.querySelector('.seat__incoming-damage')?.textContent === 'Incoming: 0')
+    assert.match(await page.locator('.potion-tip').innerText(), /Block absorbs 1 of it/)
+    await page.keyboard.press('Escape')
+    await page.evaluate(() => {
+      const run = structuredClone(window.__STS_DEBUG__.getRun())
+      run.combat.players[0].stance = 'neutral'
+      run.combat.enemies.forEach(enemy => { enemy.defId = 'small_slime' })
+      window.__STS_DEBUG__.setRun(run)
+    })
     await page.evaluate(() => {
       const run = structuredClone(window.__STS_DEBUG__.getRun())
       run.combat.players[0].block = 1

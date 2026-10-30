@@ -3,11 +3,12 @@ import { Card } from '../Card.tsx'
 import type { useCardInteraction } from './useCardInteraction.ts'
 import '../styles/card-interaction.css'
 
-export function CardInteractionLayer({ interaction, damage, drawLocked, sharedDrawLocked }: {
+export function CardInteractionLayer({ interaction, damage, drawLocked, sharedDrawLocked, stanceChangedThisTurn }: {
   interaction: ReturnType<typeof useCardInteraction>
   damage?: { damage: number; baseline: number }
   drawLocked?: boolean
   sharedDrawLocked?: boolean
+  stanceChangedThisTurn?: boolean
 }) {
   const { session, flights, cardElements, arrowElement } = interaction
   return createPortal(<>{[...flights, ...(session ? [session] : [])].map((current) =>
@@ -22,6 +23,7 @@ export function CardInteractionLayer({ interaction, damage, drawLocked, sharedDr
       className="card-interaction__card"
       style={{ width: current.width, transform: `translate3d(${current.pose.x}px, ${current.pose.y}px, 0) translate(-50%, -50%) scale(${current.pose.scale})` }}>
       <Card card={current.displayedCard} cost={current.cost} playable={false} immediateArt
+        stanceChangedThisTurn={stanceChangedThisTurn}
         drawLocked={drawLocked} sharedDrawLocked={sharedDrawLocked} liveDamage={current === session ? damage : undefined} />
     </div>
   </div>)}</>, document.body)

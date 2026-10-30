@@ -79,7 +79,8 @@ check('frontend surfaces select their cores and named focused browser checks', (
     'verify-relic-action-icons-browser.mjs', 'verify-pile-controls-browser.mjs'], 'combat screen')
   assert(!combat.includes('verify-noncombat-browser.mjs'))
   assert(combat.includes('verify-card-interaction-browser.mjs'))
-  assertEqual(combat.length, 46, 'combat screen selected an unrelated browser suite')
+  assert(combat.includes('verify-flurry-stance-browser.mjs'))
+  assertEqual(combat.length, 47, 'combat screen selected an unrelated browser suite')
   includesEvery(affectedBrowser('src/ui/TokenRow.tsx'), ['verify-turn-targets-browser.mjs',
     'verify-row-target-browser.mjs', 'verify-combat-target-geometry-browser.mjs'], 'Orb row')
   assert(affectedBrowser('src/ui/styles/stage-scale.css').includes('verify-combat-layout-reload-browser.mjs'))
@@ -220,7 +221,7 @@ check('shared frontend changes use cores plus named visual owners', () => {
     'verify-card-damage-preview-browser.mjs', 'verify-unload-shivs-browser.mjs',
     'verify-boss-heavy-attacks-browser.mjs', 'verify-slime-hover-browser.mjs',
     'verify-enemy-card-cube-browser.mjs'], 'hand stylesheet')
-  assertEqual(hand.length, 32, 'hand stylesheet selected an unrelated browser suite')
+  assertEqual(hand.length, 33, 'hand stylesheet selected an unrelated browser suite')
   includesEvery(affectedBrowser('src/ui/styles/presentation-overlays.css'), [
     'verify-browser.mjs', 'verify-noncombat-browser.mjs', 'verify-online-browser.mjs',
     'verify-lightning-act2-browser.mjs',

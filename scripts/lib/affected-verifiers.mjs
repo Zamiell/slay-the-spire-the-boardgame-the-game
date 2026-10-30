@@ -64,6 +64,7 @@ const focusedUiOwners = ownerMap([
   ['src/ui/chrome/rewards.css', ['verify-loot-browser.mjs', 'verify-boss-relic-picker-browser.mjs']],
   ['src/ui/combat-screen/StartTurnOrder.tsx', ['verify-start-turn-order-browser.mjs']],
   ['src/ui/CardCollectionOverlay.tsx', [
+    'verify-flurry-stance-browser.mjs',
     'verify-card-tooltip-browser.mjs', 'verify-card-picker-browser.mjs', 'verify-keyboard-browser.mjs', 'verify-pile-controls-browser.mjs',
   ]],
   ['src/ui/App.tsx', ['verify-ascension-sync-browser.mjs', 'verify-restricted-browser.mjs', 'verify-run-replay-browser.mjs', 'verify-replay-controls-browser.mjs', 'verify-courier-browser.mjs',
@@ -75,12 +76,14 @@ const focusedUiOwners = ownerMap([
   ['src/ui/StatsScreen.tsx', ['verify-stats-browser.mjs', 'verify-skin-cards-browser.mjs']],
   ['src/ui/skin-context.tsx', ['verify-skin-cards-browser.mjs', 'verify-card-rendering-browser.mjs']],
   ['src/ui/Card.tsx', ['verify-card-rendering-browser.mjs', 'verify-skin-cards-browser.mjs', 'verify-card-damage-preview-browser.mjs',
+    'verify-flurry-stance-browser.mjs',
     'verify-enemy-card-cube-browser.mjs', 'verify-claw-cubes-browser.mjs']],
   ['src/ui/CardFace.tsx', ['verify-card-rendering-browser.mjs', 'verify-skin-cards-browser.mjs']],
   ['src/ui/ShopScreen.tsx', ['verify-shop-browser.mjs', 'verify-wallet-sync-browser.mjs', 'verify-skin-cards-browser.mjs', 'verify-monogatari-skins-browser.mjs']],
   ['src/ui/styles/shop.css', ['verify-shop-browser.mjs']],
   ['src/ui/LeaderboardScreen.tsx', ['verify-leaderboard-browser.mjs']],
   ['src/ui/CombatScreen.tsx', [
+    'verify-flurry-stance-browser.mjs',
     'verify-relic-action-icons-browser.mjs',
     'verify-temporary-status-browser.mjs',
     'verify-resource-tooltips-browser.mjs',
@@ -177,6 +180,7 @@ const focusedOnlyUiOwners = ownerMap([
     'verify-run-replay-browser.mjs',
   ]],
   ['src/ui/combat-screen/CardInteractionLayer.tsx', [
+    'verify-flurry-stance-browser.mjs',
     'verify-card-damage-preview-browser.mjs',
     'verify-card-interaction-browser.mjs', 'verify-hand-layout-browser.mjs', 'verify-combat-hand-viewport-browser.mjs',
   ]],
@@ -223,7 +227,7 @@ const sourceExtensions = ['', '.ts', '.tsx', '.mjs', '.js']
 const sharedBrowserOwners = ['verify-browser.mjs', 'verify-noncombat-browser.mjs', 'verify-online-browser.mjs']
 const onlineBrowserOwners = ['verify-online-browser.mjs', 'verify-hosted-multiplayer-browser.mjs', 'verify-multiplayer-resume-browser.mjs']
 const stylesheetBrowserOwners = (file) => file === 'src/ui/styles/hand.css'
-  ? ['verify-enemy-card-cube-browser.mjs', 'verify-card-cancel-browser.mjs', 'verify-combat-hand-viewport-browser.mjs',
+  ? ['verify-flurry-stance-browser.mjs', 'verify-enemy-card-cube-browser.mjs', 'verify-card-cancel-browser.mjs', 'verify-combat-hand-viewport-browser.mjs',
     'verify-combat-player-clipping-browser.mjs', 'verify-end-turn-drag-browser.mjs', 'verify-card-damage-preview-browser.mjs']
   : file === 'src/ui/styles/combat.css' || file === 'src/ui/styles/painterly-combat-stage.css'
     ? ['verify-courier-browser.mjs', ...(file.endsWith('painterly-combat-stage.css') ? ['verify-elite-intent-browser.mjs', 'verify-hero-potions-browser.mjs', 'verify-end-turn-drag-browser.mjs'] : [])]

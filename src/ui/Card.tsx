@@ -42,6 +42,7 @@ type CardProps = {
   liveDamage?: { damage: number, baseline: number }
   drawLocked?: boolean
   sharedDrawLocked?: boolean
+  stanceChangedThisTurn?: boolean
   /** Removes an otherwise-real card button from sequential keyboard navigation. */
   tabIndex?: number
   /** Appended to the accessible name, e.g. to tell a just-drawn duplicate apart. */
@@ -790,6 +791,7 @@ export function Card({
   liveDamage,
   drawLocked = false,
   sharedDrawLocked = drawLocked,
+  stanceChangedThisTurn,
   tabIndex,
   accessibleNote,
   onClick,
@@ -811,6 +813,16 @@ export function Card({
     : effectiveCost === 0 ? 'down' : 'changed'
   const attachedGem = card.attachedGemId ? faceOf(cardDef(card.attachedGemId), false) : null
   const blockedRules = blockedCardDrawRules(def, drawLocked, sharedDrawLocked, attachedGem)
+  const showStanceBonus = def.id === 'flurry_of_blows' && stanceChangedThisTurn !== undefined
+  const extraTips = useMemo(() => [
+    ...(blockedRules ? BLOCKED_DRAW_TIPS : []),
+    ...(showStanceBonus ? [{
+      name: 'Stance bonus',
+      text: stanceChangedThisTurn
+        ? 'You changed stance this turn. Flurry of Blows gains its extra hits, even if you return to your original stance.'
+        : 'You have not changed stance this turn. Change stance to activate Flurry of Blows\' extra hits. Entering your current stance does not count.',
+    }] : []),
+  ], [blockedRules, showStanceBonus, stanceChangedThisTurn])
   const skin = useCardSkin(def)
   const scan = cardThumbPath(def, card.upgraded, attachedGem ?? undefined, skin)
   const hasPublisherScan = def.publisherScan !== false
@@ -827,7 +839,7 @@ export function Card({
     .join(' ')
 
   return <CardKeywordHelp def={def} additionalDef={attachedGem}
-    extraTips={blockedRules ? BLOCKED_DRAW_TIPS : undefined}
+    extraTips={extraTips}
     gemPowerDamage={gemPowerDamage} hover={hoverHelp}>{(keywordHelpProps) => (
     <button
       {...keywordHelpProps}
@@ -907,6 +919,9 @@ export function Card({
       /> : null}
       <CardFace def={def} cost={effectiveCost} rules={cardRulesText(def)} illustration={scanUnavailable} drawLocked={Boolean(blockedRules)} />
       {blockedRules && !scanUnavailable ? <DrawLockedRules src={scan} /> : null}
+      {showStanceBonus ? <span className="card__stance-bonus" data-active={stanceChangedThisTurn} aria-hidden="true">
+        {stanceChangedThisTurn ? 'Stance changed' : 'No stance change'}
+      </span> : null}
       {attachedGem && scanUnavailable ? <img className="card__gem" src={cardThumbPath(attachedGem, false)} alt=""
         draggable={false} title={`${attachedGem.name}: ${cardRuleDescription(attachedGem)}`} /> : null}
       {liveDamage ? (

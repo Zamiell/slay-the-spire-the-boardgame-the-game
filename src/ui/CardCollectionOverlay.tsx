@@ -15,11 +15,12 @@ type CardCollectionOverlayProps = {
   shortcut?: string
   drawLocked?: boolean
   sharedDrawLocked?: boolean
+  stanceChangedThisTurn?: boolean
 }
 
 /** One read-only card viewer for the deck and combat piles. */
 export function CardCollectionOverlay({
-  cards, label, triggerClassName, children, dataPile, ordered = true, shortcut, drawLocked, sharedDrawLocked,
+  cards, label, triggerClassName, children, dataPile, ordered = true, shortcut, drawLocked, sharedDrawLocked, stanceChangedThisTurn,
 }: CardCollectionOverlayProps) {
   const [open, setOpen] = useState(false)
   const trigger = useRef<HTMLButtonElement | null>(null)
@@ -30,13 +31,15 @@ export function CardCollectionOverlay({
       aria-keyshortcuts={shortcut?.toUpperCase()}
       title={shortcut ? `${label} (${shortcut.toUpperCase()})` : label} onClick={() => setOpen(true)}>{children}</button>
     <CardCollectionDialog cards={cards} label={label} open={open} ordered={ordered} shortcut={shortcut}
+      stanceChangedThisTurn={stanceChangedThisTurn}
       drawLocked={drawLocked} sharedDrawLocked={sharedDrawLocked} onClose={() => setOpen(false)} />
   </>
 }
 
-export function CardCollectionDialog({ cards, label, onClose, open = true, ordered = true, shortcut, drawLocked, sharedDrawLocked }: {
+export function CardCollectionDialog({ cards, label, onClose, open = true, ordered = true, shortcut, drawLocked, sharedDrawLocked, stanceChangedThisTurn }: {
   cards: readonly CardInstance[]; label: string; onClose: () => void; open?: boolean; ordered?: boolean; shortcut?: string
   drawLocked?: boolean; sharedDrawLocked?: boolean
+  stanceChangedThisTurn?: boolean
 }) {
   const [sort, setSort] = useState<'obtained' | 'type' | 'cost' | 'name'>(() => ordered ? 'obtained' : 'name')
   const [ascending, setAscending] = useState(true)
@@ -99,6 +102,7 @@ export function CardCollectionDialog({ cards, label, onClose, open = true, order
         </div>
         <div className="choice-modal__cards">
           {open ? sortedCards.map((card) => <Card key={card.uid} card={card} playable={false} hoverHelp
+            stanceChangedThisTurn={stanceChangedThisTurn}
             drawLocked={drawLocked} sharedDrawLocked={sharedDrawLocked} />) : null}
           {open && cards.length === 0 ? <span className="muted">No cards.</span> : null}
         </div>

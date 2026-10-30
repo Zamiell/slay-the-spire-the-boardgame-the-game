@@ -482,6 +482,7 @@ function CombatScreenView({
   onCourierReveal,
   mutationsEnabled = true,
   drawCount,
+  viewerStanceChangedThisTurn,
   decidedPlayerIds,
   requiredEndTurnPlayerIds,
   endTurnTopPlayerIds,
@@ -679,6 +680,7 @@ function CombatScreenView({
   const forcedAutoAttempt = useRef<string | null>(null)
   const viewer = state.players.find((player) => player.id === viewerId)
   const sharedDrawLocked = state.players.filter(player => !player.dead).every(player => player.drawLocked)
+  const stanceChangedThisTurn = onAction ? viewerStanceChangedThisTurn : state.stanceChangedThisTurn.includes(viewerId)
   const incomingDamage = useMemo(() => previewIncomingDamage(state), [state])
   const [resourceHistory, setResourceHistory] = useState(() => trackCombatResources(undefined, state))
   const resourceVisibility = trackCombatResources(resourceHistory, state)
@@ -5921,7 +5923,7 @@ function CombatScreenView({
               : pendingPotion === 'liquid_void' ? viewer.exhaust : viewer.hand)
               .filter((card) => pendingPotion !== 'transforming_brew' || !cardIsCurse(card.defId)).map((card) => (
               <Card key={card.uid} card={card} selected={potionCardUids.includes(card.uid)}
-                drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked}
+                drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
                 onClick={() => pendingPotion === 'liquid_memories'
                   ? consumePotion(pendingPotion, { recoverDiscardUid: card.uid })
                   : pendingPotion === 'liquid_void'
@@ -6015,7 +6017,7 @@ function CombatScreenView({
             if (held.defId === 'fuel_canister') return [<details key={relicIndex}>
               {choiceSummary()}<p className="room-item-text">{def.text}</p>
               <div className="campfire__deck">{viewer.hand.map((card) => <Card key={card.uid} card={card}
-                drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked}
+                drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
                 selected={relicCardUids[0] === card.uid} onClick={() => setRelicCardUids([card.uid])} />)}</div>
               <button type="button" disabled={relicCardUids.length !== 1}
                 onClick={() => useRelic(relicIndex, { cardUids: relicCardUids })}>Exhaust and gain Energy</button>
@@ -6031,7 +6033,7 @@ function CombatScreenView({
               {choiceSummary()}<p className="room-item-text">{def.text}</p>
               {held.defId === 'runic_pyramid' ? <p className="room-item-text">Choose the cards to keep for your next turn.</p> : null}
               <div className="campfire__deck">{viewer.hand.map((card) => <Card key={card.uid} card={card}
-                drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked}
+                drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
                 selected={relicCardUids.includes(card.uid)} onClick={() => setRelicCardUids((current) =>
                   current.includes(card.uid) ? current.filter((uid) => uid !== card.uid) :
                     held.defId === 'blue_candle' && current.length >= 2 ? current : [...current, card.uid])} />)}</div>
@@ -6052,7 +6054,7 @@ function CombatScreenView({
               {choiceSummary('choose a card and target')}
               <p className="room-item-text">{def.text}</p>
               <div className="campfire__deck">{viewer.hand.map((card) => <Card key={card.uid} card={card}
-                drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked}
+                drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
                 selected={relicCardUids[0] === card.uid} onClick={() => setRelicCardUids([card.uid])} />)}</div>
               {state.enemies.filter((enemy) => !enemy.dead).map((enemy) => <button type="button" key={enemy.uid}
                 disabled={relicCardUids.length !== 1}
@@ -6108,7 +6110,7 @@ function CombatScreenView({
           <h2 id="gem-finder-title">Gem Finder — Scry {pendingPower?.upgraded ? 4 : 3}</h2>
           <p>Select any revealed non-Gem cards to discard.</p>
           <div className="distilled-choice__cards">{powerChoiceCards.map((card) => <Card key={card.uid} card={card}
-            drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked}
+            drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
             playable={cardDef(card.defId).guardian?.printedType.startsWith('Gem') !== true}
             selected={powerScryDiscardUids.includes(card.uid)} onClick={() => setPowerScryDiscardUids((current) =>
               current.includes(card.uid) ? current.filter((uid) => uid !== card.uid) : [...current, card.uid])} />)}</div>
@@ -6125,7 +6127,7 @@ function CombatScreenView({
           {relicScry.playerId === viewerId ? <>
             <p>Select any revealed cards to discard.</p>
             <div className="distilled-choice__cards">{relicScry.cards.map((card) => <Card key={card.uid} card={card}
-              drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked}
+              drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
               selected={relicCardUids.includes(card.uid)} onClick={() => setRelicCardUids((current) =>
                 current.includes(card.uid) ? current.filter((uid) => uid !== card.uid) : [...current, card.uid])} />)}</div>
             <button type="button" className="prompt__mode"
@@ -6146,7 +6148,7 @@ function CombatScreenView({
               <div className="distilled-choice__cards">
                 {visibleDistilled.cards.map((card) => (
                   <Card key={card.uid} card={card} cost={0} playable
-                    drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked}
+                    drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
                     onClick={() => onAction
                       ? void onAction({ kind: 'chooseDistilledCard', cardUid: card.uid })
                       : onChange?.(chooseDistilledCard(state, viewerId, card.uid))} />
@@ -6168,7 +6170,7 @@ function CombatScreenView({
             <div className="choice-modal__cards">
               {activeStartTurnScry.cards.map((card) => (
                 <Card key={card.uid} card={card} selected={startTurnScryPicked.includes(card.uid)}
-                  drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked}
+                  drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
                   onClick={chooseStartTurnScryCard} />
               ))}
               {activeStartTurnScry.cards.length === 0 ? <span className="muted">No cards were revealed.</span> : null}
@@ -6192,7 +6194,7 @@ function CombatScreenView({
             <p>Choose a card from your hand. This choice is private.</p>
             <div className="choice-modal__cards">
               {activeStartTurnDiscard.cards.map((card) => (
-                <Card key={card.uid} card={card} drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked}
+                <Card key={card.uid} card={card} drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
                   onClick={() => void finishStartTurnDiscard(card)} />
               ))}
             </div>
@@ -6285,7 +6287,7 @@ function CombatScreenView({
               {pending.choiceCards.map((card) => <div key={card.uid}
                 className={pending.choice?.kind === 'scryToHand' ? 'choice-modal__card-option' : undefined}>
                 <Card card={card} selected={pending.picked.includes(card.uid) || pending.scryToHandUid === card.uid}
-                  drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked}
+                  drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
                   onClick={onChoiceCardClick} />
                 {pending.choice?.kind === 'scryToHand' && (scryPlay
                   ? scryPlayEligible(card) || pending.scryToHandUid === card.uid : effectiveCombatCardDef(
@@ -6363,7 +6365,7 @@ function CombatScreenView({
               className="end-turn-effect end-turn-effect--card"
               card={startTurnEffectCard}
               drawLocked={state.players.find(player => player.id === startTurnEffectSource.playerId)?.drawLocked}
-              sharedDrawLocked={sharedDrawLocked}
+              sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
               playable={canResolveStartTurn}
               selected={armedEndTurnAbilityId === startTurnEffectSource.id}
               onClick={() => activateEndTurnEffect(startTurnEffectSource)}
@@ -6449,7 +6451,7 @@ function CombatScreenView({
               className="end-turn-effect end-turn-effect--card"
               card={endTurnEffectCard}
               drawLocked={state.players.find(player => player.id === endTurnEffect.playerId)?.drawLocked}
-              sharedDrawLocked={sharedDrawLocked}
+              sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
               playable={canResolveEndTurn && endTurnChoiceTargets.length === 0}
               selected={armedEndTurnAbilityId === endTurnEffect.id ||
                 (endTurnEffect.orbChoice && endTurnEffectDrag?.targetUid != null)}
@@ -7221,7 +7223,7 @@ function CombatScreenView({
           {effect ? viewer.hand.map((card) => {
             const selected = dieRelicCardUids.includes(card.uid)
             return <Card key={card.uid} card={card} selected={selected}
-              drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} onClick={() => setDieRelicCardUids((current) =>
+              drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn} onClick={() => setDieRelicCardUids((current) =>
               selected ? current.filter((uid) => uid !== card.uid) : current.length < required
                 ? [...current, card.uid] : current)} />
           }) : null}
@@ -7266,7 +7268,7 @@ function CombatScreenView({
             <p>Choose a card from your hand. This choice is private.</p>
             <div className="choice-modal__cards">
               {viewer.hand.map((card) => (
-                <Card key={card.uid} card={card} drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked}
+                <Card key={card.uid} card={card} drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
                   onClick={() => submitPlayerChoice({ discardUid: card.uid })} />
               ))}
             </div>
@@ -7302,7 +7304,7 @@ function CombatScreenView({
           <section className="distilled-choice slayer-reveal" role="dialog" aria-labelledby="slayer-reveal-title"
             data-slayer-choice="ritualDagger">
             <Card card={{ uid: `slayer-reveal-${slayerChoice.cardUid}`, defId: slayerChoice.revealed, upgraded: false }}
-              drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked}
+              drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
               immediateArt accessibleNote="revealed only to you" />
             <div className="slayer-reveal__text">
               <h2 id="slayer-reveal-title">Ritual Dagger+</h2>
@@ -7370,7 +7372,7 @@ function CombatScreenView({
             </button>
           ) : null}
           <CardCollectionOverlay cards={viewer.draw} label="Draw pile" dataPile="draw" ordered={false}
-            drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked}
+            drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
             triggerClassName={['pile', motionActive.has('draw')
               ? `motion-pulse-${motionBeats.draw % 2}` : ''].filter(Boolean).join(' ')}>
             <img className="pile__stack" src={assetPath('combat/piles/draw.webp')} alt="" />
@@ -7383,7 +7385,7 @@ function CombatScreenView({
               ['exhaust', 'Exhaust pile', viewer.exhaust],
             ] as const).map(([kind, label, cards]) => (
               <CardCollectionOverlay key={kind} cards={cards} label={label} dataPile={kind}
-                drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked}
+                drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
                 triggerClassName={['pile', motionActive.has(kind)
                   ? `motion-pulse-${motionBeats[kind] % 2}` : ''].filter(Boolean).join(' ')}>
                 <img className="pile__stack" src={assetPath(`combat/piles/${kind}.webp`)} alt="" />
@@ -7434,7 +7436,7 @@ function CombatScreenView({
               shortcutKey={!cardTarget && !cardInteraction.session && index < 10 ? String((index + 1) % 10) : undefined}
               liveDamage={chamberCard ? undefined : cardDamage.get(card.uid)}
               drawLocked={viewer.drawLocked}
-              sharedDrawLocked={sharedDrawLocked}
+              sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
               card={chamberCard ? displayedCard : shownCard}
               gemPowerDamage={attachedGemId !== card.attachedGemId || undefined}
               cost={card.uid === forcedCardUid ? 0 : playCost(def, cardViewer, displayedCard)}
@@ -7502,7 +7504,7 @@ function CombatScreenView({
           <Card card={flight.card} playable={false} immediateArt />
         </div>
       ))}
-      <CardInteractionLayer interaction={cardInteraction} drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked}
+      <CardInteractionLayer interaction={cardInteraction} drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
         damage={cardInteraction.session ? cardDamage.get(cardInteraction.session.card.uid) : undefined} />
       {endTurnEffectDrag ? (
         <>
@@ -7524,7 +7526,7 @@ function CombatScreenView({
             aria-hidden="true" inert>
             {endTurnEffectDragCard ? <Card card={endTurnEffectDragCard} playable={false} immediateArt
               drawLocked={state.players.find(player => player.id === endTurnEffect?.playerId)?.drawLocked}
-              sharedDrawLocked={sharedDrawLocked} />
+              sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn} />
               : endTurnEffectDragRelicId ? (
                 <img className="item-icon-image" src={relicIconPath(endTurnEffectDragRelicId)} alt="" />
               )

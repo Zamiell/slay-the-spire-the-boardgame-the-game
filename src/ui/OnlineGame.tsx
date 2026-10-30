@@ -806,6 +806,7 @@ export function OnlineGame({ onLocal, settings, onSettings }: Props) {
           volume={settings.voiceVolume} compact />
         {viewer?.deck ? (
           <CardCollectionOverlay cards={viewer.deck} label="Current deck" triggerClassName="deck-peek__open" shortcut="d"
+            stanceChangedThisTurn={run.phase === 'combat' ? run.combat?.viewerStanceChangedThisTurn : undefined}
             drawLocked={run.phase === 'combat' && headerViewer?.drawLocked}
             sharedDrawLocked={combat?.players.filter(player => !player.dead).every(player => player.drawLocked)}>
             <img src={assetPath('menu/current-deck.webp')} alt="" />
@@ -926,6 +927,7 @@ export function OnlineGame({ onLocal, settings, onSettings }: Props) {
           courierUsedBy={run.courier.usedBy}
           onCourierReveal={run.courier.offer ? undefined : revealCourierOnline}
           drawCount={combatViewer?.drawCount}
+          viewerStanceChangedThisTurn={run.combat?.viewerStanceChangedThisTurn}
           decidedPlayerIds={snapshot.endTurnDecided}
           requiredEndTurnPlayerIds={snapshot.endTurnRequired}
           endTurnTopPlayerIds={snapshot.endTurnTopPlayerIds}

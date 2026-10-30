@@ -5278,6 +5278,7 @@ function CombatScreenView({
                   }}
                 >
                   <Icon name="miracle" size={22} />
+                  <span aria-hidden="true">x{viewer.miracles}</span>
                 </button>
                 </PotionTooltipAnchor>
               ) : null}

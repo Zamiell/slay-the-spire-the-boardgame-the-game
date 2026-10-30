@@ -27,7 +27,7 @@ try {
     const next = enterRoom(run, room)
     Object.assign(next.combat, { phase: 'player', pendingTriggers: [], startTurnProgress: undefined })
     Object.assign(next.combat.players[0], {
-      energy: 3, miracles: 2, shivs: 2, strength: 0, shivDamageBonus: 0, relics: [], powers: [], potions: [],
+      energy: 3, miracles: 3, shivs: 2, strength: 0, shivDamageBonus: 0, relics: [], powers: [], potions: [],
     })
     next.combat.enemies = [{ ...next.combat.enemies[0], uid: 'target', hp: 50, maxHp: 50, block: 0, dead: false }]
     await page.evaluate(run => window.__STS_DEBUG__.setRun(run), next)
@@ -55,10 +55,22 @@ try {
         `${screen}/${name}: reading a resource tooltip must not consume resources or arm an action`)
       return tip
     }
+    assert.equal(await miracle.innerText(), 'x3', 'the action icon must display the held Miracle count')
+    assert(await miracle.evaluate(button => {
+      const box = button.getBoundingClientRect()
+      const count = button.querySelector('span').getBoundingClientRect()
+      return count.width > 0 && count.left >= box.left && count.right <= box.right &&
+        count.top >= box.top && count.bottom <= box.bottom && box.right <= innerWidth
+    }), `${screen}: the visible Miracle count must fit inside the button`)
+    await activate(miracle)
+    await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.players[0].miracles === 2)
+    assert.equal(await miracle.innerText(), 'x2')
+    await inspect(shiv, 'Shivs: 2')
     await inspect(miracle, 'Miracles: 2')
     await activate(miracle)
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.players[0].miracles === 1)
-    assert.equal((await actor()).energy, 4)
+    assert.equal((await actor()).energy, 5)
+    assert.equal(await miracle.innerText(), 'x1')
     await inspect(shiv, 'Shivs: 2')
     await activate(shiv)
     assert.equal((await actor()).shivs, 2, 'arming a Shiv must still wait for its target')

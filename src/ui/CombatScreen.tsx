@@ -696,8 +696,11 @@ function CombatScreenView({
       !document.querySelector('dialog[open], [role="dialog"][aria-modal="true"]') &&
       (source === 'chamber' ? !chamberClosing && chamberCardCanStartDrag(card)
         : !voluntaryActionsBlocked && cardCanStartDrag(card))),
-    targetAt: (point, pickup) => pickup.mode === 'player' ? dragPlayerAt(point.x, point.y)
-      : dragTargetAt(point.x, point.y, pickup.hitsRow),
+    targetAt: (point, pickup) => {
+      if (pickup.mode === 'player') return dragPlayerAt(point.x, point.y)
+      const enemies = livingEnemies(state)
+      return enemies.length === 1 ? enemies[0]!.uid : dragTargetAt(point.x, point.y, pickup.hitsRow)
+    },
     confirm: (card, pickup, targetUid) => confirmCardPlay(card, pickup.source,
       pickup.mode === 'enemy' ? targetUid : null, pickup.mode === 'player' ? targetUid : null),
     awaitingReply: () => cardActionPending.current,

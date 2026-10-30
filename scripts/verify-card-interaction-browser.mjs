@@ -133,7 +133,7 @@ try {
     await confirmCardPlay(page)
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.players[0].block === 1)
 
-    await fixture()
+    await fixture({ enemyCount: 2 })
     const before = await snapshot()
     const origin = await lift('Strike')
     await page.locator('.card-interaction__card').waitFor()
@@ -168,6 +168,75 @@ try {
     assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.enemies[0].hp), 29)
     await page.locator('.card-interaction').waitFor({ state: 'detached' })
 
+    await fixture()
+    const soleBefore = await snapshot()
+    const soleOrigin = await lift('Strike')
+    await page.mouse.move(empty.x, empty.y, { steps: 5 })
+    await page.locator('.card-interaction[data-target="target"]').waitFor()
+    assert.equal(await snapshot(), soleBefore, 'automatic targeting must not play until release')
+    await page.mouse.move(soleOrigin.x, soleOrigin.y, { steps: 5 })
+    await page.mouse.up()
+    await page.locator('.card-interaction').waitFor({ state: 'detached' })
+    assert.equal(await snapshot(), soleBefore, 'returning a sole-enemy attack to the hand must still cancel')
+    await lift('Strike')
+    await page.mouse.move(empty.x, empty.y, { steps: 5 })
+    await page.screenshot({ path: `${output}/${screen}-sole-enemy-auto-target.png` })
+    await page.mouse.up()
+    await page.waitForFunction(() => window.__STS_DEBUG__.getState().enemies[0].hp === 29)
+    await page.locator('.card-interaction').waitFor({ state: 'detached' })
+    assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getState().players[0].energy), 8)
+
+    await fixture()
+    await lift('Strike')
+    await page.mouse.move(empty.x, empty.y, { steps: 5 })
+    await page.evaluate(() => {
+      const run = structuredClone(window.__STS_DEBUG__.getRun())
+      run.combat.enemies.push({ ...run.combat.enemies[0], uid: 'new-enemy' })
+      window.__STS_DEBUG__.setRun(run)
+    })
+    await page.waitForFunction(() => window.__STS_DEBUG__.getState().enemies.length === 2)
+    await page.mouse.up()
+    await page.locator('.card-interaction[data-stage="aiming"]').waitFor()
+    assert.deepEqual(await page.evaluate(() => window.__STS_DEBUG__.getState().enemies.map(enemy => enemy.hp)), [30, 30],
+      'a newly appeared enemy must restore the need to aim')
+    await page.keyboard.press('Escape')
+    await page.locator('.card-interaction').waitFor({ state: 'detached' })
+
+    await fixture({ enemyCount: 2 })
+    await lift('Strike')
+    await page.mouse.move(empty.x, empty.y, { steps: 5 })
+    await page.evaluate(() => {
+      const run = structuredClone(window.__STS_DEBUG__.getRun())
+      run.combat.enemies[0].dead = true
+      run.combat.enemies[0].hp = 0
+      window.__STS_DEBUG__.setRun(run)
+    })
+    await page.locator('.card-interaction[data-target="target-1"]').waitFor()
+    await page.mouse.up()
+    await page.waitForFunction(() => window.__STS_DEBUG__.getState().enemies[1].hp === 29)
+    await page.locator('.card-interaction').waitFor({ state: 'detached' })
+    assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getState().enemies[0].hp), 0,
+      'the sole living enemy, not the defeated one, must receive the attack')
+    if (phone) {
+      await fixture()
+      const strike = page.locator('.hand .card[data-card-name="Strike"]')
+      await settleHand()
+      const box = await strike.boundingBox()
+      const touch = await context.newCDPSession(page)
+      await touch.send('Input.dispatchTouchEvent', { type: 'touchStart',
+        touchPoints: [{ x: box.x + box.width / 2, y: box.y + box.height / 4, id: 1 }] })
+      await touch.send('Input.dispatchTouchEvent', { type: 'touchMove',
+        touchPoints: [{ x: box.x + box.width / 2, y: empty.y, id: 1 }] })
+      await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+      await page.waitForFunction(() => window.__STS_DEBUG__.getState().enemies[0].hp === 29)
+      await page.locator('.card-interaction').waitFor({ state: 'detached' })
+      await touch.detach()
+    }
+
+    await fixture({ enemyCount: 2 })
+    await pickUpCard(page, 'Strike')
+    await confirmCardPlay(page, target())
+    await page.locator('.card-interaction').waitFor({ state: 'detached' })
     await lift('Defend')
     await page.mouse.move(empty.x, empty.y, { steps: 5 })
     await page.mouse.up()

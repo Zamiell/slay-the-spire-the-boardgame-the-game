@@ -19,7 +19,7 @@ export function CardInteractionLayer({ interaction, damage }: {
     <div ref={(element) => { if (element) cardElements.current.set(current.id, element); else cardElements.current.delete(current.id) }}
       className="card-interaction__card"
       style={{ width: current.width, transform: `translate3d(${current.pose.x}px, ${current.pose.y}px, 0) translate(-50%, -50%) scale(${current.pose.scale})` }}>
-      <Card card={current.displayedCard} playable={false} immediateArt liveDamage={current === session ? damage : undefined} />
+      <Card card={current.displayedCard} cost={current.cost} playable={false} immediateArt liveDamage={current === session ? damage : undefined} />
     </div>
   </div>)}</>, document.body)
 }

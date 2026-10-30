@@ -30,7 +30,7 @@ function chargedCardEnergy(def: CardDef, player: Player, card: CardInstance): nu
 }
 export type CardPlayResult = 'submitted' | 'choosing' | 'cancelled'
 export type CardSource = 'hand' | 'chamber'
-export type CardPickup = { mode: CardInteractionMode; source: CardSource; hitsRow: boolean; displayedCard: CardInstance }
+export type CardPickup = { mode: CardInteractionMode; source: CardSource; hitsRow: boolean; displayedCard: CardInstance; cost: number | 'X' }
 
 export function describeCardPickup(state: CombatState, viewer: Player, card: CardInstance, source: CardSource): CardPickup {
   const required = state.pendingHermitChamberPlays?.[0]
@@ -42,7 +42,7 @@ export function describeCardPickup(state: CombatState, viewer: Player, card: Car
     next.card.attachedGemId, card.uid, next.energyCharged ?? undefined, staged.card.hermitDeadOn === true) ||
     next.enemyChoices > 0 || next.spentShivs + next.overflowShivs > 0
   return {
-    source, hitsRow: next.hitsRow, displayedCard: next.card,
+    source, hitsRow: next.hitsRow, displayedCard: next.card, cost: next.energyCharged ?? 'X',
     mode: enemy ? 'enemy' : next.needsAlly || next.playerIds.length < next.playerChoices ? 'player' : 'self',
   }
 }

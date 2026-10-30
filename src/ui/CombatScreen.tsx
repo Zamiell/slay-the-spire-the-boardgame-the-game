@@ -6903,6 +6903,12 @@ function CombatScreenView({
                       {occupant.cardPlayLocked ? (
                         <span className="seat__pending">No additional cards this turn</span>
                       ) : null}
+                      {(occupant.nextCardCost === 0 || occupant.nextCardCost === 2) &&
+                        occupant.relics.some(relic => relic.defId === 'snecko_eye') ? (
+                        <span className="seat__pending">{occupant.nextCardCost === 0
+                          ? 'Snecko Eye · next card is free'
+                          : 'Snecko Eye · next card costs 2 Energy'}</span>
+                      ) : null}
                       {(occupant.freeAttacksThisTurn ?? 0) > 0 ? (
                         <span className="seat__pending">Swivel · next Attack costs 0 this turn</span>
                       ) : null}

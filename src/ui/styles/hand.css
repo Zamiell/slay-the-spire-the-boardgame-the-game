@@ -283,8 +283,9 @@
 .card__live-damage[data-trend='up'] { color: #7dff8a; }
 .card__live-damage[data-trend='down'] { color: #ff7a72; }
 
-/* Slayer Pack: A card-play window's cost (Discovery's 0, Enlightenment's 1) over the printed gem. */
-.card__window-cost {
+/* Actual play prices must remain visible over full-card scans. */
+.card__window-cost,
+.card__live-cost {
   position: absolute;
   z-index: 3;
   top: 1%;
@@ -303,6 +304,25 @@
   text-shadow: 0 1px 2px #000;
   pointer-events: none;
 }
+
+.card__live-cost {
+  top: 5%;
+  left: 4%;
+  min-width: 20%;
+  min-height: 12%;
+  box-sizing: border-box;
+  justify-content: center;
+  gap: 3px;
+  background: #101820;
+  border-color: currentColor;
+}
+
+.card:has(> .card__live-cost) .card-face__cost { visibility: hidden; }
+
+.card__live-cost[data-trend='up'] { color: #ff9a92; }
+.card__live-cost[data-trend='down'] { color: #91ffa0; }
+.card__live-cost[data-trend='changed'] { color: #ffe294; }
+.card__live-cost s { font-size: 0.75em; }
 
 /* Settings > Card hints: off hides the live damage and the area-of-effect symbol everywhere. */
 html[data-card-hints='false'] :is(.card__live-damage, .card__aoe) { display: none !important; }

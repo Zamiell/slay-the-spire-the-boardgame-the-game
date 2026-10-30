@@ -78,6 +78,7 @@ const focusedUiOwners = ownerMap([
   ['src/ui/styles/shop.css', ['verify-shop-browser.mjs']],
   ['src/ui/LeaderboardScreen.tsx', ['verify-leaderboard-browser.mjs']],
   ['src/ui/CombatScreen.tsx', [
+    'verify-temporary-status-browser.mjs',
     'verify-resource-tooltips-browser.mjs',
     'verify-act-four-facing-browser.mjs', 'verify-combat-video-browser.mjs',
     'verify-unload-shivs-browser.mjs',
@@ -165,9 +166,11 @@ const focusedOnlyUiOwners = ownerMap([
     'verify-run-replay-browser.mjs',
   ]],
   ['src/ui/combat-screen/CardInteractionLayer.tsx', [
+    'verify-card-damage-preview-browser.mjs',
     'verify-card-interaction-browser.mjs', 'verify-hand-layout-browser.mjs', 'verify-combat-hand-viewport-browser.mjs',
   ]],
   ['src/ui/combat-screen/card-play.ts', [
+    'verify-card-damage-preview-browser.mjs',
     'verify-card-interaction-browser.mjs', 'verify-survivor-selection-browser.mjs', 'verify-turn-targets-browser.mjs',
     'verify-hermit-combo-browser.mjs', 'verify-hermit-load-reconnect-browser.mjs',
     'verify-run-replay-browser.mjs',

@@ -77,7 +77,7 @@ try {
         assert.equal(await card.getAttribute('aria-disabled'), 'false')
         assert.equal(await card.locator('.card-face__cost').textContent(), '1')
         assert.equal(await card.locator('.card-face__title').textContent(), 'Strike')
-        // Full scans retain their printed cost; temporary prices belong to play information.
+        // The effective price must paint above the full scan, not just its hidden fallback.
         const scannedProps = { card: { uid: 'same-mounted-card', defId: 'strike_ironclad', upgraded: false }, cost: 1 }
         await page.evaluate(props => window.renderCard(props), scannedProps)
         await card.locator('.card__art').evaluate(image => image.decode())
@@ -85,11 +85,37 @@ try {
         assert.equal(await card.locator('.card__live-cost').count(), 0)
         for (const cost of [0, 3]) {
           await page.evaluate(props => window.renderCard(props), { ...scannedProps, cost })
-          assert.equal(await card.locator('.card__live-cost').count(), 0, 'temporary costs must not cover the printed card')
+          const costBadge = card.locator('.card__live-cost')
+          assert.equal(await costBadge.textContent(), `1→${cost}`)
+          assert.equal(await costBadge.getAttribute('data-trend'), cost === 0 ? 'down' : 'up')
+          assert(await costBadge.evaluate(badge => {
+            const box = badge.getBoundingClientRect()
+            const card = badge.closest('.card').getBoundingClientRect()
+            const printedCost = { x: card.left + card.width * 0.13, y: card.top + card.height * 0.11 }
+            return box.width > 0 && box.left >= card.left && box.top >= card.top &&
+              box.right <= card.right && box.bottom <= card.bottom &&
+              box.left <= printedCost.x && box.right >= printedCost.x && box.top <= printedCost.y && box.bottom >= printedCost.y &&
+              Number(getComputedStyle(badge).zIndex) > Number(getComputedStyle(badge.parentElement.querySelector('.card__art')).zIndex)
+          }), 'the effective cost must fit on the card above its scan')
           assert.match(await card.getAttribute('aria-label'), new RegExp(`cost ${cost}`))
           await page.screenshot({ path: resolve(output, `${engineName}-${screen}-scan-cost-${cost}.png`) })
         }
         await page.evaluate(props => window.renderCard(props), scannedProps)
+        assert.equal(await card.locator('.card__live-cost').count(), 0, 'normal prices must not leave a stale overlay')
+        await page.evaluate(() => window.renderCard({
+          card: { uid: 'window', defId: 'strike_ironclad', upgraded: false, playWindowCost: 0 },
+        }))
+        assert.equal(await card.locator('.card__live-cost').textContent(), '1→0')
+        assert.equal(await card.locator('.card__window-cost').count(), 0, 'a window must not render two price overlays')
+        assert.match(await card.getAttribute('aria-label'), /cost 0/)
+        await page.evaluate(() => window.renderCard({
+          card: { uid: 'fixed-x', defId: 'whirlwind', upgraded: false }, cost: 2,
+        }))
+        assert.equal(await card.locator('.card__live-cost').textContent(), 'X→2')
+        await page.evaluate(() => window.renderCard({
+          card: { uid: 'unplayable', defId: 'daze', upgraded: false }, cost: 0,
+        }))
+        assert.equal(await card.locator('.card__live-cost').count(), 0, 'unplayable cards must not look free')
         await page.route('**/cards-sm/ironclad__starter__defend.webp', route => route.abort())
         await page.evaluate(() => window.renderCard({ card: { uid: 'same-mounted-card', defId: 'defend_ironclad', upgraded: false }, cost: 1 }))
         await page.waitForFunction(() => document.querySelector('.card__art').style.visibility === 'hidden')

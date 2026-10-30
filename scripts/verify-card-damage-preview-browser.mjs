@@ -5,6 +5,7 @@ import { createServer } from 'vite'
 import { chromium, devices, webkit } from './lib/profile-browser.mjs'
 import { postNeowRun } from './lib/post-neow-run.mjs'
 import { enterRoom } from '../src/game/run.ts'
+import { confirmCardPlay, dragCardTo, pickUpCard } from './lib/card-interactions.mjs'
 
 const root = resolve(import.meta.dirname, '..')
 const out = resolve(root, 'artifacts/card-damage-preview')
@@ -155,7 +156,7 @@ try {
         await marked.hover()
         await page.waitForTimeout(300)
         assert.equal(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun().combat)), before, `${screen}: previewing changed combat`)
-        // Snecko changes the next play's price, while each full scan keeps its printed cost.
+        // Confusion overrides even printed zero-cost cards until the first play.
         const snecko = structuredClone(combat)
         snecko.players[0].character = 'ironclad'
         const confused = snecko.combat.players[0]
@@ -169,15 +170,19 @@ try {
           .every(image => getComputedStyle(image).visibility === 'visible'))
         await page.waitForFunction(() => [...document.querySelectorAll('.hand .card')].every(card => {
           const box = card.getBoundingClientRect()
-          return box.width > 0 && box.top >= 0 && box.bottom <= innerHeight + 1 &&
+          return box.width > 0 && box.top < innerHeight && box.bottom > 0 &&
             Number(getComputedStyle(card).opacity) === 1 && card.getAnimations().every(animation => animation.playState !== 'running')
         }))
-        assert.equal(await page.locator('.hand .card__live-cost').count(), 0, 'Snecko must not cover every printed cost with its next-play price')
+        assert.deepEqual(await page.locator('.hand .card__live-cost').allTextContents(), ['0→3', '1→3', '2→3'])
+        assert(await page.locator('.hand .card__live-cost').evaluateAll(badges => badges.every(badge => {
+          const box = badge.getBoundingClientRect()
+          return box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight
+        })), 'prices must stay visible even when the parked hand extends below the viewport')
         assert((await page.locator('.hand .card').evaluateAll(cards => cards.map(card => card.getAttribute('aria-label'))))
           .every(label => label.includes('cost 3')), 'play information must still expose the actual next-play price')
         await page.mouse.move(2, 2)
         await page.screenshot({ path: resolve(out, `${engineName}-${screen}-snecko-hand.png`) })
-        await page.locator('.hand .card[aria-label^="Flex"]').click()
+        await dragCardTo(page, 'Flex')
         await page.waitForFunction(() => {
           const player = window.__STS_DEBUG__.getRun().combat.players[0]
           return player.energy === 6 && player.enemyNextCardCost === null && player.hand.length === 2
@@ -186,6 +191,38 @@ try {
         assert.match(await page.locator('.hand .card[aria-label^="Bash"]').getAttribute('aria-label'), /cost 2/)
         assert.equal(await page.locator('.hand .card__live-cost').count(), 0)
         await page.screenshot({ path: resolve(out, `${engineName}-${screen}-snecko-after-first-card.png`) })
+        await page.locator('.card-interaction').waitFor({ state: 'detached' })
+        for (const price of [2, 0]) {
+          const next = structuredClone(snecko)
+          Object.assign(next.combat.players[0], {
+            enemyNextCardCost: null, nextCardCost: price, drawLocked: true,
+            relics: [{ defId: 'snecko_eye', spent: false }],
+          })
+          await page.evaluate(run => window.__STS_DEBUG__.setRun(run), next)
+          const status = page.locator('.seat--viewer .seat__meta')
+          const explanation = price === 0 ? 'Snecko Eye · next card is free' : 'Snecko Eye · next card costs 2 Energy'
+          await status.getByText(explanation, { exact: true }).waitFor()
+          await status.getByText('Cannot draw more cards this turn', { exact: true }).waitFor()
+          assert.deepEqual(await page.locator('.hand .card__live-cost').allTextContents(),
+            price === 2 ? ['0→2', '1→2'] : ['1→0', '2→0'])
+          await page.evaluate(() => { document.documentElement.dataset.cardHints = 'false' })
+          assert(await page.locator('.hand .card__live-cost').first().isVisible(), 'actual prices are not optional card hints')
+          await page.screenshot({ path: resolve(out, `${engineName}-${screen}-snecko-eye-${price}.png`) })
+          await pickUpCard(page, 'Flex')
+          if (price === 2) {
+            assert.equal(await page.locator('.card-interaction__card .card__live-cost').textContent(), '0→2',
+              'picking up a card must retain its actual cost above the scanned art')
+          }
+          await confirmCardPlay(page)
+          await page.waitForFunction(price => {
+            const player = window.__STS_DEBUG__.getRun().combat.players[0]
+            return player.energy === 9 - price && player.nextCardCost === null && player.hand.length === 2
+          }, price)
+          assert.equal(await status.getByText(explanation, { exact: true }).count(), 0)
+          assert.equal(await page.locator('.hand .card__live-cost').count(), 0, 'the remaining cards return to their own costs')
+          await page.locator('.card-interaction').waitFor({ state: 'detached' })
+          await page.evaluate(() => { document.documentElement.dataset.cardHints = 'true' })
+        }
         assert.deepEqual(errors, [])
         await context.close()
         console.log(`${engineName}/${screen}: live card damage passed`)

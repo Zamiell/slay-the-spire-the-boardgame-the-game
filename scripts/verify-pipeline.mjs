@@ -28,7 +28,7 @@ check('card interaction modules select focused input and choice coverage instead
     assert(selected.includes('verify-card-interaction-browser.mjs'), `${file}: missing shared input coverage`)
     assert(!selected.includes('verify-browser.mjs'), `${file}: selected the legacy umbrella`)
     assert(!selected.includes('verify-combat-video-browser.mjs'), `${file}: selected unrelated video coverage`)
-    assert(selected.length <= 6, `${file}: unexpectedly broad browser coverage`)
+    assert(selected.length <= (file === 'card-play.ts' ? 7 : 6), `${file}: unexpectedly broad browser coverage`)
   }
   includesEvery(affectedBrowser('src/ui/combat-screen/card-play.ts'),
     ['verify-survivor-selection-browser.mjs', 'verify-turn-targets-browser.mjs', 'verify-hermit-load-reconnect-browser.mjs'],
@@ -75,10 +75,10 @@ check('frontend surfaces select their cores and named focused browser checks', (
     'verify-start-turn-party-browser.mjs', 'verify-start-turn-resync-browser.mjs',
     'verify-run-replay-browser.mjs', 'verify-unload-shivs-browser.mjs',
     'verify-boss-heavy-attacks-browser.mjs', 'verify-double-tap-recover-browser.mjs',
-    'verify-resource-tooltips-browser.mjs'], 'combat screen')
+    'verify-resource-tooltips-browser.mjs', 'verify-temporary-status-browser.mjs'], 'combat screen')
   assert(!combat.includes('verify-noncombat-browser.mjs'))
   assert(combat.includes('verify-card-interaction-browser.mjs'))
-  assertEqual(combat.length, 43, 'combat screen selected an unrelated browser suite')
+  assertEqual(combat.length, 44, 'combat screen selected an unrelated browser suite')
   includesEvery(affectedBrowser('src/ui/TokenRow.tsx'), ['verify-turn-targets-browser.mjs',
     'verify-row-target-browser.mjs', 'verify-combat-target-geometry-browser.mjs'], 'Orb row')
   assert(affectedBrowser('src/ui/styles/stage-scale.css').includes('verify-combat-layout-reload-browser.mjs'))

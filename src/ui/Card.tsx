@@ -19,7 +19,7 @@ type CardProps = {
   card: CardInstance
   className?: string
   style?: React.CSSProperties
-  /** Current cost after board-state reductions. */
+  /** Current cost after board-state overrides and reductions. */
   cost?: number | 'X'
   playable?: boolean
   /** Recessed combat cards reveal on the first tap, then activate on the next. */
@@ -785,6 +785,11 @@ export function Card({
   const touchNeedsInspection = useRef(false)
   const blockedMousePress = useRef(false)
   const def = faceOf(cardDef(card.defId), card.upgraded)
+  const effectiveCost = cost ?? card.playWindowCost ?? def.cost
+  const costChanged = !def.unplayable && effectiveCost !== def.cost
+  const costTrend = typeof effectiveCost === 'number' && typeof def.cost === 'number'
+    ? effectiveCost > def.cost ? 'up' : 'down'
+    : effectiveCost === 0 ? 'down' : 'changed'
   const attachedGem = card.attachedGemId ? faceOf(cardDef(card.attachedGemId), false) : null
   const skin = useCardSkin(def)
   const scan = cardThumbPath(def, card.upgraded, attachedGem ?? undefined, skin)
@@ -851,7 +856,7 @@ export function Card({
         }
         onClick?.(card)
       }}
-      aria-label={`${cardAccessibleName(def, cost)}${attachedGem
+      aria-label={`${cardAccessibleName(def, effectiveCost)}${costChanged ? `, printed cost ${def.cost}` : ''}${attachedGem
         ? `, socketed with ${attachedGem.name}: ${cardRuleDescription(attachedGem)}` : ''}${
         accessibleNote ? `, ${accessibleNote}` : ''}`}
       aria-pressed={selected || picked}
@@ -879,7 +884,7 @@ export function Card({
           setScanUnavailable(true)
         }}
       /> : null}
-      <CardFace def={def} cost={cost} rules={cardRulesText(def)} illustration={scanUnavailable} />
+      <CardFace def={def} cost={effectiveCost} rules={cardRulesText(def)} illustration={scanUnavailable} />
       {attachedGem && scanUnavailable ? <img className="card__gem" src={cardThumbPath(attachedGem, false)} alt=""
         draggable={false} title={`${attachedGem.name}: ${cardRuleDescription(attachedGem)}`} /> : null}
       {liveDamage ? (
@@ -889,7 +894,11 @@ export function Card({
           <Icon name="attack" size={14} />{liveDamage.damage}
         </span>
       ) : null}
-      {card.playWindowCost !== undefined ? (
+      {costChanged ? (
+        <span className="card__live-cost" aria-hidden="true" data-trend={costTrend}>
+          <s>{def.cost}</s><span>→</span><strong>{effectiveCost}</strong>
+        </span>
+      ) : card.playWindowCost !== undefined && !def.unplayable ? (
         // Slayer Pack: The exact cost an open card-play window charges, over the printed gem.
         <span className="card__window-cost" aria-hidden="true">
           <Icon name="energy" size={14} />{card.playWindowCost}

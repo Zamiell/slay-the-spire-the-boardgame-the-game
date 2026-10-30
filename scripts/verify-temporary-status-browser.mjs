@@ -47,11 +47,13 @@ try {
       const before = await portrait.boundingBox()
       await page.evaluate(() => {
         const run = structuredClone(window.__STS_DEBUG__.getRun())
-        Object.assign(run.combat.players[0], { strengthLossAtEndOfTurn: 1, drawLocked: true })
+        Object.assign(run.combat.players[0], { strengthLossAtEndOfTurn: 1, drawLocked: true,
+          nextCardCost: 2, relics: [{ defId: 'snecko_eye', spent: false }] })
         window.__STS_DEBUG__.setRun(run)
       })
       const statuses = seat.locator('.seat__meta')
       await statuses.getByText('Cannot draw more cards this turn', { exact: true }).waitFor()
+      await statuses.getByText('Snecko Eye · next card costs 2 Energy', { exact: true }).waitFor()
       await page.waitForFunction(() => {
         const meta = document.querySelector('.seat__meta')
         return Number.parseFloat(meta.parentElement.style.getPropertyValue('--temporary-status-height')) === meta.offsetHeight
@@ -89,7 +91,7 @@ try {
       }
       await page.evaluate(() => {
         const run = structuredClone(window.__STS_DEBUG__.getRun())
-        Object.assign(run.combat.players[0], { strengthLossAtEndOfTurn: 0, drawLocked: false })
+        Object.assign(run.combat.players[0], { strengthLossAtEndOfTurn: 0, drawLocked: false, nextCardCost: null })
         window.__STS_DEBUG__.setRun(run)
       })
       await statuses.waitFor({ state: 'hidden' })

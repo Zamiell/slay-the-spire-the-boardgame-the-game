@@ -300,7 +300,7 @@
 .combat[data-party-size='1'] .seat__meta {
   left: 50%;
   right: auto;
-  width: max(100%, 11rem);
+  width: max(100%, 22rem);
   transform: translateX(-50%);
 }
 

@@ -9956,7 +9956,7 @@ await page.locator('.enemy--targeted .enemy__hit-area').click()
 await page.waitForFunction(() => window.__STS_DEBUG__.getState().enemies[0].hp === 16)
 const clawed = await readState()
 const clawSeatLabel = await page.getByRole('button', { name: /^Defect,/ }).getAttribute('aria-label')
-const clawTokenTitle = await page.locator('.seat__status-strip .token--clawCubes').getAttribute('title')
+const clawTokenLabel = await page.locator('.seat__status-strip .token--clawCubes').getAttribute('aria-label')
 check('Collector Claw faces visibly share their combat cube scaling', () => {
   assert(clawPackLabel.includes('gain 1 Claw cube'), clawPackLabel)
   assert(clawPackLabel.includes('1 per Claw cube gained this combat'), clawPackLabel)
@@ -9965,7 +9965,7 @@ check('Collector Claw faces visibly share their combat cube scaling', () => {
   assertEqual(clawed.enemies[0].hp, 16)
   assertEqual(clawed.players[0].energy, 2)
   assert(clawSeatLabel.includes('Claw cubes 2'), clawSeatLabel)
-  assertEqual(clawTokenTitle, 'Claw cubes 2')
+  assert(clawTokenLabel.includes('Claw cubes: 2'), clawTokenLabel)
 })
 await shot('06zphgk-claw-pack-resolved')
 

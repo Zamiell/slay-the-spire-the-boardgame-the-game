@@ -3,6 +3,8 @@ import { orbEndTurnAmount } from '../game/combat.ts'
 import type { OrbType, Player } from '../game/types.ts'
 import { StatusIcon } from './Icon.tsx'
 import type { StatusIconName } from './Icon.tsx'
+import { PotionTooltipAnchor } from './PotionIcon.tsx'
+import { COMBAT_TOKEN_HELP } from './combat-token-help.ts'
 
 type TokenRowProps = {
   block?: number
@@ -39,20 +41,28 @@ export function RedCubeIcon({ size = 18 }: { size?: number }) {
 }
 
 /** Shows public combat tokens beside HP. */
-export function TokenRow(props: TokenRowProps) {
+export function TokenRow({ showHelp = false, ...props }: TokenRowProps & { showHelp?: boolean }) {
   const present = TOKENS.filter(({ key }) => (props[key] ?? 0) > 0)
   if (present.length === 0) return null
 
   return (
-    <span className="tokens" aria-hidden="true">
-      {present.map(({ key, icon, label }) => (
-        <span key={key} className={`token token--${key}`} title={`${label} ${props[key]}`}>
-          {/* No hidden label: describeSeat and describeEnemy already carry the
-              announcement, while title exposes it to pointer users. */}
+    <span className="tokens" aria-hidden={showHelp ? undefined : true}>
+      {present.map(({ key, icon, label }) => {
+        const content = <>
           {key === 'clawCubes' ? <RedCubeIcon /> : <StatusIcon name={icon} />}
           <span className="token__count">{props[key]}</span>
-        </span>
-      ))}
+        </>
+        return showHelp ? (
+          <PotionTooltipAnchor key={key} id={`combat-token-${key}`} className={`token token--${key}`}
+            focusable name={`${label}: ${props[key]}`} text={COMBAT_TOKEN_HELP[key]} kindLabel="Combat effect">
+            {content}
+          </PotionTooltipAnchor>
+        ) : (
+          <span key={key} className={`token token--${key}`} title={`${label} ${props[key]}`}>
+            {content}
+          </span>
+        )
+      })}
     </span>
   )
 }

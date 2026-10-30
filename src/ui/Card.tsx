@@ -13,6 +13,7 @@ import type { IconName, StatusIconName } from './icons.ts'
 import type { CardInstance } from '../game/types.ts'
 import type { Trigger } from '../game/triggers.ts'
 import { useButtonShortcut } from './useButtonShortcut.ts'
+import { COMBAT_TOKEN_HELP } from './combat-token-help.ts'
 
 type CardProps = {
   card: CardInstance
@@ -450,15 +451,15 @@ const CARD_KEYWORD_TIPS = [
   ['Hit', /__hit__/i, 'Damage modified by Strength, Weak, and Vulnerable.', 'attack'],
   ['Slime Hit', /__slime_hit__/, 'Only this Slime’s Strength modifies these hits; enemy Vulnerable and Slime Boss Attack modifiers do not.', 'attack'],
   ['Status', /\bstatus\b/i, 'A temporary card that leaves your deck after combat.'],
-  ['Vulnerable', /\bvulnerable\b|\[debuff\]/i, 'Each hit against this target is doubled, then removes 1 Vulnerable.', 'vulnerable'],
-  ['Weak', /\bweak\b|__weak__/i, 'Each hit this character deals gets −1 damage, then removes 1 Weak.', 'weak'],
-  ['Strength', /\bstrength\b|__strength__/i, 'Adds 1 damage to every hit for each Strength. Maximum 8.', 'strength'],
-  ['Poison', /\bpoison(?:ed)?\b|__poison__/i, 'At end of turn, the enemy loses 1 HP per Poison. Block does not stop it.', 'poison'],
-  ['Block', /\bblock(?:ed|ing)?\b|__block__/i, 'Prevents 1 damage per Block. Player Block is capped at 20.', 'block'],
+  ['Vulnerable', /\bvulnerable\b|\[debuff\]/i, COMBAT_TOKEN_HELP.vulnerable, 'vulnerable'],
+  ['Weak', /\bweak\b|__weak__/i, COMBAT_TOKEN_HELP.weak, 'weak'],
+  ['Strength', /\bstrength\b|__strength__/i, COMBAT_TOKEN_HELP.strength, 'strength'],
+  ['Poison', /\bpoison(?:ed)?\b|__poison__/i, COMBAT_TOKEN_HELP.poison, 'poison'],
+  ['Block', /\bblock(?:ed|ing)?\b|__block__/i, COMBAT_TOKEN_HELP.block, 'block'],
   ['Daze', /\bdazed?\b/i, 'A Daze is Ethereal and Unplayable.', 'daze'],
   ['Burn', /\bburn\b/i, 'If Burn remains in your hand at end of turn, take its damage.', 'burn'],
-  ['Shiv', /\bshivs?\b/i, 'Spend a Shiv to deal 1 damage as a separate hit. Shivs are not cards.', 'shiv'],
-  ['Miracle', /\bmiracles?\b/i, 'Spend a Miracle at any time to gain 1 Energy.', 'miracle'],
+  ['Shiv', /\bshivs?\b/i, COMBAT_TOKEN_HELP.shivs, 'shiv'],
+  ['Miracle', /\bmiracles?\b/i, COMBAT_TOKEN_HELP.miracles, 'miracle'],
   ['Neutral', /\bneutral\b/i, 'The Watcher’s default Stance. Entering Neutral ends Calm or Wrath; leaving it grants no extra effect.'],
   ['Calm', /\bcalm\b/i, 'Leaving Calm grants 2 Energy.'],
   ['Wrath', /\bwrath\b/i, 'Hits deal +1 damage; ending your turn in Wrath deals 1 damage to you.'],
@@ -477,7 +478,7 @@ const CARD_KEYWORD_TIPS = [
   ['Soulburn', /\bsoulburns?\b/i, 'Spend whenever you could play a card to deal damage equal to your Heat. Soulburns are not cards. Maximum 6.'],
   ['Guardian Modes', /\b(?:Attack|Defense) Mode\b/i, 'Card effects may change by Mode; being in a Mode has no passive effect by itself.'],
   ['Mode Shift', /\bmode shift\b|\[mode-shift\]/i, 'Switch between Attack Mode and Defense Mode.'],
-  ['Vigor', /\bvigor\b|\[vigor\]/i, 'Spend whenever you could play a card. Each spent Vigor adds +1 per hit in Attack Mode or +1 per Block icon in Defense Mode on your Attacks and Skills this turn. Maximum 4.'],
+  ['Vigor', /\bvigor\b|\[vigor\]/i, `Spend whenever you could play a card. ${COMBAT_TOKEN_HELP.vigorSpent} Maximum 4.`],
   ['Gem', /\bgems?\b|__guardian_gem__/i, 'A transparent Gem permanently augments the Guardian card it is attached to.'],
   ['Socket', /\bsocket\b/i, 'When you add this card to your deck, reveal and attach a Guardian Gem to it.'],
   ['Chamber', /\bchamber\b/i, 'Stores cards outside your hand. They stay between turns and can be played normally.'],

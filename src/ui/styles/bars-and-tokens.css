@@ -66,6 +66,10 @@
   color: var(--block);
 }
 
+.tokens > .potion-chip.token {
+  display: inline-flex;
+}
+
 .token--vulnerable,
 .token--weak {
   color: #d89a6f;

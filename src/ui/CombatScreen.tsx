@@ -201,6 +201,7 @@ import {
   tryClaimCardZoom,
 } from './PowerRow.tsx'
 import { RedCubeIcon, OrbRow, TokenRow, orbDisplayValue } from './TokenRow.tsx'
+import { COMBAT_TOKEN_HELP } from './combat-token-help.ts'
 import { useHandLayout } from './combat-screen/useHandLayout.ts'
 import {
   STAGE_GAP_REM,
@@ -4995,7 +4996,7 @@ function CombatScreenView({
         ? `${state.combatId}:${state.turn}` : undefined}
       onClick={(event) => {
         if (!(event.target instanceof Element) || event.target.closest(
-          'button, a, input, select, textarea, [role="button"], dialog, .card-keyword-tips, .combat__claw-cubes',
+          'button, a, input, select, textarea, [role="button"], dialog, .card-keyword-tips, .combat__claw-cubes, .seat__status-strip .potion-chip',
         )) return
         if (!pending || usingCard || pending.choiceCards || pending.card.uid === forcedCardUid ||
           (!pending.cardInHand && !pending.chamberPlay)) return
@@ -5048,7 +5049,7 @@ function CombatScreenView({
           {seenResources?.has('clawCubesGainedThisCombat') ? <PotionTooltipAnchor
             id="claw-cubes" className="combat__claw-cubes" focusable
             name={`Claw cubes: ${viewer.clawCubesGainedThisCombat ?? 0}`} kindLabel="Combat counter"
-            text="Claw (Claw Pack) gains a red cube before dealing damage. Each cube adds 1 damage to those Claws. Cubes last for this combat and are not spent.">
+            text={COMBAT_TOKEN_HELP.clawCubes}>
             <RedCubeIcon size={24} />
             <strong aria-hidden="true">x{viewer.clawCubesGainedThisCombat ?? 0}</strong>
           </PotionTooltipAnchor> : null}
@@ -7079,6 +7080,7 @@ function CombatScreenView({
                     <div className="seat__status-strip" data-guardian-mode={occupant.guardianMode ?? undefined} tabIndex={0}
                       aria-label={`${occupant.name} combat effects`}>
                       <TokenRow
+                        showHelp
                         block={occupant.block}
                         strength={occupant.strength}
                         vigorSpent={occupant.vigorSpentThisTurn}

@@ -136,14 +136,17 @@ const focusedUiOwners = ownerMap([
   ['src/ui/styles/compendium.css', ['verify-compendium-browser.mjs']],
   ['src/ui/styles/prompt.css', ['verify-hermit-combo-browser.mjs']],
   ['src/ui/TokenRow.tsx', [
+    'verify-resource-tooltips-browser.mjs',
     'verify-turn-targets-browser.mjs', 'verify-row-target-browser.mjs', 'verify-combat-target-geometry-browser.mjs',
   ]],
+  ['src/ui/styles/bars-and-tokens.css', ['verify-resource-tooltips-browser.mjs']],
   ['src/ui/styles/enemy-portrait.css', ['verify-row-target-browser.mjs', 'verify-turn-targets-browser.mjs', 'verify-end-turn-drag-browser.mjs']],
   ['src/ui/styles/presentation-overlays.css', ['verify-lightning-act2-browser.mjs']],
   ['src/ui/styles/stage-scale.css', ['verify-act-four-facing-browser.mjs', 'verify-combat-layout-reload-browser.mjs', 'verify-elite-intent-browser.mjs', 'verify-hero-potions-browser.mjs', 'verify-temporary-status-browser.mjs']],
   ['src/ui/styles/title-menu.css', ['verify-run-replay-browser.mjs', 'verify-replay-controls-browser.mjs', 'verify-title-menu-browser.mjs']],
 ])
 const focusedOnlyUiOwners = ownerMap([
+  ['src/ui/combat-token-help.ts', ['verify-resource-tooltips-browser.mjs', 'verify-card-tooltip-browser.mjs']],
   ['src/ui/combat-screen/resource-visibility.ts', ['verify-resource-tooltips-browser.mjs', 'verify-claw-cubes-browser.mjs']],
   ['src/ui/card-tooltip-position.ts', ['verify-card-tooltip-browser.mjs']],
   ['src/ui/combat-screen/card-play-requirements.ts', [

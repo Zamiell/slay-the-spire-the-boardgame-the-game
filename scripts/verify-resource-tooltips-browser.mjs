@@ -213,6 +213,54 @@ try {
       assert.equal(await button.count(), 0, 'a new fight must reset resource visibility')
     }
     assert.equal(await page.locator('.combat__claw-cubes').count(), 0)
+    const statuses = structuredClone(next)
+    statuses.combat.combatId = `status-help-${screen}`
+    Object.assign(statuses.combat.players[0], {
+      block: 3, strength: 2, vigorSpentThisTurn: 1, vulnerable: 2, weak: 1,
+      shivs: 2, miracles: 1, clawCubesGainedThisCombat: 2,
+    })
+    Object.assign(statuses.combat.enemies[0], { block: 2, poison: 3 })
+    await page.evaluate(run => window.__STS_DEBUG__.setRun(run), statuses)
+    await page.waitForFunction(id => window.__STS_DEBUG__.getRun().combat?.combatId === id, statuses.combat.combatId)
+    const statusStrip = page.locator('.row--viewer .seat__status-strip')
+    const beforeHelp = await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun()))
+    for (const [key, name, rule] of [
+      ['block', 'Block: 3', /Prevents 1 damage per Block/],
+      ['strength', 'Strength: 2', /Adds 1 damage to every hit/],
+      ['vigorSpent', 'Vigor active this turn: 1', /Each spent Vigor.*Attack Mode.*Defense Mode/],
+      ['vulnerable', 'Vulnerable: 2', /doubled.*removes 1 Vulnerable/],
+      ['weak', 'Weak: 1', /−1 damage.*removes 1 Weak/],
+      ['shivs', 'Shivs: 2', /separate hit.*not cards/],
+      ['miracles', 'Miracles: 1', /gain 1 Energy/],
+      ['clawCubes', 'Claw cubes: 2', /Each cube adds 1 damage.*not spent/],
+    ]) {
+      const token = statusStrip.locator(`.token--${key}`)
+      await token.scrollIntoViewIfNeeded()
+      assert.equal(await token.evaluate(el => Boolean(el.closest('[aria-hidden="true"]'))), false)
+      assert((await token.getAttribute('aria-label')).includes(name))
+      if (phone) await token.tap()
+      else await token.hover()
+      const tip = page.locator('.potion-tip').filter({ hasText: name })
+      await tip.waitFor()
+      assert.match(await tip.locator('.relic-tip__text').innerText(), rule)
+      assert(await tip.evaluate(el => {
+        const box = el.getBoundingClientRect()
+        return el.parentElement === document.body && box.left >= 0 && box.top >= 0 &&
+          box.right <= innerWidth && box.bottom <= innerHeight
+      }), `${screen}/${name}: status help must escape the clipped strip and fit the viewport`)
+    }
+    await page.keyboard.press('Tab')
+    await statusStrip.locator('.token--block').focus()
+    await page.locator('.potion-tip').filter({ hasText: 'Block: 3' }).waitFor()
+    await page.screenshot({ path: `${output}/${screen}-status-help.png` })
+    assert.equal(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun())), beforeHelp,
+      'hovering, focusing, or tapping status help must not change the run')
+    await page.keyboard.press('Escape')
+    await page.locator('.potion-tip').waitFor({ state: 'hidden' })
+    const enemyTokens = page.locator('[data-enemy-id="target"] .tokens')
+    assert.equal(await enemyTokens.getAttribute('aria-hidden'), 'true')
+    assert.equal(await enemyTokens.locator('[tabindex]').count(), 0,
+      'decorative enemy tokens must not introduce nested focusable controls')
     assert.deepEqual(errors, [])
     await page.close()
     console.log(`PASS ${screen}: resource tooltips, live counts including one, and unchanged activation`)

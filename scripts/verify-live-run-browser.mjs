@@ -109,13 +109,52 @@ try {
     await page.getByLabel('Pairing code', { exact: true }).fill(bridge.pairingCode)
     await page.getByRole('button', { name: 'Share this tab', exact: true }).click()
     await page.getByText('Sharing this tab, read-only.', { exact: false }).waitFor()
+    const pairedTab = (await bridge.current()).tabId
     await page.reload()
     await page.getByRole('button', { name: 'Single Player', exact: true }).waitFor()
-    await assert.rejects(bridge.current(), /disconnected|No game tab/, 'reload requires explicit consent again')
+    await page.waitForFunction(async () => (await import('/src/ui/live-run.ts')).liveRunStatus().state === 'connected')
+    const restored = await bridge.current()
+    assert.equal(restored.tabId, pairedTab, 'refresh automatically restores the same tab without opening Settings')
+    assert(restored.state.choices.some((choice) => choice.label === 'Single Player'), 'refresh returns the new screen, not cached combat')
+    assert(!JSON.stringify(restored).includes(bridge.token))
+
+    const opened = page.waitForEvent('popup')
+    await page.evaluate(() => { window.open(location.href, '_blank') })
+    const duplicate = await opened
+    await duplicate.getByRole('button', { name: 'Single Player', exact: true }).waitFor()
+    assert.equal(await duplicate.evaluate(async () => (await import('/src/ui/live-run.ts')).liveRunStatus().state), 'off',
+      'an opener-copied session does not grant another tab consent')
+    assert.equal(await duplicate.evaluate(() => sessionStorage.getItem('sts-live-run-pairing')), null)
+    await duplicate.reload()
+    await duplicate.getByRole('button', { name: 'Single Player', exact: true }).waitFor()
+    assert.equal(await duplicate.evaluate(async () => (await import('/src/ui/live-run.ts')).liveRunStatus().state), 'off')
+    assert.equal((await bridge.current()).tabId, pairedTab)
+    await duplicate.close()
+
+    await page.getByRole('button', { name: 'Settings', exact: true }).click()
+    await page.getByRole('button', { name: 'assistant', exact: true }).click()
+    await page.getByRole('button', { name: 'Stop sharing', exact: true }).click()
+    assert.equal(await page.evaluate(() => sessionStorage.getItem('sts-live-run-pairing')), null)
+    await page.reload()
+    await page.getByRole('button', { name: 'Single Player', exact: true }).waitFor()
+    await assert.rejects(bridge.current(), /disconnected|No game tab/, 'Stop sharing must survive refresh')
     assert.deepEqual(errors, [], `${screen}: no browser exceptions`)
     await page.close()
   }
-  console.log('Live-run desktop and horizontal-phone pairing, visible state, manual play, read-only behavior, and revocation passed.')
+  const blocked = await browser.newPage()
+  await blocked.addInitScript(() => {
+    const setItem = Storage.prototype.setItem
+    Storage.prototype.setItem = function (key, value) {
+      if (key === 'sts-live-run-pairing') throw new DOMException('Storage blocked', 'SecurityError')
+      return setItem.call(this, key, value)
+    }
+  })
+  await blocked.goto(origin)
+  await blocked.evaluate(async (code) => (await import('/src/ui/live-run.ts')).shareRun(code), bridge.pairingCode)
+  await blocked.waitForFunction(async () => (await import('/src/ui/live-run.ts')).liveRunStatus().message.includes('could not save'))
+  await assert.rejects(bridge.current(), /disconnected|No game tab/, 'storage failure must not silently leave sharing enabled')
+  await blocked.close()
+  console.log('Live-run desktop and horizontal-phone pairing, refresh persistence, tab isolation, read-only behavior, and revocation passed.')
 } finally {
   await browser.close()
   await bridge.close()

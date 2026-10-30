@@ -9,7 +9,8 @@ export function AssistantSettings() {
   return <section className="assistant-settings" data-webmcp-passive aria-label="Live run sharing">
     <h3>Share run with assistant</h3>
     <p>Let your local assistant read this tab's visible game information when you ask for advice.
-      It cannot play cards or change your run. Hidden cards and saved account credentials are not shared.</p>
+      It cannot play cards or change your run. Hidden cards and saved account credentials are not shared.
+      Sharing reconnects after refreshes until you select Stop sharing.</p>
     <p><code>pnpm run dev</code> starts the local companion automatically. Paste the pairing code from that terminal.
       The companion must allow this game's origin: <code>{location.origin}</code>.</p>
     {!sharing ? <form onSubmit={(event) => { event.preventDefault(); shareRun(code); setCode('') }}>
@@ -18,7 +19,8 @@ export function AssistantSettings() {
           onChange={(event) => setCode(event.target.value)} />
       </label>
       <button type="submit" className="settings-dialog__key" disabled={!code.trim()}>Share this tab</button>
-    </form> : <button type="button" className="settings-dialog__key" onClick={stopSharingRun}>Stop sharing</button>}
+    </form> : null}
+    {sharing || status.remembered ? <button type="button" className="settings-dialog__key" onClick={stopSharingRun}>Stop sharing</button> : null}
     <p role={status.state === 'error' ? 'alert' : 'status'}
       className={status.state === 'error' ? 'settings-dialog__error' : undefined}>{status.message}</p>
   </section>

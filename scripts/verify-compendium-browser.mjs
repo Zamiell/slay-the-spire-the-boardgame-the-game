@@ -16,7 +16,7 @@ suite('compendium browser')
 const server = await createServer({ root, logLevel: 'silent', server: { host: '127.0.0.1', port: 0 } })
 await server.listen()
 const browser = await chromium.launch({ headless: true })
-const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } })
 const errors = []
 page.on('pageerror', (error) => errors.push(String(error)))
 const shot = async (name) => {
@@ -41,15 +41,10 @@ const titleBandOverflow = () => page.locator('.compendium-card .card-face').firs
   title.textContent = original
   return overflow
 })
-const headerOverlaps = () => page.locator('.compendium__library header').evaluate((header) => {
-  const parts = [...header.querySelectorAll(':scope > h2, :scope > span, .compendium__toggles > *')].map((element) => [element, element.getBoundingClientRect()])
-  const overlaps = []
-  for (const [index, [a, first]] of parts.entries()) {
-    for (const [b, second] of parts.slice(index + 1)) {
-      if (first.left < second.right - 1 && first.right > second.left + 1 && first.top < second.bottom - 1 && first.bottom > second.top + 1) overlaps.push(`${a.textContent} / ${b.textContent}`)
-    }
-  }
-  return { overlaps, fits: header.scrollWidth <= header.clientWidth + 1 }
+const countFits = () => page.locator('.compendium__count').evaluate((count) => {
+  const box = count.getBoundingClientRect()
+  const library = document.querySelector('.compendium__library').getBoundingClientRect()
+  return box.left >= library.left && box.right <= innerWidth && box.bottom <= innerHeight
 })
 
 try {
@@ -88,7 +83,9 @@ try {
   const rare = page.getByRole('checkbox', { name: 'rare', exact: true })
   await rare.check()
   const rareCardLabels = await labels()
-  const rarePillLit = await page.locator('.compendium__rarity--rare').evaluate((pill) => getComputedStyle(pill).backgroundImage.includes('rgb(255, 228, 135)'))
+  const rareChecked = await rare.evaluate((input) => ({
+    checked: input.checked, mark: getComputedStyle(input, '::after').content, visible: getComputedStyle(input).opacity,
+  }))
   await rare.uncheck()
   await page.getByRole('button', { name: '0 energy', exact: true }).click()
   const zeroCostCount = await page.locator('.compendium-card').count()
@@ -104,6 +101,8 @@ try {
   await page.locator('.compendium-card').first().click()
   const detailOpen = await page.locator('.compendium__detail').count()
   const detailModal = await page.locator('.compendium__detail').evaluate((dialog) => dialog.matches(':modal'))
+  const singleCardArrowsDisabled = await page.getByRole('button', { name: 'Next card', exact: true }).isDisabled() &&
+    await page.getByRole('button', { name: 'Previous card', exact: true }).isDisabled()
   await shot('card-detail')
   await page.keyboard.press('Escape')
   await page.locator('.compendium__detail').waitFor({ state: 'detached' })
@@ -210,7 +209,7 @@ try {
       `compendium pool icons did not load: ${JSON.stringify(poolIconView)}`)
     assert(poolIconView.every((entry) => entry.border.every((width) => width === '0px')),
       `the old circular pool frames remain: ${JSON.stringify(poolIconView)}`)
-    assertDeepEqual(headings, ['Type', 'Rarity', 'Cost'], 'filter headings carry only their names')
+    assertDeepEqual(headings, ['Card Type', 'Rarity', 'Cost'], 'filter headings carry only their names')
     assertDeepEqual(slimeTypeIcon, { source: '/assets/status-icons/slime.png', loaded: true, width: 256, height: 256 })
     assert(slimeCardTypes.length > 0 && slimeCardTypes.every((type) => type === 'Slime'),
       `Slime type filter leaked other card types: ${JSON.stringify(slimeCardTypes)}`)
@@ -222,7 +221,7 @@ try {
       `card-type filtering leaked: ${powerCardLabels.join(' / ')}`)
     assert(rareCardLabels.length > 0 && rareCardLabels.every((label) => label?.endsWith(', rare')),
       `rarity filtering leaked: ${rareCardLabels.join(' / ')}`)
-    assert(rarePillLit, 'a checked rarity pill does not light up')
+    assertDeepEqual(rareChecked, { checked: true, mark: '""', visible: '1' }, 'rarity uses a visible checked box')
     assert(zeroCostCount > 0 && zeroCostCount < ironcladCardCount,
       `cost filtering did not narrow the catalog: ${zeroCostCount} / ${ironcladCardCount}`)
     assert(firstAscending !== firstDescending, 'A–Z sort did not reverse the card order')
@@ -239,6 +238,7 @@ try {
       `curse rarity filtering leaked: ${curseRarityLabels.join(' / ')}`)
     assertEqual(detailOpen, 1)
     assert(detailModal, 'card detail should use native modal semantics')
+    assert(singleCardArrowsDisabled, 'a single filtered result should disable navigation')
     assert(curseUpgradeSource?.endsWith('curses__clumsy.webp') && !curseUpgradeSource.includes('clumsy+'),
       `non-upgradable curse requested the wrong face: ${curseUpgradeSource}`)
     assert(curseImageVisible, 'the curse scan stayed hidden after changing filters')
@@ -256,13 +256,50 @@ try {
     assertEqual(forcedBackdrop, 'none', 'the archive photo stays under forced-colour controls')
   })
 
+  await page.getByRole('button', { name: 'Ironclad', exact: true }).click()
+  const orderedCards = await labels()
+  await page.locator('.compendium-card').first().click()
+  const detail = page.getByRole('dialog')
+  const detailName = () => detail.locator('.compendium__detail-card').getAttribute('aria-label')
+  const firstDetail = await detailName()
+  await page.getByRole('button', { name: 'Next card', exact: true }).click()
+  const nextDetail = await detailName()
+  await detail.locator('.compendium__detail-card').focus()
+  await page.keyboard.press('ArrowLeft')
+  const previousDetail = await detailName()
+  const cardKeepsFocus = await detail.locator('.compendium__detail-card').evaluate((card) => card === document.activeElement)
+  await page.keyboard.press('ArrowLeft')
+  const wrappedDetail = await detailName()
+  await page.keyboard.press('ArrowRight')
+  const wrappedBack = await detailName()
+  await page.keyboard.press('Escape')
+  await page.locator('.compendium-card[aria-label^="Headbutt,"]').click()
+  const normalHeadbutt = await detailName()
+  await detail.getByRole('checkbox', { name: 'View upgrades', exact: true }).check()
+  const upgradedHeadbutt = await detailName()
+  const gridUnchanged = JSON.stringify(await labels()) === JSON.stringify(orderedCards)
+  await detail.getByRole('checkbox', { name: 'View upgrades', exact: true }).uncheck()
+  await shot('desktop-inspection')
+  await detail.click({ position: { x: 10, y: 10 } })
+  await detail.waitFor({ state: 'detached' })
+  check('card inspection navigates the filtered order and previews upgrades without changing the library', () => {
+    assert(orderedCards[1].startsWith(nextDetail), `Next card left filtered order: ${nextDetail}`)
+    assertEqual(previousDetail, firstDetail, 'left arrow returns to the previous card')
+    assert(cardKeepsFocus, 'keyboard navigation must retain focus for the next arrow key')
+    assert(orderedCards.at(-1).startsWith(wrappedDetail), 'previous from the first card wraps to the last result')
+    assertEqual(wrappedBack, firstDetail, 'next from the last card wraps to the first result')
+    assert(normalHeadbutt.startsWith('Headbutt,') && upgradedHeadbutt.startsWith('Headbutt+,'), 'detail upgrade toggle changes the face')
+    assert(gridUnchanged, 'detail upgrades must not alter filters or the navigation order')
+  })
+
   await page.setViewportSize({ width: 1280, height: 800 })
+  await page.locator('.compendium__library').evaluate((library) => { library.scrollTop = 0 })
   const compact = await page.locator('.compendium').evaluate((root) => {
     const box = (element) => {
       const rect = element?.getBoundingClientRect()
       return rect && { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, width: rect.width, height: rect.height }
     }
-    const controls = [...root.querySelectorAll('.compendium__filters :is(button, .compendium__rarity, .compendium__upgrade, input[type="search"])')]
+    const controls = [...root.querySelectorAll('.compendium__filters :is(button, .compendium__rarity, .compendium__upgrade, .compendium__search)')]
     const overlaps = []
     const boxes = controls.map((element) => [element, element.getBoundingClientRect()])
     for (const [index, [a, first]] of boxes.entries()) {
@@ -277,18 +314,19 @@ try {
       viewport: box(root),
       filters: box(root.querySelector('.compendium__filters')),
       library: box(root.querySelector('.compendium__library')),
-      filtersScroll: root.querySelector('.compendium__filters').scrollHeight - root.querySelector('.compendium__filters').clientHeight,
+      filtersScroll: root.querySelector('.compendium__filter-scroll').scrollHeight - root.querySelector('.compendium__filter-scroll').clientHeight,
       cardWidth: root.querySelector('.compendium-card')?.getBoundingClientRect().width,
       wrappedPills: [...root.querySelectorAll('.compendium__rarity')]
         .filter((label) => label.scrollWidth > label.clientWidth + 1).map((label) => label.textContent),
       pillHeights: [...root.querySelectorAll('.compendium__rarity')].map((label) => label.getBoundingClientRect().height),
-      unstretchedToggles: [...root.querySelectorAll('.compendium__rarity, .compendium__upgrade')].filter((label) => {
+      clippedCheckboxes: [...root.querySelectorAll('.compendium__rarity, .compendium__upgrade')].filter((label) => {
         const input = label.querySelector('input').getBoundingClientRect()
-        return Math.abs(label.clientWidth - input.width) > 1 || Math.abs(label.clientHeight - input.height) > 1
+        const box = label.getBoundingClientRect()
+        return input.left < box.left || input.right > box.right || input.top < box.top || input.bottom > box.bottom
       }).map((label) => label.textContent),
       overlaps,
-      backBeforeSearch: Boolean(root.querySelector('.compendium__back')?.compareDocumentPosition(
-        root.querySelector('input[type="search"]')) & Node.DOCUMENT_POSITION_FOLLOWING),
+      backAfterSearch: Boolean(root.querySelector('input[type="search"]')?.compareDocumentPosition(
+        root.querySelector('.compendium__back')) & Node.DOCUMENT_POSITION_FOLLOWING),
     }
   })
   const compactTitleOverflow = await page.locator('.compendium-card .card-face__title').first().evaluate(async (title) => {
@@ -308,7 +346,7 @@ try {
     return clipped
   })
   const compactTitleBand = await titleBandOverflow()
-  const compactHeader = await headerOverlaps()
+  const compactCountFits = await countFits()
   await shot('compact-desktop')
   check('the compendium fits a minimum desktop viewport without crowding its controls', () => {
     assert(compact.filters && compact.library, `compact desktop compendium columns are missing: ${JSON.stringify(compact)}`)
@@ -318,12 +356,12 @@ try {
     assert((compact.cardWidth ?? 0) >= 100, `compact desktop cards became unreadably small: ${compact.cardWidth}`)
     assertDeepEqual(compact.wrappedPills, [], 'rarity pills clip their labels')
     assert(compact.pillHeights.every((height) => height >= 24), `rarity targets are too short: ${compact.pillHeights}`)
-    assertDeepEqual(compact.unstretchedToggles, [], 'a toggle checkbox does not cover its pill')
+    assertDeepEqual(compact.clippedCheckboxes, [], 'a checkbox is clipped by its label')
     assertDeepEqual(compact.overlaps, [], 'compendium filter controls overlap')
     assertDeepEqual(compactTitleOverflow, [], 'compact desktop compendium title clipping')
     assert(compactTitleBand <= 1, `a two-line title spills out of its band by ${compactTitleBand}px`)
-    assertDeepEqual(compactHeader, { overlaps: [], fits: true }, 'the library header crowds its controls')
-    assert(compact.backBeforeSearch, 'Back must precede Search in keyboard and source order')
+    assert(compactCountFits, 'the card count must fit at the bottom of the library')
+    assert(compact.backAfterSearch, 'Back follows the filters in visual and keyboard order')
   })
 
   await page.keyboard.press('Shift')
@@ -356,12 +394,13 @@ try {
         searchHeight: search.height,
         cardWidth: root.querySelector('.compendium-card')?.getBoundingClientRect().width,
         overflow: document.documentElement.scrollWidth > innerWidth + 1,
-        railScroll: root.querySelector('.compendium__filters').scrollHeight - root.querySelector('.compendium__filters').clientHeight,
+        footerClear: root.querySelector('.compendium__filter-scroll').getBoundingClientRect().bottom <=
+          root.querySelector('.compendium__filter-footer').getBoundingClientRect().top + 1,
         clippedPills: [...root.querySelectorAll('.compendium__rarity')].filter((label) => label.scrollWidth > label.clientWidth + 1).map((label) => label.textContent),
       }
     })
     const phoneTitleBand = await titleBandOverflow()
-    const phoneHeader = await headerOverlaps()
+    const phoneCountFits = await countFits()
     await shot(`phone-${viewport.width}x${viewport.height}`)
     check(`the compendium keeps its filter rail beside the cards at ${viewport.width}x${viewport.height}`, () => {
       assert(phone.besideRail, `the filters stacked over the library: ${JSON.stringify(phone)}`)
@@ -369,10 +408,35 @@ try {
       assert(phone.searchHeight <= 36, `the search box is oversized: ${phone.searchHeight}`)
       assert((phone.cardWidth ?? 0) >= 100, `phone cards became unreadably small: ${phone.cardWidth}`)
       assert(!phone.overflow, 'the compendium scrolls sideways')
-      assertEqual(phone.railScroll, 0, 'the filter rail has to be scrolled')
+      assert(phone.footerClear, 'scrolling filters must not overlap the pinned Back and Upgrades controls')
       assertDeepEqual(phone.clippedPills, [], 'rarity pills clip their labels')
       assert(phoneTitleBand <= 1, `a two-line title spills out of its band by ${phoneTitleBand}px`)
-      assertDeepEqual(phoneHeader, { overlaps: [], fits: true }, 'the library header crowds its controls')
+      assert(phoneCountFits, 'the card count must fit at the bottom of the library')
+    })
+    await page.locator('.compendium-card[aria-label^="Headbutt,"]').click()
+    await shot(`phone-inspection-${viewport.width}x${viewport.height}`)
+    const inspection = await detail.evaluate((dialog) => {
+      const card = dialog.querySelector('.compendium__detail-card').getBoundingClientRect()
+      const controls = [...dialog.querySelectorAll('button, .compendium__upgrade, .compendium__detail-card')]
+      return {
+        fits: controls.every((element) => {
+          const box = element.getBoundingClientRect()
+          return box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight
+        }),
+        belowCard: dialog.querySelector('.compendium__upgrade').getBoundingClientRect().top >= card.bottom,
+        besideCard: [...dialog.querySelectorAll('.compendium__detail-nav')].every((button) => {
+          const box = button.getBoundingClientRect()
+          return box.right <= card.left || box.left >= card.right
+        }),
+      }
+    })
+    await detail.getByRole('checkbox', { name: 'View upgrades', exact: true }).check()
+    assert((await detailName()).startsWith('Headbutt+,'), 'landscape upgrade control must work')
+    await page.getByRole('button', { name: 'Next card', exact: true }).click()
+    assert(!(await detailName()).startsWith('Headbutt'), 'landscape navigation must work')
+    await page.keyboard.press('Escape')
+    check(`card inspection fits and remains usable at ${viewport.width}x${viewport.height}`, () => {
+      assertDeepEqual(inspection, { fits: true, belowCard: true, besideCard: true })
     })
   }
   check('the compendium raised no page errors', () => assertDeepEqual(errors, []))

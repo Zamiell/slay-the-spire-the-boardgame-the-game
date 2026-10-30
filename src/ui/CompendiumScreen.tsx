@@ -105,6 +105,7 @@ export function CompendiumScreen({ onBack, backLabel = 'Back to main menu' }: { 
   const [ascending, setAscending] = useState(true)
   const [upgraded, setUpgraded] = useState(false)
   const [selected, setSelected] = useState<CardDef | null>(null)
+  const [detailUpgraded, setDetailUpgraded] = useState(false)
   const detailRef = useRef<HTMLDialogElement | null>(null)
 
   useEffect(() => {
@@ -133,7 +134,7 @@ export function CompendiumScreen({ onBack, backLabel = 'Back to main menu' }: { 
       return (
         <CardKeywordHelp def={face} key={card.id}>{(keywordHelpProps) => (
           <button {...keywordHelpProps} type="button" className={`compendium-card compendium-card--${card.owner}`} style={gemTint(face)}
-            onClick={() => setSelected(card)} aria-label={`${cardAccessibleName(face)}${card.pack ? ', Slayer Pack' : ''}, ${face.rarity}`}>
+            onClick={() => { setSelected(card); setDetailUpgraded(upgraded) }} aria-label={`${cardAccessibleName(face)}${card.pack ? ', Slayer Pack' : ''}, ${face.rarity}`}>
             <ScannedCardFace def={face} upgraded={showUpgrade} />
             {card.pack ? <PackBadge /> : null}
           </button>
@@ -148,73 +149,80 @@ export function CompendiumScreen({ onBack, backLabel = 'Back to main menu' }: { 
     else next.add(value)
     return next
   })
-  const selectedFace = selected ? faceOf(selected, upgraded && Boolean(selected.upgrade)) : null
+  const selectedFace = selected ? faceOf(selected, detailUpgraded && Boolean(selected.upgrade)) : null
+  const navigateDetail = (direction: number) => {
+    const index = cards.findIndex((card) => card.id === selected?.id)
+    const next = cards[(index + direction + cards.length) % cards.length]
+    if (index >= 0 && cards.length > 1 && next) setSelected(next)
+  }
 
   return (
     <main className="compendium">
       <aside className="compendium__filters">
-        <header className="compendium__head">
-          <button type="button" className="compendium__back ribbon-back" onClick={onBack} aria-label={backLabel}><span aria-hidden="true"></span></button>
-          <h1>Compendium</h1>
-        </header>
-        <label className="compendium__search">
-          <span className="visually-hidden">Search cards</span>
-          <input type="search" placeholder="Search" value={search}
-            onChange={(event) => setSearch(event.target.value)} />
-          {search ? <button type="button" onClick={() => setSearch('')} aria-label="Clear search">×</button> : null}
-        </label>
-        <div className="compendium__pools" role="group" aria-label="Card pool">
-          {POOLS.map((entry) => (
-            <button key={entry.id} type="button" title={entry.label} aria-label={entry.label}
-              aria-pressed={pool === entry.id} onClick={() => setPool(entry.id)}>
-              <img src={assetPath(`menu/compendium-icons/${entry.id}.webp`)} alt="" />
-            </button>
-          ))}
+        <h1 className="visually-hidden">Compendium</h1>
+        <div className="compendium__filter-scroll">
+          <label className="compendium__search">
+            <span className="visually-hidden">Search cards</span>
+            <input type="search" placeholder="Search" value={search}
+              onChange={(event) => setSearch(event.target.value)} />
+            <button type="button" onClick={() => setSearch('')} aria-label="Clear search" disabled={!search}>×</button>
+          </label>
+          <div className="compendium__pools" role="group" aria-label="Card pool">
+            {POOLS.map((entry) => (
+              <button key={entry.id} type="button" title={entry.label} aria-label={entry.label}
+                aria-pressed={pool === entry.id} onClick={() => setPool(entry.id)}>
+                <img src={assetPath(`menu/compendium-icons/${entry.id}.webp`)} alt="" />
+              </button>
+            ))}
+          </div>
+          <section className="compendium__filter-block">
+            <h2>Card Type</h2>
+            <div className="compendium__types" role="group" aria-label="Card type">
+              <button type="button" aria-label="All card types" aria-pressed={type === 'all'} onClick={() => setType('all')}>All</button>
+              <button type="button" aria-label="Attack cards" aria-pressed={type === 'attack'} onClick={() => setType('attack')}><StatusIcon name="attack" /></button>
+              <button type="button" aria-label="Skill cards" aria-pressed={type === 'skill'} onClick={() => setType('skill')}><StatusIcon name="block" /></button>
+              <button type="button" aria-label="Power cards" aria-pressed={type === 'power'} onClick={() => setType('power')}><StatusIcon name="power" /></button>
+              <button type="button" aria-label="Slime cards" aria-pressed={type === 'slime'} onClick={() => setType('slime')}><StatusIcon name="slime" /></button>
+            </div>
+          </section>
+          <section className="compendium__filter-block">
+            <h2>Rarity</h2>
+            <div className="compendium__checks">
+              {RARITIES.map(({ id, label }) => (
+                <label key={id} className={`compendium__rarity compendium__rarity--${id}`}>
+                  <input type="checkbox" aria-label={id === 'special' ? 'Other' : id} checked={rarities.has(id)}
+                    onChange={() => toggleRarity(id)} />{label}
+                </label>
+              ))}
+            </div>
+          </section>
+          <section className="compendium__filter-block">
+            <h2>Cost</h2>
+            <div className="compendium__segments" role="group" aria-label="Energy cost">
+              {(['all', '0', '1', '2', '3+', 'X'] as const).map((value) => (
+                <button type="button" key={value} aria-label={value === 'all' ? 'All energy costs' : `${value} energy`}
+                  aria-pressed={cost === value} onClick={() => setCost(value)}>{value === 'all' ? 'All' : value}</button>
+              ))}
+            </div>
+          </section>
+          <button type="button" className="compendium__sort" aria-label={ascending ? 'Sorted A–Z' : 'Sorted Z–A'}
+            onClick={() => setAscending((value) => !value)}>
+            {ascending ? 'A–Z' : 'Z–A'} <span aria-hidden="true">{ascending ? '↓' : '↑'}</span>
+          </button>
         </div>
-        <section className="compendium__filter-block">
-          <h2>Type</h2>
-          <div className="compendium__types" role="group" aria-label="Card type">
-            <button type="button" aria-label="All card types" aria-pressed={type === 'all'} onClick={() => setType('all')}>All</button>
-            <button type="button" aria-label="Attack cards" aria-pressed={type === 'attack'} onClick={() => setType('attack')}><StatusIcon name="attack" /></button>
-            <button type="button" aria-label="Skill cards" aria-pressed={type === 'skill'} onClick={() => setType('skill')}><StatusIcon name="block" /></button>
-            <button type="button" aria-label="Power cards" aria-pressed={type === 'power'} onClick={() => setType('power')}><StatusIcon name="power" /></button>
-            <button type="button" aria-label="Slime cards" aria-pressed={type === 'slime'} onClick={() => setType('slime')}><StatusIcon name="slime" /></button>
-          </div>
-        </section>
-        <section className="compendium__filter-block">
-          <h2>Rarity</h2>
-          <div className="compendium__checks">
-            {RARITIES.map(({ id, label }) => (
-              <label key={id} className={`compendium__rarity compendium__rarity--${id}`}>
-                <input type="checkbox" aria-label={id === 'special' ? 'Other' : id} checked={rarities.has(id)}
-                  onChange={() => toggleRarity(id)} />{label}
-              </label>
-            ))}
-          </div>
-        </section>
-        <section className="compendium__filter-block">
-          <h2>Cost</h2>
-          <div className="compendium__segments" role="group" aria-label="Energy cost">
-            {(['all', '0', '1', '2', '3+', 'X'] as const).map((value) => (
-              <button type="button" key={value} aria-label={value === 'all' ? 'All energy costs' : `${value} energy`}
-                aria-pressed={cost === value} onClick={() => setCost(value)}>{value === 'all' ? 'All' : value}</button>
-            ))}
-          </div>
-        </section>
+        <footer className="compendium__filter-footer">
+          <button type="button" className="compendium__back ribbon-back" onClick={onBack} aria-label={backLabel}><span aria-hidden="true"></span></button>
+          <label className="compendium__upgrade">
+            <input type="checkbox" aria-label="View upgrades" checked={upgraded} onChange={(event) => setUpgraded(event.target.checked)} />
+            View Upgrades
+          </label>
+        </footer>
       </aside>
 
       <section className="compendium__library" aria-labelledby="library-title">
         <header>
-          <h2 id="library-title">{POOLS.find((entry) => entry.id === pool)?.label}</h2>
-          <span aria-live="polite">{cards.length} {cards.length === 1 ? 'card' : 'cards'}</span>
-          <div className="compendium__toggles">
-            <button type="button" className="compendium__sort" aria-label={ascending ? 'Sorted A–Z' : 'Sorted Z–A'}
-              onClick={() => setAscending((value) => !value)}>{ascending ? 'A–Z' : 'Z–A'}</button>
-            <label className="compendium__upgrade">
-              <input type="checkbox" aria-label="View upgrades" checked={upgraded} onChange={(event) => setUpgraded(event.target.checked)} />
-              Upgrades
-            </label>
-          </div>
+          <h2 id="library-title" className="visually-hidden">{POOLS.find((entry) => entry.id === pool)?.label}</h2>
+          <span className="compendium__count" aria-live="polite">{cards.length} {cards.length === 1 ? 'card' : 'cards'}</span>
         </header>
         {grid}
         {cards.length === 0 ? <p className="compendium__empty">No cards match these filters.</p> : null}
@@ -223,15 +231,39 @@ export function CompendiumScreen({ onBack, backLabel = 'Back to main menu' }: { 
       {selectedFace ? (
         <dialog ref={detailRef} className="compendium__detail"
           aria-label={`${cardAccessibleName(selectedFace)}, ${selectedFace.rarity}, card detail`}
+          onClick={(event) => { if (event.target === event.currentTarget) detailRef.current?.close() }}
+          onKeyDown={(event) => {
+            if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+              event.preventDefault()
+              navigateDetail(event.key === 'ArrowLeft' ? -1 : 1)
+            }
+          }}
           onClose={() => setSelected(null)}>
-          <button type="button" onClick={() => detailRef.current?.close()} aria-label="Close card detail">×</button>
-          <CardKeywordHelp def={selectedFace}>{(keywordHelpProps) => (
-            <span {...keywordHelpProps} className="compendium__detail-card" role="group" tabIndex={0} style={gemTint(selectedFace)}
-              aria-label={cardAccessibleName(selectedFace)}>
-              <ScannedCardFace def={selectedFace} upgraded={upgraded && Boolean(selected?.upgrade)} full />
-            </span>
-          )}</CardKeywordHelp>
-          {selected?.pack ? <p className="compendium__detail-pack">{CARD_PACKS[selected.pack].name} · sold in the Shop</p> : null}
+          <button type="button" className="compendium__detail-close" onClick={() => detailRef.current?.close()} aria-label="Close card detail">×</button>
+          <div className="compendium__detail-stage">
+            <button type="button" className="compendium__detail-nav compendium__detail-nav--previous" aria-label="Previous card"
+              disabled={cards.length < 2} onClick={() => navigateDetail(-1)}>
+              <svg viewBox="0 0 100 110" aria-hidden="true"><path d="M88 7 Q94 3 94 13 L94 97 Q94 107 85 102 L9 61 Q0 55 9 49 Z" /></svg>
+            </button>
+            <CardKeywordHelp def={selectedFace}>{(keywordHelpProps) => (
+              <span {...keywordHelpProps} className="compendium__detail-card" role="group" tabIndex={0} style={gemTint(selectedFace)}
+                aria-label={cardAccessibleName(selectedFace)}>
+                <ScannedCardFace key={`${selected?.id}:${detailUpgraded}`} def={selectedFace} upgraded={detailUpgraded && Boolean(selected?.upgrade)} full />
+              </span>
+            )}</CardKeywordHelp>
+            <button type="button" className="compendium__detail-nav compendium__detail-nav--next" aria-label="Next card"
+              disabled={cards.length < 2} onClick={() => navigateDetail(1)}>
+              <svg viewBox="0 0 100 110" aria-hidden="true"><path d="M88 7 Q94 3 94 13 L94 97 Q94 107 85 102 L9 61 Q0 55 9 49 Z" /></svg>
+            </button>
+          </div>
+          <footer className="compendium__detail-footer">
+            <label className="compendium__upgrade">
+              <input type="checkbox" aria-label="View upgrades" checked={detailUpgraded}
+                onChange={(event) => setDetailUpgraded(event.target.checked)} />
+              View Upgrades
+            </label>
+            {selected?.pack ? <p className="compendium__detail-pack">{CARD_PACKS[selected.pack].name} · sold in the Shop</p> : null}
+          </footer>
         </dialog>
       ) : null}
     </main>

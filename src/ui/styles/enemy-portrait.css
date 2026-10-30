@@ -204,12 +204,14 @@
 
 /* Each pile is a little stack of cards with a number on it — the same object
    it is on the table, rather than a labelled field. */
+.combat { --pile-size: clamp(4rem, 5vw, 6rem); }
+
 .pile {
   position: relative;
   display: inline-grid;
   align-items: center;
-  min-width: 2.8rem;
-  min-height: 2.6rem;
+  min-width: var(--pile-size);
+  min-height: var(--pile-size);
   padding: 0;
   border: 0;
   background: none;
@@ -219,8 +221,8 @@
 
 .pile__stack {
   grid-area: 1 / 1;
-  width: 2.55rem;
-  height: 2.55rem;
+  width: var(--pile-size);
+  height: var(--pile-size);
   object-fit: contain;
 }
 
@@ -229,13 +231,13 @@
   grid-area: 1 / 1;
   align-self: end;
   justify-self: end;
-  min-width: 1.25rem;
-  padding: 0.02rem 0.22rem;
+  min-width: 1.35em;
+  padding: 0.08em 0.25em;
   border-radius: 999px;
   color: #fff7db;
   background: #b43b25;
   box-shadow: 0 1px 2px #000;
-  font-size: 0.78rem;
+  font-size: clamp(1rem, 1.25vw, 1.5rem);
   font-variant-numeric: tabular-nums;
   line-height: 1.15;
   text-align: center;

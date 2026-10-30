@@ -208,7 +208,7 @@
   position: absolute;
   z-index: 8;
   left: clamp(0.75rem, 2vw, 2rem);
-  bottom: 4.1rem;
+  bottom: calc(var(--pile-size) + 1.2rem);
   display: grid;
   place-items: center;
   width: 4.25rem;
@@ -494,7 +494,6 @@
   .hand .card:hover::after { height: 60%; }
 
   .pip--energy {
-    bottom: 4rem;
     width: 3.4rem;
     height: 3.4rem;
   }
@@ -516,7 +515,11 @@
   /* The bottom lane belongs to the hand, Energy and piles on landscape phones. */
   .combat__end-turn { top: 3.8rem; right: 1rem; bottom: auto; }
   /* Summoned parties raise their owner, so use the reserved bottom HUD lane. */
-  .combat:has(.slime-party) .combat__end-turn { top: auto; right: 10rem; bottom: 1rem; }
+  .combat:has(.slime-party) .combat__end-turn {
+    top: auto;
+    right: max(10rem, calc(var(--pile-size) * 2 + 2.5rem));
+    bottom: 1rem;
+  }
   /* The resolve button holds the top-right corner, so the order docks under
      it in the right lane the hand leaves free, compact, and stops above the
      piles: a longer list scrolls rather than reaching the hand. */

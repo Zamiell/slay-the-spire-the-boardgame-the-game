@@ -1548,6 +1548,7 @@ for (const fixture of [
       tokenSize: token?.width,
       powerSize: power?.width,
       powerGlyphSize: powerGlyph?.width,
+      coarsePointer: matchMedia('(pointer: coarse)').matches,
     }
   })
   await page.evaluate(() => {
@@ -2819,7 +2820,8 @@ check('Downfall player status icons stay below HP with accessible Power targets'
   for (const [character, layout] of Object.entries(downfallStatusLayouts)) {
     assert(layout.clearOfHp && layout.inViewport && layout.inBoard,
       `${character} status icons overlap HP or leave the board: ${JSON.stringify(layout)}`)
-    assert(layout.powerSize >= 44 && Math.abs(layout.tokenSize - layout.powerGlyphSize) < 1,
+    assert(layout.powerSize >= (layout.coarsePointer ? 44 : 24) &&
+      (layout.coarsePointer ? layout.powerSize - layout.powerGlyphSize <= 5 : Math.abs(layout.tokenSize - layout.powerGlyphSize) < 1),
       `${character} Power glyph or hit target is incorrectly sized: ${JSON.stringify(layout)}`)
   }
   assert(slimeDesktopStatusLayout?.belowHp && slimeDesktopStatusLayout.inBoard,

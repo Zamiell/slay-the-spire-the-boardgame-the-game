@@ -245,7 +245,7 @@
 
 .seat__status-strip .power {
   display: grid;
-  width: 2.75rem;
+  width: 1.5rem;
   height: 2.75rem;
   place-items: start center;
   border: 0;
@@ -263,8 +263,14 @@
 }
 
 .seat__status-strip .power__counter {
-  right: 0.65rem;
+  right: 0.1rem;
   bottom: 0.65rem;
+}
+
+@media (pointer: coarse) {
+  .seat__status-strip .power { width: 2.75rem; }
+  .seat__status-strip .power > .icon { width: 2.5rem; height: 2.5rem; }
+  .seat__status-strip .power__counter { bottom: 0.1rem; }
 }
 
 .seat__status-strip .power::after {

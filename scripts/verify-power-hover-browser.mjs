@@ -81,6 +81,63 @@ try {
     }
   }
 
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.mouse.move(0, 0)
+  await page.evaluate(() => {
+    const run = structuredClone(window.__STS_DEBUG__.getRun())
+    run.combat.players[0].powers = [
+      { uid: 'compact-fury', defId: 'simmering_fury', upgraded: false },
+      { uid: 'compact-buffer', defId: 'buffer', upgraded: true, counter: 1 },
+    ]
+    window.__STS_DEBUG__.setRun(run)
+  })
+  await page.waitForFunction(() => document.querySelectorAll('.row__seat .power').length === 2)
+  const compactRun = await page.evaluate(() => window.__STS_DEBUG__.getRun())
+  const spacing = page => page.locator('.row--viewer .powers').evaluate(powers => {
+    const cells = [...powers.querySelectorAll('.power')].map(power => power.getBoundingClientRect())
+    const glyphs = [...powers.querySelectorAll('.power > .icon')].map(icon => icon.getBoundingClientRect())
+    const counter = powers.querySelector('.power__counter').getBoundingClientRect()
+    return {
+      gap: glyphs[1].left - glyphs[0].right,
+      minWidth: Math.min(...cells.map(cell => cell.width)),
+      minHeight: Math.min(...cells.map(cell => cell.height)),
+      overlap: cells[0].right > cells[1].left + 0.5,
+      counterFits: counter.left >= cells[1].left && counter.right <= cells[1].right &&
+        counter.top >= cells[1].top && counter.bottom <= cells[1].bottom,
+    }
+  })
+  const desktopSpacing = await spacing(page)
+  await page.screenshot({ path: 'artifacts/power-hover-desktop-spacing.png' })
+  check('desktop Power glyphs sit close together without overlapping controls or counters', () => {
+    assert(desktopSpacing.gap >= 0 && desktopSpacing.gap <= 5, JSON.stringify(desktopSpacing))
+    assert(desktopSpacing.minWidth >= 24 && !desktopSpacing.overlap && desktopSpacing.counterFits, JSON.stringify(desktopSpacing))
+  })
+
+  const phone = await browser.newPage({ viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true })
+  phone.on('pageerror', error => errors.push(String(error)))
+  await phone.goto(`http://localhost:${address.port}`)
+  for (const name of ['Single Player', 'Standard', 'Embark', 'Start standard campaign']) {
+    await phone.getByRole('button', { name, exact: true }).click()
+  }
+  await phone.waitForFunction(() => window.__STS_DEBUG__?.getRun()?.phase === 'neow')
+  await phone.evaluate(run => window.__STS_DEBUG__.setRun(run), compactRun)
+  await phone.waitForFunction(() => document.querySelectorAll('.row__seat .power').length === 2)
+  const phoneSpacing = await spacing(phone)
+  check('touch Power glyphs fill their targets instead of leaving a misleading gap', () => {
+    assert(phoneSpacing.gap >= 0 && phoneSpacing.gap <= 5, JSON.stringify(phoneSpacing))
+    assert(phoneSpacing.minWidth >= 44 && phoneSpacing.minHeight >= 44 &&
+      !phoneSpacing.overlap && phoneSpacing.counterFits, JSON.stringify(phoneSpacing))
+  })
+  for (const power of await phone.locator('.row__seat .power').all()) {
+    await power.tap()
+    await phone.locator('.power__zoom').waitFor()
+    assert(await power.getAttribute('aria-expanded') === 'true', 'touch inspection must still open the chosen Power')
+    await phone.keyboard.press('Escape')
+    await phone.locator('.power__zoom').waitFor({ state: 'hidden' })
+  }
+  await phone.screenshot({ path: 'artifacts/power-hover-phone-spacing.png' })
+  await phone.close()
+
   check('every Power stays clickable and opens a full card outside the board at supported sizes', () => {
     assert(probes.length === 24, `expected 24 probes, got ${probes.length}`)
     for (const probe of probes) {

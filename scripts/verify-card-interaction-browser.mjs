@@ -27,7 +27,7 @@ try {
     }
     await page.waitForFunction(() => window.__STS_DEBUG__?.getRun().phase === 'neow')
     let nonce = 0
-    const fixture = async ({ skill = 'defend_ironclad', doubled = 0, party = false, chamber = false, phase = 'player', scryCards, slimes } = {}) => {
+    const fixture = async ({ skill = 'defend_ironclad', doubled = 0, party = false, chamber = false, phase = 'player', scryCards, slimes, enemyCount = 1 } = {}) => {
       const run = postNeowRun(47, [{ id: 'p1', name: 'Player', character: slimes ? 'slime_boss' : chamber ? 'hermit' : 'ironclad' },
         ...party ? [{ id: 'p2', name: 'Silent', character: 'silent' }] : []])
       const room = run.map.rows[0][0]
@@ -59,9 +59,8 @@ try {
         actor.discard = [{ uid: 'scry-discard', defId: 'defend_ironclad', upgraded: false }]
         actor.powers = [{ uid: 'nirvana', defId: 'nirvana', upgraded: false }]
       }
-      next.combat.enemies = [
-        { ...next.combat.enemies[0], uid: 'target', hp: 30, maxHp: 30, block: 0, dead: false },
-      ]
+      next.combat.enemies = Array.from({ length: enemyCount }, (_, index) =>
+        ({ ...next.combat.enemies[0], uid: index === 0 ? 'target' : `target-${index}`, hp: 30, maxHp: 30, block: 0, dead: false }))
       if (chamber) actor.chamber = [{ uid: 'chamber-defend', defId: 'hermit_defend', upgraded: false }]
       await page.evaluate((run) => window.__STS_DEBUG__.setRun(run), next)
       await page.waitForFunction((id) => window.__STS_DEBUG__.getRun().combat?.combatId === id, next.combat.combatId)
@@ -349,8 +348,8 @@ try {
     const bruiser = bruiserSlime('command-bruiser')
     const taunting = { ...bruiserSlime('command-taunting'),
       card: { uid: 'command-taunting', defId: 'slime_boss_taunting_slime', upgraded: false } }
-    for (const slimes of [[bruiser], [taunting], [bruiser, taunting]]) {
-      await fixture({ skill: 'slime_boss_lick', slimes })
+    for (const [slimes, enemyCount] of [[[bruiser], 1], [[taunting], 1], [[bruiser, taunting], 1], [[bruiser], 2]]) {
+      await fixture({ skill: 'slime_boss_lick', slimes, enemyCount })
       await pickUpCard(page, 'Lick')
       await confirmCardPlay(page)
       const chooseBruiser = page.locator('.prompt').getByRole('button', { name: 'Bruiser Slime · level 1', exact: true })
@@ -362,10 +361,13 @@ try {
           'a sole required Slime must not need a redundant selection')
       }
       if (slimes[0].card.defId === 'slime_boss_bruiser_slime') {
-        assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getState().enemies[0].hp), 30,
-          'automatic Slime selection must preserve enemy targeting')
-        await target().click()
-        await page.waitForFunction(() => window.__STS_DEBUG__.getState().enemies[0].hp === 29)
+        if (enemyCount > 1) {
+          assert.deepEqual(await page.evaluate(() => window.__STS_DEBUG__.getState().enemies.map(enemy => enemy.hp)), [30, 30],
+            'multiple enemies must still wait for an explicit target')
+          await page.locator('[data-enemy-id="target-1"] .enemy__hit-area').click()
+        }
+        await page.waitForFunction(index => window.__STS_DEBUG__.getState().enemies[index].hp === 29, enemyCount - 1)
+        if (enemyCount > 1) assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getState().enemies[0].hp), 30)
       } else {
         await page.waitForFunction(() => window.__STS_DEBUG__.getState().players[0].block === 1)
       }

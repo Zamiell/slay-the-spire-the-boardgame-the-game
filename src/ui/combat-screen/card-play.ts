@@ -143,6 +143,11 @@ export function createCardPlayCoordinator(options: Options) {
         slimeChoiceIsAvailable(def, state, viewer, onlySlime.card.uid, next.effectEnergy ?? 0))) {
       next = { ...next, slimeUids: [onlySlime.card.uid], slimeChoiceConfirmed: true }
     }
+    const commandEnemies = livingEnemies(state)
+    if (commandEnemies.length === 1 && (!next.slimeChoice || next.slimeChoiceConfirmed)) {
+      const count = slimeEnemyChoicesRequired(next)
+      next = { ...next, slimeEnemyUids: Array<string>(count).fill(commandEnemies[0]!.uid) }
+    }
     if (def.id === 'dual_cast') {
       const choice = nextEvokeChoice(def, viewer!, next.evokeSlots, state.die, next.mode ?? undefined, next.effectEnergy ?? 0)
       if (choice?.options.length === 1) next = withEvokeSlot(next, choice.options[0]!.slot)

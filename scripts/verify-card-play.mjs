@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
 import { createCardPlayCoordinator, describeCardPickup } from '../src/ui/combat-screen/card-play.ts'
 import { pendingFor } from '../src/ui/combat-screen/card-play-requirements.ts'
-import { createCombat } from '../src/game/combat.ts'
+import { createCombat, slimeCommandEnemyChoiceCount } from '../src/game/combat.ts'
+import { cardDef, faceOf } from '../src/game/cards.ts'
 import { createPlayer } from '../src/game/run.ts'
 import { createRng } from '../src/game/rng.ts'
 import { bruiserSlime } from '../src/game/downfall/slime-boss.ts'
@@ -132,5 +133,37 @@ for (const [label, slimes, upgraded, automatic] of [
     assert.deepEqual(pending.slimeUids, [])
   }
   assert.deepEqual(state, before, `${label}: automatic selection must not mutate combat`)
+}
+const firstEnemy = structuredClone(state.enemies[0])
+for (const [label, enemies, repeated, automatic] of [
+  ['sole enemy', [firstEnemy], false, true],
+  ['multiple enemies', [firstEnemy, { ...firstEnemy, uid: 'other' }], false, false],
+  ['sole living enemy', [{ ...firstEnemy, dead: true, hp: 0 }, { ...firstEnemy, uid: 'survivor' }], false, true],
+  ['repeated Commands', [firstEnemy], true, true],
+]) {
+  commits = []
+  pending = null
+  state.enemies = enemies
+  viewer.slimes = [bruiserSlime('only')]
+  viewer.hand = repeated
+    ? [card('slime_boss_ooze_bath'), card('slime_boss_haunting_lick'),
+      card('slime_boss_haunting_lick', { uid: 'second-retain' })]
+    : [card('slime_boss_lick')]
+  const commandTargets = next => slimeCommandEnemyChoiceCount(
+    faceOf(cardDef(next.card.defId), next.card.upgraded), state, viewer, next.slimeUids)
+  const before = structuredClone(state)
+  createCardPlayCoordinator({ ...options, pending: null,
+    slimeEnemyChoicesRequired: commandTargets,
+    downfallChoicesReady: next => next.slimeChoiceConfirmed &&
+      next.slimeEnemyUids.length === commandTargets(next),
+  }).confirm(viewer.hand[0], 'hand')
+  assert.equal(commits.length, Number(automatic), label)
+  if (automatic) {
+    assert.deepEqual(commits[0].slimeEnemyUids,
+      Array(repeated ? 2 : 1).fill(enemies.find(enemy => !enemy.dead).uid), label)
+  } else {
+    assert.deepEqual(pending.slimeEnemyUids, [], 'multiple enemies still require a target choice')
+  }
+  assert.deepEqual(state, before, `${label}: automatic targeting must not mutate combat`)
 }
 console.log('PASS confirmed play coordination, choice readiness, private previews and cancellation')

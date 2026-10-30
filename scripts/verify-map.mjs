@@ -373,7 +373,7 @@ suite('run')
 
 check('combat completion refreshes combat relics without replenishing room or finite-use limits', () => {
   const refreshing = [...new Set([
-    ...Object.values(RELICS).filter(relic => relic.activation === 'oncePerCombat').map(relic => relic.id),
+    ...Object.values(RELICS).filter(relic => relic.activation === 'oncePerCombat' || relic.oncePerCombat).map(relic => relic.id),
     ...TURN_REFRESH_RELICS,
   ])]
   for (const phase of ['won', 'lost']) {

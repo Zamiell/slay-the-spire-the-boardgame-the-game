@@ -75,7 +75,6 @@ export function canActivateRelic(state: CombatState, player: Player, relicIndex:
   if (state.pendingRelicScry) return ownScry
   if (heldId === 'centennial_puzzle' && !player.lostHpThisCombat ||
     heldId === 'mummified_hand' && !player.powerPlayedThisTurn ||
-    heldId === 'red_skull' && !player.shuffledThisCombat ||
     heldId === 'self_forming_clay' && !player.lostHpThisCombat ||
     heldId === 'holy_water' && (held.cubes ?? 0) < 1 ||
     heldId === 'charons_ashes' && (state.die > 2 || publicHandCount(player) === 0) ||
@@ -145,7 +144,6 @@ export function activateRelic(
   if (heldId === 'blue_candle' && cards.length > 2) return state
   if (heldId === 'centennial_puzzle' && !player.lostHpThisCombat) return state
   if (heldId === 'mummified_hand' && !player.powerPlayedThisTurn) return state
-  if (heldId === 'red_skull' && !player.shuffledThisCombat) return state
   if (heldId === 'self_forming_clay' && !player.lostHpThisCombat) return state
   if (heldId === 'holy_water' && (held.cubes ?? 0) < 1) return state
   if (heldId === 'gambling_chip' && context.die !== undefined) return state
@@ -204,7 +202,6 @@ export function activateRelic(
     }, 'self', 'self', shivContext, source)
     if (shivContext.invalidShivTarget) return state
   }
-  else if (heldId === 'red_skull') actor.strength = gainStrength(actor.strength, 1)
   else if (heldId === 'runic_pyramid') {
     for (const card of actor.hand) {
       if (cards.includes(card.uid)) card.retainThisTurn = true

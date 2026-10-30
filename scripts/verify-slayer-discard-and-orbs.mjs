@@ -424,7 +424,8 @@ check('Reboot discards the hand, shuffles the discard pile into the draw pile, d
     const hand = strikes(2)
     const discard = strikes(2)
     const draw = strikes(3)
-    const state = combat([player({ hand: [reboot, ...hand], draw, discard })])
+    const state = combat([player({ hand: [reboot, ...hand], draw, discard,
+      relics: [{ defId: 'red_skull', spent: false }] })])
     const after = play(state, 'p1', reboot)
     const me = who(after)
     assertEqual(me.hand.length, 5, 'draw 5 cards')
@@ -432,6 +433,8 @@ check('Reboot discards the hand, shuffles the discard pile into the draw pile, d
     assertEqual(me.discard.length, 0)
     assertDeepEqual(uids(me.exhaust), [reboot.uid], 'Reboot Exhausts on both faces')
     assertEqual(me.shuffledThisCombat, true, 'it is a shuffle for Red Skull')
+    assertEqual(me.strength, 1, 'the explicit shuffle automatically triggers Red Skull')
+    assertEqual(me.relics[0].spent, true)
     assert(after.discardedThisTurn.includes('p1'), 'the hand was discarded by a card effect')
     assertDeepEqual(uids(who(play(state, 'p1', reboot)).hand), uids(me.hand), 'the shuffle is seeded and replayable')
   }
@@ -453,10 +456,13 @@ check('Reboot fires discard reactions and shuffle Powers, after the card finishe
 
 check('Reboot with nothing in hand, draw or discard pile shuffles nothing: no onShuffle, no Red Skull shuffle', () => {
   const reboot = card('slayer_reboot')
-  const state = combat([player({ hand: [reboot], powers: [card('a_thousand_cuts')] })])
+  const state = combat([player({ hand: [reboot], powers: [card('a_thousand_cuts')],
+    relics: [{ defId: 'red_skull', spent: false }] })])
   const after = play(state, 'p1', reboot)
   assert(after !== state, 'Reboot is still playable')
   assertEqual(who(after).shuffledThisCombat, false, 'no shuffle is recorded')
+  assertEqual(who(after).strength, 0)
+  assertEqual(who(after).relics[0].spent, false, 'an empty shuffle must not consume Red Skull')
   assertEqual(hpOf(after), 30, 'A Thousand Cuts does not answer a shuffle that never happened')
   assertEqual(after.rng.calls, state.rng.calls, 'and no shuffle is rolled')
   assertDeepEqual(uids(who(after).exhaust), [reboot.uid])

@@ -5,6 +5,8 @@
 // share one dispatcher, so these also cover the relic side reacting to events.
 import {
   MAX_TRIGGER_DEPTH,
+  activateRelic,
+  canActivateRelic,
   beginEndPlayerTurn,
   createCombat,
   endPlayerTurn,
@@ -19,6 +21,7 @@ import {
 import { CARDS, faceOf } from '../src/game/cards.ts'
 import { triggerMatches } from '../src/game/triggers.ts'
 import { createRng } from '../src/game/rng.ts'
+import { drawInto, flushPendingTriggers } from '../src/game/combat/effects.ts'
 import { suite, check, assert, assertDeepEqual, assertEqual, report } from './lib/harness.mjs'
 
 let uid = 0
@@ -727,6 +730,44 @@ check('the Start of Turn reshuffle fires an on-shuffle Power', () => {
   )
   assertEqual(state.players[0].hand.length, 5, 'the empty draw pile was refilled')
   assertEqual(state.players[0].strength, 1, 'and the reshuffle fired the Power')
+})
+
+check('Red Skull automatically grants Strength on the first shuffle, including queued shuffles', () => {
+  for (const queued of [false, true]) {
+    const state = combat([
+      player({ draw: deck(1), discard: deck(2), relics: [{ defId: 'red_skull', spent: false }] }),
+      player({ id: 'p2', relics: [{ defId: 'red_skull', spent: false }] }),
+    ], [enemy()])
+    const actor = state.players[0]
+    assertEqual(canActivateRelic(state, actor, 0), false)
+    assertEqual(activateRelic(state, actor.id, 0), state, 'Red Skull is not a manual action')
+    const pending = queued ? [] : undefined
+    drawInto(state, actor, 1, pending)
+    assertEqual(actor.strength, 0, 'drawing without shuffling must not spend Red Skull')
+    assertEqual(actor.relics[0].spent, false)
+    drawInto(state, actor, 1, pending)
+    actor.draw = []
+    actor.discard = deck(2)
+    drawInto(state, actor, 1, pending)
+    if (pending) {
+      state.pendingTriggers.push(...pending)
+      flushPendingTriggers(state)
+    }
+    assertEqual(actor.strength, 1, 'multiple shuffle events must grant Strength only once')
+    assertEqual(actor.relics[0].spent, true)
+    assertEqual(state.pendingTriggers.length, 0, 'no confirmation should be required')
+    assertEqual(state.players[1].strength, 0, 'another player must not receive the bonus')
+    assertEqual(state.players[1].relics[0].spent, false)
+  }
+})
+
+check('Red Skull also automatically resolves a start-of-turn reshuffle', () => {
+  const state = startPlayerTurn(combat([
+    player({ draw: [], discard: deck(10), relics: [{ defId: 'red_skull', spent: false }] }),
+  ], [enemy()]))
+  assertEqual(state.players[0].strength, 1)
+  assertEqual(state.players[0].relics[0].spent, true)
+  assertEqual(state.phase, 'player')
 })
 
 check('the shuffle fires in the MIDDLE of the draw that caused it', () => {

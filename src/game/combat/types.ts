@@ -800,6 +800,7 @@ export type TriggerSource = {
   scope: TargetScope
   supportScope: TargetScope
   oncePerTurn: boolean
+  relicIndex?: number
   powerUid?: string
 }
 

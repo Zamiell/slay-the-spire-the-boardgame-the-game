@@ -51,6 +51,8 @@ export type RelicDef = {
   abilities?: RelicAbility[]
   /** A face-down relic is restored at the printed boundary. */
   activation?: 'oncePerCombat' | 'oncePerRoom'
+  /** Automatic triggers consume the relic's combat use without a manual activation. */
+  oncePerCombat?: boolean
   /** Finite uses printed on the component; the instance owns the remaining count. */
   uses?: number
   /** Cubes supplied by the relic at the start of combat. */
@@ -272,9 +274,9 @@ ordinary({ id: 'pocketwatch', name: 'Pocketwatch', cost: 9,
 ordinary({ id: 'red_mask', name: 'Red Mask', cost: 7,
   trigger: { kind: 'dieRelic', faces: [5, 6] }, effects: [{ kind: 'applyWeak', amount: 1 }],
   text: 'On a 5 or 6: apply 1 Weak.' })
-ordinary({ id: 'red_skull', name: 'Red Skull', cost: 9, effects: [], activation: 'oncePerCombat',
-  rule: 'Gain 1 Strength if you shuffled your draw pile this combat.',
-  text: 'Once per combat: gain 1 Strength if you shuffled your draw pile this combat.' })
+ordinary({ id: 'red_skull', name: 'Red Skull', cost: 9, oncePerCombat: true,
+  trigger: { kind: 'onShuffle' }, effects: [{ kind: 'gainStrength', amount: 1 }],
+  text: 'Once per combat: automatically gain 1 Strength when you shuffle your draw pile.' })
 ordinary({ id: 'regal_pillow', name: 'Regal Pillow', cost: 6, effects: [],
   rule: 'When you Rest, heal 3 additional HP.', text: 'When you Rest: heal 3 additional HP.' })
 ordinary({ id: 'runic_pyramid', name: 'Runic Pyramid', cost: 6, effects: [], activation: 'oncePerCombat',
@@ -557,7 +559,7 @@ export const TURN_REFRESH_RELICS: ReadonlySet<string> = new Set([
 export function refreshCombatRelic(relic: RelicInstance): RelicInstance {
   const def = relicDef(relic.defId)
   let ready = relic
-  if (relic.spent && (def.activation === 'oncePerCombat' || TURN_REFRESH_RELICS.has(relic.defId))) {
+  if (relic.spent && (def.activation === 'oncePerCombat' || def.oncePerCombat || TURN_REFRESH_RELICS.has(relic.defId))) {
     ready = { ...ready, spent: false }
   }
   if (def.cubes !== undefined && relic.cubes !== def.cubes) ready = { ...ready, cubes: def.cubes }

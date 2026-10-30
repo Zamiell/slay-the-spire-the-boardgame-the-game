@@ -7,6 +7,7 @@ import { enterRoom } from '../src/game/run.ts'
 import { canActivateRelic } from '../src/game/combat.ts'
 import { createRelicInstance, RELICS } from '../src/game/relics.ts'
 import { relicIconPath } from '../src/game/assets.ts'
+import { pickUpCard, confirmCardPlay } from './lib/card-interactions.mjs'
 
 const output = 'artifacts/relic-action-icons'
 mkdirSync(output, { recursive: true })
@@ -78,6 +79,26 @@ try {
       }
     }
     assert.deepEqual(manualIds.filter(id => !seen.has(id)), [], 'every activatable relic must be exercised')
+
+    const skull = structuredClone(base)
+    Object.assign(skull.combat, { phase: 'player', turn: 2, combatId: `red-skull-${screen}`,
+      pendingTriggers: [], startTurnProgress: undefined })
+    Object.assign(skull.combat.players[0], {
+      relics: [createRelicInstance('red_skull')], strength: 0, energy: 3, draw: [],
+      hand: [{ uid: 'shuffle-draw', defId: 'shrug_it_off', upgraded: false }],
+      discard: [{ uid: 'reshuffled', defId: 'strike_ironclad', upgraded: false }],
+    })
+    await page.evaluate(run => window.__STS_DEBUG__.setRun(run), skull)
+    const skullChip = page.locator('.app-shell__header .relic-chip[data-relic="red_skull"]')
+    await skullChip.waitFor()
+    assert.equal(await page.getByRole('button', { name: /^Use Red Skull/ }).count(), 0)
+    await pickUpCard(page, 'Shrug It Off')
+    await confirmCardPlay(page)
+    await page.waitForFunction(() => window.__STS_DEBUG__.getState().players[0].strength === 1)
+    await page.locator('.card-interaction').waitFor({ state: 'detached' })
+    assert.match(await skullChip.getAttribute('aria-label'), /Face down/)
+    assert.equal(await page.getByRole('button', { name: /^Use Red Skull/ }).count(), 0)
+    assert(await page.evaluate(() => window.__STS_DEBUG__.getState().players[0].hand.some(card => card.uid === 'reshuffled')))
 
     const candle = structuredClone(base)
     Object.assign(candle.combat, { phase: 'start', turn: 2, die: 3, combatId: `candle-${screen}`,

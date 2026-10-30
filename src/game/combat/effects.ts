@@ -4324,6 +4324,7 @@ export function triggerSourceById(player: Player, id: string): TriggerSource | u
     const held = Number.isInteger(index) ? player.relics[index] : undefined
     if (!held) return undefined
     const def = relicDef(held.defId)
+    if (def.oncePerCombat && held.spent) return undefined
     const ability = relicAbilities(def)[Number(abilityText ?? 0)]
     if (!ability) return undefined
     return {
@@ -4335,6 +4336,7 @@ export function triggerSourceById(player: Player, id: string): TriggerSource | u
       scope: ability.target ?? 'enemy',
       supportScope: ability.supportTarget ?? 'self',
       oncePerTurn: false,
+      relicIndex: index,
     }
   }
   if (!id.startsWith('power:')) return undefined
@@ -4558,6 +4560,11 @@ export function resolveTriggerSource(
     if (chosen.length !== required || new Set(chosen).size !== chosen.length ||
       chosen.some((uid) => !player.hand.some((card) => card.uid === uid))) return false
   } else if (exhaustUids !== undefined) return false
+  const relic = source.relicIndex === undefined ? undefined : player.relics[source.relicIndex]
+  if (relic && relicDef(relic.defId).oncePerCombat) {
+    if (relic.spent) return true
+    relic.spent = true
+  }
   const useKey = source.powerUid ? powerAbilityKey(player.id, source.powerUid) : `${player.id}/${source.id}`
   if (source.oncePerTurn) {
     const used = (state.powerTriggersUsedThisTurn ??= [])

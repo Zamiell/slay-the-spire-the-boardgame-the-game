@@ -6003,10 +6003,17 @@ function CombatScreenView({
             const heldId = held.defId.replace(/^downfall_/, '')
             const reroute = ['dollys_mirror', 'nilrys_codex', 'loaded_die'].includes(heldId)
             if (!canUseRelicNow(relicIndex)) return []
+            const choiceSummary = (confirmLabel?: string) =>
+              <PotionTooltipAnchor as="summary" className="relic-action__icon" id={held.defId}
+                name={def.name} text={def.text} kindLabel="Relic" confirmLabel={confirmLabel}
+                aria-label={`Use ${def.name}: ${def.text}`}>
+                <img className="item-icon-image" src={relicIconPath(held.defId)} alt="" />
+                <span className="visually-hidden">{def.name}</span>
+              </PotionTooltipAnchor>
             if (held.defId === 'golden_eye') return [simpleAction]
             if (held.defId === 'gambling_chip') return [simpleAction]
             if (held.defId === 'fuel_canister') return [<details key={relicIndex}>
-              <summary>{def.name}</summary><p className="room-item-text">{def.text}</p>
+              {choiceSummary()}<p className="room-item-text">{def.text}</p>
               <div className="campfire__deck">{viewer.hand.map((card) => <Card key={card.uid} card={card}
                 drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked}
                 selected={relicCardUids[0] === card.uid} onClick={() => setRelicCardUids([card.uid])} />)}</div>
@@ -6014,14 +6021,14 @@ function CombatScreenView({
                 onClick={() => useRelic(relicIndex, { cardUids: relicCardUids })}>Exhaust and gain Energy</button>
             </details>]
             if (held.defId === 'shot_glass') return [<details key={relicIndex}>
-              <summary>{def.name}</summary><p className="room-item-text">{def.text}</p>
+              {choiceSummary()}<p className="room-item-text">{def.text}</p>
               {viewer.potions.map((potionId, index) => <button type="button" key={`${potionId}-${index}`}
                 onClick={() => useRelic(relicIndex, { discardPotionId: potionId })}>
                 Discard {potionDef(potionId).name}
               </button>)}
             </details>]
             if (held.defId === 'blue_candle' || held.defId === 'runic_pyramid') return [<details key={relicIndex}>
-              <summary>{def.name}</summary><p className="room-item-text">{def.text}</p>
+              {choiceSummary()}<p className="room-item-text">{def.text}</p>
               {held.defId === 'runic_pyramid' ? <p className="room-item-text">Choose the cards to keep for your next turn.</p> : null}
               <div className="campfire__deck">{viewer.hand.map((card) => <Card key={card.uid} card={card}
                 drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked}
@@ -6034,12 +6041,7 @@ function CombatScreenView({
               </button>
             </details>]
             if (held.defId === 'charons_ashes') return [<details key={relicIndex}>
-              <PotionTooltipAnchor as="summary" className="relic-action__icon" id={held.defId}
-                name={def.name} text={def.text} kindLabel="Relic" confirmLabel="choose a card and target"
-                aria-label={`Use ${def.name}: ${def.text}`}>
-                <img className="item-icon-image" src={relicIconPath(held.defId)} alt="" />
-                <span className="visually-hidden">{def.name}</span>
-              </PotionTooltipAnchor>
+              {choiceSummary('choose a card and target')}
               <p className="room-item-text">{def.text}</p>
               <div className="campfire__deck">{viewer.hand.map((card) => <Card key={card.uid} card={card}
                 drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked}
@@ -6054,7 +6056,7 @@ function CombatScreenView({
               const amount = def.effects.find((effect) => effect.kind === 'gainShiv')?.amount ?? 2
               const overflow = overflowShivCount(state, amount)
               if (overflow === 0) return [simpleAction]
-              return [<details key={relicIndex}><summary>{def.name}</summary><p className="room-item-text">{def.text}</p>
+              return [<details key={relicIndex}>{choiceSummary()}<p className="room-item-text">{def.text}</p>
                 <p>Choose {overflow} immediate Shiv target{overflow === 1 ? '' : 's'}.</p>
                 {state.enemies.filter((enemy) => !enemy.dead).map((enemy) => <button type="button" key={enemy.uid}
                   onClick={() => setRelicShivEnemyUids((current) => current.length < overflow
@@ -6072,12 +6074,7 @@ function CombatScreenView({
             if (reroute) {
               const face = heldId === 'nilrys_codex' ? 2 : null
               return [<details key={relicIndex}>
-                {heldId === 'loaded_die' ? <PotionTooltipAnchor as="summary" className="relic-action__icon" id={held.defId}
-                  name={def.name} text={def.text} kindLabel="Relic" confirmLabel="choose a relic ability"
-                  aria-label={`Use ${def.name}: ${def.text}`}>
-                  <img className="item-icon-image" src={relicIconPath(held.defId)} alt="" />
-                  <span className="visually-hidden">{def.name}</span>
-                </PotionTooltipAnchor> : <summary>{def.name}</summary>}
+                {choiceSummary(heldId === 'loaded_die' ? 'choose a relic ability' : undefined)}
                 <p className="room-item-text">{def.text}</p>
                 <DieRelicChoiceList state={state}
                   choices={dieRelicChoices(state, { skip: (owner, targetRelicIndex, faces) =>

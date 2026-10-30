@@ -216,7 +216,7 @@ const sourceExtensions = ['', '.ts', '.tsx', '.mjs', '.js']
 const sharedBrowserOwners = ['verify-browser.mjs', 'verify-noncombat-browser.mjs', 'verify-online-browser.mjs']
 const onlineBrowserOwners = ['verify-online-browser.mjs', 'verify-hosted-multiplayer-browser.mjs', 'verify-multiplayer-resume-browser.mjs']
 const stylesheetBrowserOwners = (file) => file === 'src/ui/styles/hand.css'
-  ? ['verify-card-cancel-browser.mjs', 'verify-combat-hand-viewport-browser.mjs',
+  ? ['verify-enemy-card-cube-browser.mjs', 'verify-card-cancel-browser.mjs', 'verify-combat-hand-viewport-browser.mjs',
     'verify-combat-player-clipping-browser.mjs', 'verify-end-turn-drag-browser.mjs', 'verify-card-damage-preview-browser.mjs']
   : file === 'src/ui/styles/combat.css' || file === 'src/ui/styles/painterly-combat-stage.css'
     ? ['verify-courier-browser.mjs', ...(file.endsWith('painterly-combat-stage.css') ? ['verify-elite-intent-browser.mjs', 'verify-hero-potions-browser.mjs', 'verify-end-turn-drag-browser.mjs'] : [])]

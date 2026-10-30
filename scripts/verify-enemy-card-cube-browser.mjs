@@ -48,8 +48,20 @@ try {
       else await enemy.hover()
       await tip.waitFor()
       await tip.locator('img').evaluate(image => image.decode())
+      assert(await tip.locator('.card-keyword-image-frame').evaluate(frame => {
+        const edge = getComputedStyle(frame, '::after')
+        const box = frame.getBoundingClientRect()
+        const image = frame.querySelector('img').getBoundingClientRect()
+        return edge.content !== 'none' && edge.borderTopStyle === 'solid' &&
+          parseFloat(edge.borderTopWidth) >= 2 && edge.borderTopColor === 'rgb(232, 207, 145)' &&
+          edge.pointerEvents === 'none' && edge.position === 'absolute' &&
+          Math.abs(box.width - image.width) < 1 && Math.abs(box.height - image.height) < 1 &&
+          box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight
+      }), `${screen}: the card preview needs a visible frame without resizing its image or intercepting input`)
       return tip.locator('.enemy-card-cube')
     }
+    await inspect('chosen_14', 0)
+    await page.screenshot({ path: `${output}/${screen}-chosen-frame.png` })
     for (const index of [0, 1, 2, 0]) {
       const cube = await inspect('time_eater', index)
       assert.equal(await cube.getAttribute('data-action-index'), String(index))

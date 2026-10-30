@@ -217,8 +217,9 @@ check('shared frontend changes use cores plus named visual owners', () => {
     'verify-combat-stage-scan-browser.mjs',
     'verify-row-target-browser.mjs', 'verify-wing-and-throw-browser.mjs', 'verify-elite-signatures-browser.mjs',
     'verify-card-damage-preview-browser.mjs', 'verify-unload-shivs-browser.mjs',
-    'verify-boss-heavy-attacks-browser.mjs', 'verify-slime-hover-browser.mjs'], 'hand stylesheet')
-  assertEqual(hand.length, 31, 'hand stylesheet selected an unrelated browser suite')
+    'verify-boss-heavy-attacks-browser.mjs', 'verify-slime-hover-browser.mjs',
+    'verify-enemy-card-cube-browser.mjs'], 'hand stylesheet')
+  assertEqual(hand.length, 32, 'hand stylesheet selected an unrelated browser suite')
   includesEvery(affectedBrowser('src/ui/styles/presentation-overlays.css'), [
     'verify-browser.mjs', 'verify-noncombat-browser.mjs', 'verify-online-browser.mjs',
     'verify-lightning-act2-browser.mjs',

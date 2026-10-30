@@ -389,6 +389,17 @@ html[data-card-hints='false'] :is(.card__live-damage, .card__aoe) { display: non
 }
 
 .card-keyword-image-frame { display: block; position: relative; flex: 0 0 auto; }
+/* Overlay the frame so printed-square coordinates remain aligned with the cube. */
+.card-keyword-image-frame::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border: 3px solid #e8cf91;
+  border-radius: 7px;
+  box-shadow: inset 0 0 0 1px #101820;
+  pointer-events: none;
+}
 .enemy-card-cube {
   position: absolute;
   aspect-ratio: 1;

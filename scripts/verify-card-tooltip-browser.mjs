@@ -85,6 +85,34 @@ try {
       await page.keyboard.press('Escape')
       await tooltip.waitFor({ state: 'hidden' })
     }
+    const beforeDeck = await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun()))
+    await page.getByRole('button', { name: /^Current deck,/ }).click()
+    const deck = page.getByRole('dialog', { name: 'Current deck', exact: true })
+    for (const upgraded of [false, true]) {
+      if (upgraded) await deck.getByLabel('Current deck upgrade preview').check()
+      const card = deck.locator(`.card[title="${upgraded ? 'Survivor+' : 'Survivor'}"]`)
+      await card.hover()
+      const id = await card.getAttribute('data-keyword-help-id')
+      const tip = deck.locator(`[id=${JSON.stringify(id)}]`)
+      await tip.waitFor()
+      assert.match(await tip.innerText(), /Block/)
+      assert(await tip.evaluate(tip => {
+        const card = document.querySelector(`[data-keyword-help-id="${CSS.escape(tip.id)}"]`).getBoundingClientRect()
+        const box = tip.getBoundingClientRect()
+        return tip.closest('dialog')?.open && Math.abs(box.left - card.right - 9) < 2 &&
+          Math.abs(box.top - Math.max(8, Math.min(card.top, innerHeight - box.height - 8))) < 2
+      }), `${screen}: deck help must appear beside the card inside the modal's top layer`)
+      assert.equal(await card.getAttribute('aria-disabled'), 'true')
+      const box = await card.boundingBox()
+      await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
+      assert.equal(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun())), beforeDeck,
+        'inspecting a deck card must not play it or modify the run')
+      await page.screenshot({ path: `${output}/${screen}-deck${upgraded ? '-upgraded' : ''}.png` })
+    }
+    await deck.locator('.card-keyword-tips[data-open]').waitFor()
+    await page.keyboard.press('Escape')
+    await deck.waitFor({ state: 'hidden' })
+    assert.equal(await page.locator('.card-collection .card-keyword-tips[data-open]').count(), 0)
     assert.deepEqual(errors, [])
     await page.close()
     console.log(`PASS ${screen}: card-side tooltip alignment, animation tracking and upward overflow`)

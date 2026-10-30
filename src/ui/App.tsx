@@ -382,6 +382,12 @@ export function App() {
     const cardOf = (target: EventTarget | null) => target instanceof Element
       ? target.closest<HTMLElement>('[data-keyword-help-id]') : null
     const tooltipOf = (card: HTMLElement) => document.getElementById(card.dataset.keywordHelpId ?? '')
+    const helpAvailable = (card: HTMLElement) => {
+      const modal = document.activeElement?.closest('dialog:modal') ??
+        [...document.querySelectorAll('dialog:modal')].at(-1) ??
+        [...document.querySelectorAll('[role="dialog"][aria-modal="true"]')].at(-1)
+      return card.isConnected && card.getClientRects().length > 0 && (!modal || modal.contains(card))
+    }
     const cardForTooltip = (target: EventTarget | null) => {
       const tooltip = target instanceof Element ? target.closest<HTMLElement>('.card-keyword-tips') : null
       return tooltip?.id
@@ -461,6 +467,7 @@ export function App() {
         dismissed = null
         return hide()
       }
+      if (!helpAvailable(card)) return hide()
       if (card === dismissed) return hide()
       dismissed = null
       if (active !== card) hide()
@@ -474,9 +481,11 @@ export function App() {
       if (pinned === card) tooltip.setAttribute('data-pinned', '')
     }
     const current = () => {
-      const focus = document.querySelector<HTMLElement>(':focus-visible[data-keyword-help-id]')
-      const hover = document.querySelector<HTMLElement>(':hover[data-keyword-help-id]')
+      const focusCandidate = document.querySelector<HTMLElement>(':focus-visible[data-keyword-help-id]')
+      const hoverCandidate = document.querySelector<HTMLElement>(':hover[data-keyword-help-id]')
         ?? cardForTooltip(document.querySelector('.card-keyword-tips[data-open]:hover'))
+      const focus = focusCandidate && helpAvailable(focusCandidate) ? focusCandidate : null
+      const hover = hoverCandidate && helpAvailable(hoverCandidate) ? hoverCandidate : null
       return preferFocus ? focus ?? hover : hover ?? focus
     }
     const unpin = () => {
@@ -495,11 +504,13 @@ export function App() {
       tooltipOf(card)?.setAttribute('data-pinned', '')
     }
     const keydown = (event: KeyboardEvent) => {
+      if (active && !helpAvailable(active)) hide()
       if (active && (!active.isConnected || !tooltipOf(active)?.hasAttribute('data-open'))) active = null
       if (event.key === 'Escape' && active) {
+        const dismissOnlyHelp = pinned === active || !active.closest('dialog:modal')
         dismissed = active
         hide()
-        event.preventDefault()
+        if (dismissOnlyHelp) event.preventDefault()
         return
       }
       dismissed = null
@@ -573,6 +584,7 @@ export function App() {
       if (card && (card === active || card === pinned || card === current())) show(card)
     }
     const focusin = (event: FocusEvent) => {
+      if (active && !helpAvailable(active)) hide()
       const card = cardOf(event.target)
       if (!card) return
       if (shiftHeld) pin(card)

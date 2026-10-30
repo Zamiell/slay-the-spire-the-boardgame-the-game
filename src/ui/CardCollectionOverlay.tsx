@@ -94,7 +94,7 @@ export function CardCollectionDialog({ cards, label, onClose, open = true, order
             </button>)}
         </div>
         <div className="choice-modal__cards">
-          {open ? sortedCards.map((card) => <Card key={card.uid} card={card} playable={false} />) : null}
+          {open ? sortedCards.map((card) => <Card key={card.uid} card={card} playable={false} hoverHelp />) : null}
           {open && cards.length === 0 ? <span className="muted">No cards.</span> : null}
         </div>
         <footer className="card-collection__footer">

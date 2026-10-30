@@ -871,7 +871,6 @@ check('a new local run presents Neow and deals one public face per seat', () => 
   assert(openingNeowArtVisible, 'the supplied Neow asset is not visible')
   assertEqual(openingNeowFaces, 1)
 })
-await page.getByRole('button', { name: 'Skip 3 Gold' }).click()
 await page.getByRole('button', { name: 'Reveal Card Reward' }).click()
 await page.locator('.reward-screen--card-choice').getByRole('heading', { name: 'Choose a Card' }).waitFor()
 await page.locator('.neow-action--offer .card').first().waitFor()

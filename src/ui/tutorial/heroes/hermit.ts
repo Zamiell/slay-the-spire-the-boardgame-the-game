@@ -1,6 +1,6 @@
 import type { RunState } from '../../../game/run.ts'
 import {
-  eventChapter, merchantChapter, moveChapter, neowBlueChosen, neowDone, neowGoldTaken, neowRedRevealed, neowRedTaken,
+  eventChapter, merchantChapter, moveChapter, neowBlueChosen, neowDone, neowRedRevealed, neowRedTaken,
   pickerSteps, potionText, rewardChapter, say, shown, task, treasureChapter,
 } from '../common.ts'
 import {
@@ -80,8 +80,6 @@ export const HERMIT: HeroTutorial = {
         say('Your health', 'The Hermit has 9 HP. Enemy attacks here deal 1 to 4 damage, so Block and killing enemies before they act matter a lot. At 0 HP the run is over.', at.hp),
         say('Deck and relics', 'Your deck holds Covet, Snapshot, 5 Strikes and 4 Defends; open it here any time. Hermit Strikes deal 1 and Defends give 1 Block. Loaded Die gives 1 Block on a 4 or 5; on a 6, it can give that Block or trigger another die relic ability.', at.deck, at.relics),
         say("The Heart's Boon", "Downfall heroes start with the Heart's Boon instead of Neow's Blessing. The red reward is always 3 Gold and a Card Reward. Then you choose one of three blue options.", at.neowCard),
-        task('Take the Gold', 'The red reward starts with 3 Gold. Gold buys cards, relics, potions and card removal from merchants. Take it.',
-          neowGoldTaken, at.neowButton('Gain 3 Gold')),
         task('Reveal the Card Reward', 'The rest of the red reward is a Card Reward: 3 cards from the Hermit\'s reward deck. Reveal them.',
           neowRedRevealed, at.neowButton('Reveal Card Reward')),
         say('Dive', 'Costs 1: gain 2 Block, or 3 while a Curse sits in your Chamber. A plain Defend for now.', at.offeredCard('hermit_dive')),

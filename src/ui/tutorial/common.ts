@@ -25,7 +25,6 @@ export const relicText = (id: string) => `${relicDef(id).name}: ${relicDef(id).t
 // Neow.
 
 const neow = (run: RunState) => neowProgress(run)
-export const neowGoldTaken = (run: RunState) => run.phase !== 'neow' || !neow(run)?.redGoldPending
 export const neowRedRevealed = (run: RunState) => run.phase !== 'neow' || !neow(run)?.redRewardPending || Boolean(neow(run)?.redReward)
 export const neowRedTaken = (run: RunState) => run.phase !== 'neow' || !neow(run)?.redRewardPending
 export const neowBlueChosen = (run: RunState) => run.phase !== 'neow' || neow(run)?.blueOption !== null
@@ -42,8 +41,6 @@ export const neowRewardsLeft = (left: number) => (run: RunState) => {
     progress.rewardQueue.length + (progress.rewardKind || progress.reward ? 1 : 0) <= left
 }
 
-export const NEOW_GOLD = task('Take the Gold', 'Neow\'s red reward starts with 3 Gold. Gold buys cards, relics, potions and card removal from merchants. Take it.',
-  neowGoldTaken, at.neowButton('Gain 3 Gold'))
 export const NEOW_REVEAL = task('Reveal the Card Reward', 'The rest of the red reward is a Card Reward: 3 cards from your hero\'s reward deck. Reveal them.',
   neowRedRevealed, at.neowButton('Reveal Card Reward'))
 

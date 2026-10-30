@@ -89,7 +89,7 @@ try {
     await neowButton.waitFor()
     const buttonBox = await neowButton.boundingBox()
     await page.mouse.click(buttonBox.x + buttonBox.width / 2, buttonBox.y + buttonBox.height / 2)
-    assert.equal((await getRun(page)).neow.players.p1.redGoldPending, true, `${label}: a shielded Neow button still acted`)
+    assert.equal((await getRun(page)).neow.players.p1.redReward, null, `${label}: a shielded Neow button still acted`)
 
     // Walk the scripted run through the first fight and its rewards.
     const shots = new Set()

@@ -1,5 +1,5 @@
 import {
-  eventChapter, merchantChapter, moveChapter, neowBlueChosen, neowDone, neowGoldTaken, neowRedRevealed, neowRedTaken,
+  eventChapter, merchantChapter, moveChapter, neowBlueChosen, neowDone, neowRedRevealed, neowRedTaken,
   pickerSteps, potionText, rewardChapter, say, shown, task, treasureChapter,
 } from '../common.ts'
 import {
@@ -89,8 +89,6 @@ export const GUARDIAN: HeroTutorial = {
         say('Your health', 'The Guardian has 9 HP. Attacks here deal 1 to 4 damage, so every point matters. At 0 HP the run is over.', at.hp),
         say('Deck and relics', 'Your deck holds 4 Strikes, 4 Defends, Twin Slam and Curl Up; open it here any time. The Guardian\'s own relic puts you in Attack Mode at the start of every fight, and Loaded Die gives 1 Block on a 4 or 5; on a 6, it can give that Block or trigger another die relic ability. Hover over or long-press a relic to read it.', at.deck, at.relics),
         say("The Heart's Boon", "Downfall heroes are the Spire's villains, so the Heart offers its Boon instead of Neow's Blessing. The red reward is always 3 Gold and a Card Reward. Then you choose one of three blue options.", at.neowCard),
-        task('Take the Gold', 'The red reward starts with 3 Gold. Gold buys cards, relics, potions and card removal from merchants. Take it.',
-          neowGoldTaken, at.neowButton('Gain 3 Gold')),
         task('Reveal the Card Reward', 'The rest of the red reward is a Card Reward: 3 cards from the Guardian\'s reward deck. Reveal them.',
           neowRedRevealed, at.neowButton('Reveal Card Reward')),
         say('Fortify', 'Costs 1: gain 2 Block, and in Attack Mode also draw 2 cards.', at.offeredCard('guardian_fortify')),

@@ -28,7 +28,6 @@ import {
   resolveCampfire,
   resumeNeow,
   resolveNeowEffect,
-  resolveNeowGold,
   revealNeowReward,
   neowPreview,
   resolveNeowReward,
@@ -1379,7 +1378,6 @@ function LocalGame({ open, onOpen, onClose, onOnline, settings, onSettings, acti
           ? `Waiting for ${pendingOwner.name} to resolve ${relicDef(pendingRelic.defId).name}.`
           : undefined}
         onViewer={setViewerId}
-        onGold={(playerId, gain) => setRun((current) => resolveNeowGold(current, playerId, gain))}
         onReveal={(playerId, _stage, sources) => setRun((current) => revealNeowReward(current, playerId, sources))}
         onReward={(playerId, choice) => setRun((current) => resolveNeowReward(current, playerId, choice))}
         onEffect={(playerId, gain, decision) => setRun((current) => resolveNeowEffect(current, playerId, gain, decision))}

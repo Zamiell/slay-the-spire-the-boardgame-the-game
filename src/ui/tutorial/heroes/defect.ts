@@ -1,5 +1,5 @@
 import {
-  NEOW_GOLD, NEOW_REVEAL, eventChapter, merchantChapter, moveChapter, neowBlueChosen, neowDone, neowRedTaken,
+  NEOW_REVEAL, eventChapter, merchantChapter, moveChapter, neowBlueChosen, neowDone, neowRedTaken,
   neowRewardRevealed, neowRewardsLeft, pickerSteps, potionText, relicText, rewardChapter, say, shown, task, treasureChapter,
 } from '../common.ts'
 import {
@@ -53,7 +53,6 @@ export const DEFECT: HeroTutorial = {
         say('Your health', 'The Defect has 9 HP. Most attacks here deal 1 to 4 damage, so every point matters. At 0 HP the run is over.', at.hp),
         say('Deck and relics', 'Your deck holds 4 Strikes, 4 Defends, Zap and Dual Cast; open it here any time. Cracked Core Channels a Lightning Orb at the start of every fight. Loaded Die gives 1 Block on a 4 or 5; on a 6, it can give that Block or trigger another die relic ability. Hover over or long-press a relic to read it.', at.deck, at.relics),
         say("Neow's Blessing", 'Every run starts with Neow. The red reward is always 3 Gold and a Card Reward. Then you choose one of three blue options.', at.neowCard),
-        NEOW_GOLD,
         NEOW_REVEAL,
         say('Cold Snap', 'Costs 2: deal 2 damage and Channel a Frost Orb. A Frost Orb gives you 1 Block at the end of each of your turns.', at.offeredCard('cold_snap')),
         say('Sweeping Beam', 'Costs 1: deal 1 damage to every enemy in a row, then draw a card.', at.offeredCard('sweeping_beam')),

@@ -356,13 +356,6 @@ try {
   for (const seat of [a, ...joined]) {
     let current = (await request(`/api/rooms/${code}`, { token: seat.token })).body
     let preview = current.run.neow.players[seat.playerId]
-    if (preview.redGoldPending) {
-      current = (await request(`/api/rooms/${code}/action`, {
-        method: 'POST', token: seat.token,
-        body: { action: { kind: 'neow', stage: 'redGold', gain: false } },
-      })).body
-      preview = current.run.neow.players[seat.playerId]
-    }
     if (preview.redRewardPending) {
       current = (await request(`/api/rooms/${code}/action`, {
         method: 'POST', token: seat.token,

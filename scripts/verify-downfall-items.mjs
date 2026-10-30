@@ -339,9 +339,7 @@ let integration = createRun(91, [
 assert.equal(integration.meta.ruleset, 'downfall')
 assert.match(integration.neow.players.base.cardId, /^neow_/)
 assert.match(integration.neow.players.downfall.cardId, /^heart_boon_/)
-assert.equal(integration.neow.players.base.redGoldPending, true)
 assert.equal(integration.neow.players.base.redRewardsRemaining, 1)
-assert.equal(integration.neow.players.downfall.redGoldPending, true)
 assert.equal(integration.neow.players.downfall.redRewardsRemaining, 1)
 const beforePain = integration.players[0]
 integration = acquireRelic(integration, 'base', 'mark_of_pain')
@@ -930,7 +928,6 @@ const publicRun = snapshotFor(room, downfall.token).run
 assert.equal('deck' in publicRun.neow, false, 'base Blessing deck leaked to a reconnect snapshot')
 assert.equal('heartDeck' in publicRun.neow, false, "Heart's Boon deck leaked to a reconnect snapshot")
 assert.equal(publicRun.neow.players[downfall.playerId].card.source, 'heart')
-apply(room, downfall.token, { kind: 'neow', stage: 'redGold', gain: true })
 assert.equal(room.run.players.find(({ id }) => id === downfall.playerId).gold, 3)
 for (let remaining = 1; remaining > 0; remaining--) {
   apply(room, downfall.token, { kind: 'neow', stage: 'red', choice: null })

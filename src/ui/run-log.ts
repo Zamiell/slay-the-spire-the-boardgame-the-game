@@ -813,7 +813,7 @@ function validRunState(value: unknown, runId: string): value is RunState {
     state.neow.players && typeof state.neow.players === 'object' &&
     Object.entries(state.neow.players).every(([playerId, progress]) => state.players?.some((player) => player.id === playerId) &&
       progress && typeof progress.cardId === 'string' && Boolean(neowCard(progress.cardId)) &&
-      typeof progress.redGoldPending === 'boolean' && typeof progress.redRewardPending === 'boolean' &&
+      typeof progress.redRewardPending === 'boolean' &&
       (progress.redRewardsRemaining === undefined || Number.isInteger(progress.redRewardsRemaining) && progress.redRewardsRemaining >= 0) &&
       (progress.redReward === null || neowOffer(progress.redReward)) &&
       (progress.blueOption === null || Number.isInteger(progress.blueOption) && progress.blueOption >= 0) &&

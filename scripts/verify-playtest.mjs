@@ -27,8 +27,7 @@ function scriptedWorker(out, worker) {
     let input
     if (view.phase === 'neow') {
       const neow = view.prompts.neow
-      input = neow.redGoldPending ? ['resolveNeowGold', false]
-        : neow.redRewardPending || neow.reward ? ['resolveNeowReward', neow.reward?.kind === 'potion' ? { kind: 'skip' } : null]
+      input = neow.redRewardPending || neow.reward ? ['resolveNeowReward', neow.reward?.kind === 'potion' ? { kind: 'skip' } : null]
           : neow.pendingEffect ? ['resolveNeowEffect', false] : ['neow', 0]
     } else if (view.phase === 'map') input = ['room', view.prompts.routes.find((room) => room.kind === 'encounter')?.id ?? view.prompts.routes[0].id]
     else if (view.phase === 'combat') input = view.prompts.endAbility
@@ -69,16 +68,16 @@ try {
   invoke('init', out, { runs: 1 })
   let view = invoke('inspect', out)
   assert.equal(view.phase, 'neow')
-  assert.equal(view.prompts.neow.redGoldPending, true, 'optional Gold remains an AI choice')
+  assert.equal(view.prompts.neow.redRewardPending, true)
   const initialFile = readFileSync(join(out, 'worker-0.json'), 'utf8')
   assert.throws(() => act(out, 0, view, [['neow', 0]], { revision: 999 }), /Stale/)
   assert.equal(readFileSync(join(out, 'worker-0.json'), 'utf8'), initialFile)
-  const goldRequest = { command: 'act', out, worker: 0, revision: view.revision, request: 'gold', actions: JSON.stringify([['resolveNeowGold', true]]) }
+  const goldRequest = { command: 'act', out, worker: 0, revision: view.revision, request: 'gold', actions: JSON.stringify([['resolveNeowReward', null]]) }
   const first = invoke('act', out, goldRequest)
   const replay = invoke('act', out, goldRequest)
   assert.deepEqual(JSON.parse(JSON.stringify({ ...replay, replayed: undefined })), JSON.parse(JSON.stringify(first)))
   assert.equal(json(join(out, 'worker-0.json')).revision, first.revision)
-  assert.throws(() => invoke('act', out, { ...goldRequest, actions: JSON.stringify([['resolveNeowGold', false]]) }), /different input/)
+  assert.throws(() => invoke('act', out, { ...goldRequest, actions: JSON.stringify([['resolveNeowReward', 0]]) }), /different input/)
 
   const streamed = spawnSync(process.execPath, ['--experimental-strip-types', fileURLToPath(new URL('./playtest.mjs', import.meta.url)), 'serve', '--out', out],
     { input: 'invalid-json\n' + JSON.stringify({ command: 'inspect' }) + '\n', encoding: 'utf8' })
@@ -298,9 +297,8 @@ try {
   const shardNeow = createRun(1, [{ id: 'p1', name: 'Playtest', character: 'ironclad' }])
   shardNeow.players[0].relics.push({ defId: 'prismatic_shard', spent: false })
   view = fixture(rewardBatch, shardNeow)
-  const shardGold = act(rewardBatch, 0, view, [['resolveNeowGold', true]])
-  assert(!shardGold.error, shardGold.error); assert.equal(shardGold.prompts.neow.redReward, null)
-  const neowRevealed = act(rewardBatch, 0, shardGold, [['revealNeowReward', shardGold.prompts.neow.availableSources.slice(0, 3)]])
+  assert.equal(view.prompts.neow.redReward, null)
+  const neowRevealed = act(rewardBatch, 0, view, [['revealNeowReward', view.prompts.neow.availableSources.slice(0, 3)]])
   assert(!neowRevealed.error, neowRevealed.error)
   assert.equal(neowRevealed.prompts.neow.redReward.choices.length, 3)
 

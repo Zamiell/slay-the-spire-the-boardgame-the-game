@@ -1009,7 +1009,6 @@ export function OnlineGame({ onLocal, settings, onSettings }: Props) {
           : snapshot.pendingRelicStatus
             ? `Waiting for ${snapshot.pendingRelicStatus.playerName} to resolve ${relicDef(snapshot.pendingRelicStatus.relicId).name}.`
             : undefined}
-        onGold={(_playerId, gain) => room.act({ kind: 'neow', stage: 'redGold', gain })}
         onReveal={(_playerId, _stage, sources) => {
           // `NeowScreen` reports "no prismatic choice" as an empty array, which
           // is what the local engine wants — `revealNeowReward` defaults

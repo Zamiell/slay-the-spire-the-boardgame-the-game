@@ -150,7 +150,6 @@ export type VisibleRun = {
   neow: {
     players: Record<string, {
       card: NeowCard | undefined
-      redGoldPending: boolean
       redRewardPending: boolean
       redReward: NeowRewardOffer | null
       blueOption: number | null

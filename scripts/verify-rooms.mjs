@@ -69,9 +69,7 @@ function finishNeow(room) {
     for (const seat of room.seats) {
       const preview = snapshotFor(room, seat.token).run.neow?.players[seat.playerId]
       if (!preview || preview.done) continue
-      if (preview.redGoldPending) {
-        apply(room, seat.token, { kind: 'neow', stage: 'redGold', gain: false })
-      } else if (preview.redRewardPending) {
+      if (preview.redRewardPending) {
         apply(room, seat.token, { kind: 'neow', stage: 'red', choice: null })
       } else if (preview.pendingEffect) {
         apply(room, seat.token, { kind: 'neow', stage: 'effect', gain: false })
@@ -177,6 +175,25 @@ check('a persisted legacy end-turn order resets safely into the drag flow', () =
     const resumed = apply(restored, reconnectB.token, { kind: 'endTurn' }).snapshot
     assertEqual(resumed.endTurnAbilities[0].playerId, a.playerId,
       'the restored table resumes at the owning player\'s targeted effect')
+  } finally {
+    rmSync(directory, { recursive: true, force: true })
+  }
+})
+
+check('a Neow room saved while the red Gold was still pending pays it once on load', () => {
+  const room = createRoom(createStore(), { code: 'NEOWGD' })
+  const seat = joinRoom(room, { name: 'Ann', character: 'ironclad' })
+  startRun(room, seat.token, { seed: 4903 })
+  const legacy = structuredClone(room)
+  legacy.run.players[0].gold = 0
+  legacy.run.neow.players[seat.playerId].redGoldPending = true
+  const directory = mkdtempSync(join(tmpdir(), 'sts-legacy-neow-gold-'))
+  const file = join(directory, 'rooms.json')
+  try {
+    writeFileSync(file, JSON.stringify({ rooms: [legacy] }))
+    const restored = createStore({ file }).rooms.get(legacy.code)
+    assertEqual(restored.run.players[0].gold, 3)
+    assertEqual('redGoldPending' in restored.run.neow.players[seat.playerId], false)
   } finally {
     rmSync(directory, { recursive: true, force: true })
   }
@@ -603,7 +620,6 @@ check('Neow binds every stage to the authenticated seat and rejects stale or for
   const a = joinRoom(room, { name: 'Ann', character: 'ironclad' })
   const b = joinRoom(room, { name: 'Bo', character: 'silent' })
   startRun(room, a.token, { seed: 411 })
-  apply(room, a.token, { kind: 'neow', stage: 'redGold', gain: false })
   const before = JSON.stringify(room.run)
   for (const action of [
     { kind: 'neow', stage: 'red', playerId: b.playerId, choice: null },
@@ -635,8 +651,6 @@ check('Neow reveal is authenticated, private, and skip-unseen preserves exact de
   const a = joinRoom(room, { name: 'Ann', character: 'ironclad' })
   const b = joinRoom(room, { name: 'Bo', character: 'silent' })
   startRun(room, a.token, { seed: 412 })
-  apply(room, a.token, { kind: 'neow', stage: 'redGold', gain: false })
-  apply(room, b.token, { kind: 'neow', stage: 'redGold', gain: false })
   const before = [...room.run.players[0].cardRewards]
   let refused
   try { apply(room, b.token, { kind: 'neow', stage: 'reveal', playerId: a.playerId }) } catch (error) { refused = error }
@@ -670,7 +684,7 @@ check('revealed Neow Potions and Relics remain public', () => {
     const b = joinRoom(room, { name: 'Bo', character: 'silent' })
     startRun(room, a.token, { seed: kind === 'potion' ? 414 : 415 })
     const progress = room.run.neow.players[a.playerId]
-    Object.assign(progress, { redGoldPending: false, redRewardPending: false, blueOption: 0, rewardKind: kind })
+    Object.assign(progress, { redRewardPending: false, blueOption: 0, rewardKind: kind })
     apply(room, a.token, { kind: 'neow', stage: 'reveal' })
     const owner = snapshotFor(room, a.token).run.neow.players[a.playerId].reward
     const observer = snapshotFor(room, b.token).run.neow.players[a.playerId].reward
@@ -683,7 +697,6 @@ check('Prismatic Neow sources are unique, available, and server-authoritative', 
   const seat = joinRoom(room, { name: 'Ann', character: 'ironclad' })
   chooseRunMeta(room, seat.token, { mode: 'custom', modifiers: ['prismatic_shard'], quickStartAct: 1 })
   startRun(room, seat.token, { seed: 413 })
-  apply(room, seat.token, { kind: 'neow', stage: 'redGold', gain: false })
   const sources = snapshotFor(room, seat.token).run.neow.players[seat.playerId].availableSources
   assert(sources.length >= 3, 'Prismatic fixture needs three authoritative reward sources')
   const before = JSON.stringify(room.run)
@@ -708,7 +721,6 @@ check('Neow preserves pending choices across disconnect and completes one throug
     const seats = CHARACTERS.slice(0, count).map((character, index) =>
       joinRoom(room, { name: `Player ${index + 1}`, character }))
     startRun(room, seats[0].token, { seed: 420 + count })
-    apply(room, seats.at(-1).token, { kind: 'neow', stage: 'redGold', gain: false })
     apply(room, seats.at(-1).token, { kind: 'neow', stage: 'red', choice: null })
     if (count === 1) room.run.players[0].relics.push({ defId: 'astrolabe', spent: false, pending: true })
     const pending = structuredClone(room.run.neow)
@@ -13108,7 +13120,7 @@ check('only the leader configures official run modes and Quick Start reconnects 
   markDisconnected(room, leader.token)
   joinRoom(room, { token: leader.token })
   apply(room, leader.token, { kind: 'setupStep' })
-  assertEqual(room.run.players[0].gold, 6)
+  assertEqual(room.run.players[0].gold, 9)
 })
 
 check('Quick Start publishes owner-only Transform availability and rejects an unusable Golden Ticket', () => {
@@ -13239,7 +13251,7 @@ check('resolving a final Catch Up Relic also clears an unauthenticated reservati
   player.relics.push({ defId: 'war_paint', pending: true })
   const progress = room.run.neow.players[newcomer.playerId]
   room.run.neow.players[newcomer.playerId] = {
-    ...progress, redGoldPending: false, redRewardPending: false, redReward: null,
+    ...progress, redRewardPending: false, redReward: null,
     blueOption: 0, pendingEffect: null, rewardKind: null, reward: null, rewardQueue: [], done: false,
   }
   const skill = player.deck.find((card) => card.defId === 'survivor')

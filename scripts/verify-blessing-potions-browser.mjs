@@ -32,7 +32,7 @@ try {
         players[0].potions=held;players[0].relics=blocked?[{defId:'sozu'}]:[];players[1].potions=[]
         const card=(heart?HEARTS_BOON_CARDS:NEOW_CARDS).find(c=>c.options.some(o=>o.effects.some(e=>e.kind==='potions'&&e.count===3)))
         if(!card)throw Error('Missing three-potion blessing')
-        f.progress={p1:{card,redGoldPending:false,redRewardPending:false,redReward:null,blueOption:0,
+        f.progress={p1:{card,redRewardPending:false,redReward:null,blueOption:0,
           rewardKind:'potion',reward:{kind:'potion',choices:empty?[]:['weak_potion'],cardsDrawn:[],raresDrawn:[]},
           rewardQueue:['potion','potion'],pendingEffect:null,done:false}}
         f.choices=[];f.enabled=true;f.render()

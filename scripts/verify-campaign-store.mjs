@@ -201,7 +201,6 @@ try {
   const legacyRed = createRoom(store, { code: 'OLDRED' })
   const redSeat = joinRoom(legacyRed, { name: 'Red', character: 'defect' })
   startRun(legacyRed, redSeat.token, { seed: 7334 })
-  apply(legacyRed, redSeat.token, { kind: 'neow', stage: 'redGold', gain: false })
   apply(legacyRed, redSeat.token, { kind: 'neow', stage: 'reveal' })
   const redOrder = [...legacyRed.run.players[0].cardRewards]
   const blessingOrder = [...legacyRed.run.neow.deck]
@@ -211,7 +210,6 @@ try {
   const legacyBlue = createRoom(store, { code: 'OLDBLU' })
   const blueSeat = joinRoom(legacyBlue, { name: 'Blue', character: 'watcher' })
   startRun(legacyBlue, blueSeat.token, { seed: 7335 })
-  apply(legacyBlue, blueSeat.token, { kind: 'neow', stage: 'redGold', gain: false })
   apply(legacyBlue, blueSeat.token, { kind: 'neow', stage: 'red', choice: null })
   legacyBlue.run.neow.players[blueSeat.playerId].cardId = 'neow_05'
   apply(legacyBlue, blueSeat.token, { kind: 'neow', stage: 'option', optionIndex: 1, cardUids: [] })
@@ -243,7 +241,6 @@ try {
     const legacyCurse = createRoom(store, { code })
     const curseSeat = joinRoom(legacyCurse, { name: index ? 'Take' : 'Skip', character: 'ironclad' })
     startRun(legacyCurse, curseSeat.token, { seed: 7340 + index })
-    apply(legacyCurse, curseSeat.token, { kind: 'neow', stage: 'redGold', gain: false })
     apply(legacyCurse, curseSeat.token, { kind: 'neow', stage: 'red', choice: null })
     legacyCurse.run.neow.players[curseSeat.playerId].cardId = 'neow_03'
     legacyCurse.run.relicDeck = ['omamori', ...legacyCurse.run.relicDeck.filter((id) => id !== 'omamori')]

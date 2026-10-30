@@ -1,6 +1,6 @@
 import type { RunState } from '../../../game/run.ts'
 import {
-  NEOW_GOLD, NEOW_REVEAL, eventChapter, merchantChapter, moveChapter, neowBlueChosen, neowDone, neowRedTaken,
+  NEOW_REVEAL, eventChapter, merchantChapter, moveChapter, neowBlueChosen, neowDone, neowRedTaken,
   pickerSteps, rewardChapter, say, shown, task, treasureChapter,
 } from '../common.ts'
 import {
@@ -60,7 +60,6 @@ export const SILENT: HeroTutorial = {
         say('Your health', 'The Silent has 9 HP. Most enemy attacks here deal 1 to 4 damage, so every point matters. At 0 HP the run is over.', at.hp),
         say('Deck and relic', 'Your deck holds 5 Strikes, 5 Defends, Neutralize and Survivor. Ring of the Snake draws 2 extra cards at the start of each fight, so your first hand has 7 cards. Hover over or long-press a relic to read it.', at.deck, at.relics),
         say("Neow's Blessing", 'Every run starts with Neow. The red reward is always 3 Gold and a Card Reward. Then you choose one of three blue options.', at.neowCard),
-        NEOW_GOLD,
         NEOW_REVEAL,
         say('Deflect', 'Costs 0: gain 1 Block, or 2 if you hold a Shiv. Cheap, but small.', at.offeredCard('deflect')),
         say('Backflip', 'Costs 1: gain 1 Block and draw 2 cards.', at.offeredCard('backflip')),

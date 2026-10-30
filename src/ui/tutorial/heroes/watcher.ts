@@ -1,6 +1,6 @@
 import type { RunState } from '../../../game/run.ts'
 import {
-  eventChapter, merchantChapter, moveChapter, neowBlueChosen, neowDone, neowRedTaken, NEOW_GOLD, NEOW_REVEAL,
+  eventChapter, merchantChapter, moveChapter, neowBlueChosen, neowDone, neowRedTaken, NEOW_REVEAL,
   pickerSteps, potionText, rewardChapter, say, shown, task, treasureChapter,
 } from '../common.ts'
 import {
@@ -56,7 +56,6 @@ export const WATCHER: HeroTutorial = {
         say('Deck and relics', 'Your deck holds 4 Strikes, 4 Defends, Eruption and Vigilance. Your relic, Pure Water, gives you 1 Miracle at the start of every fight. Loaded Die is the solo relic. Hover over or long-press a relic to read it.', at.deck, at.relics),
         say('Stances', 'The Watcher fights in Stances. She starts every fight in Neutral. Eruption enters Wrath, Vigilance enters Calm. The whole tutorial is about switching between them at the right time.'),
         say("Neow's Blessing", 'Every run starts with Neow. The red reward is always 3 Gold and a Card Reward. Then you choose one of three blue options.', at.neowCard),
-        NEOW_GOLD,
         NEOW_REVEAL,
         say('Consecrate', 'Costs 0: deal 1 damage to every enemy in a row. Good against packs, weak against one big enemy.', at.offeredCard('consecrate')),
         say('Cut Through Fate', 'Costs 1: deal 1 damage, Scry 2, then draw a card. Scry shows the top cards of your draw pile and lets you discard any of them, so you can dig for the card you need.', at.offeredCard('cut_through_fate')),

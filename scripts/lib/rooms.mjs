@@ -99,8 +99,8 @@ import {
   revealCardReward,
   resolveGoldReward,
   resolveRelicReward,
+  grantLegacyNeowGold,
   resolveNeowEffect,
-  resolveNeowGold,
   resolveNeowReward,
   revealNeowReward,
   resolveBossRelicReward,
@@ -560,9 +560,9 @@ export function createStore({ file, restartRecovery = false, restartReconnectMs 
           }
           room.run.campaignProgress = parseCampaignProgress(room.run.campaignProgress, fallback)
           if (room.run.phase === 'neow' && room.run.neow?.players) {
+            room.run = grantLegacyNeowGold(room.run)
             for (const progress of Object.values(room.run.neow.players)) {
               if (!progress || typeof progress !== 'object') continue
-              if (typeof progress.redGoldPending !== 'boolean') progress.redGoldPending = false
               if (typeof progress.redRewardPending !== 'boolean') progress.redRewardPending = Boolean(progress.redReward)
               if (!Object.hasOwn(progress, 'pendingEffect')) progress.pendingEffect = null
               if (!Object.hasOwn(progress, 'rewardKind')) progress.rewardKind = progress.reward?.kind ?? null
@@ -1708,11 +1708,7 @@ function neowAction(room, seat, action, seatToken) {
   const preview = neowPreview(room.run, seat.playerId)
   if (!preview || preview.done) fail('This seat has no pending Neow choice')
   let next
-  if (action.stage === 'redGold') {
-    if (Object.keys(action).some((key) => !['kind', 'stage', 'gain'].includes(key)) || typeof action.gain !== 'boolean') fail('Choose a valid Neow Gold reward')
-    if (!preview.redGoldPending) fail('The red Neow Gold is no longer pending')
-    next = resolveNeowGold(room.run, seat.playerId, action.gain)
-  } else if (action.stage === 'reveal') {
+  if (action.stage === 'reveal') {
     const sources = action.sources
     if (Object.keys(action).some((key) => !['kind', 'stage', 'sources'].includes(key)) || sources !== undefined && (
       !Array.isArray(sources) || sources.length !== 3 || new Set(sources).size !== sources.length ||
@@ -1724,7 +1720,7 @@ function neowAction(room, seat, action, seatToken) {
     if (!preview.redRewardPending) fail('The red Neow reward is no longer pending')
     next = resolveNeowReward(room.run, seat.playerId, neowRewardChoice(action))
   } else if (action.stage === 'option') {
-    if (preview.redGoldPending || preview.redRewardPending || preview.blueOption !== null || preview.pendingEffect || preview.rewardKind) fail('The blue Neow option is not pending')
+    if (preview.redRewardPending || preview.blueOption !== null || preview.pendingEffect || preview.rewardKind) fail('The blue Neow option is not pending')
     if (!Number.isInteger(action.optionIndex) || action.cardUids !== undefined &&
       (!Array.isArray(action.cardUids) || action.cardUids.some((uid) => typeof uid !== 'string'))) {
       fail('Choose a valid Neow option')

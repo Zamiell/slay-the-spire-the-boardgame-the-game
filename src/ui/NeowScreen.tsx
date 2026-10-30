@@ -34,7 +34,6 @@ type Props = {
   disabledMessage?: string
   ascension: number
   onViewer?: (playerId: string) => void
-  onGold: (playerId: string, gain: boolean) => void | Promise<unknown>
   onReveal: (playerId: string, stage: 'red' | 'reward', sources: RewardSource[]) => void | Promise<unknown>
   onReward: (playerId: string, choice: number | null | PotionRewardDecision, stage: 'red' | 'reward') => void | Promise<unknown>
   onEffect: (playerId: string, gain: boolean, decision: NeowDecision) => void | Promise<unknown>
@@ -117,7 +116,7 @@ function OfferChoice({ offer, player, players, ascension, enabled, status, title
     uidPrefix="neow-offer" onChoose={onResolve} onSkip={() => onResolve(null)} />
 }
 
-export function NeowScreen({ players, progress, viewerId, ascension, enabled = true, disabledMessage, onViewer, onGold, onReveal, onReward, onEffect, onChoose, onArmCardGain }: Props) {
+export function NeowScreen({ players, progress, viewerId, ascension, enabled = true, disabledMessage, onViewer, onReveal, onReward, onEffect, onChoose, onArmCardGain }: Props) {
   const participants = players.filter((player) => progress[player.id])
   const viewerParticipates = participants.some((player) => player.id === viewerId)
   const viewer = participants.find((player) => player.id === viewerId) ?? participants[0]
@@ -143,12 +142,12 @@ export function NeowScreen({ players, progress, viewerId, ascension, enabled = t
   const blessingName = heartsBoon ? 'The Heart’s Boon' : 'Neow’s Blessing'
   const blessingWord = heartsBoon ? 'Boon' : 'Blessing'
   const prismaticSources = activeProgress.availableSources ?? []
-  const unrevealedStage = !activeProgress.redGoldPending && activeProgress.redRewardPending && !activeProgress.redReward && !activeProgress.pendingEffect ? 'red'
+  const unrevealedStage = activeProgress.redRewardPending && !activeProgress.redReward && !activeProgress.pendingEffect ? 'red'
     : activeProgress.rewardKind && !activeProgress.reward ? 'reward' : null
   const unrevealedKind = unrevealedStage === 'red' ? 'Card Reward' : activeProgress.rewardKind === 'rare' ? 'Rare Card Reward'
     : activeProgress.rewardKind === 'colorless' ? 'Colorless Card Reward'
       : activeProgress.rewardKind === 'potion' ? 'Potion' : activeProgress.rewardKind === 'relic' ? 'Relic' : 'Reward'
-  const blueReady = !activeProgress.redGoldPending && !activeProgress.redRewardPending && !activeProgress.redReward && activeProgress.blueOption === null && !activeProgress.done
+  const blueReady = !activeProgress.redRewardPending && !activeProgress.redReward && activeProgress.blueOption === null && !activeProgress.done
   const effect = activeProgress.pendingEffect
   const effectLabel = effect?.kind === 'transform' ? 'transform a card'
     : effect?.kind === 'randomRare' ? 'random Rare card'
@@ -181,7 +180,7 @@ export function NeowScreen({ players, progress, viewerId, ascension, enabled = t
         const state = progress[player.id]
         const face = state?.card ?? (state?.cardId ? neowCard(state.cardId) : undefined)
         return <article key={player.id} className={`neow-face${participants.length === 1 ? ' neow-face--solo' : ''}${player.id === viewerId ? ' neow-face--active' : ''}${state?.done ? ' neow-face--done' : ''}`}>
-          <div className="neow-face__owner"><strong>{player.name}</strong><span>{state?.done ? 'Ready' : state?.redGoldPending || state?.redRewardPending || state?.redReward ? 'Red reward' : state?.blueOption !== null ? 'Resolving' : 'Choosing'}</span></div>
+          <div className="neow-face__owner"><strong>{player.name}</strong><span>{state?.done ? 'Ready' : state?.redRewardPending || state?.redReward ? 'Red reward' : state?.blueOption !== null ? 'Resolving' : 'Choosing'}</span></div>
           <blockquote>“{face?.text ?? '…'}”</blockquote>
           <div className="neow-face__red"><IconValue name="gold" value={3} size={18} /> + Card Reward</div>
           <ol>{face?.options.map((option, index) => <li key={option.label} data-picked={state?.blueOption === index || undefined}>{option.label}</li>)}</ol>
@@ -197,10 +196,9 @@ export function NeowScreen({ players, progress, viewerId, ascension, enabled = t
       aria-labelledby={itemOffer ? undefined : 'neow-action-title'}
       aria-label={itemOffer ? `${viewer.name} · ${offerTitle(currentOffer!)}` : undefined}>
       {!itemOffer ? <div className="neow-action__owner">
-        <span>{viewer.name}</span><h3 id="neow-action-title">{viewerProgress.done ? `${blessingWord} complete` : activeProgress.redGoldPending ? 'Take or skip 3 Gold' : currentOffer ? offerTitle(currentOffer) : effect ? `Resolve ${effectLabel}` : unrevealedStage ? `${unrevealedKind} is face down` : blueReady ? `Choose a ${blessingWord.toLowerCase()}` : `Resolving ${blessingWord.toLowerCase()}`}</h3>
+        <span>{viewer.name}</span><h3 id="neow-action-title">{viewerProgress.done ? `${blessingWord} complete` : currentOffer ? offerTitle(currentOffer) : effect ? `Resolve ${effectLabel}` : unrevealedStage ? `${unrevealedKind} is face down` : blueReady ? `Choose a ${blessingWord.toLowerCase()}` : `Resolving ${blessingWord.toLowerCase()}`}</h3>
       </div> : null}
       {viewerProgress.done ? <p className="neow-action__waiting" role="status">Waiting for the rest of the party.</p> : null}
-      {activeProgress.redGoldPending ? <div className="neow-unrevealed"><p><strong>3 Gold</strong><span>Gain or independently skip this reward.</span></p><div className="neow-offer__actions"><button type="button" disabled={!canAct} onClick={() => submit(() => onGold(viewer.id, true))}>Gain 3 Gold</button><button type="button" disabled={!canAct} onClick={() => submit(() => onGold(viewer.id, false))}>Skip 3 Gold</button></div></div> : null}
       {unrevealedStage ? <div className="neow-unrevealed">
         <p><strong>{unrevealedKind}</strong><span>Reveal your options, or skip without drawing.</span></p>
         {activeProgress.prismatic && prismaticSources.length ? <fieldset className="neow-source-choice">

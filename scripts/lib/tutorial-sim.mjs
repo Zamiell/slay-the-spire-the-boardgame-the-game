@@ -7,7 +7,7 @@
 import { createTutorialRun, enterTutorialRoom } from '../../src/ui/tutorial/run.ts'
 import {
   chooseEvent, chooseNeow, chooseRelicReward, finishMerchant, leaveRoom, purchaseAtMerchant, removeAtCurrentMerchant,
-  resolveCampfire, resolveCardRewards, resolveCombat, resolveGoldReward, resolveNeowEffect, resolveNeowGold,
+  resolveCampfire, resolveCardRewards, resolveCombat, resolveGoldReward, resolveNeowEffect,
   resolveNeowReward, resolvePotionReward, resolveRelicReward, revealCardReward, revealNeowReward,
 } from '../../src/game/run.ts'
 import { neowCard } from '../../src/game/neow.ts'
@@ -34,7 +34,6 @@ export function simulateTutorial(character, plan) {
   const neow = run.neow.players.p1
   const card = neowCard(neow.cardId)
   trace.push({ stage: 'neow', card: neow.cardId, options: card.options.map((option) => option.label), boss: run.actBossDefId })
-  run = resolveNeowGold(run, 'p1', true)
   run = revealNeowReward(run, 'p1')
   const red = run.neow.players.p1.redReward.choices
   trace.push({ stage: 'neow-red', cards: [...red] })

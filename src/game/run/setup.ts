@@ -4,6 +4,7 @@
 // `beginCatchUp` is the same job for a seat that joined late — it has to arrive
 // with everything a seat that started at the door would already have.
 import { createEnemyDecks, rollActBoss } from './encounters.ts'
+import { grantNeowGold } from './neow.ts'
 import { grantHeirlooms } from './rewards.ts'
 import { MAX_HP, hasModifier, hasPendingRelicAcquisition, nextRunUid } from './rules.ts'
 import { colorlessCardsAvailable, mirrorItemSupplies } from './supplies.ts'
@@ -232,7 +233,6 @@ export function createRun(
     players: Object.fromEntries(players.map((player) => {
       return [player.id, {
         cardId: dealt.dealt[player.id]!,
-        redGoldPending: true,
         redRewardPending: true,
         redRewardsRemaining: 1,
         redReward: null,
@@ -334,7 +334,7 @@ export function createRun(
   }
   run = queueNewGuardianSockets({ ...run, players: playersBeforeModifiers }, run)
   if (modifier('heirloom')) run = grantHeirlooms(run, players.map((player) => player.id))
-  return run
+  return grantNeowGold(run, players.map((player) => player.id))
 }
 
 /** Add physical characters only before the party enters an Act II–IV map (Quick Start p.22). */
@@ -399,7 +399,7 @@ export function beginCatchUp(state: RunState, members: readonly PartyMember[]): 
       const downfall = DOWNFALL_CHARACTER_IDS.some((id) => id === player.character)
       const cardId = downfall ? heartDeck.shift() : deck.shift()
       return [player.id, {
-        cardId: cardId!, redGoldPending: true, redRewardPending: true, redRewardsRemaining: 1,
+        cardId: cardId!, redRewardPending: true, redRewardsRemaining: 1,
         redReward: null, blueOption: null, pendingEffect: null, rewardKind: null,
         reward: null, rewardQueue: [], done: false,
       }]
@@ -417,7 +417,7 @@ export function beginCatchUp(state: RunState, members: readonly PartyMember[]): 
     }, itemDecks)
     next = queueNewGuardianSockets({ ...next, players: playersBeforeModifiers }, next)
     if (hasModifier(state, 'heirloom')) next = grantHeirlooms(next, newPlayers.map((player) => player.id))
-    return next
+    return grantNeowGold(next, newPlayers.map((player) => player.id))
   }
   const dealt = dealBlessings(rng, newPlayers, colorlessCardsAvailable(state))
   let next = mirrorItemSupplies({
@@ -430,7 +430,7 @@ export function beginCatchUp(state: RunState, members: readonly PartyMember[]): 
       deck: dealt.deck,
       heartDeck: dealt.heartDeck,
       players: Object.fromEntries(newPlayers.map((player) => [player.id, {
-        cardId: dealt.dealt[player.id]!, redGoldPending: true, redRewardPending: true,
+        cardId: dealt.dealt[player.id]!, redRewardPending: true,
         redRewardsRemaining: 1,
         redReward: null, blueOption: null, pendingEffect: null, rewardKind: null,
         reward: null, rewardQueue: [], done: false,
@@ -445,5 +445,5 @@ export function beginCatchUp(state: RunState, members: readonly PartyMember[]): 
   }, itemDecks)
   next = queueNewGuardianSockets({ ...next, players: playersBeforeModifiers }, next)
   if (hasModifier(state, 'heirloom')) next = grantHeirlooms(next, newPlayers.map((player) => player.id))
-  return next
+  return grantNeowGold(next, newPlayers.map((player) => player.id))
 }

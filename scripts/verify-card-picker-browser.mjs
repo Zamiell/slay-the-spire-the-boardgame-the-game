@@ -25,7 +25,7 @@ try {
     const run = structuredClone(debug.getRun())
     const playerId = run.players[0].id
     run.neow.players[playerId] = {
-      ...run.neow.players[playerId], redGoldPending: false, redRewardPending: false,
+      ...run.neow.players[playerId], redRewardPending: false,
       pendingEffect: { kind: 'upgrade', count: 2, starter: 'strike' },
     }
     debug.setRun(run)

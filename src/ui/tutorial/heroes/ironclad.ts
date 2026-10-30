@@ -1,5 +1,5 @@
 import {
-  NEOW_GOLD, NEOW_REVEAL, eventChapter, merchantChapter, moveChapter, neowBlueChosen, neowDone, neowRedTaken,
+  NEOW_REVEAL, eventChapter, merchantChapter, moveChapter, neowBlueChosen, neowDone, neowRedTaken,
   pickerSteps, potionText, rewardChapter, say, shown, task, treasureChapter,
 } from '../common.ts'
 import {
@@ -48,7 +48,6 @@ export const IRONCLAD: HeroTutorial = {
         say('Your health', 'The Ironclad has 10 HP, the most of any hero. Attacks here deal 1 to 3 damage, so every point matters. At 0 HP the run is over.', at.hp),
         say('Deck and relic', 'Your deck holds 5 Strikes, 4 Defends and Bash; open it here any time. Your relic, Burning Blood, heals 1 HP at the end of every fight. Hover over or long-press a relic to read it.', at.deck, at.relics),
         say("Neow's Blessing", 'Every run starts with Neow. The red reward is always 3 Gold and a Card Reward. Then you choose one of three blue options.', at.neowCard),
-        NEOW_GOLD,
         NEOW_REVEAL,
         say('Clothesline', 'Costs 2 Energy: deal 3 damage and apply Weak. A Weak enemy deals 1 less with each hit.', at.offeredCard('clothesline')),
         say('Combust', 'A Power that stays in play all fight and deals 1 damage to a row every turn. Slow for a short fight.', at.offeredCard('combust')),

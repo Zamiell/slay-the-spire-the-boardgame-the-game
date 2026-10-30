@@ -7,7 +7,7 @@ import { GUARDIAN_CARDS_BY_ID } from '../../src/game/downfall/guardian.ts'
 
 export const POLICY_VERSION = 'ai-v1'
 const id = 'p1'
-const perPlayer = new Set(['chooseNeow', 'resolveNeowGold', 'revealNeowReward', 'resolveNeowReward', 'resolveNeowEffect',
+const perPlayer = new Set(['chooseNeow', 'revealNeowReward', 'resolveNeowReward', 'resolveNeowEffect',
   'chooseEvent', 'skipEvent', 'resolveGoldReward', 'resolvePotionReward', 'resolveRelicReward', 'resolveBossRelicReward',
   'chooseRelicReward', 'resolvePendingRelic', 'choosePendingRelicReward', 'resolveGuardianSocket',
   'resolveTransformReward', 'removeAtCurrentMerchant', 'revealCourier', 'decideCourier', 'usePotionOutsideCombat'])
@@ -91,7 +91,7 @@ export function automaticAction(run, reveal) {
   }
   if (run.phase === 'neow') {
     const progress = run.neow.players[id]
-    if (!progress.redGoldPending && !runEngine.neowPreview(run, id).prismatic &&
+    if (!runEngine.neowPreview(run, id).prismatic &&
       (progress.redRewardPending && !progress.redReward || progress.rewardKind && !progress.reward)) return action(['revealNeowReward'])
   }
   if (run.phase === 'room' && !run.roomState && run.map.rooms[run.map.position]?.kind !== 'campfire') return action(['leaveRoom'])

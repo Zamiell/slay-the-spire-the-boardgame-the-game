@@ -269,7 +269,7 @@ await page.evaluate((run) => {
   progress.card = undefined
   progress.cardId = 'heart_boon_00'
   Object.assign(progress, {
-    redGoldPending: false, redRewardPending: false, redReward: null, reward: null,
+    redRewardPending: false, redReward: null, reward: null,
     blueOption: null, pendingEffect: null, done: false,
   })
   window.__STS_DEBUG__.setRun(next)
@@ -308,7 +308,7 @@ await page.evaluate(() => {
   const run = structuredClone(debug.getRun())
   const progress = Object.values(run.neow.players)[0]
   Object.assign(progress, {
-    redGoldPending: false, redRewardPending: false, redReward: null, reward: null,
+    redRewardPending: false, redReward: null, reward: null,
     blueOption: null, pendingEffect: null, done: false,
   })
   debug.setRun(run)
@@ -338,7 +338,6 @@ await page.evaluate(() => {
   const run = structuredClone(debug.getRun())
   run.setup = { kind: 'catch-up', targetAct: 2, playerIds: ['p2'], rowIndex: 0, repeatIndex: 0, playerIndex: 0, die: null }
   run.neow.players = { p2: run.neow.players.p2 }
-  run.neow.players.p2.redGoldPending = false
   run.neow.players.p2.redRewardPending = false
   run.neow.players.p2.redReward = { kind: 'relic', choices: ['golden_idol'], cardsDrawn: ['golden_idol'] }
   debug.setViewer('p1')
@@ -355,7 +354,6 @@ await page.evaluate(() => {
   const run = structuredClone(debug.getRun())
   window.__neowPotionRun = structuredClone(run)
   run.players[0].potions = ['swift_potion', 'blood_potion', 'energy_potion']
-  run.neow.players.p1.redGoldPending = false
   run.neow.players.p1.redReward = { kind: 'potion', choices: ['fire_potion'], cardsDrawn: ['fire_potion'] }
   debug.setRun(run)
 })
@@ -471,13 +469,9 @@ const readNeowFaceActionOverlap = () => page.evaluate(() => {
   })
 })
 const neowFaceActionOverlap = await readNeowFaceActionOverlap()
-assertEqual(await page.getByRole('button', { name: 'Reveal Card Reward' }).count(), 0, 'red Card Reward Reveal appeared before Gold resolved')
-assertEqual(await page.getByRole('button', { name: 'Skip unseen' }).count(), 0, 'red Card Reward skip appeared before Gold resolved')
 await page.screenshot({ path: join(outDir, 'neow-4p-desktop.png'), fullPage: true })
-await page.getByRole('button', { name: 'Skip 3 Gold' }).click()
-await page.waitForFunction(() => window.__STS_DEBUG__.getRun().neow.players.p1.redGoldPending === false)
-assertEqual(await page.getByRole('button', { name: 'Reveal Card Reward' }).count(), 1, 'red Card Reward Reveal did not appear after Gold resolved')
-assertEqual(await page.getByRole('button', { name: 'Skip unseen' }).count(), 1, 'red Card Reward skip did not appear after Gold resolved')
+assertEqual(await page.getByRole('button', { name: 'Reveal Card Reward' }).count(), 1, 'red Card Reward Reveal did not appear at once')
+assertEqual(await page.getByRole('button', { name: 'Skip unseen' }).count(), 1, 'red Card Reward skip did not appear at once')
 assertEqual(await page.getByText(/Reveal it to the party/).count(), 0, 'private Neow reward copy still promises to reveal cards to teammates')
 await page.evaluate(() => {
   const debug = window.__STS_DEBUG__
@@ -3404,7 +3398,6 @@ liveRoom.version += 1
 rooms.publishRoom(create.snapshot.code)
 await neowPage.waitForFunction(() => document.querySelectorAll('.neow-face').length === 4)
 const onlineNeowFaces = await neowPage.locator('.neow-face').count()
-await neowPage.getByRole('button', { name: 'Skip 3 Gold' }).click()
 await neowPage.getByRole('button', { name: 'Reveal Card Reward' }).waitFor()
 const sourceChoices = neowPage.locator('.neow-source-choice input')
 await sourceChoices.nth(0).check()
@@ -3432,7 +3425,6 @@ await onlineNeowCardChoice.locator('.card-picker__grid > .card').first().click()
 const onlineNeowConfirm = onlineNeowCardChoice.getByRole('button', { name: 'Confirm reward' })
 assert(await onlineNeowConfirm.isEnabled(), 'Neow card selection did not enable confirmation')
 for (const action of [
-  { kind: 'neow', stage: 'redGold', gain: false },
   { kind: 'neow', stage: 'reveal' },
 ]) {
   const response = await fetch(`${roomOrigin}/api/rooms/${create.snapshot.code}/action`, {

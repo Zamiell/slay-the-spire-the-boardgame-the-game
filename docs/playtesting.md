@@ -60,7 +60,7 @@ sending Ctrl-C when the worker is done; the checkpoint is already on disk.
 A new `serve` process resumes at the same decision after a disconnect.
 
 ```json
-{"command":"act","revision":0,"request":"worker0-1","actions":[["resolveNeowGold",true]],"since":0}
+{"command":"act","revision":1,"request":"worker0-1","actions":[["resolveNeowReward",0]],"since":0}
 ```
 
 - Always use the latest `revision`. Each accepted action and compulsory
@@ -97,7 +97,7 @@ One-shot commands use the same interface:
 ```sh
 node --experimental-strip-types scripts/playtest.mjs inspect --out artifacts/playtest/silent-a3-50 --worker 0
 node --experimental-strip-types scripts/playtest.mjs act --out artifacts/playtest/silent-a3-50 --worker 0 \
-  --revision 0 --request worker0-1 --actions '[["resolveNeowGold",true]]' --since 0
+  --revision 1 --request worker0-1 --actions '[["resolveNeowReward",0]]' --since 0
 ```
 
 Use structured JSON stdin for text containing shell-special characters. The
@@ -158,7 +158,6 @@ error and consumes no run budget.
 Common additional operations:
 
 ```json
-["resolveNeowGold",true]
 ["revealNeowReward",["ironclad","silent","defect"]]
 ["revealCardReward",["ironclad","silent","defect"]]
 ["resolveNeowReward",0]

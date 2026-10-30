@@ -148,12 +148,30 @@ export function finishNeowStep(state: RunState, playerId: string): RunState {
     ? state : completeNeowPlayer(state, playerId)
 }
 
+/** Neow's red reward Gold is automatic: nobody would ever decline it. Granted after starting relics so Ectoplasm still blocks it. */
+export function grantNeowGold(state: RunState, playerIds: readonly string[]): RunState {
+  return { ...state, players: state.players.map((player) => playerIds.includes(player.id) ? gainGold(player, 3) : player) }
+}
+
+/** Saves from before the Gold became automatic may still owe it; pay it once and drop the flag. */
+export function grantLegacyNeowGold(state: RunState): RunState {
+  if (!state.neow) return state
+  const owed: string[] = []
+  const players: typeof state.neow.players = {}
+  for (const [id, saved] of Object.entries(state.neow.players)) {
+    const { redGoldPending, ...progress } = saved as typeof saved & { redGoldPending?: boolean }
+    if (redGoldPending === true) owed.push(id)
+    players[id] = progress
+  }
+  return grantNeowGold({ ...state, neow: { ...state.neow, players } }, owed)
+}
+
 /** Resume blessings suspended by a nested acquisition, including restored saves. */
 export function resumeNeow(state: RunState): RunState {
   if (state.phase !== 'neow' || !state.neow) return state
-  let next = state
+  let next = grantLegacyNeowGold(state)
   for (const [playerId, progress] of Object.entries(state.neow.players)) {
-    if (progress.blueOption === null || progress.redGoldPending || progress.redRewardPending) continue
+    if (progress.blueOption === null || progress.redRewardPending) continue
     next = finishNeowStep(nextNeowReward(next, playerId), playerId)
   }
   return next
@@ -162,7 +180,6 @@ export function resumeNeow(state: RunState): RunState {
 /** Public, authoritative Neow state. The remaining face-down deck is intentionally omitted. */
 export function neowPreview(state: RunState, playerId: string, viewerId = playerId): {
   card: ReturnType<typeof neowCard>
-  redGoldPending: boolean
   redRewardPending: boolean
   redReward: NeowRewardOffer | null
   blueOption: number | null
@@ -189,7 +206,6 @@ export function neowPreview(state: RunState, playerId: string, viewerId = player
   }
   return {
     card: neowCard(progress.cardId),
-    redGoldPending: progress.redGoldPending,
     redRewardPending: progress.redRewardPending,
     redReward: visibleOffer(progress.redReward),
     blueOption: progress.blueOption,
@@ -205,26 +221,13 @@ export function neowPreview(state: RunState, playerId: string, viewerId = player
   }
 }
 
-/** Gain or skip the independent Gold part of Neow's red reward. */
-export function resolveNeowGold(state: RunState, playerId: string, gain: boolean): RunState {
-  const progress = state.neow?.players[playerId]
-  const player = state.players.find((candidate) => candidate.id === playerId)
-  if (state.phase !== 'neow' || !state.neow || !progress?.redGoldPending || !player ||
-    progress.redReward || progress.done || hasPendingRelicAcquisition(state)) return state
-  return {
-    ...state,
-    players: gain ? state.players.map((candidate) => candidate.id === playerId ? gainGold(candidate, 3) : candidate) : state.players,
-    neow: { ...state.neow, players: { ...state.neow.players, [playerId]: { ...progress, redGoldPending: false } } },
-  }
-}
-
 /** Reveal the current face-down reward. Merely staging it never advances a physical deck. */
 export function revealNeowReward(state: RunState, playerId: string, sources: readonly RewardSource[] = []): RunState {
   const neow = state.neow
   const progress = neow?.players[playerId]
   const player = state.players.find((candidate) => candidate.id === playerId)
   if (state.phase !== 'neow' || !neow || !progress || !player || progress.done ||
-    progress.redGoldPending || hasPendingRelicAcquisition(state) || progress.redReward || progress.reward) return state
+    hasPendingRelicAcquisition(state) || progress.redReward || progress.reward) return state
   const kind = progress.redRewardPending ? 'card' : progress.rewardKind
   if (!kind) return state
   if (kind === 'card' && hasModifier(state, 'transformed')) {
@@ -296,7 +299,7 @@ export function resolveNeowReward(
   const neow = state.neow
   const progress = neow?.players[playerId]
   const player = state.players.find((candidate) => candidate.id === playerId)
-  if (state.phase !== 'neow' || !neow || !progress || !player || progress.redGoldPending || progress.done || hasPendingRelicAcquisition(state)) return state
+  if (state.phase !== 'neow' || !neow || !progress || !player || progress.done || hasPendingRelicAcquisition(state)) return state
   const red = progress.redRewardPending
   const offer = red ? progress.redReward : progress.reward
   const kind = red ? 'card' : progress.rewardKind
@@ -537,7 +540,7 @@ export function chooseNeow(
   const player = state.players.find((candidate) => candidate.id === playerId)
   const card = progress ? neowCard(progress.cardId) : undefined
   const option = card?.options[optionIndex]
-  if (state.phase !== 'neow' || !state.neow || !progress || !player || progress.redGoldPending || progress.redRewardPending ||
+  if (state.phase !== 'neow' || !state.neow || !progress || !player || progress.redRewardPending ||
     progress.pendingEffect || progress.rewardKind || progress.blueOption !== null ||
     progress.done || hasPendingRelicAcquisition(state) || !Number.isInteger(optionIndex) || !option) return state
   const cardUids = decision.cardUids ?? []

@@ -597,11 +597,6 @@ try {
   }
   a.on('response', recordNeowFailure)
   const neowSeat = (await snapshot(a)).you.playerId
-  const neowGold = a.getByRole('button', { name: /^Skip 3 Gold$/ })
-  if (await neowGold.isVisible().catch(() => false)) {
-    await neowGold.click()
-    await a.waitForTimeout(150)
-  }
   const neowReveal = a.getByRole('button', { name: /^Reveal / })
   await neowReveal.waitFor()
   await neowReveal.click()
@@ -6041,8 +6036,9 @@ try {
   await fourPages[0].waitForFunction(() => document.querySelector('.prompt')?.textContent?.includes('choose an enemy'))
   const facingSnapshot = await snapshot(fourPages[1])
   await reconnectRoomSocket(fourPages[0], 'Facing reconnect test')
-  // Disconnect settlement commits the coordinator's deterministic default so
-  // the connected party cannot be blocked by a dropped owner.
+  // The owner who returns gets their own Facing decision back, with the default staged.
+  await fourPages[0].getByRole('button', { name: /^Spire Shield,/ }).dispatchEvent('click')
+  await fourPages[0].getByRole('button', { name: /^Resolve start (?:of )?turn/ }).click()
   for (let attempt = 0; attempt < 50 && fourRoom.startTurnReady?.[combatPlayers[0].id] !== true; attempt += 1) {
     await new Promise((resolveDelay) => setTimeout(resolveDelay, 100))
   }

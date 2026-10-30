@@ -460,7 +460,7 @@ try {
       const player = { id: 'p1', name: 'Ironclad', character: 'ironclad', hp: 10, maxHp: 10, gold: 0, potions: [], relics: [], deck: [] }
       root.render(createElement(NeowScreen, {
         key: 'neow', players: [player], viewerId: 'p1', ascension: 0,
-        progress: { p1: { redGoldPending: false, redRewardPending: true,
+        progress: { p1: { redRewardPending: true,
           redReward: { kind: 'card', choices: ['anger', 'cleave', 'bash'], cardsDrawn: [], raresDrawn: [] },
           blueOption: null, pendingEffect: null, rewardKind: null, reward: null, done: false } },
         onGold: () => {}, onReveal: () => {}, onEffect: () => {}, onChoose: () => {},

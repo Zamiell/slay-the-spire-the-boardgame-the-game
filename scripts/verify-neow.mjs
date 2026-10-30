@@ -10,13 +10,13 @@ import {
   chooseNeow,
   createRun,
   GOLDEN_TICKET,
+  grantLegacyNeowGold,
   neowEffectSelection,
   neowPreview,
   pendingRelicEligibleCards,
   pendingRelicPreview,
   revealNeowReward,
   resolveNeowEffect,
-  resolveNeowGold,
   resolveNeowReward,
   resolvePendingRelic,
 } from '../src/game/run.ts'
@@ -33,7 +33,6 @@ const party = (count = 2) => [
 
 const beginBlue = (seed = 1, count = 2, progress = createCampaignProgress()) => {
   let run = createRun(seed, party(count), 0, progress)
-  run = resolveNeowGold(run, 'p1', false)
   return resolveNeowReward(run, 'p1', null)
 }
 
@@ -44,7 +43,6 @@ const forceCard = (run, cardId) => ({
 
 const beginHeart = (seed, cardId) => {
   let run = createRun(seed, [{ id: 'p1', name: 'Guardian', character: 'guardian' }])
-  run = resolveNeowGold(run, 'p1', false)
   while (run.neow.players.p1.redRewardPending) run = resolveNeowReward(run, 'p1', null)
   return forceCard(run, cardId)
 }
@@ -93,7 +91,7 @@ check('Socket completion resumes other suspended seats without choosing their bo
     { id: 'p2', name: 'Hexaghost', character: 'hexaghost' },
   ])
   const untouched = structuredClone(run.neow.players.p2)
-  run.neow.players.p1 = { ...run.neow.players.p1, redGoldPending: false, redRewardPending: false,
+  run.neow.players.p1 = { ...run.neow.players.p1, redRewardPending: false,
     blueOption: 0, pendingEffect: null, rewardKind: null, reward: null, rewardQueue: [] }
   const host = { uid: 'c999', defId: 'guardian_crystal_edge', upgraded: false }
   run.players[0].deck.push(host)
@@ -102,7 +100,7 @@ check('Socket completion resumes other suspended seats without choosing their bo
   assertEqual(waiting.phase, 'neow')
   assertEqual(waiting.neow.players.p1.done, true)
   assertDeepEqual(waiting.neow.players.p2, untouched)
-  run.neow.players.p2 = { ...run.neow.players.p2, redGoldPending: false, redRewardPending: false,
+  run.neow.players.p2 = { ...run.neow.players.p2, redRewardPending: false,
     blueOption: 0, pendingEffect: null, rewardKind: null, reward: null, rewardQueue: [{ kind: 'loseHp', amount: 1 }] }
   const finished = resolveGuardianSocket(JSON.parse(JSON.stringify(run)), 'p1', host.uid, 'guardian_ruby')
   assertEqual(finished.phase, 'map')
@@ -140,17 +138,14 @@ check("Heart's Boon labels name every printed reward icon and pluralize counted 
 })
 
 check('all 20 Heart faces grant 3 Gold and exactly one independently skippable Card Reward', () => {
-  for (const card of HEARTS_BOON_CARDS) for (const gainGold of [false, true]) for (const gainCard of [false, true]) {
+  for (const card of HEARTS_BOON_CARDS) for (const gainCard of [false, true]) {
     let run = createRun(147, [
       { id: 'p1', name: 'Hermit', character: 'hermit' },
       { id: 'p2', name: 'Guardian', character: 'guardian' },
     ])
     run = forceCard(run, card.id)
     const before = structuredClone(run.players[0])
-    assertEqual(revealNeowReward(run, 'p1'), run, 'Gold must be resolved first')
-    run = resolveNeowGold(run, 'p1', gainGold)
-    assertEqual(run.players[0].gold, before.gold + (gainGold ? 3 : 0))
-    assertEqual(resolveNeowGold(run, 'p1', true), run, 'Gold cannot be claimed twice')
+    assertEqual(before.gold, 3, 'the Gold is granted without a choice')
     if (gainCard) run = revealNeowReward(run, 'p1')
     run = resolveNeowReward(JSON.parse(JSON.stringify(run)), 'p1', gainCard ? 0 : null)
     assertEqual(run.players[0].deck.length, before.deck.length + (gainCard ? 1 : 0))
@@ -164,7 +159,7 @@ check('all 20 Heart faces grant 3 Gold and exactly one independently skippable C
   run = beginCatchUp(run, [{ id: 'p2', name: 'Guardian', character: 'guardian' }])
   run = beginCatchUp(run, [{ id: 'p3', name: 'Hexaghost', character: 'hexaghost' }])
   for (const id of ['p2', 'p3']) {
-    assertEqual(run.neow.players[id].redGoldPending, true)
+    assertEqual(run.players.find((player) => player.id === id).gold, 3)
     assertEqual(run.neow.players[id].redRewardsRemaining, 1)
   }
 })
@@ -186,7 +181,7 @@ check('Heart blue rewards distinguish numbered Gold coins from adjacent Potion, 
       { id: 'p1', name: 'Hermit', character: 'hermit' },
       { id: 'p2', name: 'Guardian', character: 'guardian' },
     ])
-    run = resolveNeowReward(resolveNeowGold(run, 'p1', false), 'p1', null)
+    run = resolveNeowReward(run, 'p1', null)
     run = forceCard(run, HEARTS_BOON_CARDS[index].id)
     run.players[0].potions = []
     run.relicDeck = ['anchor', ...run.relicDeck.filter((id) => id !== 'anchor')]
@@ -250,11 +245,10 @@ check('createRun deals one deterministic unique base face per player and red rew
   assertEqual(new Set(faces).size, 4)
   assertDeepEqual(faces, Object.values(same.neow.players).map((progress) => progress.cardId))
   assert(faces.every((id) => !NEOW_CARDS.find((card) => card.id === id).unlocked))
-  assert(first.players.every((player) => player.gold === 0))
-  assert(first.players.every((player) => first.neow.players[player.id].redGoldPending && first.neow.players[player.id].redRewardPending && first.neow.players[player.id].redReward === null))
+  assert(first.players.every((player) => player.gold === 3))
+  assert(first.players.every((player) => first.neow.players[player.id].redRewardPending && first.neow.players[player.id].redReward === null))
   assertEqual(chooseNeow(first, 'p1', 0), first, 'blue resolved before the red reward')
-  let skipped = resolveNeowGold(first, 'p1', false)
-  skipped = resolveNeowReward(skipped, 'p1', null)
+  const skipped = resolveNeowReward(first, 'p1', null)
   assertEqual(skipped.neow.players.p1.redReward, null)
   assert(neowPreview(skipped, 'p1').card)
   assertEqual('deck' in neowPreview(skipped, 'p1'), false)
@@ -301,7 +295,6 @@ check('Transformed replaces red and blue normal Neow Card Rewards', () => {
   let run = createRun(4051, party(1), 0, createCampaignProgress(), false, false, {
     mode: 'custom', modifiers: ['transformed'],
   })
-  run = resolveNeowGold(run, 'p1', false)
   run = revealNeowReward(run, 'p1')
   assertDeepEqual(run.neow.players.p1.pendingEffect, { kind: 'transform', count: 1 })
   const firstUid = run.players[0].deck.find((card) => CARDS[card.defId]?.owner !== 'curse').uid
@@ -366,7 +359,6 @@ check('all sixty printed blue options are legal from an ordinary opening deck', 
 
 check('red and blue Card Rewards reveal three, may be skipped, and bottom unused cards', () => {
   let run = createRun(4201, party(2))
-  run = resolveNeowGold(run, 'p1', true)
   run = revealNeowReward(run, 'p1')
   const red = run.neow.players.p1.redReward
   const beforeDeck = [...run.players[0].cardRewards]
@@ -389,7 +381,6 @@ check('red and blue Card Rewards reveal three, may be skipped, and bottom unused
 check('unseen rewards skip without drawing while revealed rewards advance and bottom exact cards', () => {
   let red = createRun(4251, party(2))
   const redDeck = [...red.players[0].cardRewards]
-  red = resolveNeowGold(red, 'p1', false)
   red = resolveNeowReward(red, 'p1', null)
   assertDeepEqual(red.players[0].cardRewards, redDeck)
   assertEqual(red.neow.players.p1.redRewardPending, false)
@@ -435,16 +426,15 @@ check('unseen rewards skip without drawing while revealed rewards advance and bo
 
 check('every immediate positive reward may be skipped independently while ordered penalties still resolve', () => {
   let red = createRun(4270, party(2))
-  red = resolveNeowGold(red, 'p1', false)
-  assertEqual(red.players[0].gold, 0)
-  assert(red.neow.players.p1.redRewardPending, 'skipping Gold also skipped the Card Reward')
+  assertEqual(red.players[0].gold, 3)
+  assert(red.neow.players.p1.redRewardPending, 'the Card Reward is still pending after the automatic Gold')
 
   let gold = forceCard(beginBlue(4271), 'neow_01')
   const hp = gold.players[0].hp
   gold = chooseNeow(gold, 'p1', 2)
   assertEqual(gold.players[0].hp, hp, 'later HP loss resolved before the preceding Gold decision')
   gold = resolveNeowEffect(gold, 'p1', false)
-  assertEqual(gold.players[0].gold, 0)
+  assertEqual(gold.players[0].gold, 3)
   assertEqual(gold.players[0].hp, hp - 2)
 
   let upgrade = forceCard(beginBlue(4272), 'neow_01')
@@ -681,7 +671,6 @@ check('Prismatic Neow bottoms every unused physical card without overwriting its
     cardRewards: player.character === 'ironclad' ? ['anger', 'cleave']
       : player.character === 'silent' ? ['acrobatics', 'backflip'] : ['claw', 'leap'],
   }))
-  run = resolveNeowGold(run, 'p1', false)
   run = revealNeowReward(run, 'p1', ['ironclad', 'silent', 'defect'])
   assertDeepEqual(run.neow.players.p1.redReward.choices, ['anger', 'acrobatics', 'claw'])
   run = resolveNeowReward(run, 'p1', 1)
@@ -698,8 +687,7 @@ check('Guardian Neow offers reveal and settle Socket Gems with the draft', () =>
     const progress = run.neow.players.p1
     return {
       ...run,
-      neow: { ...run.neow, players: { p1: { ...progress, redGoldPending: false,
-        redRewardPending: false, redReward: null, rewardKind: kind, reward: null } } },
+      neow: { ...run.neow, players: { p1: { ...progress,         redRewardPending: false, redReward: null, rewardKind: kind, reward: null } } },
     }
   }
 
@@ -741,18 +729,16 @@ check('Transformed Neow does not require irrelevant Prismatic reward sources', (
   let run = createRun(4851, party(1), 0, createCampaignProgress(), false, false, {
     mode: 'custom', modifiers: ['prismatic_shard', 'transformed'],
   })
-  run = resolveNeowGold(run, 'p1', false)
   assertDeepEqual(neowPreview(run, 'p1').availableSources, [])
   const next = revealNeowReward(run, 'p1', [])
   assert(next !== run)
   assert(next.neow.players.p1.pendingEffect?.kind === 'transform')
 })
 
-check('solo receives 2 Gold and Loaded Die only after every Neow decision is complete', () => {
+check('solo receives 2 more Gold and Loaded Die only after every Neow decision is complete', () => {
   let run = createRun(4901, party(1))
-  assertEqual(run.players[0].gold, 0)
+  assertEqual(run.players[0].gold, 3)
   assert(!run.players[0].relics.some((relic) => relic.defId === 'loaded_die'))
-  run = resolveNeowGold(run, 'p1', false)
   run = resolveNeowReward(run, 'p1', null)
   run = forceCard(run, 'neow_01')
   const uid = run.players[0].deck.find((card) => !card.upgraded).uid
@@ -760,8 +746,29 @@ check('solo receives 2 Gold and Loaded Die only after every Neow decision is com
   run = resolveNeowEffect(run, 'p1', true, { cardUids: [uid] })
   assertEqual(run.phase, 'map')
   assertEqual(run.neow, null)
-  assertEqual(run.players[0].gold, 2)
+  assertEqual(run.players[0].gold, 5)
   assert(run.players[0].relics.some((relic) => relic.defId === 'loaded_die'))
+})
+
+check('the opening 3 Gold is automatic but an Heirloom Ectoplasm still blocks it', () => {
+  const heirloom = createRun(4, party(1), 0, createCampaignProgress(), false, false, { mode: 'custom', modifiers: ['heirloom'] })
+  const ectoplasm = heirloom.players[0].relics.some((relic) => relic.defId === 'ectoplasm')
+  assert(ectoplasm, 'seed 4 should deal Ectoplasm as the Heirloom')
+  assertEqual(heirloom.players[0].gold, 0)
+})
+
+check('saves that still owe the red Gold pay it exactly once', () => {
+  const run = createRun(4902, party(2))
+  const legacy = structuredClone(run)
+  legacy.players.forEach((player) => { player.gold = 0 })
+  legacy.neow.players.p1.redGoldPending = true
+  legacy.neow.players.p2.redGoldPending = false
+  const migrated = grantLegacyNeowGold(legacy)
+  assertEqual(migrated.players[0].gold, 3)
+  assertEqual(migrated.players[1].gold, 0)
+  assert(!Object.values(migrated.neow.players).some((progress) => 'redGoldPending' in progress))
+  assertEqual(resumeNeow(legacy).players[0].gold, 3)
+  assertEqual(grantLegacyNeowGold(migrated).players[0].gold, 3)
 })
 
 report("Neow's Blessing")

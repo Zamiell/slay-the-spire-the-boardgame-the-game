@@ -85,7 +85,6 @@ try {
     await page.getByRole('button', { name: 'Start standard campaign', exact: true }).click()
     for (const character of ['ironclad', 'guardian']) {
       const run = createRun(1, [{ id: 'p1', name: character, character }])
-      run.neow.players.p1.redGoldPending = false
       await page.evaluate(run => window.__STS_DEBUG__.setRun(run), run)
       await page.getByRole('button', { name: 'Reveal Card Reward', exact: true }).click()
       await page.locator('.reward-screen--card-choice').waitFor()

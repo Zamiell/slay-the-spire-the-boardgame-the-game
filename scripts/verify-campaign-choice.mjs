@@ -23,7 +23,6 @@ for (const campaign of ['base', 'downfall']) {
     for (const member of members) {
       const blessing = run.neow.players[member.id]
       assert.equal(blessing.cardId.startsWith('heart_boon_'), member.character === 'guardian')
-      assert.equal(blessing.redGoldPending, true)
       assert.equal(blessing.redRewardsRemaining, 1)
     }
     if (members.some((member) => member.character === 'guardian')) assert(run.guardianGemDeck.length > 0)

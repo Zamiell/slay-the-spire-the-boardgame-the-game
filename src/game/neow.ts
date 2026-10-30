@@ -49,7 +49,6 @@ export type NeowRewardOffer = {
 
 export type NeowPlayerState = {
   cardId: string
-  redGoldPending: boolean
   redRewardPending: boolean
   /** One opening Card Reward; retained for older saves with queued rewards. */
   redRewardsRemaining?: number

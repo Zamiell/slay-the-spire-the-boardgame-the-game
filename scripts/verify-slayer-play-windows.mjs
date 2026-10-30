@@ -962,8 +962,7 @@ function finishNeow(room) {
     for (const seat of room.seats) {
       const preview = snapshotFor(room, seat.token).run.neow?.players[seat.playerId]
       if (!preview || preview.done) continue
-      if (preview.redGoldPending) apply(room, seat.token, { kind: 'neow', stage: 'redGold', gain: false })
-      else if (preview.redRewardPending) apply(room, seat.token, { kind: 'neow', stage: 'red', choice: null })
+      if (preview.redRewardPending) apply(room, seat.token, { kind: 'neow', stage: 'red', choice: null })
       else if (preview.pendingEffect) apply(room, seat.token, { kind: 'neow', stage: 'effect', gain: false })
       else if (preview.blueOption === null) apply(room, seat.token, { kind: 'neow', stage: 'option', optionIndex: 0 })
       else if (preview.rewardKind) apply(room, seat.token, { kind: 'neow', stage: 'reward', choice: null })

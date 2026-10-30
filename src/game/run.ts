@@ -29,11 +29,11 @@ export {
 export { ROOM_LABEL, beginCatchUp, createPlayer, createRun, enteringRoom } from './run/setup.ts'
 export {
   resumeNeow,
+  grantLegacyNeowGold,
   chooseNeow,
   neowEffectSelection,
   neowPreview,
   resolveNeowEffect,
-  resolveNeowGold,
   resolveNeowReward,
   revealNeowReward,
 } from './run/neow.ts'

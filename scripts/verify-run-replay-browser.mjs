@@ -439,7 +439,7 @@ try {
       controller.abort()
     }
   })
-  assert.deepEqual(abortedReplayStates, [0], 'Aborted replay applied the in-flight event patch')
+  assert.deepEqual(abortedReplayStates, [3], 'Aborted replay applied the in-flight event patch')
   assert.equal(await page.locator('.run-replay__cursor').count(), 0, 'Aborted replay left its synthetic cursor behind')
 
   const localBeforeReplay = await page.evaluate(() => ({
@@ -658,7 +658,7 @@ try {
   assert(pacing.deckGaps.every((gap) => gap >= 900), `In-combat card-pick steps flashed by: ${pacing.deckGaps}`)
   assert(pacing.orbDelay < 1_000, `Replay waited ${pacing.orbDelay}ms for an Orb target that appears after its card is picked up`)
   assert(pacing.chain < 2_000, `A five-step start-of-turn choice took ${pacing.chain}ms`)
-  assert.deepEqual(pacing.states, [0, 7, 11, 12, 13], 'Replay stopped at a click whose control never appeared instead of applying its patch')
+  assert.deepEqual(pacing.states, [3, 7, 11, 12, 13], 'Replay stopped at a click whose control never appeared instead of applying its patch')
   assert.deepEqual(desktop.skips, ['Replay skipped a click: #never-appears did not appear.'])
   assert.equal(pacing.wonClick, null, 'A click made while a won fight folded into the run was replayed as its cause')
 
@@ -666,8 +666,8 @@ try {
     await page.getByRole('button', { name: label, exact: true }).click()
   }
   await page.waitForFunction(() => window.__STS_DEBUG__?.getRun().phase === 'neow')
-  await page.getByRole('button', { name: 'Gain 3 Gold', exact: true }).click()
-  await page.waitForFunction(() => window.__STS_DEBUG__.getRun().players[0].gold === 3)
+  await page.getByRole('button', { name: 'Skip unseen', exact: true }).click()
+  await page.waitForFunction(() => window.__STS_DEBUG__.getRun().neow.players.p1.redRewardPending === false)
   await page.evaluate(() => {
     const run = structuredClone(window.__STS_DEBUG__.getRun())
     run.nextPendingRelicId = 1
@@ -716,7 +716,7 @@ try {
   assert.equal(downloaded.version, 2)
   assert.equal(downloaded.runId, downloaded.initial.campaign.runId)
   assert(downloaded.events.length > 0)
-  assert(downloaded.events.some((event) => event.choice?.source?.name === 'Gain 3 Gold'), 'Downloaded log omitted the recorded game decision')
+  assert(downloaded.events.some((event) => event.choice?.source?.name === 'Skip unseen'), 'Downloaded log omitted the recorded game decision')
   assert(downloaded.events.some((event) => event.choice?.source?.name?.startsWith('Strike,') && event.choice.target),
     'Downloaded log omitted the recorded card target')
   assert(downloaded.events.some((event) => event.patch.some((change) => change.remove && change.path[0] === 'nextPendingRelicId')),

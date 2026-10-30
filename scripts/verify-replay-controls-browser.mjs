@@ -28,8 +28,8 @@ for (const label of ['Single Player', 'Standard', 'Embark', 'Start standard camp
   await recording.getByRole('button', { name: label, exact: true }).click()
 }
 await recording.waitForFunction(() => window.__STS_DEBUG__?.getRun().phase === 'neow')
-await recording.getByRole('button', { name: 'Gain 3 Gold', exact: true }).click()
-await recording.waitForFunction(() => window.__STS_DEBUG__.getRun().players[0].gold === 3)
+await recording.getByRole('button', { name: 'Skip unseen', exact: true }).click()
+await recording.waitForFunction(() => window.__STS_DEBUG__.getRun().neow.players.p1.redRewardPending === false)
 for (let floor = 1; floor < MOVES; floor += 1) {
   await recording.evaluate((value) => {
     const run = structuredClone(window.__STS_DEBUG__.getRun())
@@ -77,8 +77,8 @@ for (const label of ['Single Player', 'Standard', 'Embark', 'Start standard camp
   await clicking.getByRole('button', { name: label, exact: true }).click()
 }
 await clicking.waitForFunction(() => window.__STS_DEBUG__?.getRun().phase === 'neow')
-await clicking.getByRole('button', { name: 'Gain 3 Gold', exact: true }).click()
-await clicking.waitForFunction(() => window.__STS_DEBUG__.getRun().players[0].gold === 3)
+await clicking.getByRole('button', { name: 'Skip unseen', exact: true }).click()
+await clicking.waitForFunction(() => window.__STS_DEBUG__.getRun().neow.players.p1.redRewardPending === false)
 await clicking.evaluate(async () => {
   const { createCombat } = await import('/src/game/combat.ts')
   const run = structuredClone(window.__STS_DEBUG__.getRun())

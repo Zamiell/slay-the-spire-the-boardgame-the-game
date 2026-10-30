@@ -7,7 +7,6 @@ import {
   createRun,
   enterRoom,
   resolveCardRewards,
-  resolveNeowGold,
   resolveNeowReward,
   revealCardReward,
   revealNeowReward,
@@ -419,7 +418,7 @@ check('Neow deals the Colorless blessings, and their offer is the pack\'s cards'
   const plainSupply = [...plain.neow.deck, ...Object.values(plain.neow.players).map((progress) => progress.cardId)]
   assertEqual(plainSupply.length, NEOW_CARDS.filter((card) => !card.unlocked).length, 'no pack, no Colorless Neow card')
 
-  let neow = resolveNeowReward(resolveNeowGold(run, 'p1', false), 'p1', null)
+  let neow = resolveNeowReward(run, 'p1', null)
   neow = { ...neow, neow: { ...neow.neow, players: { ...neow.neow.players, p1: { ...neow.neow.players.p1, cardId: 'neow_c06' } } } }
   neow = revealNeowReward(chooseNeow(neow, 'p1', 2), 'p1')
   const choices = neow.neow.players.p1.reward.choices

@@ -308,12 +308,15 @@
 .card__live-cost {
   top: 5%;
   left: 4%;
-  min-width: 20%;
-  min-height: 12%;
+  min-width: 24%;
+  min-height: 15%;
   box-sizing: border-box;
+  flex-direction: column;
   justify-content: center;
-  gap: 3px;
+  gap: 1px;
+  padding: 2px 4px;
   background: #101820;
+  border-width: 2px;
   border-color: currentColor;
 }
 
@@ -322,7 +325,17 @@
 .card__live-cost[data-trend='up'] { color: #ff9a92; }
 .card__live-cost[data-trend='down'] { color: #91ffa0; }
 .card__live-cost[data-trend='changed'] { color: #ffe294; }
-.card__live-cost s { font-size: 0.75em; }
+.card__live-cost strong {
+  font-size: clamp(1.4rem, calc(var(--hand-card-width, var(--card-width)) * 0.12), 2.25rem);
+  line-height: 1;
+}
+.card__live-cost small {
+  color: #eef2f5;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
 
 /* Settings > Card hints: off hides the live damage and the area-of-effect symbol everywhere. */
 html[data-card-hints='false'] :is(.card__live-damage, .card__aoe) { display: none !important; }

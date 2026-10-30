@@ -173,7 +173,7 @@ try {
           return box.width > 0 && box.top < innerHeight && box.bottom > 0 &&
             Number(getComputedStyle(card).opacity) === 1 && card.getAnimations().every(animation => animation.playState !== 'running')
         }))
-        assert.deepEqual(await page.locator('.hand .card__live-cost').allTextContents(), ['0→3', '1→3', '2→3'])
+        assert.deepEqual(await page.locator('.hand .card__live-cost').allTextContents(), ['3was 0', '3was 1', '3was 2'])
         assert(await page.locator('.hand .card__live-cost').evaluateAll(badges => badges.every(badge => {
           const box = badge.getBoundingClientRect()
           return box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight
@@ -204,13 +204,13 @@ try {
           await status.getByText(explanation, { exact: true }).waitFor()
           await status.getByText('Cannot draw more cards this turn', { exact: true }).waitFor()
           assert.deepEqual(await page.locator('.hand .card__live-cost').allTextContents(),
-            price === 2 ? ['0→2', '1→2'] : ['1→0', '2→0'])
+            price === 2 ? ['2was 0', '2was 1'] : ['0was 1', '0was 2'])
           await page.evaluate(() => { document.documentElement.dataset.cardHints = 'false' })
           assert(await page.locator('.hand .card__live-cost').first().isVisible(), 'actual prices are not optional card hints')
           await page.screenshot({ path: resolve(out, `${engineName}-${screen}-snecko-eye-${price}.png`) })
           await pickUpCard(page, 'Flex')
           if (price === 2) {
-            assert.equal(await page.locator('.card-interaction__card .card__live-cost').textContent(), '0→2',
+            assert.equal(await page.locator('.card-interaction__card .card__live-cost').textContent(), '2was 0',
               'picking up a card must retain its actual cost above the scanned art')
           }
           await confirmCardPlay(page)

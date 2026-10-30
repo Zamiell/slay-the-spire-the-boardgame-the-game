@@ -83,10 +83,11 @@ try {
         await card.locator('.card__art').evaluate(image => image.decode())
         await page.waitForFunction(() => getComputedStyle(document.querySelector('.card__art')).visibility === 'visible')
         assert.equal(await card.locator('.card__live-cost').count(), 0)
-        for (const cost of [0, 3]) {
+        for (const cost of [0, 2, 3]) {
           await page.evaluate(props => window.renderCard(props), { ...scannedProps, cost })
           const costBadge = card.locator('.card__live-cost')
-          assert.equal(await costBadge.textContent(), `1→${cost}`)
+          assert.equal(await costBadge.locator('strong').textContent(), String(cost))
+          assert.equal(await costBadge.locator('small').textContent(), 'was 1')
           assert.equal(await costBadge.getAttribute('data-trend'), cost === 0 ? 'down' : 'up')
           assert(await costBadge.evaluate(badge => {
             const box = badge.getBoundingClientRect()
@@ -97,21 +98,41 @@ try {
               box.left <= printedCost.x && box.right >= printedCost.x && box.top <= printedCost.y && box.bottom >= printedCost.y &&
               Number(getComputedStyle(badge).zIndex) > Number(getComputedStyle(badge.parentElement.querySelector('.card__art')).zIndex)
           }), 'the effective cost must fit on the card above its scan')
+          assert(await costBadge.evaluate(badge => {
+            const current = badge.querySelector('strong')
+            const previous = badge.querySelector('small')
+            const box = badge.getBoundingClientRect()
+            const currentBox = current.getBoundingClientRect()
+            const previousBox = previous.getBoundingClientRect()
+            return parseFloat(getComputedStyle(current).fontSize) >= 22 &&
+              parseFloat(getComputedStyle(current).fontSize) >= parseFloat(getComputedStyle(previous).fontSize) * 1.8 &&
+              currentBox.bottom <= previousBox.top &&
+              [currentBox, previousBox].every(text => text.left >= box.left && text.right <= box.right &&
+                text.top >= box.top && text.bottom <= box.bottom)
+          }), 'the current cost must be large, stacked above its old cost, and unclipped')
           assert.match(await card.getAttribute('aria-label'), new RegExp(`cost ${cost}`))
           await page.screenshot({ path: resolve(output, `${engineName}-${screen}-scan-cost-${cost}.png`) })
         }
+        await page.evaluate(() => window.renderCard({
+          card: { uid: 'readable-pray', defId: 'pray', upgraded: true }, cost: 2,
+          style: { '--card-width': 'min(260px, 42vh)' },
+        }))
+        await card.locator('.card__art').evaluate(image => image.decode())
+        assert.equal(await card.locator('.card__live-cost strong').textContent(), '2')
+        assert.equal(await card.locator('.card__live-cost small').textContent(), 'was 1')
+        await page.screenshot({ path: resolve(output, `${engineName}-${screen}-pray-cost-change.png`) })
         await page.evaluate(props => window.renderCard(props), scannedProps)
         assert.equal(await card.locator('.card__live-cost').count(), 0, 'normal prices must not leave a stale overlay')
         await page.evaluate(() => window.renderCard({
           card: { uid: 'window', defId: 'strike_ironclad', upgraded: false, playWindowCost: 0 },
         }))
-        assert.equal(await card.locator('.card__live-cost').textContent(), '1→0')
+        assert.equal(await card.locator('.card__live-cost').textContent(), '0was 1')
         assert.equal(await card.locator('.card__window-cost').count(), 0, 'a window must not render two price overlays')
         assert.match(await card.getAttribute('aria-label'), /cost 0/)
         await page.evaluate(() => window.renderCard({
           card: { uid: 'fixed-x', defId: 'whirlwind', upgraded: false }, cost: 2,
         }))
-        assert.equal(await card.locator('.card__live-cost').textContent(), 'X→2')
+        assert.equal(await card.locator('.card__live-cost').textContent(), '2was X')
         await page.evaluate(() => window.renderCard({
           card: { uid: 'unplayable', defId: 'daze', upgraded: false }, cost: 0,
         }))

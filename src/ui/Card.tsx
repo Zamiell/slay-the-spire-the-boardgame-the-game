@@ -896,7 +896,7 @@ export function Card({
       ) : null}
       {costChanged ? (
         <span className="card__live-cost" aria-hidden="true" data-trend={costTrend}>
-          <s>{def.cost}</s><span>→</span><strong>{effectiveCost}</strong>
+          <strong>{effectiveCost}</strong><small>was {def.cost}</small>
         </span>
       ) : card.playWindowCost !== undefined && !def.unplayable ? (
         // Slayer Pack: The exact cost an open card-play window charges, over the printed gem.

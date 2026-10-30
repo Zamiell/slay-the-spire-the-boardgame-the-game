@@ -17,6 +17,11 @@ export type StartTurnOrderStep = {
   badges?: { text: string; done?: boolean }[]
 }
 
+export function pendingSneckoEyeCost(player: Pick<Player, 'nextCardCost' | 'relics'>): 0 | 2 | null {
+  return (player.nextCardCost === 0 || player.nextCardCost === 2) &&
+    player.relics.some(relic => relic.defId === 'snecko_eye') ? player.nextCardCost : null
+}
+
 /**
  * Before-draw Scries carry no `visual`; their id still ends with the trigger
  * source (`relic:<index>:<ability>` or `power:<uid>`), which names the art.
@@ -65,6 +70,10 @@ export function StartTurnOrder({ title, hint, steps, players, canMove, onMove, f
   onMove: (id: string, delta: -1 | 1) => void
 }) {
   const party = players.length > 1
+  const activeCosts = players.flatMap(owner => {
+    const cost = pendingSneckoEyeCost(owner)
+    return owner.dead || cost === null ? [] : [{ owner, cost }]
+  })
   const owed = steps.some((step) => step.badges?.some((badge) => badge.done === false))
   // Only the first render decides; afterwards the player's own fold wins.
   const [startsOpen] = useState(() => !foldWhenShort || owed || !window.matchMedia(COMPACT_BOARD).matches)
@@ -120,6 +129,19 @@ export function StartTurnOrder({ title, hint, steps, players, canMove, onMove, f
             </li>
           )
         })}
+        {activeCosts.map(({ owner, cost }) => (
+          <li key={`snecko-eye-${owner.id}`} className="start-turn-order__step start-turn-order__active-effect">
+            <span className="start-turn-order__index" aria-hidden="true">✓</span>
+            <span className="start-turn-order__art" aria-hidden="true"><ItemImage kind="relic" id="snecko_eye" /></span>
+            <span className="start-turn-order__text">
+              <span className="start-turn-order__name">Snecko Eye (your next card this turn costs {cost} Energy)</span>
+              <span className="start-turn-order__meta">
+                {party ? <span className="start-turn-order__owner">{owner.name}</span> : null}
+                <span className="start-turn-order__badge start-turn-order__badge--done">Already active</span>
+              </span>
+            </span>
+          </li>
+        ))}
       </ol>
     </details>
   )

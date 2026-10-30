@@ -123,6 +123,31 @@ try {
       return [player.miracles, player.strength, player.block]
     }), [1, 1, 3])
 
+    for (const cost of [2, 0]) {
+      await load({ die: cost === 2 ? 5 : 6, player: {
+        relics: ['loaded_die', 'snecko_eye'].map(defId => ({ defId, spent: false })),
+        potions: ['gamblers_brew'], nextCardCost: cost,
+      } })
+      await panel.waitFor()
+      if (await panel.getAttribute('open') === null) await panel.locator('summary').click()
+      await settle()
+      const active = panel.locator('.start-turn-order__active-effect')
+      assert.equal(await active.locator('.start-turn-order__name').innerText(),
+        `Snecko Eye (your next card this turn costs ${cost} Energy)`)
+      assert.equal(await active.locator('.start-turn-order__badge').innerText(), 'Already active')
+      assert.equal(await active.getByRole('button').count(), 0, 'already-applied costs must not be reorderable or activatable')
+      assert.equal(await panel.locator('.start-turn-order__count').innerText(), '1',
+        'the Snecko Eye notice must not invent another unresolved trigger')
+      const before = await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun()))
+      await active.click()
+      assert.equal(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun())), before)
+      assertLayout(await layout(), `Snecko Eye ${cost}`)
+      await page.screenshot({ path: `${out}/${name}-snecko-eye-${cost}.png` })
+      await page.getByRole('button', { name: 'Resolve start of turn 2', exact: true }).click()
+      await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.phase === 'player')
+      assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.players[0].nextCardCost), cost,
+        'resolving start of turn must not consume the pending card price')
+    }
     // Solo: a relic and three Powers, one of which still needs a target.
     await load({ player: {
       relics: [{ defId: 'coffee_dripper', spent: false }],

@@ -3,7 +3,7 @@ import heroArtHeads from './hero-art-head.json'
 import { animateCardFlight, cardFlightPath } from './combat-screen/card-flight.ts'
 import { unknownPowerRefreshDecision } from './combat-screen/unknown-power.ts'
 import { HermitTriggerChoice } from './combat-screen/HermitTriggerChoice.tsx'
-import { StartTurnOrder } from './combat-screen/StartTurnOrder.tsx'
+import { pendingSneckoEyeCost, StartTurnOrder } from './combat-screen/StartTurnOrder.tsx'
 import { createCardPlayCoordinator, describeCardPickup, stageHermitChamberViewer } from './combat-screen/card-play.ts'
 import { useCardInteraction } from './combat-screen/useCardInteraction.ts'
 import { trackCombatResources } from './combat-screen/resource-visibility.ts'
@@ -6921,9 +6921,8 @@ function CombatScreenView({
                       {occupant.cardPlayLocked ? (
                         <span className="seat__pending">No additional cards this turn</span>
                       ) : null}
-                      {(occupant.nextCardCost === 0 || occupant.nextCardCost === 2) &&
-                        occupant.relics.some(relic => relic.defId === 'snecko_eye') ? (
-                        <span className="seat__pending">{occupant.nextCardCost === 0
+                      {pendingSneckoEyeCost(occupant) !== null ? (
+                        <span className="seat__pending">{pendingSneckoEyeCost(occupant) === 0
                           ? 'Snecko Eye · next card is free'
                           : 'Snecko Eye · next card costs 2 Energy'}</span>
                       ) : null}

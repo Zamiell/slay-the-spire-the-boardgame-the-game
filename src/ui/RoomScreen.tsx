@@ -1514,6 +1514,11 @@ function EventScreen({
           {room.card.options.map((choice) => {
             const cardSlots = eventCardSlots(choice.effects, pendingDie, player, players);
             const choiceEffects = activeEffects(choice.effects);
+            const curses = player.deck.filter((card) => cardIsCurse(card.defId));
+            const curseCountNote = choiceEffects.some((effect) => effect.tag === "remove-curses")
+              ? ` (Currently ${curses.length} ${curses.length === 1 ? "curse" : "curses"}.${
+                curses.some((card) => card.defId === "ascenders_bane") ? " Ascender's Bane cannot be removed." : ""})`
+              : "";
             const choiceTradeCard = choiceEffects.some((effect) => effect.tag === "trade-card");
             const choiceTradeRelic = choiceEffects.some((effect) => effect.tag === "trade-relic");
             const soloFaceTraderExchange = room.card.id === "face_trader" && choice.id === "exchange" && players.length === 1;
@@ -1592,7 +1597,7 @@ function EventScreen({
               >
                 {repeatScrap ? <strong>{choice.id === "reach_inside" ? "Reach again" : choice.label}</strong> : <>
                   <strong>[{soloFaceTraderExchange ? "Leave" : choice.label}]</strong>
-                  <span>{soloFaceTraderExchange ? "No other player to exchange with." : choice.description}</span>
+                  <span>{soloFaceTraderExchange ? "No other player to exchange with." : choice.description}{curseCountNote}</span>
                 </>}
               </button>
             );

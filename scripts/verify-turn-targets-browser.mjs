@@ -105,11 +105,17 @@ try {
       assert.equal((await hp())[1], 30, `${name}: Lightning hit an unselected target`)
     }
 
+    const playDualCast = async () => {
+      await page.locator('.hand .card[title^="Dual Cast"]').click()
+      await page.locator('.card-interaction__card').waitFor()
+      const point = await page.evaluate(() => ({ x: innerWidth * 0.45, y: innerHeight * 0.25 }))
+      await page.mouse.click(point.x, point.y)
+    }
     for (const [orb, slot, upgraded, damage] of [['lightning', 1, false, 2], ['dark', 2, true, 3]]) {
       const orbs = [null, null, null]
       orbs[slot] = orb
       await load({ player: { hand: [c('single-orb-dual', 'dual_cast', upgraded)], orbs } })
-      await page.locator('.hand .card[title^="Dual Cast"]').click()
+      await playDualCast()
       const autoAim = page.locator('.evoke-target-effect')
       await autoAim.waitFor()
       assert.equal(await page.locator('.orbs__target').count(), 0,
@@ -124,14 +130,14 @@ try {
       assert.equal((await combat()).players[0].orbs[slot], null, 'Dual Cast must consume its selected Orb')
     }
     await load({ player: { hand: [c('single-frost-dual', 'dual_cast')], orbs: [null, 'frost', null] } })
-    await page.locator('.hand .card[title="Dual Cast"]').click()
+    await playDualCast()
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.players[0].hand.length === 0)
     assert.equal((await combat()).players[0].block, 2, 'one Frost Orb must resolve both Evokes without an Orb-picker click')
     assert.deepEqual((await combat()).players[0].orbs, [null, null, null])
 
     // A card Evoke still offers a real choice when several Orbs are channeled.
     await load({ player: { hand: [c('dual', 'dual_cast')], orbs: ['lightning', 'frost', 'dark'], orbEvokeBonus: 1 } })
-    await page.locator('.hand .card[title="Dual Cast"]').click()
+    await playDualCast()
     await orbButton('lightning', 1).waitFor()
     assert.equal(await page.locator('.orbs__target').count(), 3)
     assert(await orbsVisibleAndClear(), `${name}: the hero's Orbs are covered while choosing an Evoke`)
@@ -152,6 +158,8 @@ try {
     assert.match(await caption.textContent(), /lightning Orb 1: Drag to an enemy$/)
     await evokeTarget.locator('button').click()
     assert.equal(await evokeTarget.locator('button').getAttribute('aria-pressed'), 'true')
+    assert.equal(await page.locator('.hand .card[data-hand-focused]').count(), 0,
+      'the selected card must stay lowered while aiming an Evoke')
     await page.locator('[data-enemy-id="e1"] .enemy__head').click()
     await page.waitForTimeout(200)
     assert.equal(await evokeTarget.count(), 1, `${name}: Dual Cast lost its second Lightning aim`)
@@ -169,7 +177,7 @@ try {
     // Row-targeting Lightning aims at rows; a boss stands in every row and cannot be picked alone.
     await load({ boss: true, player: { hand: [c('dual-row', 'dual_cast')], orbs: ['lightning', 'frost', 'dark'],
       powers: [c('electro', 'electrodynamics')] } })
-    await page.locator('.hand .card[title="Dual Cast"]').click()
+    await playDualCast()
     await orbButton('lightning', 1).click()
     await evokeTarget.waitFor()
     await drag(evokeTarget.locator('button'), 'boss')

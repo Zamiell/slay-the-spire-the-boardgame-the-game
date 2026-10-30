@@ -12,6 +12,7 @@ type Session = {
   id: number
   card: CardInstance
   mode: CardInteractionMode
+  handoff: boolean
   stage: Stage
   gesture: Gesture
   pointerId: number
@@ -37,7 +38,7 @@ type Options = {
   reducedMotion: boolean
   canUse: (card: CardInstance) => boolean
   targetAt: (point: Point, card: CardInstance) => string | null
-  submit: (card: CardInstance, targetUid: string | null) => void
+  submit: (card: CardInstance, targetUid: string | null, handoff: boolean, point: Point) => void
   awaitingReply: () => boolean
   onPickup: () => void
   onLand: (destination: Destination) => void
@@ -97,7 +98,7 @@ export function useCardInteraction(options: Options) {
     clearTimeout(clickTimer.current)
     clickTimer.current = setTimeout(() => { clickSuppressed.current = false }, 0)
   }
-  const begin = (card: CardInstance, mode: CardInteractionMode, event: ReactPointerEvent<HTMLButtonElement>) => {
+  const begin = (card: CardInstance, mode: CardInteractionMode, event: ReactPointerEvent<HTMLButtonElement>, handoff = false) => {
     if (event.button !== 0 || !latest.current.canUse(card)) return false
     cancelledPointer.current = null
     if (live.current?.stage === 'returning') clear()
@@ -116,7 +117,7 @@ export function useCardInteraction(options: Options) {
     source.setPointerCapture(event.pointerId)
     live.current = {
       id: ++nextId.current,
-      card, mode, source, width, height,
+      card, mode, handoff, source, width, height,
       stage: 'dragging', gesture: beginGesture(pointer, innerHeight, width / 180),
       pointerId: event.pointerId, captured: true, touch: event.pointerType !== 'mouse', clickToTarget: false,
       scrollLeft: source.closest('.hand-scroll')?.scrollLeft ?? 0,
@@ -223,11 +224,17 @@ export function useCardInteraction(options: Options) {
         return
       }
       if (!latest.current.canUse(current.card)) { cancel(); return }
+      if (current.handoff) {
+        // Enter the existing choice/preview flow only after the pickup is confirmed.
+        clear()
+        latest.current.submit(current.card, target, true, current.gesture.pointer)
+        return
+      }
       current.stage = 'submitted'
       current.stageStarted = performance.now()
       current.targetUid = target
       publish()
-      latest.current.submit(current.card, target)
+      latest.current.submit(current.card, target, false, current.gesture.pointer)
     }
     const down = (event: PointerEvent) => {
       const current = live.current
@@ -372,5 +379,6 @@ export function useCardInteraction(options: Options) {
     return () => cancelAnimationFrame(frame)
   }, [animating])
 
-  return { session, flights, cardElements, arrowElement, begin, accept }
+  return { session, flights, cardElements, arrowElement, begin, accept,
+    ownsCard: (uid: string) => live.current?.card.uid === uid }
 }

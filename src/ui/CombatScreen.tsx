@@ -715,14 +715,18 @@ function CombatScreenView({
       mutationsEnabled && authoritativeConnected !== false && !voluntaryActionsBlocked &&
       !document.querySelector('dialog[open], [role="dialog"][aria-modal="true"]') &&
       cardCanStartDrag(card)),
-    targetAt: (point) => dragTargetAt(point.x, point.y, false),
-    submit: (card, targetUid) => {
+    targetAt: (point, card) => dragTargetAt(point.x, point.y, Boolean(viewer && pendingFor(card, null, state, viewer).hitsRow)),
+    submit: (card, targetUid, handoff, point) => {
       if (!viewer) return
       setPendingPowerUid(null)
       setPendingPotion(null)
       setSpendingShiv(false)
       setSpendingSoulburn(false)
       const next = pendingFor(card, null, state, viewer)
+      if (handoff) {
+        onCardClick(card, targetUid, next.needsAlly || next.playerChoices > 0 ? dragPlayerAt(point.x, point.y) : null)
+        return
+      }
       commit({ ...next, enemyUid: targetUid })
     },
     awaitingReply: () => cardActionPending.current,
@@ -730,7 +734,8 @@ function CombatScreenView({
     onLand: (destination) => { if (destination !== 'stage') pulseMotion([destination]) },
   })
   const viewerVisual = viewer ? playerVisualId(viewer) : undefined
-  useHandLayout(handRef, handReducedMotion, Boolean(cardDrag || cardInteraction.session || chamberClosing))
+  useHandLayout(handRef, handReducedMotion, Boolean(
+    cardDrag || cardInteraction.session || chamberClosing || pending?.evokeEnemyUids.includes(undefined)))
   const skinOrb = viewerVisual !== undefined && skinTraits(viewerVisual)?.energyOrb === true
   // Hand Attacks show what they would deal now: to the enemy being dragged onto or last
   // pointed at, to the only enemy left, otherwise to a plain stand-in enemy.
@@ -4526,6 +4531,12 @@ function CombatScreenView({
       !state.pendingCardCopy && !viewer?.doubledCardsThisTurn && !viewer?.doubledAttacksThisTurn &&
       !viewer?.tripledAttacksThisTurn && !viewer?.doubledSkillsThisTurn && simpleCardMode(card, livingPlayers.length)
     if (canDrag && mode && cardInteraction.begin(card, mode, event)) return
+    const def = effectiveCombatCardDef(faceOf(cardDef(card.defId), card.upgraded), viewer!.guardianMode)
+    if (canDrag && !chamber && def.type === 'skill') {
+      const needsEnemy = cardNeedsEnemy(def, viewer!, false, undefined, false,
+        guardianGemForCard(viewer!, card), card.uid)
+      if (cardInteraction.begin(card, needsEnemy ? 'enemy' : 'self', event, true)) return
+    }
     const staged = chamber ? stageHermitChamberViewer(viewer!, card,
       state.pendingHermitChamberPlays?.[0]?.playerId === viewerId &&
       state.pendingHermitChamberPlays[0].cardUids[0] === card.uid &&
@@ -4683,6 +4694,7 @@ function CombatScreenView({
   }
 
   function activateCard(card: CardInstance) {
+    if (cardInteraction.ownsCard(card.uid)) return
     if (suppressCardClick.current === card.uid) {
       suppressCardClick.current = null
       return

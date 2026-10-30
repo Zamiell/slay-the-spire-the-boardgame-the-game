@@ -40,8 +40,16 @@ try {
       relics: ['pure_water', 'loaded_die', 'vajra'].map(defId => ({ defId, spent: false })),
       powers: [{ uid: 'start-shiv', defId: 'infinite_blades', upgraded: false }],
     })
+    const unseen = structuredClone(next)
+    Object.assign(unseen.combat.players[0], { miracles: 0, shivs: 0, vigor: 0, soulburn: 0, clawCubesGainedThisCombat: 0 })
+    await page.evaluate(run => window.__STS_DEBUG__.setRun(run), unseen)
+    await page.waitForFunction(id => window.__STS_DEBUG__.getRun().combat?.combatId === id, unseen.combat.combatId)
+    await page.locator('.combat').waitFor()
+    assert.equal(await page.getByRole('button', { name: /^Use Miracle/ }).count(), 0)
+    assert.equal(await page.getByRole('button', { name: 'Use Shiv', exact: true }).count(), 0)
+    assert.equal(await page.locator('.combat__claw-cubes').count(), 0)
     await page.evaluate(run => window.__STS_DEBUG__.setRun(run), starting)
-    await page.waitForFunction(id => window.__STS_DEBUG__.getRun().combat?.combatId === id, next.combat.combatId)
+    await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat?.phase === 'start')
     const miracle = page.getByRole('button', { name: /^Use Miracle/ })
     await miracle.waitFor()
     const shiv = page.getByRole('button', { name: 'Use Shiv', exact: true })
@@ -130,8 +138,11 @@ try {
     assert.match(await allTip.innerText(), /individual attacks/)
     await activate(allShivs)
     await activate(page.locator('[data-enemy-id="target"] .enemy__hit-area'))
-    await shiv.waitFor({ state: 'detached' })
-    assert.equal(await allShivs.count(), 0)
+    await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.players[0].shivs === 0)
+    assert.equal(await shiv.innerText(), 'x0')
+    assert(await shiv.isDisabled())
+    assert.equal(await allShivs.innerText(), 'All x0')
+    assert(await allShivs.isDisabled())
     await page.evaluate(energy => {
       const run = structuredClone(window.__STS_DEBUG__.getRun())
       run.combat.players[0].energy = energy
@@ -151,7 +162,9 @@ try {
     })
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.players[0].energy === 3)
     await activate(miracle)
-    await miracle.waitFor({ state: 'detached' })
+    await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.players[0].miracles === 0)
+    assert.equal(await miracle.innerText(), 'x0')
+    assert(await miracle.isDisabled())
     assert.equal((await actor()).energy, 4)
     await page.evaluate(() => {
       const run = structuredClone(window.__STS_DEBUG__.getRun())
@@ -176,6 +189,30 @@ try {
     await page.keyboard.press('Enter')
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.players[0].potions.length === 1)
     assert.equal(await potion.innerText(), 'x1')
+    await page.evaluate(() => {
+      const run = structuredClone(window.__STS_DEBUG__.getRun())
+      run.combat.phase = 'start'
+      run.combat.turn++
+      run.combat.startTurnProgress = undefined
+      Object.assign(run.combat.players[0], {
+        vigor: 0, soulburn: 0, clawCubesGainedThisCombat: 0, powers: [],
+        relics: [{ defId: 'gambling_chip', spent: false }],
+      })
+      window.__STS_DEBUG__.setRun(run)
+    })
+    await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.phase === 'start')
+    for (const button of [miracle, shiv, vigor, soulburn]) {
+      assert.equal(await button.innerText(), 'x0', 'acquired resources must remain visible through later phases')
+      assert(await button.isDisabled())
+    }
+    assert.equal(await page.locator('.combat__claw-cubes strong').innerText(), 'x0')
+    unseen.combat.combatId = `unseen-next-fight-${screen}`
+    await page.evaluate(run => window.__STS_DEBUG__.setRun(run), unseen)
+    await page.waitForFunction(id => window.__STS_DEBUG__.getRun().combat?.combatId === id, unseen.combat.combatId)
+    for (const button of [miracle, shiv, vigor, soulburn]) {
+      assert.equal(await button.count(), 0, 'a new fight must reset resource visibility')
+    }
+    assert.equal(await page.locator('.combat__claw-cubes').count(), 0)
     assert.deepEqual(errors, [])
     await page.close()
     console.log(`PASS ${screen}: resource tooltips, live counts including one, and unchanged activation`)

@@ -6,6 +6,7 @@ import { HermitTriggerChoice } from './combat-screen/HermitTriggerChoice.tsx'
 import { StartTurnOrder } from './combat-screen/StartTurnOrder.tsx'
 import { createCardPlayCoordinator, describeCardPickup, stageHermitChamberViewer } from './combat-screen/card-play.ts'
 import { useCardInteraction } from './combat-screen/useCardInteraction.ts'
+import { trackCombatResources } from './combat-screen/resource-visibility.ts'
 import { CardInteractionLayer } from './combat-screen/CardInteractionLayer.tsx'
 import { HandDiscardSelection } from './combat-screen/HandDiscardSelection.tsx'
 import { useButtonShortcut } from './useButtonShortcut.ts'
@@ -674,6 +675,10 @@ function CombatScreenView({
   }
   const forcedAutoAttempt = useRef<string | null>(null)
   const viewer = state.players.find((player) => player.id === viewerId)
+  const [resourceHistory, setResourceHistory] = useState(() => trackCombatResources(undefined, state))
+  const resourceVisibility = trackCombatResources(resourceHistory, state)
+  if (resourceVisibility !== resourceHistory) setResourceHistory(resourceVisibility)
+  const seenResources = resourceVisibility.byPlayer.get(viewerId)
   const cardInteraction = useCardInteraction({
     context: `${state.combatId}:${viewerId}:${authoritativeRestoration ?? 0}:${authoritativeConnected !== false}`,
     combat: state,
@@ -4974,11 +4979,13 @@ function CombatScreenView({
     pendingPotion || pendingPowerUid || spendingShiv || spendingSoulburn ||
     endTurnEffectAimed || endTurnEffectDrag || pendingStartChoice ||
     pendingTrigger?.playerId === viewer.id)
-  const startResourceInventory = !viewer.dead && state.phase === 'start'
   const resourceActionsAvailable = !viewer.dead && state.phase === 'player' && !relicScry &&
     !voluntaryActionsBlocked && !forcedCard && !distilled && !endTurnResolving && !pendingTrigger
   const shivActionsAvailable = resourceActionsAvailable && !viewer.cardPlayLocked && viewer.shivs > 0
   const miracleActionAvailable = resourceActionsAvailable && viewer.miracles > 0
+  const vigorActionAvailable = resourceActionsAvailable && Boolean(viewer.guardianMode) &&
+    viewer.vigor > 0 && !viewer.cardPlayLocked && !reachedTimeWarpLimit(state, viewer)
+  const soulburnActionAvailable = resourceActionsAvailable && !viewer.cardPlayLocked && viewer.soulburn > 0
 
   return (
     <div
@@ -5037,12 +5044,12 @@ function CombatScreenView({
         {onCourierReveal && courierPeekPhase(state)
           ? <CourierPeek placement="bar" players={state.players} viewerId={viewerId} usedBy={courierUsedBy ?? []} onReveal={onCourierReveal} /> : null}
         <span className="combat__actions">
-          {(viewer.clawCubesGainedThisCombat ?? 0) > 0 ? <PotionTooltipAnchor
+          {seenResources?.has('clawCubesGainedThisCombat') ? <PotionTooltipAnchor
             id="claw-cubes" className="combat__claw-cubes" focusable
-            name={`Claw cubes: ${viewer.clawCubesGainedThisCombat}`} kindLabel="Combat counter"
+            name={`Claw cubes: ${viewer.clawCubesGainedThisCombat ?? 0}`} kindLabel="Combat counter"
             text="Claw (Claw Pack) gains a red cube before dealing damage. Each cube adds 1 damage to those Claws. Cubes last for this combat and are not spent.">
             <RedCubeIcon size={24} />
-            <strong aria-hidden="true">x{viewer.clawCubesGainedThisCombat}</strong>
+            <strong aria-hidden="true">x{viewer.clawCubesGainedThisCombat ?? 0}</strong>
           </PotionTooltipAnchor> : null}
           {/* Slayer Pack: a card-given choice (Heel Hook, Magnetism) docks in the bar, off the board,
               so it never covers an enemy or its intent. */}
@@ -5193,57 +5200,6 @@ function CombatScreenView({
                   </button>
                 </PotionTooltipAnchor>
               }) : null}
-              {state.phase === 'player' && viewer.guardianMode ? (
-                <button type="button"
-                  disabled={viewer.vigor < 1 || Boolean(pending?.choiceCards) || Boolean(forcedCard) || Boolean(distilled) ||
-                    Boolean(relicScry) || endTurnResolving || Boolean(pendingTrigger) ||
-                    viewer.cardPlayLocked || reachedTimeWarpLimit(state, viewer)}
-                  aria-label={`Spend 1 Vigor, ${viewer.vigor} available`}
-                  title="Spend 1 Vigor to boost your card effects for the rest of this turn"
-                  onClick={() => {
-                    setPending(null)
-                    setPendingPowerUid(null)
-                    setPendingPotion(null)
-                    setSpendingShiv(false)
-                    setSpendingSoulburn(false)
-                    if (onAction) onAction({ kind: 'spendVigor' })
-                    else onChange?.(spendVigor(state, viewer.id))
-                  }}>
-                  <StatusIcon name="vigor" size={22} />
-                  <span aria-hidden="true">x{viewer.vigor}</span>
-                </button>
-              ) : null}
-              {state.phase === 'player' && !forcedCard && !distilled && !relicScry && !endTurnResolving &&
-              !pendingTrigger && !viewer.cardPlayLocked && viewer.soulburn > 0 ? (
-                <button
-                  type="button"
-                  className={spendingSoulburn ? 'is-chosen' : undefined}
-                  disabled={Boolean(pending?.choiceCards)}
-                  aria-label={`Spend Soulburn, ${viewer.soulburn} available`}
-                  aria-pressed={spendingSoulburn}
-                  onClick={() => {
-                    setPending(null)
-                    setPendingPowerUid(null)
-                    setMiracleOnCard(false)
-                    setPendingPotion(null)
-                    setPotionShivEnemyUids([])
-                    setPotionOverflowRequired(0)
-                    setSpendingShiv(false)
-                    setExtraCrispySoulburn(false)
-                    setSpendingSoulburn((current) => !current)
-                  }}
-                >
-                  <img className="item-icon-image" src={assetPath('icons/hexaghost-flame.png')} alt="" />
-                  <span aria-hidden="true">x{viewer.soulburn}</span>
-                </button>
-              ) : null}
-              {spendingSoulburn && extraCrispyPower ? (
-                <button type="button" className={extraCrispySoulburn ? 'is-chosen' : undefined}
-                  aria-label="Use Extra Crispy with Soulburn" aria-pressed={extraCrispySoulburn}
-                  onClick={() => setExtraCrispySoulburn((current) => !current)}>
-                  Extra Crispy ×2
-                </button>
-              ) : null}
               {state.phase === 'discard' && (retainAllowance > 0 && discardableHand.length > 0 || optionalRetainUids.size > 0) ? (
                 <span className="retain-options" role="group"
                   aria-label={`Retain up to ${retainAllowance + optionalRetainUids.size} cards for ${viewer.name}`}>
@@ -5297,10 +5253,10 @@ function CombatScreenView({
               </button> : null}
             </>
           ) : null}
-          {startResourceInventory || shivActionsAvailable ? (
+          {seenResources?.has('shivs') ? (
             <span className="shiv-actions">
               <PotionTooltipAnchor id="shivs" name={`Shivs: ${viewer.shivs}`} kindLabel="Combat resource"
-                className="combat-resource" focusable={startResourceInventory}
+                className="combat-resource" focusable={!shivActionsAvailable}
                 text="Choose an enemy, then spend 1 Shiv to attack it.">
               <button
                 type="button"
@@ -5315,7 +5271,7 @@ function CombatScreenView({
                 <span aria-hidden="true">x{viewer.shivs}</span>
               </button>
               </PotionTooltipAnchor>
-              {!startResourceInventory ? <PotionTooltipAnchor id="all-shivs" name={`Shivs: ${viewer.shivs}`} kindLabel="Combat resource"
+              {state.phase === 'player' ? <PotionTooltipAnchor id="all-shivs" name={`Shivs: ${viewer.shivs}`} kindLabel="Combat resource"
                 className="combat-resource"
                 text="Spend all your Shivs as individual attacks on one enemy. Stops if the enemy dies or a choice is required.">
               <button type="button" className={spendingShiv === 'all' ? 'is-chosen' : undefined}
@@ -5330,9 +5286,9 @@ function CombatScreenView({
               </PotionTooltipAnchor> : null}
             </span>
           ) : null}
-          {startResourceInventory || miracleActionAvailable ? (
+          {seenResources?.has('miracles') ? (
             <PotionTooltipAnchor id="miracles" name={`Miracles: ${viewer.miracles}`} kindLabel="Combat resource"
-              className="combat-resource" focusable={startResourceInventory}
+              className="combat-resource" focusable={!miracleActionAvailable}
               text={viewer.energy === CAPS.energy
                 ? 'At maximum Energy, use 1 Miracle toward the cost of the next card you play.'
                 : 'Spend 1 Miracle to gain 1 Energy.'}>
@@ -5362,6 +5318,54 @@ function CombatScreenView({
               <span aria-hidden="true">x{viewer.miracles}</span>
             </button>
             </PotionTooltipAnchor>
+          ) : null}
+          {seenResources?.has('vigor') ? (
+            <button type="button"
+              disabled={!vigorActionAvailable || Boolean(pending?.choiceCards)}
+              aria-label={`Spend 1 Vigor, ${viewer.vigor} available`}
+              title="Spend 1 Vigor to boost your card effects for the rest of this turn"
+              onClick={() => {
+                setPending(null)
+                setPendingPowerUid(null)
+                setPendingPotion(null)
+                setSpendingShiv(false)
+                setSpendingSoulburn(false)
+                if (onAction) onAction({ kind: 'spendVigor' })
+                else onChange?.(spendVigor(state, viewer.id))
+              }}>
+              <StatusIcon name="vigor" size={22} />
+              <span aria-hidden="true">x{viewer.vigor}</span>
+            </button>
+          ) : null}
+          {seenResources?.has('soulburn') ? (
+            <button
+              type="button"
+              className={spendingSoulburn ? 'is-chosen' : undefined}
+              disabled={!soulburnActionAvailable || Boolean(pending?.choiceCards)}
+              aria-label={`Spend Soulburn, ${viewer.soulburn} available`}
+              aria-pressed={spendingSoulburn}
+              onClick={() => {
+                setPending(null)
+                setPendingPowerUid(null)
+                setMiracleOnCard(false)
+                setPendingPotion(null)
+                setPotionShivEnemyUids([])
+                setPotionOverflowRequired(0)
+                setSpendingShiv(false)
+                setExtraCrispySoulburn(false)
+                setSpendingSoulburn((current) => !current)
+              }}
+            >
+              <img className="item-icon-image" src={assetPath('icons/hexaghost-flame.png')} alt="" />
+              <span aria-hidden="true">x{viewer.soulburn}</span>
+            </button>
+          ) : null}
+          {soulburnActionAvailable && spendingSoulburn && extraCrispyPower ? (
+            <button type="button" className={extraCrispySoulburn ? 'is-chosen' : undefined}
+              aria-label="Use Extra Crispy with Soulburn" aria-pressed={extraCrispySoulburn}
+              onClick={() => setExtraCrispySoulburn((current) => !current)}>
+              Extra Crispy ×2
+            </button>
           ) : null}
           {stagedStartTurnTriggerPending && startTurnCount ? (
             <button type="button" className="combat__end-turn" disabled>

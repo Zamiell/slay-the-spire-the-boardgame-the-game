@@ -3,7 +3,7 @@ export type DrawTextPart = { text: string; blocked: boolean }
 /** Match drawing instructions, not draw-pile references or the prohibition itself. */
 export function drawLockText(text: string): DrawTextPart[] {
   const parts: DrawTextPart[] = []
-  const pattern = /\bdraw\s+(?!piles?\b)(?:until\s+you\s+have\s+[^,.;\n]*?\bcards?\s+in\s+hand|(?:[^,.;\n]*?\s+)?cards?\b)/gi
+  const pattern = /\bdraws?\s+(?!piles?\b)(?:until\s+you\s+have\s+[^,.;\n]*?\bcards?\s+in\s+hand|(?:[^,.;\n]*?\s+)?cards?\b)/gi
   let end = 0
   for (const match of text.matchAll(pattern)) {
     const at = match.index

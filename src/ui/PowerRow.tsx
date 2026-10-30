@@ -264,7 +264,7 @@ export function PowerRow({ powers, drawLocked = false, sharedDrawLocked = drawLo
                 ) }}
                 style={{ visibility: zoom.loaded ? 'visible' : 'hidden' }}
               />
-              {blockedRules && zoom.loaded ? <DrawLockedRules rules={blockedRules} /> : null}
+              {blockedRules && zoom.loaded ? <DrawLockedRules src={zoom.src} contain /> : null}
             </span>,
             document.body,
           )

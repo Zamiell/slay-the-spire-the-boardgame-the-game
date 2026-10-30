@@ -906,7 +906,7 @@ export function Card({
         }}
       /> : null}
       <CardFace def={def} cost={effectiveCost} rules={cardRulesText(def)} illustration={scanUnavailable} drawLocked={Boolean(blockedRules)} />
-      {blockedRules && !scanUnavailable ? <DrawLockedRules rules={blockedRules} /> : null}
+      {blockedRules && !scanUnavailable ? <DrawLockedRules src={scan} /> : null}
       {attachedGem && scanUnavailable ? <img className="card__gem" src={cardThumbPath(attachedGem, false)} alt=""
         draggable={false} title={`${attachedGem.name}: ${cardRuleDescription(attachedGem)}`} /> : null}
       {liveDamage ? (

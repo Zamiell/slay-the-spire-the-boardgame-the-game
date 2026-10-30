@@ -4,6 +4,7 @@ import { drawLockText } from '../src/ui/draw-lock-text.ts'
 
 for (const [text, blocked] of [
   ['Gain 2 Energy. Draw 3 cards. Exhaust.', ['Draw 3 cards']],
+  ['Any player draws 2 cards.', ['draws 2 cards']],
   ['draw 1 card then discard 1 card', ['draw 1 card']],
   ['Draw until you have 5 cards in hand.', ['Draw until you have 5 cards in hand']],
   ['discard your hand, then draw that many cards', ['draw that many cards']],

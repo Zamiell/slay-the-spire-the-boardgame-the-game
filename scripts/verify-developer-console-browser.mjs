@@ -34,6 +34,8 @@ try {
     const fight = enterRoom(fixture, room)
     Object.assign(fight.combat, { phase: 'player', pendingTriggers: [], startTurnProgress: undefined })
     Object.assign(fight.combat.players[0], { relics: [], potions: [], energy: 3 })
+    fight.combat.enemies = [{ ...fight.combat.enemies[0], defId: 'small_slime', uid: 'rewind-target',
+      hp: 50, maxHp: 50, block: 0, dead: false }]
     fight.campaign.bossCoins = [{ act: 1, coins: 77 }]
     await page.evaluate(run => window.__STS_DEBUG__.setRun(run), fight)
     await page.locator('.combat__end-turn').focus()
@@ -116,6 +118,57 @@ try {
       'resuming must preserve console edits and the unranked marker')
     const walletBefore = await page.evaluate(async () => (await import('/src/wallet-storage.ts')).savedWallet())
     const progressBefore = await page.evaluate(() => window.__STS_DEBUG__.getRun().campaignProgress)
+    await page.locator('.combat__end-turn').click()
+    await page.waitForFunction(() => {
+      const state = window.__STS_DEBUG__.getState()
+      return state.turn === 2 && state.phase === 'player'
+    })
+    const secondTurn = await page.evaluate(() => JSON.parse(JSON.stringify(window.__STS_DEBUG__.getState())))
+    await page.locator('.combat__end-turn').click()
+    await page.waitForFunction(() => {
+      const state = window.__STS_DEBUG__.getState()
+      return state.turn === 3 && state.phase === 'player'
+    })
+    await page.evaluate(() => {
+      const run = structuredClone(window.__STS_DEBUG__.getRun())
+      run.combat.players[0].shivs = 2
+      run.combat.players[0].hp = 1
+      run.combat.enemies[0].hp = 1
+      window.__STS_DEBUG__.setRun(run)
+    })
+    await page.keyboard.press('Backquote')
+    await execute('gold 0')
+    await page.keyboard.press('Backquote')
+    await page.reload()
+    await page.getByRole('button', { name: 'Resume', exact: true }).click()
+    await page.waitForFunction(() => window.__STS_DEBUG__?.getState()?.turn === 3)
+    assert.equal(await page.getByRole('button', { name: 'Use Shiv', exact: true }).innerText(), 'x2')
+    await page.locator('.hand .card[aria-disabled="false"]').first().click()
+    await page.locator('.card-interaction').waitFor()
+    await page.keyboard.press('Backquote')
+    await execute('rewind')
+    await page.waitForFunction(() => {
+      const state = window.__STS_DEBUG__.getState()
+      return state.turn === 2 && state.phase === 'player'
+    })
+    assert.deepEqual(await page.evaluate(() => JSON.parse(JSON.stringify(window.__STS_DEBUG__.getState()))), secondTurn,
+      'rewind after reload must restore the prior opening, not reroll or merely change the turn number')
+    assert.equal(await page.locator('.card-interaction').count(), 0, 'rewind must clear held cards and stale targeting')
+    assert.equal(await page.locator('.shiv-actions button').count(), 0,
+      'resources first acquired on a discarded future turn must not leave stale counters')
+    await execute('rewind')
+    await page.waitForFunction(() => window.__STS_DEBUG__.getState().turn === 1)
+    const rewound = await page.evaluate(() => window.__STS_DEBUG__.getRun())
+    assert.equal(rewound.consoleModified, true)
+    assert.equal(rewound.combat.players[0].gold, fight.combat.players[0].gold)
+    await execute('rewind')
+    assert.match(await consoleDialog.locator('[data-error]').last().innerText(), /no previous turn/)
+    assert.deepEqual(await page.evaluate(() => window.__STS_DEBUG__.getRun()), rewound)
+    await page.keyboard.press('Backquote')
+    await page.reload()
+    await page.getByRole('button', { name: 'Resume', exact: true }).click()
+    await page.waitForFunction(() => window.__STS_DEBUG__?.getState()?.turn === 1)
+    assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().consoleModified), true)
     await page.keyboard.press('Backquote')
     await execute('die')
     await page.keyboard.press('Backquote')

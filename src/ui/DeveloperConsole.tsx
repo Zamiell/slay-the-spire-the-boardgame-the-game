@@ -6,7 +6,7 @@ type Entry = { command: string; output: string; error: boolean }
 
 export function DeveloperConsole({ modified, onExecute }: {
   modified: boolean
-  onExecute: (command: string) => string
+  onExecute: (command: string) => string | Promise<string>
 }) {
   const dialog = useRef<HTMLDialogElement>(null)
   const input = useRef<HTMLInputElement>(null)
@@ -15,6 +15,8 @@ export function DeveloperConsole({ modified, onExecute }: {
   const [open, setOpen] = useState(false)
   const [text, setText] = useState('')
   const [entries, setEntries] = useState<Entry[]>([])
+  const [busy, setBusy] = useState(false)
+  const submitting = useRef(false)
   const history = useRef<string[]>([])
   const cursor = useRef(0)
   const draft = useRef('')
@@ -47,12 +49,14 @@ export function DeveloperConsole({ modified, onExecute }: {
     if (output.current) output.current.scrollTop = output.current.scrollHeight
   }, [entries, open])
 
-  const submit = () => {
+  const submit = async () => {
     const command = text.trim()
-    if (!command) return
+    if (!command || submitting.current) return
+    submitting.current = true
+    setBusy(true)
     let response: string
     let error = false
-    try { response = onExecute(command) }
+    try { response = await onExecute(command) }
     catch (failure) {
       error = true
       if (failure instanceof ConsoleCommandError) response = failure.message
@@ -68,7 +72,9 @@ export function DeveloperConsole({ modified, onExecute }: {
     draft.current = ''
     completion.current = null
     setText('')
-    input.current?.focus()
+    submitting.current = false
+    setBusy(false)
+    if (dialog.current?.open) input.current?.focus()
   }
   const suggestions = text ? consoleCompletions(text).slice(0, 6) : []
   return <dialog ref={dialog} className="developer-console" aria-labelledby="developer-console-title"
@@ -90,12 +96,13 @@ export function DeveloperConsole({ modified, onExecute }: {
         <pre>{entry.output}</pre>
       </div>)}
     </div>
-    <form onSubmit={event => { event.preventDefault(); submit() }}>
+    <form aria-busy={busy || undefined} onSubmit={event => { event.preventDefault(); void submit() }}>
       <label className="visually-hidden" htmlFor="developer-console-input">Console command</label>
       <input ref={input} id="developer-console-input" autoComplete="off" autoCapitalize="off" spellCheck={false}
-        value={text} placeholder="help" maxLength={300}
+        value={text} placeholder="help" maxLength={300} readOnly={busy}
         onChange={event => { setText(event.target.value); completion.current = null; cursor.current = history.current.length }}
         onKeyDown={event => {
+          if (busy) return
           if (event.key === 'Tab' && !event.shiftKey) {
             const candidates = completion.current ?? { options: consoleCompletions(text), index: -1 }
             if (!candidates.options.length) return
@@ -112,10 +119,10 @@ export function DeveloperConsole({ modified, onExecute }: {
             completion.current = null
           }
         }} />
-      <button type="submit">Run command</button>
+      <button type="submit" disabled={busy}>{busy ? 'Running...' : 'Run command'}</button>
     </form>
     {suggestions.length ? <nav className="developer-console__suggestions" aria-label="Command suggestions">
-      {suggestions.map(suggestion => <button key={suggestion} type="button" onClick={() => {
+      {suggestions.map(suggestion => <button key={suggestion} type="button" disabled={busy} onClick={() => {
         setText(suggestion); completion.current = null; input.current?.focus()
       }}>{suggestion}</button>)}
     </nav> : null}

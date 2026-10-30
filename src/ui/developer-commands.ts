@@ -9,6 +9,8 @@ import { acquireRelic, hasPendingRelicAcquisition } from '../game/run.ts'
 import type { RunState } from '../game/run.ts'
 import { CAPS } from '../game/types.ts'
 import type { Enemy, Player } from '../game/types.ts'
+import { previousTurnStart } from './console-rewind.ts'
+import type { RunLog } from './run-log.ts'
 
 export class ConsoleCommandError extends Error {}
 
@@ -16,6 +18,7 @@ const HELP = {
   help: 'help [command] - Show commands or usage.',
   clear: 'clear - Clear console output.',
   status: 'status - Show your stats and target indices (0 = you, 1+ = enemies).',
+  rewind: 'rewind - Restore the start of the previous turn in this fight. Requires recorded turn history.',
   list: 'list cards|relics|potions|powers [filter] - Find board-game IDs.',
   gold: 'gold AMOUNT - Add or remove Gold (not account Coins).',
   heal: 'heal [AMOUNT] - Heal yourself; omit the amount for a full heal.',
@@ -96,7 +99,7 @@ export function consoleCompletions(line: string): string[] {
 }
 
 /** Console edits are atomic, local-only, and never evaluate arbitrary code. */
-export function executeConsoleCommand(run: RunState, playerId: string, line: string): { run: RunState; output: string } {
+export function executeConsoleCommand(run: RunState, playerId: string, line: string, history?: RunLog | null): { run: RunState; output: string } {
   const [rawCommand = '', ...args] = tokens(line.trim())
   const command = rawCommand.toLowerCase()
   if (!Object.hasOwn(HELP, command)) return fail(`Unknown command "${rawCommand}". Type help.`)
@@ -117,6 +120,16 @@ export function executeConsoleCommand(run: RunState, playerId: string, line: str
       normalize(entry.id).includes(filter) || normalize(entry.name).includes(filter))
     return { run, output: entries.length ? entries.slice(0, 80).map(entry => `${entry.id} - ${entry.name}`).join('\n') +
       (entries.length > 80 ? `\n${entries.length - 80} more; narrow the filter.` : '') : 'No matches.' }
+  }
+  if (command === 'rewind') {
+    arity(0)
+    if (run.phase !== 'combat' || !run.combat || run.campaign.finalized) return fail('Rewind requires an active fight.')
+    if (run.combat.turn < 2) return fail('There is no previous turn in this fight.')
+    const restored = previousTurnStart(run, history)
+    if (!restored) return fail('The start of the previous turn is not available in this run\'s recorded history.')
+    restored.consoleModified = true
+    restored.log.push(`Console: rewound to the start of turn ${restored.combat!.turn}.`)
+    return { run: restored, output: `Rewound to the start of turn ${restored.combat!.turn}.` }
   }
   const current = (run.combat?.players ?? run.players).find(player => player.id === playerId)
   if (!current) return fail('No local character is available.')

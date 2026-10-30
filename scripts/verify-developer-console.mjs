@@ -29,6 +29,10 @@ const rejects = (run, text, pattern) => {
   assert.throws(() => command(run, text), error => error instanceof ConsoleCommandError && pattern.test(error.message))
   assert.deepEqual(run, before, `failed ${text} must be atomic`)
 }
+const historyOf = (...states) => ({
+  version: 2, runId: states[0].campaign.runId, initial: structuredClone(states[0]),
+  events: states.slice(1).map(state => ({ patch: [{ path: [], value: structuredClone(state) }] })),
+})
 
 check('help, catalogs, status and completion are read-only and use real board-game IDs', () => {
   const run = fight()
@@ -163,6 +167,77 @@ check('console runs cannot earn campaign marks or Ascension unlocks', () => {
   assert(modified.campaign.finalized)
   assert.deepEqual(modified.campaignProgress, run.campaignProgress)
   assert.notDeepEqual(finishRun(run).campaignProgress, run.campaignProgress)
+})
+
+check('rewind restores the entire previous opening, including choices, RNG and supplies', () => {
+  const first = fight()
+  const second = structuredClone(first)
+  second.combat.turn = 2
+  second.combat.phase = 'start'
+  second.combat.startTurnProgress = { choices: [] }
+  const changedSecond = command({ ...structuredClone(second), combat: { ...structuredClone(second.combat), phase: 'player' } }, 'gold 10')
+  const third = command(changedSecond, 'damage 5 1')
+  third.combat.turn = 3
+  third.combat.players[0].hp = 0
+  third.combat.players[0].dead = true
+  third.combat.phase = 'lost'
+  third.combat.rng = { state: 999 }
+  third.potionDeck.reverse()
+  const history = historyOf(first, second, changedSecond, third)
+  const before = structuredClone({ third, history })
+  const result = executeConsoleCommand(third, 'p1', 'REWIND', history)
+  assert.equal(result.output, 'Rewound to the start of turn 2.')
+  const expected = structuredClone(second)
+  expected.consoleModified = true
+  expected.log.push('Console: rewound to the start of turn 2.')
+  assert.deepEqual(result.run, expected)
+  assert.deepEqual({ third, history }, before)
+  assert.notEqual(result.run.combat, history.events[0].patch[0].value.combat)
+  const again = executeConsoleCommand(result.run, 'p1', 'rewind', historyOf(first, second, third, result.run))
+  assert.equal(again.run.combat.turn, 1)
+  assert.deepEqual(again.run.combat, first.combat)
+  assert(again.run.consoleModified)
+})
+
+check('rewind follows replayed turns rather than discarded future branches', () => {
+  const first = fight()
+  const oldSecond = structuredClone(first)
+  oldSecond.combat.turn = 2
+  const third = structuredClone(oldSecond)
+  third.combat.turn = 3
+  const newFirst = command(first, 'gold 30')
+  const newSecond = structuredClone(newFirst)
+  newSecond.combat.turn = 2
+  const current = command(newSecond, 'card BASH')
+  current.combat.turn = 3
+  const result = executeConsoleCommand(current, 'p1', 'rewind',
+    historyOf(first, oldSecond, third, newFirst, newSecond, current))
+  assert.deepEqual(result.run.combat, newSecond.combat)
+  // Reloading a checkpoint in the middle of turn 2 does not redefine its opening.
+  const midway = command(newSecond, 'gold 1')
+  const restored = executeConsoleCommand(current, 'p1', 'rewind',
+    historyOf(first, newSecond, current, midway, current))
+  assert.deepEqual(restored.run.combat, newSecond.combat)
+})
+
+check('rewind refuses unavailable history, turn 1 and other fights without changing the run', () => {
+  const first = fight()
+  rejects(first, 'rewind', /no previous turn/)
+  rejects(first, 'rewind 2', /rewind -/)
+  rejects(runFixture(), 'rewind', /active fight/)
+  const second = structuredClone(first)
+  second.combat.turn = 2
+  rejects(second, 'rewind', /not available/)
+  const other = structuredClone(first)
+  other.combat.combatId = 'other-fight'
+  for (const history of [historyOf(other, second), { ...historyOf(first, second), runId: 'other-run' }]) {
+    assert.throws(() => executeConsoleCommand(second, 'p1', 'rewind', history), /not available/)
+  }
+  const foreign = structuredClone(first)
+  foreign.campaign.runId = 'other-run'
+  assert.throws(() => executeConsoleCommand(second, 'p1', 'rewind',
+    { ...historyOf(foreign, second), runId: second.campaign.runId }), /not available/)
+  assert.deepEqual(consoleCompletions('rew'), ['rewind'])
 })
 
 report()

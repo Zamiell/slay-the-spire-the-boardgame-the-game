@@ -1,7 +1,7 @@
 import { TreasureEffects } from "./TreasureEffects.tsx"
 import { cardTooltipPosition } from './card-tooltip-position.ts'
 import { DeveloperConsole } from './DeveloperConsole.tsx'
-import { executeConsoleCommand } from './developer-commands.ts'
+import { ConsoleCommandError, executeConsoleCommand } from './developer-commands.ts'
 import { PlayerTitle } from './PlayerTitle.tsx'
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
@@ -678,6 +678,7 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
   const combatStart = useRef<RunState | null>(null)
   const lootStart = useRef<RunState | null>(null)
   const [runLogRestoration, setRunLogRestoration] = useState(0)
+  const [consoleRewindEpoch, setConsoleRewindEpoch] = useState(0)
   // Play in progress belongs to the account that started it: profile.ts clears the
   // saved run on an account change, so the Resume offered here follows the save.
   const ownership = useRef<{ open: boolean; built: Pick<BuiltRun, 'owner'>; playing: boolean }>({ open, built: {}, playing: false })
@@ -746,6 +747,8 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
   const { available: runLogAvailable, discard: discardLog, load: loadRunLog } = useRunLog(
     run, active && open && !replayLog && !tutorial, viewerId, runLogRestoration,
   )
+  const consoleContext = useRef({ run, active, open, viewerId, replayLog, tutorial })
+  consoleContext.current = { run, active, open, viewerId, replayLog, tutorial }
   const [today, refreshToday] = useUtcDay()
   const dailyModifiers = useMemo(() => rollDailyModifiers(createRng(seedFromString(dailySeedText(today)))).modifiers, [today])
   // Set when Embark found the UTC day had turned since the menu was drawn.
@@ -1445,7 +1448,7 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
 
       {!allocatingCampaignMarks && run.phase === 'combat' && run.combat ? (
         <><div className="courier-combat-lock" inert={Boolean(run.courier.offer) || undefined} aria-disabled={Boolean(run.courier.offer) || undefined}><CombatScreen
-          state={run.combat}
+          key={consoleRewindEpoch} state={run.combat}
           act={run.act}
           viewerId={viewerId}
           animateOpeningHand
@@ -1716,14 +1719,24 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
     </main>
     </SkinProvider>
     {active && !replayLog && !tutorial && !compendium ? <DeveloperConsole key={run.campaign.runId}
-      modified={Boolean(run.consoleModified)} onExecute={command => {
-        const result = executeConsoleCommand(run, viewerId, command)
+      modified={Boolean(run.consoleModified)} onExecute={async command => {
+        const rewind = command.trim().toLowerCase() === 'rewind'
+        const history = rewind ? await loadRunLog() : undefined
+        const context = consoleContext.current
+        if (context.run !== run || context.viewerId !== viewerId || !context.active || !context.open ||
+          context.replayLog || context.tutorial) {
+          throw new ConsoleCommandError('The run changed while loading the command. Try again.')
+        }
+        const result = executeConsoleCommand(run, viewerId, command, history)
         if (result.run !== run) {
           setCoinGain(null)
           combatStart.current = unfinishedCombat(result.run) ? structuredClone(result.run) : null
           lootStart.current = result.run.phase === 'reward' ? structuredClone(result.run) : null
-          setRunLogRestoration(value => value + 1)
-          setRun(result.run)
+          flushSync(() => {
+            if (rewind) setConsoleRewindEpoch(value => value + 1)
+            setRunLogRestoration(value => value + 1)
+            setRun(result.run)
+          })
         }
         return result.output
       }} /> : null}

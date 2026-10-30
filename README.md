@@ -37,6 +37,12 @@ IDs and targets. Target 0 is your character; enemies start at 1. Card positions
 start at 0. Commands use this adaptation's cards and board-game limits, not STS2's
 content or numeric balance.
 
+`rewind` restores the recorded start of the **previous** turn in the current
+fight, including hands, enemies, resources, RNG, and any start-of-turn choices.
+It cannot cross fights or rewind turn 1, and reports an error if history is
+unavailable. Repeated uses step backward through earlier turns; the restored
+state is saved for Resume.
+
 Using a state-changing command permanently makes the run **unranked**, including
 after saving/resuming: no leaderboard submission, account Coins, or campaign
 progress. Opening the console, reading help, and invalid commands do not change

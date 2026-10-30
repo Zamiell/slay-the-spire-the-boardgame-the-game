@@ -136,8 +136,11 @@ try {
         `Snecko Eye (your next card this turn costs ${cost} Energy)`)
       assert.equal(await active.locator('.start-turn-order__badge').innerText(), 'Already active')
       assert.equal(await active.getByRole('button').count(), 0, 'already-applied costs must not be reorderable or activatable')
-      assert.equal(await panel.locator('.start-turn-order__count').innerText(), '1',
+      assert.equal(await panel.locator('.start-turn-order__count').innerText(), '2',
         'the Snecko Eye notice must not invent another unresolved trigger')
+      assert.equal(await panel.locator('.start-turn-order__step:not(.start-turn-order__active-effect)')
+        .filter({ hasText: `Snecko Eye (your next card this turn costs ${cost} Energy)` }).count(), 1,
+      'the actual Snecko Eye die ability must appear in the resolution order')
       const before = await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun()))
       await active.click()
       assert.equal(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun())), before)

@@ -3,6 +3,7 @@ import { CARDS, releasedCardDefs } from '../game/cards.ts'
 import { parseStatsExpression, validateStatsQuery } from '../stats-query.ts'
 import { loadStats, type StatsFilters } from '../stats.ts'
 import { CHARACTER_IDS } from '../game/types.ts'
+import { readAssistantRunHistory } from './run-log.ts'
 
 type Tool = {
   name: string
@@ -336,6 +337,7 @@ export function captureAssistantGame() {
   const run = [...document.querySelectorAll<HTMLElement>('[data-assistant-run-id]')].find(rendered)
   return {
     run: run ? { id: run.dataset.assistantRunId, phase: run.dataset.assistantPhase, mode: run.dataset.assistantMode } : null,
+    history: readAssistantRunHistory(run?.dataset.assistantRunId, run?.dataset.assistantMode),
     pending: interactionPending(),
     screen: gameScreen(announcementElements(true)),
     choices: [...grouped.values()],

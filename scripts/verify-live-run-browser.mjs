@@ -42,10 +42,14 @@ try {
     const roomId = run.map.rows[0][0]
     run.map.rooms[roomId].kind = 'encounter'
     const combat = enterRoom(run, roomId)
+    combat.campaign.runId = `assistant-history-${screen}`
     const player = combat.combat.players[0]
     player.energy = 3
     player.hand = ['strike_ironclad', 'defend_ironclad'].map((defId, i) => ({ uid: `live-${i}`, defId, upgraded: false }))
-    await page.evaluate((run) => window.__STS_DEBUG__.setRun(run), combat)
+    await page.evaluate(async (run) => {
+      await (await import('/src/ui/run-log.ts')).startRunLog(run)
+      window.__STS_DEBUG__.setRun(run)
+    }, combat)
     await page.locator('.hand .card').first().waitFor()
     await page.getByRole('button', { name: 'Settings', exact: true }).click()
     await page.getByRole('button', { name: 'assistant', exact: true }).click()
@@ -99,6 +103,11 @@ try {
     assert(afterPlay.revision > first.revision)
     assert(!afterPlay.state.choices.some((choice) => choice.context === 'Hand' && choice.label.startsWith('Defend')))
     assert.notEqual(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun())), before)
+    assert.equal(afterPlay.state.history.status, 'ready')
+    assert.equal(afterPlay.state.history.caughtUp, true)
+    const defend = afterPlay.state.history.transitions.find(entry => entry.cards.some(card => card.cardId === 'defend_ironclad'))
+    assert.equal(defend.before.players[0].energy, 3)
+    assert.equal(defend.after.players[0].energy, 2)
     await page.screenshot({ path: resolve(out, `${screen}-combat.png`) })
 
     await page.getByRole('button', { name: 'Settings', exact: true }).click()
@@ -106,10 +115,31 @@ try {
     await page.getByRole('button', { name: 'Stop sharing', exact: true }).click()
     await page.getByText('Not sharing.', { exact: true }).waitFor()
     await assert.rejects(bridge.current(), /disconnected|No game tab/)
+    await page.locator('dialog[open]').getByRole('button', { name: 'Back', exact: true }).click()
+    await page.evaluate(() => {
+      const run = structuredClone(window.__STS_DEBUG__.getRun())
+      const player = run.combat.players[0]
+      player.energy = 3
+      player.enemyNextCardCost = 2
+      player.hand.push({ uid: 'disconnected-crescendo', defId: 'crescendo', upgraded: false })
+      window.__STS_DEBUG__.setRun(run)
+    })
+    await page.locator('.hand .card[title="Crescendo"]').waitFor()
+    await dragCardTo(page, 'Crescendo')
+    await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.players[0].energy === 1)
+    await page.getByRole('button', { name: 'Settings', exact: true }).click()
+    await page.getByRole('button', { name: 'assistant', exact: true }).click()
     await page.getByLabel('Pairing code', { exact: true }).fill(bridge.pairingCode)
     await page.getByRole('button', { name: 'Share this tab', exact: true }).click()
     await page.getByText('Sharing this tab, read-only.', { exact: false }).waitFor()
-    const pairedTab = (await bridge.current()).tabId
+    const reconnected = await bridge.current()
+    const pairedTab = reconnected.tabId
+    const disconnectedPlay = reconnected.state.history.transitions.find(entry => entry.cards.some(card => card.cardId === 'crescendo'))
+    assert(disconnectedPlay, 'recorded plays made while disconnected must be available after pairing')
+    assert.equal(disconnectedPlay.before.players[0].energy, 3)
+    assert.equal(disconnectedPlay.after.players[0].energy, 1)
+    assert.equal(disconnectedPlay.cards[0].printedCost, 0)
+    assert.deepEqual(disconnectedPlay.cardEnergySpent, [{ playerId: 'p1', amount: 2 }])
     await page.reload()
     await page.getByRole('button', { name: 'Single Player', exact: true }).waitFor()
     await page.waitForFunction(async () => (await import('/src/ui/live-run.ts')).liveRunStatus().state === 'connected')
@@ -117,6 +147,15 @@ try {
     assert.equal(restored.tabId, pairedTab, 'refresh automatically restores the same tab without opening Settings')
     assert(restored.state.choices.some((choice) => choice.label === 'Single Player'), 'refresh returns the new screen, not cached combat')
     assert(!JSON.stringify(restored).includes(bridge.token))
+    assert.equal(restored.state.history.status, 'idle', 'menus must not leak the previous run history')
+
+    await page.getByRole('button', { name: 'Resume', exact: true }).click()
+    await page.locator('.hand .card').first().waitFor()
+    await page.waitForFunction(async () => (await import('/src/ui/run-log.ts')).readAssistantRunHistory(
+      window.__STS_DEBUG__.getRun().campaign.runId, 'local').status === 'ready')
+    const resumed = await bridge.current()
+    assert(resumed.state.history.transitions.some(entry => entry.cards.some(card => card.cardId === 'crescendo')),
+      'the existing persisted recording must recover the card history after refresh and Resume')
 
     const opened = page.waitForEvent('popup')
     await page.evaluate(() => { window.open(location.href, '_blank') })

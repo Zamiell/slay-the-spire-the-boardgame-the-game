@@ -11,6 +11,7 @@ import { POTIONS, RELICS } from '../game/relics.ts'
 import type { RunState } from '../game/run.ts'
 import { isSkinOf } from '../game/skins.ts'
 import { CAPS, CHARACTER_IDS } from '../game/types.ts'
+import { publicRunFrame, reduceRunHistory, type RunHistory } from './live-run-history.ts'
 
 // Keep the shipped storage names so runs recorded before this feature remain downloadable.
 const RUN_LOG_KEY = 'sts-run-vod'
@@ -208,6 +209,54 @@ export function runLogEventChoice(event: RunLogEvent, before: RunState): RunLogC
 let memoryLog: RunLog | null = null
 let persistence = Promise.resolve()
 let database: Promise<IDBDatabase | null> | null = null
+let assistantContext: { run: RunState; active: boolean; ready: boolean } | null = null
+let assistantCursor: { log: RunLog; run: RunState; index: number } | null = null
+let assistantHistory: RunHistory = { status: 'idle', reason: 'No active local run.' }
+
+/** Only the allowlisted public projection leaves this module; never return replay patches. */
+export function readAssistantRunHistory(runId: string | undefined, mode: string | undefined) {
+  const unavailable = (reason: string) => {
+    assistantCursor = null
+    assistantHistory = reduceRunHistory(assistantHistory, { type: 'clear', reason })
+    return assistantHistory
+  }
+  const current = assistantContext
+  if (mode !== 'local' || !runId || !current?.active || current.run.campaign.runId !== runId) {
+    return unavailable('Recorded history is available only for the active local run, not online play, tutorials, menus, or replays.')
+  }
+  if (!current.ready) {
+    assistantCursor = null
+    assistantHistory = reduceRunHistory(assistantHistory, { type: 'load', runId })
+    return assistantHistory
+  }
+  if (!memoryLog || memoryLog.runId !== runId || memoryLog.initial.seed !== current.run.seed) {
+    return unavailable('No matching recording is available for this run.')
+  }
+  if (!assistantCursor || assistantCursor.log !== memoryLog || assistantCursor.index > memoryLog.events.length) {
+    assistantCursor = { log: memoryLog, run: memoryLog.initial, index: 0 }
+    assistantHistory = reduceRunHistory(assistantHistory, { type: 'load', runId })
+    assistantHistory = reduceRunHistory(assistantHistory, { type: 'loaded' })
+  }
+  if (assistantHistory.status === 'error') return assistantHistory
+  try {
+    while (assistantCursor.index < memoryLog.events.length) {
+      const before = assistantCursor.run
+      const after = applyRunLogEvent(before, memoryLog.events[assistantCursor.index]!)
+      assistantHistory = reduceRunHistory(assistantHistory, {
+        type: 'commit', index: assistantCursor.index + 1, before, after,
+      })
+      assistantCursor.run = after
+      assistantCursor.index += 1
+    }
+    return { ...assistantHistory,
+      caughtUp: JSON.stringify(publicRunFrame(assistantCursor.run)) === JSON.stringify(publicRunFrame(current.run)) &&
+        assistantCursor.run.combat?.presentationEvents.at(-1)?.seq === current.run.combat?.presentationEvents.at(-1)?.seq }
+  } catch (error) {
+    console.error('Could not reconstruct assistant run history.', error)
+    assistantHistory = reduceRunHistory(assistantHistory, { type: 'fail', message: 'Recorded history could not be reconstructed.' })
+    return assistantHistory
+  }
+}
 
 const requested = <T,>(request: IDBRequest<T>) => new Promise<T>((resolve, reject) => {
   request.addEventListener('success', () => resolve(request.result), { once: true })
@@ -414,6 +463,7 @@ export function useRunLog(run: RunState, active: boolean, viewerId: string, rest
   }, [active, run.campaign.runId, restoration])
 
   useLayoutEffect(() => {
+    assistantContext = { run, active, ready: logReady && log.current?.runId === run.campaign.runId }
     const before = previous.current ?? structuredClone(run)
     if (before.campaign.runId !== run.campaign.runId) {
       previous.current = structuredClone(run)

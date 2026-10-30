@@ -187,6 +187,7 @@ const focusedOnlyUiOwners = ownerMap([
   ['src/ui/useWebMcp.ts', ['verify-webmcp-browser.mjs', 'verify-live-run-browser.mjs']],
   ...['src/ui/live-run.ts', 'src/ui/AssistantSettings.tsx', 'src/ui/assistant-settings.css']
     .map((file) => [file, ['verify-live-run-browser.mjs']]),
+  ['src/ui/live-run-history.ts', ['verify-live-run-history.mjs', 'verify-live-run-browser.mjs']],
   ...['scripts/live-run.mjs', 'scripts/lib/live-run-server.mjs']
     .map((file) => [file, ['verify-live-run.mjs', 'verify-live-run-browser.mjs']]),
   ['src/ui/TutorialCoach.tsx', ['verify-tutorial-browser.mjs']],
@@ -197,7 +198,7 @@ const focusedOnlyUiOwners = ownerMap([
   ['src/ui/CourierPanel.tsx', ['verify-courier-browser.mjs']],
   ['src/ui/chrome/courier.css', ['verify-courier-browser.mjs']],
   ['src/ui/PowerRow.tsx', ['verify-power-hover-browser.mjs']],
-  ['src/ui/run-log.ts', ['verify-run-replay-browser.mjs', 'verify-replay-controls-browser.mjs']],
+  ['src/ui/run-log.ts', ['verify-run-replay-browser.mjs', 'verify-replay-controls-browser.mjs', 'verify-live-run-browser.mjs']],
   // Nothing imports the admin CLI, so without this it would count as uncovered and select every verifier.
   ['scripts/mail-admin.mjs', ['verify-mail.mjs']],
   ...['src/ui/ReplayBar.tsx', 'src/ui/run-replay.ts', 'src/ui/styles/replay-bar.css']

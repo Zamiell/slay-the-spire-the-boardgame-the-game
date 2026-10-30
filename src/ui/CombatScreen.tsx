@@ -213,6 +213,7 @@ import {
   displayedEnemies,
   drawnCardUids,
   healthBand,
+  livingEnemiesInStageOrder,
   pendingUiSurvivesContext,
   shouldDisarmCardFlight,
   stageScaleFor,
@@ -2252,6 +2253,7 @@ function CombatScreenView({
   const visibleEnemies = displayedEnemies(state.enemies, prefersReducedMotion ? new Set() : falling)
   const bosses = visibleEnemies.filter((enemy) => enemy.isBoss)
   const stageEnemies = visibleEnemies.filter((enemy) => !enemy.isBoss)
+  const enemyButtonOrder = livingEnemiesInStageOrder(state.enemies)
   const stageEnemyCount = visibleEnemies.length
   const stageScaleActors = state.players.length + stageEnemyCount
   // EnemyCard can briefly retain its previous visual during restoration.
@@ -6067,7 +6069,7 @@ function CombatScreenView({
               <div className="campfire__deck">{viewer.hand.map((card) => <Card key={card.uid} card={card}
                 drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
                 selected={relicCardUids[0] === card.uid} onClick={() => setRelicCardUids([card.uid])} />)}</div>
-              {state.enemies.filter((enemy) => !enemy.dead).map((enemy) => <button type="button" key={enemy.uid}
+              {enemyButtonOrder.map((enemy) => <button type="button" key={enemy.uid}
                 disabled={relicCardUids.length !== 1}
                 onClick={() => useRelic(relicIndex, { cardUids: relicCardUids, enemyUid: enemy.uid })}>
                 Hit {enemyLabel(state.enemies, enemy)}
@@ -6079,7 +6081,7 @@ function CombatScreenView({
               if (overflow === 0) return [simpleAction]
               return [<details key={relicIndex}>{choiceSummary()}<p className="room-item-text">{def.text}</p>
                 <p>Choose {overflow} immediate Shiv target{overflow === 1 ? '' : 's'}.</p>
-                {state.enemies.filter((enemy) => !enemy.dead).map((enemy) => <button type="button" key={enemy.uid}
+                {enemyButtonOrder.map((enemy) => <button type="button" key={enemy.uid}
                   onClick={() => setRelicShivEnemyUids((current) => current.length < overflow
                     ? [...current, enemy.uid] : current)}>
                   {enemyLabel(state.enemies, enemy)}
@@ -7279,7 +7281,7 @@ function CombatScreenView({
           }) : null}
           {needsRetarget ? <div>
             <strong>Choose a new enemy target</strong>
-            {livingEnemies(state).map((enemy) => <button key={enemy.uid} type="button"
+            {enemyButtonOrder.map((enemy) => <button key={enemy.uid} type="button"
               className={dieRelicEnemyUid === enemy.uid ? 'selected' : undefined}
               onClick={() => setDieRelicEnemyUid(enemy.uid)}>{enemyLabel(state.enemies, enemy)}</button>)}
           </div> : null}
@@ -7301,7 +7303,7 @@ function CombatScreenView({
         <section className="prompt" aria-label="Hermit start-of-combat Load target">
           <span>Load a card from your hand, or Load a Curse at:</span>
           {viewer.hand.filter((card) => hermitTargetedCurses.has(card.defId)).map((card) =>
-            livingEnemies(state).map((enemy) => (
+            enemyButtonOrder.map((enemy) => (
               <button key={`${card.uid}-${enemy.uid}`} type="button" className="prompt__mode"
                 onClick={() => submitHermitSetup(card, enemy.uid)}>
                 {cardDef(card.defId).name} → {enemyLabel(state.enemies, enemy)}
@@ -7338,7 +7340,7 @@ function CombatScreenView({
       ) : null}
       {viewer && slayerChoice && slayerChoice.playerId === viewer.id && state.phase !== 'lost' ? (
         slayerChoice.kind === 'reattach' ? (() => {
-          const hosts = livingEnemies(state).filter((enemy) => enemy.uid !== slayerChoice.fromUid)
+          const hosts = enemyButtonOrder.filter((enemy) => enemy.uid !== slayerChoice.fromUid)
           const name = faceOf(cardDef(slayerChoice.card.defId), slayerChoice.card.upgraded).name
           return <section className="prompt" aria-label={`${name} target`} data-slayer-choice="reattach">
             <strong>{name}: its enemy died — attach it to another enemy</strong>

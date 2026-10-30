@@ -45,7 +45,8 @@ try {
     await mirror.locator('summary').click()
     const redMaskGroup = mirror.getByRole('group', { name: /Red Mask · die 5\/6/ })
     await redMaskGroup.waitFor({ state: 'visible' })
-    const redMask = redMaskGroup.getByRole('button').first()
+    const redMask = redMaskGroup.getByRole('button', { name: /Jaw Worm #1$/ })
+    assert.deepEqual(await redMaskGroup.getByRole('button').allTextContents(), ['Jaw Worm #2', 'Jaw Worm #1'])
     assert.equal(await redMaskGroup.getByRole('button').count(), 2, `${name}: Red Mask should offer one chip per enemy`)
     assert.equal(await mirror.locator('.die-relic').count(), 7, `${name}: expected one tile per die Relic ability`)
     await redMask.scrollIntoViewIfNeeded()
@@ -61,6 +62,30 @@ try {
     assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.enemies[0].weak), 1,
       `${name}: selecting Red Mask did not apply Weak`)
     assert.equal(await mirror.count(), 0, `${name}: the spent Mirror still offers choices`)
+    const ashesRun = structuredClone(run)
+    ashesRun.combat.combatId = `ashes-order-${name}`
+    ashesRun.combat.players[0].relics = [{ defId: 'charons_ashes', spent: false }]
+    ashesRun.combat.players[0].hand = [{ uid: 'ashes-fuel', defId: 'defend_ironclad', upgraded: false }]
+    ashesRun.combat.enemies = [
+      { ...enemy, uid: 'centurion', defId: 'centurion_b3', hp: 15, maxHp: 15 },
+      { ...enemy, uid: 'mystic', defId: 'mystic', hp: 10, maxHp: 10 },
+      { ...enemy, uid: 'defeated', dead: true, hp: 0 },
+    ]
+    await page.evaluate(run => window.__STS_DEBUG__.setRun(run), ashesRun)
+    const ashes = page.locator('.relic-actions details').filter({ hasText: "Charon's Ashes" })
+    await ashes.locator('summary').click()
+    const hitButtons = ashes.getByRole('button', { name: /^Hit / })
+    assert.deepEqual((await hitButtons.allTextContents()).map(text => text.trim()), ['Hit Mystic', 'Hit Centurion'])
+    const stageOrder = await page.locator('.enemy:not(.enemy--dead)').evaluateAll(enemies =>
+      enemies.map(enemy => ({ uid: enemy.dataset.enemyId, x: enemy.getBoundingClientRect().x }))
+        .sort((left, right) => left.x - right.x).map(enemy => enemy.uid))
+    assert.deepEqual(stageOrder, ['mystic', 'centurion'], `${name}: the fixture must match the visible board order`)
+    await ashes.locator('.card').click()
+    await page.screenshot({ path: `${out}/${name}-ashes-target-order.png` })
+    await hitButtons.first().click()
+    await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.enemies.find(enemy => enemy.uid === 'mystic').hp === 8)
+    assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.enemies.find(enemy => enemy.uid === 'centurion').hp), 15,
+      'the left button must damage Mystic, not the first enemy in engine order')
     const loadedRun = structuredClone(run)
     loadedRun.combat.die = 6
     loadedRun.combat.players[0].relics[0] = { defId: 'loaded_die', spent: false }
@@ -193,7 +218,7 @@ try {
     await cheatPick.waitFor({ state: 'visible' })
     await page.screenshot({ path: `${out}/${name}-cheat.png` })
     assert.equal(await cheatPick.getByRole('button').count(), 2, `${name}: Cheat should offer one chip per enemy`)
-    await cheatPick.getByRole('button').first().click()
+    await cheatPick.getByRole('button', { name: /Jaw Worm #1$/ }).click()
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.enemies[0].weak === 1)
     assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.enemies[0].hp), 28)
     await page.screenshot({ path: `${out}/${name}-cheat-picked.png` })

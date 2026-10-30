@@ -32,6 +32,7 @@ import {
   displayedEnemies,
   drawnCardUids,
   healthBand,
+  livingEnemiesInStageOrder,
   pendingUiSurvivesContext,
   shouldAnimateOnlineOpeningHand,
   shouldDisarmCardFlight,
@@ -44,6 +45,21 @@ import { EVENT_DEFINITIONS } from '../src/game/events.ts'
 import { suite, check, assert, assertDeepEqual, assertEqual, report } from './lib/harness.mjs'
 
 suite('ui helpers')
+
+check('enemy target buttons follow stage order without changing combat order', () => {
+  const enemies = [
+    { uid: 'centurion', isBoss: false, dead: false },
+    { uid: 'donu', isBoss: true, dead: false },
+    { uid: 'defeated', isBoss: false, dead: true },
+    { uid: 'mystic', isBoss: false, dead: false },
+    { uid: 'deca', isBoss: true, dead: false },
+    { uid: 'fallen-boss', isBoss: true, dead: true },
+  ]
+  const original = enemies.map(enemy => enemy.uid)
+  assertDeepEqual(livingEnemiesInStageOrder(enemies).map(enemy => enemy.uid),
+    ['donu', 'deca', 'mystic', 'centurion'])
+  assertDeepEqual(enemies.map(enemy => enemy.uid), original, 'display sorting must not reorder engine targets')
+})
 
 check('every printed cube track maps all live actions into the card face', () => {
   for (const defId of Object.keys(ENEMIES)) for (let ascension = 0; ascension <= 13; ascension++) {

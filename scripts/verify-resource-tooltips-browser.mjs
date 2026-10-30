@@ -251,7 +251,34 @@ try {
     }
     await page.keyboard.press('Tab')
     await statusStrip.locator('.token--block').focus()
-    await page.locator('.potion-tip').filter({ hasText: 'Block: 3' }).waitFor()
+    const blockTip = page.locator('.potion-tip').filter({ hasText: 'Block: 3' })
+    await blockTip.waitFor()
+    const tipImage = await blockTip.screenshot({ path: `${output}/${screen}-status-tooltip.png` })
+    const corners = await blockTip.evaluate(async (tip, png) => {
+      const image = new Image()
+      image.src = `data:image/png;base64,${png}`
+      await image.decode()
+      const canvas = document.createElement('canvas')
+      canvas.width = image.width; canvas.height = image.height
+      const context = canvas.getContext('2d')
+      context.drawImage(image, 0, 0)
+      const style = getComputedStyle(tip)
+      context.fillStyle = style.getPropertyValue('--trim-dim')
+      context.fillRect(0, 0, 1, 1)
+      const expected = [...context.getImageData(0, 0, 1, 1).data].slice(0, 3)
+      const box = tip.getBoundingClientRect()
+      const inset = parseFloat(style.getPropertyValue('--chamfer')) / 2 + 1
+      return [[false, false], [true, false], [false, true], [true, true]].map(([right, bottom]) => {
+        const x = Math.floor((right ? box.width - inset : inset) * image.width / box.width)
+        const y = Math.floor((bottom ? box.height - inset : inset) * image.height / box.height)
+        const pixels = context.getImageData(x - 1, y - 1, 3, 3).data
+        for (let i = 0; i < pixels.length; i += 4) {
+          if (expected.every((channel, index) => Math.abs(pixels[i + index] - channel) <= 15)) return true
+        }
+        return false
+      })
+    }, tipImage.toString('base64'))
+    assert(corners.every(Boolean), `${screen}: the tooltip trim must follow all four cut corners: ${JSON.stringify(corners)}`)
     await page.screenshot({ path: `${output}/${screen}-status-help.png` })
     assert.equal(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun())), beforeHelp,
       'hovering, focusing, or tapping status help must not change the run')

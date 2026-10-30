@@ -38,7 +38,8 @@ try {
     await page.waitForFunction(() => window.__STS_DEBUG__?.getRun()?.phase === 'neow')
     const viewerId = await page.evaluate(() => window.__STS_DEBUG__.getRun().players[0].id)
     let fixtureId = 0
-    async function load({ phase = 'start', die = 1, character = 'silent', player = {}, teammate } = {}) {
+    async function load({ phase = 'start', die = 1, turn = phase === 'start' ? 2 : 1,
+      character = 'silent', player = {}, teammate } = {}) {
       await page.mouse.move(2, 2)
       await page.evaluate(() => document.activeElement?.blur())
       await page.waitForFunction(() => !document.querySelector('.card-flight-effect'))
@@ -55,7 +56,7 @@ try {
       if (teammate) Object.assign(run.combat.players[1], {
         hand: [], draw: [], discard: [], exhaust: [], powers: [], relics: [], potions: [], ...teammate,
       })
-      Object.assign(run.combat, { combatId, phase, die, turn: phase === 'start' ? 2 : 1,
+      Object.assign(run.combat, { combatId, phase, die, turn,
         startTurnStage: phase === 'start' ? 'effects' : undefined, startTurnProgress: undefined,
         endTurnProgress: undefined, pendingTriggers: [], presentationEvents: [], powerTriggersUsedThisTurn: [] })
       run.phase = 'combat'
@@ -98,6 +99,29 @@ try {
       assert(!result.coversResolve, `${name} ${scene}: the order panel covers the resolve button`)
       if (!compact) assert(!result.coversEnemy, `${name} ${scene}: the order panel covers an enemy`)
     }
+
+    await load({ character: 'watcher', turn: 1, die: 2, player: {
+      relics: ['pure_water', 'vajra', 'horn_cleat', 'duality'].map(defId => ({ defId, spent: false })),
+      potions: ['gamblers_brew'],
+      miracles: 0, strength: 0, block: 0,
+    } })
+    await panel.waitFor()
+    if (await panel.getAttribute('open') === null) await panel.locator('summary').click()
+    await settle()
+    assert.deepEqual(await names(), [
+      'Pure Water (gain 1 Miracle)',
+      'Vajra (gain 1 Strength, lose 1 Strength at end of turn)',
+      'Horn Cleat (gain 1 Block)',
+      'Duality (gain 2 Block)',
+    ], `${name}: every relic in the first-turn Watcher setup must describe its active effect`)
+    assertLayout(await layout(), 'first-turn relic effects')
+    await page.screenshot({ path: `${out}/${name}-first-turn-relic-effects.png` })
+    await page.getByRole('button', { name: 'Resolve start of turn 1', exact: true }).click()
+    await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.phase === 'player')
+    assert.deepEqual(await page.evaluate(() => {
+      const player = window.__STS_DEBUG__.getRun().combat.players[0]
+      return [player.miracles, player.strength, player.block]
+    }), [1, 1, 3])
 
     // Solo: a relic and three Powers, one of which still needs a target.
     await load({ player: {

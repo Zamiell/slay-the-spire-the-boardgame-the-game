@@ -1516,6 +1516,7 @@ function EventScreen({
             const choiceEffects = activeEffects(choice.effects);
             const choiceTradeCard = choiceEffects.some((effect) => effect.tag === "trade-card");
             const choiceTradeRelic = choiceEffects.some((effect) => effect.tag === "trade-relic");
+            const soloFaceTraderExchange = room.card.id === "face_trader" && choice.id === "exchange" && players.length === 1;
             const choiceTradePossible = choiceTradeCard ? cardSlots.length > 0 : !choiceTradeRelic ||
               player.relics.length > 0 && players.some((candidate) => candidate.id !== player.id && !candidate.dead && candidate.relics.length > 0);
             const choiceNeedsTarget = choiceEffects.some((effect) => effect.target === "one-player" || effect.source === "other-character" ||
@@ -1590,8 +1591,8 @@ function EventScreen({
                 }}
               >
                 {repeatScrap ? <strong>{choice.id === "reach_inside" ? "Reach again" : choice.label}</strong> : <>
-                  <strong>[{choice.label}]</strong>
-                  <span>{choice.description}</span>
+                  <strong>[{soloFaceTraderExchange ? "Leave" : choice.label}]</strong>
+                  <span>{soloFaceTraderExchange ? "No other player to exchange with." : choice.description}</span>
                 </>}
               </button>
             );

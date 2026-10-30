@@ -148,6 +148,38 @@ try {
     await page.locator('[data-event-option="offer"]').click()
     assert.match(await picker.getByRole('button', { name: /^Golden Eye/ }).innerText(), /7 Gold/,
       'replacing native tooltips must not hide an event-specific relic sale price')
+    const teammate = postNeowRun(47, [
+      { id: 'p1', name: 'Watcher', character: 'watcher' },
+      { id: 'p2', name: 'Ironclad', character: 'ironclad' },
+    ]).players[1]
+    for (const party of [true, false]) {
+      await page.evaluate(async ({ base, teammate }) => {
+        const { EVENT_DEFINITIONS } = await import('/src/game/events.ts')
+        const { createEventRoom } = await import('/src/game/event-room.ts')
+        const run = structuredClone(base)
+        if (teammate) run.players.push(teammate)
+        run.roomState = createEventRoom({ ...EVENT_DEFINITIONS.face_trader,
+          instanceId: `face-trader-label-${run.players.length}`, act: 3, minAscension: 0, requiresColorlessUnlock: false })
+        window.__STS_DEBUG__.setRun(run)
+      }, { base: state, teammate: party ? teammate : null })
+      await page.getByRole('heading', { name: 'Face Trader', exact: true }).waitFor()
+      const exchange = page.locator('[data-event-option="exchange"]')
+      assert.equal(await exchange.locator('strong').innerText(), party ? '[Exchange]' : '[Leave]')
+      assert.equal(await exchange.locator('span').innerText(), party
+        ? 'Give one of your Relics to a player. Then they give a Relic to you.'
+        : 'No other player to exchange with.')
+      assert(await exchange.isEnabled())
+      if (!party) await page.screenshot({ path: `${output}/${screen}-face-trader-leave.png` })
+      if (phone) await exchange.tap()
+      else await exchange.click()
+      if (party) {
+        await page.locator('.event-panel--resolver').waitFor()
+      } else {
+        await page.waitForFunction(() => window.__STS_DEBUG__.getRun().phase === 'map')
+        assert.deepEqual(await page.evaluate(() => window.__STS_DEBUG__.getRun().players[0].relics),
+          state.players[0].relics, 'solo Leave must preserve every relic')
+      }
+    }
     assert.deepEqual(errors, [])
     await page.close()
     console.log(`PASS ${screen}: relic refresh, legacy resume, shared event tooltips and unchanged selection`)

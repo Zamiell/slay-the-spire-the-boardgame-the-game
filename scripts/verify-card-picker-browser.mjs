@@ -230,7 +230,7 @@ try {
       return box.left >= 0 && box.right <= innerWidth && box.top >= 0 && box.bottom <= innerHeight &&
         text.left >= box.left && text.right <= box.right && text.bottom <= box.bottom
     }), `${screen}: the Peace Pipe explanation must fit the Rest button`)
-    await page.screenshot({ path: resolve(output, `${screen}-peace-pipe-rest.png`) })
+    await page.screenshot({ path: resolve(root, 'artifacts/card-picker-browser', `${screen}-peace-pipe-rest.png`) })
   }
   await page.setViewportSize({ width: 1920, height: 1080 })
   await campfire.getByRole('button', { name: /Rest/ }).click()

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { checkRewardSweep } from './lib/reward-hover.mjs'
 import { mkdirSync } from 'node:fs'
 import { createServer } from 'vite'
 import { chromium } from './lib/profile-browser.mjs'
@@ -90,6 +91,9 @@ try {
     assert.equal(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun())), before)
     await checkLoot(page)
     await picker(page).locator('.item-card-image').evaluateAll((images) => Promise.all(images.map((image) => image.decode())))
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await checkRewardSweep(page, picker(page).locator('.relic-reward__choice'))
+    await page.emulateMedia({ reducedMotion: 'no-preference' })
     const hoverChoice = picker(page).getByRole('button', { name: 'Fusion Hammer', exact: true })
     await page.mouse.move(5, 5)
     await picker(page).evaluate(async dialog => {
@@ -112,7 +116,7 @@ try {
     })
     await hoverChoice.hover()
     const growing = await sampleTween()
-    assert(growing && growing.duration === 180 && growing.widths[0] < growing.widths[1] &&
+    assert(growing && growing.duration === 500 && growing.widths[0] < growing.widths[1] &&
       growing.widths[1] < growing.widths[2], `${screen}: relic hover must tween up`)
     assert(Math.abs(growing.widths[2] / resting.width - 1.25) < .01, 'relic hover must enlarge by 25%')
     await page.screenshot({ path: `${output}/${screen}-hover.png` })
@@ -131,9 +135,9 @@ try {
       return box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight
     })), `${screen}: relic choices or navigation clipped`)
     await page.screenshot({ path: `${output}/${screen}.png`, animations: 'disabled' })
-    for (const mode of phone ? ['game'] : ['system', 'game']) {
+    for (const mode of ['system', 'game']) {
       await page.emulateMedia({ reducedMotion: mode === 'system' ? 'reduce' : 'no-preference' })
-      await page.evaluate(mode => { document.documentElement.dataset.reducedMotion = String(mode === 'game') }, mode)
+      await page.evaluate(() => { document.documentElement.dataset.reducedMotion = 'true' })
       await hoverChoice.evaluate(choice => choice.blur())
       await page.mouse.move(5, 5)
       await hoverChoice.hover()

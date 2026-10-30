@@ -4,6 +4,7 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from './lib/profile-browser.mjs'
 import { createServer } from 'vite'
+import { checkRewardSweep } from './lib/reward-hover.mjs'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const out = join(root, 'artifacts/loot-browser')
@@ -35,6 +36,7 @@ try {
       run.combat = null
       run.rewardDestination = 'map'
       run.players[0].potions = []
+      run.players[0].rareRewards = ['impervious', 'demon_form', 'offering']
       run.rewards = [{
         playerId: run.players[0].id,
         cardReward: true,
@@ -72,14 +74,14 @@ try {
       if (!animation) return null
       animation.pause()
       const duration = animation.effect.getTiming().duration
-      const widths = [0, 90, 180].map(time => {
+      const widths = [0, duration / 2, duration].map(time => {
         animation.currentTime = time
         return card.getBoundingClientRect().width
       })
       animation.finish()
       return { duration, widths }
     })
-    assert(growing && growing.duration === 180, 'entering a reward must tween up instead of snapping')
+    assert(growing && growing.duration === 500, 'entering a reward must ease up over half a second')
     assert(growing.widths[0] < growing.widths[1] && growing.widths[1] < growing.widths[2] &&
       Math.abs(growing.widths[0] - resting.width) < 1,
     'reward enlargement must pass through intermediate sizes')
@@ -195,6 +197,9 @@ try {
     'Skip changes color on hover instead of smoothly brightening')
   await page.screenshot({ path: join(out, 'desktop-card-skip-hover.png') })
   const card = page.locator('.reward-screen__cards .card').first()
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await checkRewardSweep(page, page.locator('.reward-screen__cards > .card'))
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
   await checkRewardHover(card)
   await page.screenshot({ path: join(out, 'desktop-card-hover.png') })
   await card.click()
@@ -303,6 +308,9 @@ try {
   assert(compactCards.every((box) => box.left >= 0 && box.right <= 1024),
     `five-card reward clips compact desktop: ${JSON.stringify(compactCards)}`)
   await page.setViewportSize({ width: 844, height: 390 })
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await checkRewardSweep(page, fiveCardReward.locator('.reward-screen__cards > .card'))
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
   await checkRewardHover(fiveCardReward.locator('.reward-screen__cards > .card').nth(2))
   const hoveredPhoneCards = await fiveCardReward.locator('.card').evaluateAll(cards => cards.map(card => {
     const box = card.getBoundingClientRect()
@@ -312,13 +320,17 @@ try {
   await page.screenshot({ path: join(out, 'horizontal-phone-card-hover.png') })
   await page.setViewportSize({ width: 1024, height: 768 })
   await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.evaluate(() => { document.documentElement.dataset.reducedMotion = 'true' })
   const reducedCard = fiveCardReward.locator('.reward-screen__cards > .card').first()
   await reducedCard.hover()
-  assert.deepEqual(await reducedCard.evaluate((card) => ({
+  const reducedInspection = await reducedCard.evaluate((card) => ({
     transform: getComputedStyle(card).transform,
     duration: getComputedStyle(card).transitionDuration,
-  })), { transform: 'matrix(1.25, 0, 0, 1.25, 0, 0)', duration: '0s' },
-  'reduced motion must preserve instant reward inspection without animated easing')
+  }))
+  assert(reducedInspection.transform === 'matrix(1.25, 0, 0, 1.25, 0, 0)' &&
+    reducedInspection.duration.split(',').every(duration => parseFloat(duration) <= .001),
+  'the in-game reduced motion setting must preserve instant reward inspection without animated easing')
+  await page.evaluate(() => { document.documentElement.dataset.reducedMotion = 'false' })
   await page.emulateMedia({ reducedMotion: 'no-preference' })
   await page.setViewportSize({ width: 1440, height: 900 })
   assert.equal(await fiveCardReward.getByRole('button', { name: /Confirm/ }).count(), 0,

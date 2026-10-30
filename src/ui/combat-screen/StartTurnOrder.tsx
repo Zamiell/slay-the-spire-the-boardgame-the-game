@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { cardDef, faceOf } from '../../game/cards.ts'
 import type { StartTurnAbility } from '../../game/combat/types.ts'
+import { dieRelicEffectsForParty, triggerSourceById } from '../../game/combat/effects.ts'
 import type { Player } from '../../game/types.ts'
 import { Icon } from '../Icon.tsx'
 import { ItemImage } from '../ItemImage.tsx'
 import { PowerGlyph } from '../PowerRow.tsx'
+import { effectText } from '../Card.tsx'
 
 export type StartTurnOrderStep = {
   id: string
@@ -81,12 +83,17 @@ export function StartTurnOrder({ title, hint, steps, players, canMove, onMove, f
           const name = owner && (step.label.startsWith(`${owner.name}'s `) || step.label.startsWith(`${owner.name} — `))
             ? step.label.slice(owner.name.length + 3)
             : step.label
+          const sourceId = step.id.match(/(?:^|\/)((?:relic|power):.+)$/)?.[1]
+          const source = owner && sourceId ? triggerSourceById(owner, sourceId) : undefined
+          const effect = source
+            ? dieRelicEffectsForParty(source.presentationSourceId, source.effects, players.length).map(effectText).join(', then ')
+            : ''
           return (
             <li key={step.id} className="start-turn-order__step">
               <span className="start-turn-order__index" aria-hidden="true">{index + 1}</span>
               <StepArt step={step} owner={owner} />
               <span className="start-turn-order__text">
-                <span className="start-turn-order__name">{name}</span>
+                <span className="start-turn-order__name">{name}{effect ? ` (${effect})` : ''}</span>
                 {party && owner && !step.id.startsWith('enemy:') || step.badges?.length ? (
                   <span className="start-turn-order__meta">
                     {party && owner && !step.id.startsWith('enemy:')

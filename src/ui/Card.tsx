@@ -190,7 +190,7 @@ function timesText(times: Amount): string {
   return parts.join(' plus ') || '0 times'
 }
 
-function effectText(effect: Effect): string {
+export function effectText(effect: Effect): string {
   if ((effect as { kind: string }).kind === 'gainSlimeVigor') {
     const slimeEffect = effect as unknown as {
       amount: number; temporary?: boolean; commandAfter?: boolean

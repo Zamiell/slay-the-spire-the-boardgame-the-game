@@ -108,7 +108,8 @@ try {
     await settle()
     const list = panel.locator('ol[aria-label="Start-of-turn order"]')
     assert.equal(await panel.getAttribute('open'), '', `${name}: the start-of-turn order must start open`)
-    assert.deepEqual(await names(), ['Coffee Dripper', 'Demon Form', 'Infinite Blades+', 'Noxious Fumes'])
+    assert.deepEqual(await names(), ['Coffee Dripper (gain 1 Energy)', 'Demon Form (gain 1 Strength)',
+      'Infinite Blades+ (gain 2 Shivs)', 'Noxious Fumes (apply 1 Poison)'])
     assert.deepEqual(await panel.locator('.start-turn-order__index').allTextContents(), ['1', '2', '3', '4'])
     assert.equal(await panel.locator('.start-turn-order__art img').count(), 4, `${name}: a step has no relic or Power art`)
     assert.match(await panel.locator('li').first().locator('img').getAttribute('src'), /coffee_dripper/)
@@ -135,7 +136,8 @@ try {
 
     await page.getByRole('button', { name: "Move Silent's Infinite Blades+ earlier", exact: true }).click()
     await page.getByRole('button', { name: "Move Silent's Coffee Dripper later", exact: true }).click()
-    assert.deepEqual(await names(), ['Infinite Blades+', 'Coffee Dripper', 'Demon Form', 'Noxious Fumes'])
+    assert.deepEqual(await names(), ['Infinite Blades+ (gain 2 Shivs)', 'Coffee Dripper (gain 1 Energy)',
+      'Demon Form (gain 1 Strength)', 'Noxious Fumes (apply 1 Poison)'])
     assert(await page.getByRole('button', { name: "Move Silent's Infinite Blades+ earlier", exact: true }).isDisabled())
     assert(await page.getByRole('button', { name: "Move Silent's Noxious Fumes later", exact: true }).isDisabled())
     await page.screenshot({ path: `${out}/${name}-solo-reordered.png` })
@@ -158,7 +160,8 @@ try {
     assert.deepEqual(solo.enemies.map((enemy) => enemy.poison), [0, 1], `${name}: Noxious Fumes poisoned the wrong enemy`)
     assert.equal(await panel.count(), 0, `${name}: the order panel outlived the start of turn`)
 
-    await load({ die: 4, player: { relics: [{ defId: 'duality', spent: false }] } })
+    await load({ die: 4, player: { relics: [{ defId: 'loaded_die', spent: false }, { defId: 'duality', spent: false }] } })
+    assert.deepEqual(await names(), ['Loaded Die (gain 1 Block)', 'Duality (deal 2 damage)'])
     const beforeTarget = await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun().combat))
     for (const [uid, label] of [['e1', 'Jaw Worm #2'], ['e0', 'Jaw Worm #1']]) {
       if (uid === 'e0') await page.getByRole('button', { name: 'Reset start choices', exact: true }).click()
@@ -174,6 +177,12 @@ try {
     await page.getByRole('button', { name: 'Resolve start of turn 2', exact: true }).click()
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.phase === 'player')
     assert.deepEqual(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.enemies.map(enemy => enemy.hp)), [28, 30])
+    assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.players[0].block), 1)
+
+    await load({ die: 2, player: { relics: [{ defId: 'duality', spent: false }],
+      powers: [c('face-fumes', 'noxious_fumes')] } })
+    assert.deepEqual(await names(), ['Noxious Fumes (apply 1 Poison)', 'Duality (gain 2 Block)'],
+      'the description must follow the triggered face, not another ability on the same relic')
 
     // Local party: each step names its owner.
     await load({
@@ -268,12 +277,12 @@ try {
     // A card morph (the old hand leaving) veils the board for a moment; shoot the settled panel.
     await page.locator('.card-morph').waitFor({ state: 'hidden' })
     await settle()
-    assert.deepEqual(await names(), ['Foresight', 'Foresight+'])
+    assert.deepEqual(await names(), ['Foresight (scry 3)', 'Foresight+ (scry 4)'])
     assert.equal(await scry.locator('.start-turn-order__art img').count(), 2, `${name}: a Scry step has no Power art`)
     assert.deepEqual(await scry.locator('.start-turn-order__badge').allTextContents(), ['Scry 3', 'Scry 4'])
     await page.screenshot({ path: `${out}/${name}-scry.png` })
     await page.getByRole('button', { name: "Move Silent's Foresight+ earlier", exact: true }).click()
-    assert.deepEqual(await names(), ['Foresight+', 'Foresight'])
+    assert.deepEqual(await names(), ['Foresight+ (scry 4)', 'Foresight (scry 3)'])
     await page.getByRole('button', { name: 'Confirm before-draw order', exact: true }).click()
     await page.getByRole('dialog', { name: /^Foresight\+? — Scry 4$/ }).waitFor()
     await page.close()

@@ -4954,6 +4954,11 @@ function CombatScreenView({
     pendingPotion || pendingPowerUid || spendingShiv || spendingSoulburn ||
     endTurnEffectAimed || endTurnEffectDrag || pendingStartChoice ||
     pendingTrigger?.playerId === viewer.id)
+  const startResourceInventory = !viewer.dead && state.phase === 'start'
+  const resourceActionsAvailable = !viewer.dead && state.phase === 'player' && !relicScry &&
+    !voluntaryActionsBlocked && !forcedCard && !distilled && !endTurnResolving && !pendingTrigger
+  const shivActionsAvailable = resourceActionsAvailable && !viewer.cardPlayLocked && viewer.shivs > 0
+  const miracleActionAvailable = resourceActionsAvailable && viewer.miracles > 0
 
   return (
     <div
@@ -5167,38 +5172,6 @@ function CombatScreenView({
                   </button>
                 </PotionTooltipAnchor>
               }) : null}
-              {state.phase === 'player' && !forcedCard && !distilled && !relicScry && !endTurnResolving &&
-              !pendingTrigger && !viewer.cardPlayLocked && viewer.shivs > 0 ? (
-                <span className="shiv-actions">
-                  <PotionTooltipAnchor id="shivs" name={`Shivs: ${viewer.shivs}`} kindLabel="Combat resource"
-                    text="Choose an enemy, then spend 1 Shiv to attack it.">
-                  <button
-                    type="button"
-                    className={spendingShiv === 'one' ? 'is-chosen' : undefined}
-                    disabled={Boolean(pending?.choiceCards)}
-                    aria-label="Use Shiv"
-                    aria-description={`${viewer.shivs} Shiv${viewer.shivs === 1 ? '' : 's'} available`}
-                    aria-pressed={spendingShiv === 'one'}
-                    onClick={() => toggleShivs('one')}
-                  >
-                    <StatusIcon name="shiv" size={22} />
-                    <span aria-hidden="true">{viewer.shivs}</span>
-                  </button>
-                  </PotionTooltipAnchor>
-                  <PotionTooltipAnchor id="all-shivs" name={`Shivs: ${viewer.shivs}`} kindLabel="Combat resource"
-                    text="Spend all your Shivs as individual attacks on one enemy. Stops if the enemy dies or a choice is required.">
-                  <button type="button" className={spendingShiv === 'all' ? 'is-chosen' : undefined}
-                    disabled={Boolean(pending?.choiceCards)} aria-label="Use all Shivs"
-                    aria-description={`${viewer.shivs} Shiv${viewer.shivs === 1 ? '' : 's'} available; stops if the target dies or a choice is required`}
-                    aria-pressed={spendingShiv === 'all'} onClick={() => toggleShivs('all')}>
-                    <span className="shiv-actions__stack" aria-hidden="true">
-                      <StatusIcon name="shiv" size={22} /><StatusIcon name="shiv" size={22} />
-                    </span>
-                    <span aria-hidden="true">All</span>
-                  </button>
-                  </PotionTooltipAnchor>
-                </span>
-              ) : null}
               {state.phase === 'player' && viewer.guardianMode ? (
                 <button type="button"
                   disabled={viewer.vigor < 1 || Boolean(pending?.choiceCards) || Boolean(forcedCard) || Boolean(distilled) ||
@@ -5249,38 +5222,6 @@ function CombatScreenView({
                   onClick={() => setExtraCrispySoulburn((current) => !current)}>
                   Extra Crispy ×2
                 </button>
-              ) : null}
-              {state.phase === 'player' && !forcedCard && !distilled && !endTurnResolving && !pendingTrigger && viewer.miracles > 0 ? (
-                <PotionTooltipAnchor id="miracles" name={`Miracles: ${viewer.miracles}`} kindLabel="Combat resource"
-                  text={viewer.energy === CAPS.energy
-                    ? 'At maximum Energy, use 1 Miracle toward the cost of the next card you play.'
-                    : 'Spend 1 Miracle to gain 1 Energy.'}>
-                <button
-                  type="button"
-                  disabled={Boolean(pending?.choiceCards)}
-                  aria-label={viewer.energy === CAPS.energy ? 'Use Miracle on next card' : 'Use Miracle (+1 Energy)'}
-                  aria-description={`${viewer.miracles} Miracle${viewer.miracles === 1 ? '' : 's'} available`}
-                  aria-pressed={viewer.energy === CAPS.energy ? miracleOnCard : undefined}
-                  onClick={() => {
-                    if (viewer.energy < CAPS.energy) {
-                      if (onAction) onAction({ kind: 'spendMiracle' })
-                      else onChange?.(spendMiracle(state, viewer.id))
-                    }
-                    else {
-                      setPending(null)
-                      setPendingPowerUid(null)
-                      setSpendingShiv(false)
-                      setPendingPotion(null)
-                      setPotionShivEnemyUids([])
-                      setPotionOverflowRequired(0)
-                      setMiracleOnCard((current) => !current)
-                    }
-                  }}
-                >
-                  <Icon name="miracle" size={22} />
-                  <span aria-hidden="true">x{viewer.miracles}</span>
-                </button>
-                </PotionTooltipAnchor>
               ) : null}
               {state.phase === 'discard' && (retainAllowance > 0 && discardableHand.length > 0 || optionalRetainUids.size > 0) ? (
                 <span className="retain-options" role="group"
@@ -5334,6 +5275,72 @@ function CombatScreenView({
                   : `End Turn ${state.turn}${endTurnCount ? ` (${endTurnCount})` : ''}`}
               </button> : null}
             </>
+          ) : null}
+          {startResourceInventory || shivActionsAvailable ? (
+            <span className="shiv-actions">
+              <PotionTooltipAnchor id="shivs" name={`Shivs: ${viewer.shivs}`} kindLabel="Combat resource"
+                className="combat-resource" focusable={startResourceInventory}
+                text="Choose an enemy, then spend 1 Shiv to attack it.">
+              <button
+                type="button"
+                className={spendingShiv === 'one' ? 'is-chosen' : undefined}
+                disabled={!shivActionsAvailable || Boolean(pending?.choiceCards)}
+                aria-label="Use Shiv"
+                aria-description={`${viewer.shivs} Shiv${viewer.shivs === 1 ? '' : 's'} available`}
+                aria-pressed={spendingShiv === 'one'}
+                onClick={() => toggleShivs('one')}
+              >
+                <StatusIcon name="shiv" size={22} />
+                <span aria-hidden="true">{viewer.shivs}</span>
+              </button>
+              </PotionTooltipAnchor>
+              {!startResourceInventory ? <PotionTooltipAnchor id="all-shivs" name={`Shivs: ${viewer.shivs}`} kindLabel="Combat resource"
+                className="combat-resource"
+                text="Spend all your Shivs as individual attacks on one enemy. Stops if the enemy dies or a choice is required.">
+              <button type="button" className={spendingShiv === 'all' ? 'is-chosen' : undefined}
+                disabled={!shivActionsAvailable || Boolean(pending?.choiceCards)} aria-label="Use all Shivs"
+                aria-description={`${viewer.shivs} Shiv${viewer.shivs === 1 ? '' : 's'} available; stops if the target dies or a choice is required`}
+                aria-pressed={spendingShiv === 'all'} onClick={() => toggleShivs('all')}>
+                <span className="shiv-actions__stack" aria-hidden="true">
+                  <StatusIcon name="shiv" size={22} /><StatusIcon name="shiv" size={22} />
+                </span>
+                <span aria-hidden="true">All</span>
+              </button>
+              </PotionTooltipAnchor> : null}
+            </span>
+          ) : null}
+          {startResourceInventory || miracleActionAvailable ? (
+            <PotionTooltipAnchor id="miracles" name={`Miracles: ${viewer.miracles}`} kindLabel="Combat resource"
+              className="combat-resource" focusable={startResourceInventory}
+              text={viewer.energy === CAPS.energy
+                ? 'At maximum Energy, use 1 Miracle toward the cost of the next card you play.'
+                : 'Spend 1 Miracle to gain 1 Energy.'}>
+            <button
+              type="button"
+              disabled={!miracleActionAvailable || Boolean(pending?.choiceCards)}
+              aria-label={viewer.energy === CAPS.energy ? 'Use Miracle on next card' : 'Use Miracle (+1 Energy)'}
+              aria-description={`${viewer.miracles} Miracle${viewer.miracles === 1 ? '' : 's'} available`}
+              aria-pressed={viewer.energy === CAPS.energy ? miracleOnCard : undefined}
+              onClick={() => {
+                if (viewer.energy < CAPS.energy) {
+                  if (onAction) onAction({ kind: 'spendMiracle' })
+                  else onChange?.(spendMiracle(state, viewer.id))
+                }
+                else {
+                  setPending(null)
+                  setPendingPowerUid(null)
+                  setSpendingShiv(false)
+                  setPendingPotion(null)
+                  setPotionShivEnemyUids([])
+                  setPotionOverflowRequired(0)
+                  setMiracleOnCard((current) => !current)
+                }
+              }}
+            >
+              <Icon name="miracle" size={22} />
+              <span aria-hidden="true">x{viewer.miracles}</span>
+            </button>
+            </PotionTooltipAnchor>
           ) : null}
           {stagedStartTurnTriggerPending && startTurnCount ? (
             <button type="button" className="combat__end-turn" disabled>

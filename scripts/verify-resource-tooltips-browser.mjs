@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict'
+import { mkdirSync } from 'node:fs'
 import { createServer } from 'vite'
 import { chromium } from './lib/profile-browser.mjs'
 import { postNeowRun } from './lib/post-neow-run.mjs'
 import { enterRoom } from '../src/game/run.ts'
 import { CAPS } from '../src/game/types.ts'
 
+const output = 'artifacts/resource-tooltips'
+mkdirSync(output, { recursive: true })
 const server = await createServer({ logLevel: 'silent', server: { host: '127.0.0.1', port: 0 } })
 await server.listen()
 const browser = await chromium.launch()
@@ -30,12 +33,52 @@ try {
       energy: 3, miracles: 3, shivs: 2, strength: 0, shivDamageBonus: 0, relics: [], powers: [], potions: [],
     })
     next.combat.enemies = [{ ...next.combat.enemies[0], uid: 'target', hp: 50, maxHp: 50, block: 0, dead: false }]
-    await page.evaluate(run => window.__STS_DEBUG__.setRun(run), next)
+    const starting = structuredClone(next)
+    Object.assign(starting.combat, { phase: 'start', turn: 1, die: 6, startTurnStage: 'effects' })
+    Object.assign(starting.combat.players[0], {
+      miracles: 2, shivs: 1,
+      relics: ['pure_water', 'loaded_die', 'vajra'].map(defId => ({ defId, spent: false })),
+      powers: [{ uid: 'start-shiv', defId: 'infinite_blades', upgraded: false }],
+    })
+    await page.evaluate(run => window.__STS_DEBUG__.setRun(run), starting)
     await page.waitForFunction(id => window.__STS_DEBUG__.getRun().combat?.combatId === id, next.combat.combatId)
     const miracle = page.getByRole('button', { name: /^Use Miracle/ })
     await miracle.waitFor()
     const shiv = page.getByRole('button', { name: 'Use Shiv', exact: true })
     const allShivs = page.getByRole('button', { name: 'Use all Shivs', exact: true })
+    await page.locator('.start-turn-order').waitFor()
+    assert.equal(await miracle.innerText(), 'x2', 'start-turn inventory must show held Miracles, not pending gains')
+    assert.equal(await shiv.innerText(), '1', 'start-turn inventory must show held Shivs, not pending gains')
+    await page.screenshot({ path: `${output}/${screen}-start.png` })
+    const beforeStart = await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun().combat))
+    const visibleViewport = await page.evaluate(() => ({ width: innerWidth, height: innerHeight }))
+    assert.equal(await allShivs.count(), 0, 'start-turn inventory needs only one counter per resource')
+    for (const button of [miracle, shiv]) {
+      assert(await button.isDisabled(), 'resources must be unavailable during start-turn ordering')
+      assert.equal(await button.evaluate(button => getComputedStyle(button).filter), 'saturate(0.45) brightness(0.8)')
+      const box = await button.boundingBox()
+      assert(box.x >= 0 && box.y >= 0 && box.x + box.width <= visibleViewport.width &&
+        box.y + box.height <= visibleViewport.height, `${screen}: disabled resource counter is clipped: ${JSON.stringify(box)}`)
+      await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
+    }
+    assert.equal(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun().combat)), beforeStart,
+      'clicking disabled resources must not spend them or resolve start-of-turn effects')
+    await miracle.locator('..').focus()
+    await page.locator('.potion-tip').filter({ hasText: 'Miracles: 2' }).waitFor()
+    await page.evaluate(() => {
+      const run = structuredClone(window.__STS_DEBUG__.getRun())
+      Object.assign(run.combat.players[0], { miracles: 0, shivs: 0 })
+      window.__STS_DEBUG__.setRun(run)
+    })
+    await page.waitForFunction(() => document.querySelector('.combat-resource button[aria-label^="Use Miracle"]')
+      ?.textContent === 'x0')
+    assert.equal(await shiv.innerText(), '0', 'empty start-turn counters should remain visible')
+    await page.evaluate(run => window.__STS_DEBUG__.setRun(run), starting)
+    await page.getByRole('button', { name: 'Resolve start of turn 1', exact: true }).click()
+    await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.phase === 'player')
+    for (const button of [miracle, shiv, allShivs]) assert(await button.isEnabled())
+    assert.equal(await miracle.innerText(), 'x3')
+    assert.equal(await shiv.innerText(), '2')
     const actor = () => page.evaluate(() => window.__STS_DEBUG__.getRun().combat.players[0])
     const activate = button => phone ? button.tap() : button.click()
     const inspect = async (button, name) => {

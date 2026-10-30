@@ -25,9 +25,12 @@ const checkBelt = async (page, potions, slots = 3) => {
   await belt.waitFor()
   await page.waitForFunction(({ potions, slots }) => {
     const belt = document.querySelector('.app-shell__header .outside-potions')
+    const icons = belt?.querySelectorAll('.outside-potions__item > .potion-chip > .item-icon-image, .outside-potions__item > .potion-chip > button > .item-icon-image')
     return belt?.querySelectorAll('.outside-potions__item').length === slots &&
-      belt.querySelectorAll('.outside-potions__empty').length === slots - potions
-  }, { potions: potions.length, slots })
+      belt.querySelectorAll('.outside-potions__empty').length === slots - potions.length &&
+      icons.length === potions.length && [...icons].every((icon, index) =>
+        icon.getAttribute('src').split('/').at(-1) === `${potions[index]}.png`)
+  }, { potions, slots })
   assert.deepEqual(await belt.locator('.outside-potions__item > .potion-chip > .item-icon-image, .outside-potions__item > .potion-chip > button > .item-icon-image')
     .evaluateAll((icons) => icons.map((icon) => icon.getAttribute('src').split('/').at(-1))), potions.map((id) => `${id}.png`))
   assert(await belt.evaluate((element) => {
@@ -93,6 +96,56 @@ try {
     await checkBelt(page, [])
     assert(await page.evaluate(() => window.__STS_DEBUG__.getRun().players[0].hp > 5),
       'the moved out-of-combat potion action stopped working')
+    const heldPotions = ['fire_potion', 'weak_potion', 'swift_potion']
+    await page.evaluate(async potions => {
+      const { EVENT_DEFINITIONS } = await import('/src/game/events.ts')
+      const run = structuredClone(window.__STS_DEBUG__.getRun())
+      const id = run.players[0].id
+      run.phase = 'room'
+      run.players[0].potions = potions
+      run.roomState = {
+        kind: 'event',
+        card: { ...EVENT_DEFINITIONS.lab, instanceId: 'tooltip-lab', act: 1,
+          minAscension: 0, requiresColorlessUnlock: false },
+        decisions: {}, dieRolls: {},
+        pendingDecisions: { [id]: { optionIds: ['resolve'] } },
+        itemOffers: { [id]: [{ kind: 'potion', id: 'block_potion' }] },
+      }
+      window.__STS_DEBUG__.setRun(run)
+    }, heldPotions)
+    await page.waitForFunction(() => window.__STS_DEBUG__.getRun().roomState?.card.instanceId === 'tooltip-lab')
+    await checkBelt(page, heldPotions)
+    const reward = page.locator('.event-loot').filter({ hasText: 'Block Potion' })
+    await reward.getByRole('button', { name: 'Take', exact: true }).click()
+    const swaps = reward.getByRole('group', { name: 'Replace', exact: true })
+    await swaps.waitFor()
+    const beforeReading = await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun()))
+    for (let index = 0; index < heldPotions.length; index++) {
+      const headerIcon = belt.locator('.outside-potions__item > .potion-chip').nth(index)
+      if (phone) await headerIcon.focus()
+      else await headerIcon.hover()
+      const tip = page.locator('.potion-tip')
+      await tip.waitFor()
+      const headerText = await tip.innerText()
+      const replacement = swaps.getByRole('button').nth(index)
+      if (phone) await replacement.focus()
+      else await replacement.hover()
+      await tip.waitFor()
+      assert.equal(await tip.innerText(), headerText, 'replacement potions must use the header tooltip')
+      assert.equal(await replacement.getAttribute('aria-pressed'), 'false', 'reading a potion selected it')
+      assert(await tip.evaluate(tip => {
+        const box = tip.getBoundingClientRect()
+        return box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight
+      }), 'the replacement tooltip must not be clipped by the event panel')
+    }
+    assert.equal(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun())), beforeReading)
+    const replacement = swaps.getByRole('button').first()
+    if (phone) await replacement.tap()
+    else await replacement.click()
+    assert.equal(await replacement.getAttribute('aria-pressed'), 'true')
+    assert.deepEqual(await page.evaluate(() => window.__STS_DEBUG__.getRun().players[0].potions), heldPotions)
+    await page.getByRole('button', { name: /Resolve rewards/ }).click()
+    await checkBelt(page, ['weak_potion', 'swift_potion', 'block_potion'])
     const solo = await page.evaluate(() => structuredClone(window.__STS_DEBUG__.getRun()))
     solo.phase = 'combat'
     solo.players[0].potions = ['fire_potion']

@@ -1211,7 +1211,16 @@ function EventScreen({
             </RewardItem>
             {offer.kind === 'potion' && (receivers.length > 0 || holderSozu) ? <label className="event-loot__pass">Pass to<select aria-label="Pass to" required={holderSozu} value={recipientIds[at] ?? ''} onChange={(event) => setPotionRecipientIds((current) => current.map((id, idIndex) => idIndex === at ? event.target.value : id))}><option value="">{holderSozu ? 'Choose a recipient' : holder && holder.id !== player.id ? holder.name : 'Keep it'}</option>{receivers.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.name}</option>)}</select></label> : null}
             {fullBelt ? <p className="event-loot__note">{fullBelt.id === player.id ? 'Your belt is full' : `${fullBelt.name}’s belt is full`}</p> : null}
-            {swap ? <fieldset className="event-potion-replacement" aria-label="Replace"><legend>Belt full · swap out</legend>{swapChoices(at).map(({ id, heldIndex }) => <button type="button" key={`${id}-${heldIndex}`} aria-pressed={potionReplacementIds[at] === id} title={potionDef(id).name} onClick={() => setPotionReplacementIds((current) => current.map((held, idIndex) => idIndex === at ? id : held))}><ItemImage kind="potion" id={id} /><span className="visually-hidden">{potionDef(id).name}</span></button>)}</fieldset> : null}
+            {swap ? <fieldset className="event-potion-replacement" aria-label="Replace">
+              <legend>Belt full · swap out</legend>
+              {swapChoices(at).map(({ id, heldIndex }) => <PotionTooltipAnchor key={`${id}-${heldIndex}`} id={id}>
+                <button type="button" aria-pressed={potionReplacementIds[at] === id}
+                  aria-description={potionDef(id).text}
+                  onClick={() => setPotionReplacementIds((current) => current.map((held, idIndex) => idIndex === at ? id : held))}>
+                  <ItemImage kind="potion" id={id} /><span className="visually-hidden">{potionDef(id).name}</span>
+                </button>
+              </PotionTooltipAnchor>)}
+            </fieldset> : null}
           </div>;
         })}</div>
         <button type="button" className="room-proceed" disabled={rewardItemChoices.some((choice) => !choice) || !potionPlan.legal || effectiveCards.length < pendingCards || (pendingRelic && !effectiveRelic) || (pendingTarget && !effectiveTarget)} onClick={() => submit(pending?.optionIds ?? [], undefined, undefined, undefined, undefined, { potionRecipientIds: recipientIds.map((id, at) => rewardItemChoices[potionOfferIndexes[at]!] === 'take' ? id : ''), potionReplacementIds: replacementIds })}>Resolve rewards →</button>

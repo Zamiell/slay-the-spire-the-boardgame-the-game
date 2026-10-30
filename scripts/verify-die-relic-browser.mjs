@@ -4,6 +4,7 @@ import { chromium } from './lib/profile-browser.mjs'
 import { createServer } from 'vite'
 import { createRun } from '../src/game/run.ts'
 import { createCombat } from '../src/game/combat.ts'
+import { pickUpCard, confirmCardPlay } from './lib/card-interactions.mjs'
 
 const out = 'artifacts/die-relic'
 mkdirSync(out, { recursive: true })
@@ -63,7 +64,12 @@ try {
     const loadedRun = structuredClone(run)
     loadedRun.combat.die = 6
     loadedRun.combat.players[0].relics[0] = { defId: 'loaded_die', spent: false }
+    loadedRun.combat.players[0].relics.push({ defId: 'vajra', spent: false })
     await page.evaluate(run => window.__STS_DEBUG__.setRun(run), loadedRun)
+    const barVajra = page.locator('.relic-bar [data-relic="vajra"]')
+    await barVajra.hover()
+    await barVajra.locator('.relic-tip').waitFor()
+    const vajraRules = await barVajra.locator('.relic-tip').innerText()
     const loadedDie = page.getByRole('button', { name: /^Use Loaded Die:/ })
     const loadedIcon = loadedDie.locator('img.item-icon-image')
     await loadedIcon.evaluate(image => image.decode())
@@ -78,10 +84,31 @@ try {
     await loadedChoices.getByRole('group', { name: /Red Mask · die 5\/6/ }).waitFor()
     assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.players[0].relics[0].spent), false,
       `${name}: opening Loaded Die spent it before choosing an ability`)
+    const beforeInspection = await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun().combat))
+    const vajra = loadedChoices.locator('.die-relic--single').filter({ hasText: 'Vajra' })
+    await vajra.hover()
+    const vajraTip = page.locator('.potion-tip').filter({ hasText: 'Vajra' })
+    await vajraTip.waitFor()
+    assert.equal(await vajraTip.innerText(), vajraRules,
+      `${name}: a die-relic choice must show exactly the relic bar's tooltip`)
+    assert(await vajraTip.evaluate(tip => {
+      const box = tip.getBoundingClientRect()
+      return box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight
+    }), `${name}: Vajra's tooltip is clipped by the choice panel`)
+    await vajra.focus()
+    await vajraTip.waitFor()
+    assert.equal(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun().combat)), beforeInspection,
+      'hovering or focusing Vajra must not trigger its ability')
+    await loadedChoices.getByRole('group', { name: /Red Mask · die 5\/6/ }).getByRole('img').focus()
+    await page.locator('.potion-tip').filter({ hasText: 'Red Mask' }).waitFor()
+    assert.equal(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun().combat)), beforeInspection,
+      'reading a targeted relic must not choose an enemy')
+    await vajra.hover()
+    await vajraTip.waitFor()
     await page.screenshot({ path: `${out}/${name}-loaded-die-icon.png` })
-    await loadedChoices.getByRole('group', { name: /Red Mask · die 5\/6/ }).getByRole('button').first().click()
+    await vajra.click()
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.players[0].relics[0].spent)
-    assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.enemies[0].weak), 1,
+    assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.players[0].strength), 1,
       `${name}: the Loaded Die icon did not preserve its selected relic ability`)
     run.combat.players[0].relics[0].spent = false
     Object.assign(run.combat, { phase: 'player', die: 3 })
@@ -130,14 +157,15 @@ try {
     const chamber = page.getByRole('button', { name: /^Chamber,/ })
     if (await chamber.getAttribute('aria-expanded') !== 'true') await chamber.click()
     const cheat = page.locator('.hand .card--chamber-drawn')
-    await cheat.click()
+    await pickUpCard(page, cheat)
+    await confirmCardPlay(page, page.locator('.enemy:not(.enemy--dead) .enemy__hit-area').first())
     const cheatPick = page.getByRole('group', { name: /Red Mask · die 5\/6/ })
     await cheatPick.waitFor({ state: 'visible' })
     await page.screenshot({ path: `${out}/${name}-cheat.png` })
     assert.equal(await cheatPick.getByRole('button').count(), 2, `${name}: Cheat should offer one chip per enemy`)
     await cheatPick.getByRole('button').first().click()
-    await page.locator('.enemy:not(.enemy--dead) .enemy__head').first().click()
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.enemies[0].weak === 1)
+    assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.enemies[0].hp), 28)
     await page.screenshot({ path: `${out}/${name}-cheat-picked.png` })
 
     run.players[0].relics = [{ defId: 'snecko_eye', spent: false }]

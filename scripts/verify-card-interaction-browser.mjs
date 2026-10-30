@@ -4,6 +4,7 @@ import { createServer } from 'vite'
 import { chromium } from './lib/profile-browser.mjs'
 import { postNeowRun } from './lib/post-neow-run.mjs'
 import { enterRoom } from '../src/game/run.ts'
+import { bruiserSlime } from '../src/game/downfall/slime-boss.ts'
 import { pickUpCard, confirmCardPlay, dragCardTo } from './lib/card-interactions.mjs'
 
 const output = 'artifacts/card-interaction'
@@ -26,8 +27,8 @@ try {
     }
     await page.waitForFunction(() => window.__STS_DEBUG__?.getRun().phase === 'neow')
     let nonce = 0
-    const fixture = async ({ skill = 'defend_ironclad', doubled = 0, party = false, chamber = false, phase = 'player', scryCards } = {}) => {
-      const run = postNeowRun(47, [{ id: 'p1', name: 'Player', character: chamber ? 'hermit' : 'ironclad' },
+    const fixture = async ({ skill = 'defend_ironclad', doubled = 0, party = false, chamber = false, phase = 'player', scryCards, slimes } = {}) => {
+      const run = postNeowRun(47, [{ id: 'p1', name: 'Player', character: slimes ? 'slime_boss' : chamber ? 'hermit' : 'ironclad' },
         ...party ? [{ id: 'p2', name: 'Silent', character: 'silent' }] : []])
       const room = run.map.rows[0][0]
       run.map.rooms[room].kind = 'encounter'
@@ -39,6 +40,7 @@ try {
       }
       next.combat.combatId = `interaction-${++nonce}`
       const actor = next.combat.players[0]
+      if (slimes) actor.slimes = slimes
       next.combat.pendingHermitSetupLoads = []
       actor.energy = 9
       actor.block = 0
@@ -344,7 +346,37 @@ try {
     await scry.getByRole('button', { name: 'Keep all', exact: true }).click()
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.players[0].block === 3)
     await page.locator('.card-interaction').waitFor({ state: 'detached' })
+    const bruiser = bruiserSlime('command-bruiser')
+    const taunting = { ...bruiserSlime('command-taunting'),
+      card: { uid: 'command-taunting', defId: 'slime_boss_taunting_slime', upgraded: false } }
+    for (const slimes of [[bruiser], [taunting], [bruiser, taunting]]) {
+      await fixture({ skill: 'slime_boss_lick', slimes })
+      await pickUpCard(page, 'Lick')
+      await confirmCardPlay(page)
+      const chooseBruiser = page.locator('.prompt').getByRole('button', { name: 'Bruiser Slime · level 1', exact: true })
+      if (slimes.length > 1) {
+        await chooseBruiser.waitFor()
+        await chooseBruiser.click()
+      } else {
+        assert.equal(await page.locator('.prompt').getByRole('button', { name: /Slime · level 1/ }).count(), 0,
+          'a sole required Slime must not need a redundant selection')
+      }
+      if (slimes[0].card.defId === 'slime_boss_bruiser_slime') {
+        assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getState().enemies[0].hp), 30,
+          'automatic Slime selection must preserve enemy targeting')
+        await target().click()
+        await page.waitForFunction(() => window.__STS_DEBUG__.getState().enemies[0].hp === 29)
+      } else {
+        await page.waitForFunction(() => window.__STS_DEBUG__.getState().players[0].block === 1)
+      }
+      await page.locator('.card-interaction').waitFor({ state: 'detached' })
+      const actor = await page.evaluate(() => window.__STS_DEBUG__.getState().players[0])
+      assert.equal(actor.energy, 8)
+      assert.equal(actor.slimes[0].commandsThisTurn, 1)
+      if (slimes.length > 1) assert.equal(actor.slimes[1].commandsThisTurn, 0)
+    }
     if (!phone) {
+      await fixture()
       await page.evaluate(async () => {
         const state = structuredClone(window.__STS_DEBUG__.getRun().combat)
         state.combatId = 'interaction-network'

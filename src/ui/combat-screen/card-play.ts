@@ -6,6 +6,7 @@ import {
   effectiveCombatCardDef, evokeTargetProgress, livingEnemies, nextEvokeChoice,
   overflowShivCount, playCost, previewCardChoice, previewCardCopyChoice,
   previewCardShivTargets, previewHermitChamberCardChoice,
+  slimeChoiceIsAvailable,
 } from '../../game/combat.ts'
 import type { CardInstance, Enemy, Player } from '../../game/types.ts'
 import type { CardInteractionMode } from './card-interaction.ts'
@@ -133,6 +134,15 @@ export function createCardPlayCoordinator(options: Options) {
     const def = effectiveCombatCardDef(
       faceOf(cardDef(next.card.defId), next.card.upgraded), next.corruptedShardMode ?? viewer!.guardianMode,
     )
+    const onlySlime = viewer.slimes.length === 1 ? viewer.slimes[0] : undefined
+    if (onlySlime && !next.slimeChoiceConfirmed && next.slimeChoice?.minimum === 1 &&
+      next.slimeChoice.amount === 1 && (def.cost !== 'X' || next.energySpent !== null) &&
+      (!def.modes || next.mode !== null) &&
+      (!next.cardInHand && !next.chamberPlay ||
+        state.startTurnProgress?.forcedCard?.playerId === viewerId && state.startTurnProgress.forcedCard.cardUid === next.card.uid ||
+        slimeChoiceIsAvailable(def, state, viewer, onlySlime.card.uid, next.effectEnergy ?? 0))) {
+      next = { ...next, slimeUids: [onlySlime.card.uid], slimeChoiceConfirmed: true }
+    }
     if (def.id === 'dual_cast') {
       const choice = nextEvokeChoice(def, viewer!, next.evokeSlots, state.die, next.mode ?? undefined, next.effectEnergy ?? 0)
       if (choice?.options.length === 1) next = withEvokeSlot(next, choice.options[0]!.slot)

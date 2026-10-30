@@ -4,6 +4,7 @@ import { pendingFor } from '../src/ui/combat-screen/card-play-requirements.ts'
 import { createCombat } from '../src/game/combat.ts'
 import { createPlayer } from '../src/game/run.ts'
 import { createRng } from '../src/game/rng.ts'
+import { bruiserSlime } from '../src/game/downfall/slime-boss.ts'
 
 const rng = createRng(47)
 const player = createPlayer(rng, 'p1', 'Ironclad', 'ironclad', 0)
@@ -106,5 +107,30 @@ for (const defId of ['third_eye', 'secret_technique']) {
   assert.equal(commits.length, 0, 'even one revealed card still needs a Scry choice')
   assert.equal(pending.choiceCards.length, 1)
   assert.equal(pending.choiceConfirmed, false)
+}
+for (const [label, slimes, upgraded, automatic] of [
+  ['sole slime', [bruiserSlime('only')], false, true],
+  ['multiple slimes', [bruiserSlime('first'), bruiserSlime('second')], false, false],
+  ['optional Command', [bruiserSlime('optional')], true, false],
+  ['unavailable slime', [{ ...bruiserSlime('spent'),
+    card: card('slime_boss_armored_slime'), commandsThisTurn: 1 }], false, false],
+]) {
+  commits = []
+  pending = null
+  viewer.hand = [card('slime_boss_lick', { upgraded })]
+  viewer.slimes = slimes
+  const before = structuredClone(state)
+  createCardPlayCoordinator({ ...options, pending: null,
+    downfallChoicesReady: next => !next.slimeChoice || next.slimeChoiceConfirmed,
+  }).confirm(viewer.hand[0], 'hand')
+  assert.equal(commits.length, Number(automatic), label)
+  if (automatic) {
+    assert.deepEqual(commits[0].slimeUids, ['only'])
+    assert.equal(commits[0].slimeChoiceConfirmed, true)
+  } else {
+    assert.equal(pending.slimeChoiceConfirmed, false, `${label}: preserve the choice`)
+    assert.deepEqual(pending.slimeUids, [])
+  }
+  assert.deepEqual(state, before, `${label}: automatic selection must not mutate combat`)
 }
 console.log('PASS confirmed play coordination, choice readiness, private previews and cancellation')

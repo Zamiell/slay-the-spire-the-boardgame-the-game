@@ -26,7 +26,7 @@ try {
     }
     await page.waitForFunction(() => window.__STS_DEBUG__?.getRun().phase === 'neow')
     let nonce = 0
-    const fixture = async ({ skill = 'defend_ironclad', doubled = 0, party = false, chamber = false, phase = 'player' } = {}) => {
+    const fixture = async ({ skill = 'defend_ironclad', doubled = 0, party = false, chamber = false, phase = 'player', scryCards } = {}) => {
       const run = postNeowRun(47, [{ id: 'p1', name: 'Player', character: chamber ? 'hermit' : 'ironclad' },
         ...party ? [{ id: 'p2', name: 'Silent', character: 'silent' }] : []])
       const room = run.map.rows[0][0]
@@ -50,6 +50,13 @@ try {
         { uid: 'defend', defId: skill, upgraded: party },
         { uid: 'complex', defId: 'bash', upgraded: false },
       ]
+      if (scryCards !== undefined) {
+        next.combat.die = 1
+        actor.draw = Array.from({ length: scryCards }, (_, index) =>
+          ({ uid: `scry-${index}`, defId: 'defend_ironclad', upgraded: false }))
+        actor.discard = [{ uid: 'scry-discard', defId: 'defend_ironclad', upgraded: false }]
+        actor.powers = [{ uid: 'nirvana', defId: 'nirvana', upgraded: false }]
+      }
       next.combat.enemies = [
         { ...next.combat.enemies[0], uid: 'target', hp: 30, maxHp: 30, block: 0, dead: false },
       ]
@@ -301,6 +308,41 @@ try {
     await page.mouse.move(empty.x, empty.y)
     await page.mouse.up()
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.players[0].block === 1)
+    await page.locator('.card-interaction').waitFor({ state: 'detached' })
+    for (const [skill, name, block, energy] of [
+      ['third_eye', 'Third Eye', 2, 8],
+      ['just_lucky', 'Just Lucky', 0, 9],
+      ['cut_through_fate', 'Cut Through Fate', 0, 8],
+    ]) {
+      await fixture({ skill, scryCards: 0 })
+      await pickUpCard(page, name)
+      await confirmCardPlay(page, skill === 'third_eye' ? undefined : target())
+      await page.waitForFunction(() => !window.__STS_DEBUG__.getRun().combat.players[0].hand.some(card => card.uid === 'defend'))
+      await page.locator('.card-interaction').waitFor({ state: 'detached' })
+      assert.equal(await page.getByRole('dialog', { name: /^Scry / }).count(), 0,
+        `${screen}/${name}: an empty Scry must not open a confirmation`)
+      const after = await page.evaluate(() => window.__STS_DEBUG__.getRun().combat)
+      assert.equal(after.players[0].energy, energy)
+      assert.equal(after.players[0].block, block, 'an empty Scry must not trigger Nirvana')
+      assert(after.players[0].discard.some(card => card.uid === 'defend'), 'the card must finish resolving')
+      if (skill !== 'third_eye') assert.equal(after.enemies[0].hp, 29, 'skipping Scry must preserve the attack')
+      if (skill === 'cut_through_fate') {
+        assert(after.players[0].hand.some(card => card.uid === 'scry-discard'),
+          'the draw after empty Scry must still reshuffle and draw')
+      } else {
+        assert(after.players[0].discard.some(card => card.uid === 'scry-discard'),
+          'Scry alone must not reshuffle an empty draw pile')
+      }
+    }
+    await fixture({ skill: 'third_eye', scryCards: 1 })
+    await pickUpCard(page, 'Third Eye')
+    await confirmCardPlay(page)
+    const scry = page.getByRole('dialog', { name: 'Scry 3', exact: true })
+    await scry.waitFor()
+    assert.equal(await scry.locator('.choice-modal__cards .card').count(), 1,
+      'one revealed card must still allow a choice')
+    await scry.getByRole('button', { name: 'Keep all', exact: true }).click()
+    await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.players[0].block === 3)
     await page.locator('.card-interaction').waitFor({ state: 'detached' })
     if (!phone) {
       await page.evaluate(async () => {

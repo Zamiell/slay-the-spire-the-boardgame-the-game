@@ -74,4 +74,37 @@ const revealed = { ...pendingFor(viewer.hand[0], [viewer.hand[1]], state, viewer
 pending = revealed
 assert.equal(createCardPlayCoordinator({ ...options, pending }).cancel(), 'choosing')
 assert.equal(pending, revealed, 'revealing private cards must prevent cancellation')
+
+for (const defId of ['third_eye', 'cut_through_fate', 'secret_technique']) {
+  for (const network of [false, true]) {
+    commits = []
+    pending = null
+    viewer.hand = [card(defId)]
+    viewer.draw = []
+    viewer.discard = [card('defend_ironclad')]
+    const before = structuredClone(state)
+    const coordinator = createCardPlayCoordinator({ ...options, pending: null,
+      onAction: network ? async action => ({
+        status: 'accepted',
+        snapshot: { cardPreview: { cardUid: action.cardUid, cards: [],
+          kind: defId === 'secret_technique' ? 'scryToHand' : 'scry', enemyUid: action.enemyUid } },
+      }) : undefined,
+    })
+    coordinator.confirm(viewer.hand[0], 'hand', 'enemy')
+    await Promise.resolve()
+    assert.equal(commits.length, 1, `${defId}/${network}: an empty Scry must automatically continue`)
+    assert.equal(commits[0].choiceConfirmed, true)
+    assert.deepEqual(commits[0].picked, [])
+    assert.deepEqual(state, before, 'skipping the choice must not mutate combat before commit')
+  }
+}
+for (const defId of ['third_eye', 'secret_technique']) {
+  commits = []
+  viewer.hand = [card(defId)]
+  viewer.draw = [card('defend_ironclad')]
+  createCardPlayCoordinator({ ...options, pending: null }).confirm(viewer.hand[0], 'hand')
+  assert.equal(commits.length, 0, 'even one revealed card still needs a Scry choice')
+  assert.equal(pending.choiceCards.length, 1)
+  assert.equal(pending.choiceConfirmed, false)
+}
 console.log('PASS confirmed play coordination, choice readiness, private previews and cancellation')

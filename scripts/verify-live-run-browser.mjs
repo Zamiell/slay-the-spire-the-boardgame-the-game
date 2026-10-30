@@ -124,7 +124,7 @@ try {
       player.hand.push({ uid: 'disconnected-crescendo', defId: 'crescendo', upgraded: false })
       window.__STS_DEBUG__.setRun(run)
     })
-    await page.locator('.hand .card[title="Crescendo"]').waitFor()
+    await page.locator('.hand .card[data-card-name="Crescendo"]').waitFor()
     await dragCardTo(page, 'Crescendo')
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.players[0].energy === 1)
     await page.getByRole('button', { name: 'Settings', exact: true }).click()

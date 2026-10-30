@@ -63,7 +63,7 @@ try {
       if (chamber) actor.chamber = [{ uid: 'chamber-defend', defId: 'hermit_defend', upgraded: false }]
       await page.evaluate((run) => window.__STS_DEBUG__.setRun(run), next)
       await page.waitForFunction((id) => window.__STS_DEBUG__.getRun().combat?.combatId === id, next.combat.combatId)
-      await page.locator('.hand .card[title="Strike"]').waitFor()
+      await page.locator('.hand .card[data-card-name="Strike"]').waitFor()
       await page.waitForFunction(() => !document.querySelector('.card-interaction') &&
         [...document.querySelectorAll('.hand .card')].every((card) =>
           card.getAnimations().every((animation) => animation.playState === 'finished')))
@@ -71,7 +71,7 @@ try {
     const snapshot = () => page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun()))
     const target = () => page.locator('[data-enemy-id="target"] .enemy__hit-area')
     const lift = async (name) => {
-      const card = page.locator(`.hand .card[title="${name}"]`)
+      const card = page.locator(`.hand .card[data-card-name="${name}"]`)
       const rect = await card.boundingBox()
       const point = { x: rect.x + rect.width / 2, y: rect.y + rect.height * 0.25 }
       await page.mouse.move(point.x, point.y)
@@ -87,7 +87,7 @@ try {
     await page.screenshot({ path: `${output}/${screen}-start-turn-disabled.png` })
     const startBefore = await snapshot()
     for (const name of ['Strike', 'Defend', 'Bash']) {
-      const card = page.locator(`.hand .card[title="${name}"]`)
+      const card = page.locator(`.hand .card[data-card-name="${name}"]`)
       assert.equal(await card.getAttribute('aria-disabled'), 'true')
       await card.hover()
       await settleHand()
@@ -102,7 +102,7 @@ try {
         `${name}: clicking a disabled card must not leave it stuck above the hand`)
       assert.equal(await snapshot(), startBefore, 'a disabled start-turn click changed combat')
     }
-    const blockedCard = page.locator('.hand .card[title="Defend"]')
+    const blockedCard = page.locator('.hand .card[data-card-name="Defend"]')
     await lift('Defend')
     await page.mouse.move(400, 100, { steps: 4 })
     await page.mouse.up()
@@ -121,7 +121,7 @@ try {
       run.combat.phase = 'player'
       window.__STS_DEBUG__.setRun(run)
     })
-    await page.waitForFunction(() => document.querySelector('.hand .card[title="Defend"]')?.getAttribute('aria-disabled') === 'false')
+    await page.waitForFunction(() => document.querySelector('.hand .card[data-card-name="Defend"]')?.getAttribute('aria-disabled') === 'false')
     assert(await page.locator('.hand .card').evaluateAll(cards => cards.every(card =>
       !getComputedStyle(card).filter.includes('grayscale'))),
     'the start-turn tint must disappear when normal card play becomes available')
@@ -186,7 +186,7 @@ try {
     ]) {
       await fixture({ skill, doubled })
       const untouched = await snapshot()
-      const source = page.locator(`.hand .card[title="${name}"]`)
+      const source = page.locator(`.hand .card[data-card-name="${name}"]`)
       await pickUpCard(page, source)
       // A late native click must not leak through to the legacy immediate-play handler.
       await source.evaluate((card) => card.click())
@@ -206,7 +206,7 @@ try {
         const dialog = page.getByRole('dialog', { name: 'Discard 1 card', exact: true })
         await dialog.waitFor()
         assert.equal(await snapshot(), untouched, 'confirming pickup prematurely committed a choice-bearing skill')
-        await dialog.getByRole('group', { name: 'Cards available to discard' }).locator('.card[title="Strike"]').click()
+        await dialog.getByRole('group', { name: 'Cards available to discard' }).locator('.card[data-card-name="Strike"]').click()
         await dialog.getByRole('button', { name: 'Confirm discard', exact: true }).click()
       }
       await page.waitForFunction(() => !window.__STS_DEBUG__.getRun().combat.players[0].hand.some((card) => card.uid === 'defend'))
@@ -238,7 +238,7 @@ try {
 
     await fixture({ chamber: true })
     await page.getByRole('button', { name: /^Chamber,/ }).click()
-    const chamberCard = page.locator('.hand .card--chamber-drawn[title="Defend"]')
+    const chamberCard = page.locator('.hand .card--chamber-drawn[data-card-name="Defend"]')
     await pickUpCard(page, chamberCard)
     assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.players[0].chamber.length), 1)
     await confirmCardPlay(page)
@@ -264,7 +264,7 @@ try {
     if (phone) {
       const touch = await context.newCDPSession(page)
       const startTouch = async () => {
-        const rect = await page.locator('.hand .card[title="Defend"]').boundingBox()
+        const rect = await page.locator('.hand .card[data-card-name="Defend"]').boundingBox()
         const point = { x: rect.x + rect.width / 2, y: rect.y + rect.height * 0.25, id: 1 }
         await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [point] })
         return point
@@ -382,9 +382,9 @@ try {
       })
       await page.emulateMedia({ reducedMotion: 'no-preference' })
       const serverBefore = await page.evaluate(() => JSON.stringify(window.networkFixture.state))
-      await page.locator('.hand .card[title="Defend"]:visible').waitFor()
+      await page.locator('.hand .card[data-card-name="Defend"]:visible').waitFor()
       const networkLift = async () => {
-        const card = page.locator('.hand .card[title="Defend"]:visible')
+        const card = page.locator('.hand .card[data-card-name="Defend"]:visible')
         const rect = await card.boundingBox()
         await page.mouse.move(rect.x + rect.width / 2, rect.y + rect.height / 4)
         await page.mouse.down()

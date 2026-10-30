@@ -107,7 +107,7 @@ try {
     }
 
     const playDualCast = async () => {
-      await pickUpCard(page, page.locator('.hand .card[title^="Dual Cast"]'))
+      await pickUpCard(page, page.locator('.hand .card[data-card-name^="Dual Cast"]'))
       await confirmCardPlay(page)
     }
     for (const [orb, slot, upgraded, damage] of [['lightning', 1, false, 2], ['dark', 2, true, 3]]) {

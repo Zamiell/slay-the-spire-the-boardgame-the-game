@@ -173,7 +173,7 @@ try {
             video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && !video.paused && !video.style.backgroundImage)
         })
         if (!phone) {
-          const card = page.locator('.hand .card[title="Strike"]').first()
+          const card = page.locator('.hand .card[data-card-name="Strike"]').first()
           await card.hover()
           const [box, target] = await Promise.all([
             card.boundingBox(), page.locator('.enemy').last().locator('.enemy__hit-area').boundingBox(),
@@ -210,7 +210,7 @@ try {
         }
         await page.mouse.move(1, 1)
         if (phone) {
-          const card = page.locator('.hand .card[title="Strike"]').first()
+          const card = page.locator('.hand .card[data-card-name="Strike"]').first()
           const [box, target] = await Promise.all([
             card.boundingBox(), page.locator('.enemy').last().locator('.enemy__hit-area').boundingBox(),
           ])

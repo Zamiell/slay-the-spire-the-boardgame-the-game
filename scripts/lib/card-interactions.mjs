@@ -1,5 +1,5 @@
 const handCard = (page, card) => typeof card === 'string'
-  ? page.locator(`.hand .card[title=${JSON.stringify(card)}]:visible`) : card
+  ? page.locator(`.hand .card[data-card-name=${JSON.stringify(card)}]:visible`) : card
 
 const pointFor = async (page, target) => {
   if (!target) return page.evaluate(() => ({ x: innerWidth * 0.45, y: innerHeight * 0.25 }))

@@ -50,7 +50,7 @@ try {
     })
     const beforeHelp = await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun()))
     for (const name of ['Claw (Claw Pack)', 'Claw (Claw Pack)+']) {
-      const card = page.locator(`.hand .card[title="${name}"]`)
+      const card = page.locator(`.hand .card[data-card-name="${name}"]`)
       if (phone) { await page.keyboard.press('Tab'); await card.focus() }
       else await card.hover()
       const id = await card.getAttribute('data-keyword-help-id')
@@ -84,7 +84,7 @@ try {
     const counter = page.locator('.combat__claw-cubes')
     assert.equal(await counter.count(), 0, 'zero cubes should not add an empty status counter')
     for (const [name, count] of [['Claw (Claw Pack)', 1], ['Claw (Claw Pack)+', 2]]) {
-      await page.locator(`.hand .card[title="${name}"]`).click()
+      await page.locator(`.hand .card[data-card-name="${name}"]`).click()
       await page.locator('[data-enemy-id="target"] .enemy__hit-area').click()
       await page.waitForFunction(count => document.querySelector('.combat__claw-cubes strong')?.textContent === `x${count}`, count)
     }

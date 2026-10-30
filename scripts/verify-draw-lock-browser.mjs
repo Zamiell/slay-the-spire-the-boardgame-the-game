@@ -41,7 +41,7 @@ try {
     next.players[0].deck = structuredClone(next.combat.players[0].deck)
     next.combat.enemies = [{ ...next.combat.enemies[0], uid: 'slime', defId: 'small_slime', hp: 50, maxHp: 50, dead: false }]
     await page.evaluate(run => window.__STS_DEBUG__.setRun(run), next)
-    const held = name => page.locator(`.hand .card[title="${name}"]`)
+    const held = name => page.locator(`.hand .card[data-card-name="${name}"]`)
     await held('Pray+').waitFor()
     await page.locator('.card-morph').waitFor({ state: 'detached' })
     assert.equal(await page.locator('.hand .card__draw-locked-rules').count(), 0)
@@ -83,7 +83,7 @@ try {
     await page.keyboard.press('d')
     const deck = page.getByRole('dialog', { name: 'Current deck', exact: true })
     await deck.waitFor()
-    assert.equal(await deck.locator('.card[title="Vault"] .card__draw-locked-rules line').count(), 2)
+    assert.equal(await deck.locator('.card[data-card-name="Vault"] .card__draw-locked-rules line').count(), 2)
     await page.keyboard.press('d')
     assert.equal(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun())), beforeInspection)
     await pickUpCard(page, vault)
@@ -102,7 +102,7 @@ try {
       return state.turn === 2 && state.phase === 'player' && !state.players[0].drawLocked
     })
     assert.equal(await page.locator('.hand .card__draw-locked-rules').count(), 0, 'next turn must restore normal scans')
-    assert(await page.locator('.hand .card[title="Pray"]').count() > 0)
+    assert(await page.locator('.hand .card[data-card-name="Pray"]').count() > 0)
     const cases = await page.evaluate(async () => {
       const { cardDef } = await import('/src/game/cards.ts')
       const { blockedCardDrawRules } = await import('/src/ui/Card.tsx')
@@ -153,9 +153,9 @@ try {
         // Fire Breathing describes a draw trigger, not a drawing instruction.
         return scan && !scan.getAttribute('src').includes('fire-breathing') &&
           !card.querySelector('.card__draw-locked-rules line')
-      }).map(card => card.getAttribute('title')))
+      }).map(card => card.getAttribute('data-card-name')))
     assert.deepEqual(unmarked, [], 'every scanned drawing instruction needs reviewed strike coordinates')
-    const printedVault = page.locator('.draw-lock-fit .card[title="Vault"]')
+    const printedVault = page.locator('.draw-lock-fit .card[data-card-name="Vault"]')
     await printedVault.scrollIntoViewIfNeeded()
     await printedVault.locator('.card__art').evaluate(image => image.decode())
     await page.mouse.move(0, 0)

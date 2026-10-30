@@ -64,7 +64,7 @@ try {
     }))
     await page.screenshot({ path: `${output}/${screen}-incoming.png` })
     await page.keyboard.press('Escape')
-    await pickUpCard(page, page.locator('.hand .card[title="Defend"]'))
+    await pickUpCard(page, page.locator('.hand .card[data-card-name="Defend"]'))
     await confirmCardPlay(page)
     await page.waitForFunction(() => document.querySelector('.seat__incoming-damage')?.textContent === 'Incoming: 1')
     await page.evaluate(() => {

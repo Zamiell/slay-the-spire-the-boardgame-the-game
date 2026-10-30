@@ -60,7 +60,7 @@ try {
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().phase === 'combat')
     const initial = await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun()))
     const play = async () => {
-      const source = page.locator('.hand .card[title="Survivor"]')
+      const source = page.locator('.hand .card[data-card-name="Survivor"]')
       await source.focus()
       await page.keyboard.press('Enter')
     }
@@ -133,7 +133,7 @@ try {
     room.run = fixture(room.seats.map((seat) => ({ id: seat.playerId, name: seat.name, character: seat.character })), `online-${screen}`, true)
     room.version++
     rooms.publishRoom(session.code)
-    await tab.locator('.hand .card[title="Survivor+"]').focus()
+    await tab.locator('.hand .card[data-card-name="Survivor+"]').focus()
     await tab.keyboard.press('Enter')
     const onlineDialog = tab.getByRole('dialog', { name: 'Discard 1 card', exact: true })
     await onlineDialog.getByRole('group', { name: 'Cards available to discard' }).getByRole('button', { name: /^Daze,/ }).click()
@@ -141,7 +141,7 @@ try {
     assert.equal(room.run.combat.players[0].block, 0)
     await onlineDialog.getByRole('button', { name: 'Confirm discard', exact: true }).click()
     await onlineDialog.waitFor({ state: 'detached' })
-    await tab.waitForFunction(() => document.querySelector('.hand .card[title="Survivor+"]') === null)
+    await tab.waitForFunction(() => document.querySelector('.hand .card[data-card-name="Survivor+"]') === null)
     assert.equal(room.run.combat.players[0].block, 3)
     assert.equal(room.run.combat.players[0].energy, 2)
     assert.deepEqual(room.run.combat.players[0].discard.map((card) => card.uid).sort(), ['discard-daze', 'survivor-source'])

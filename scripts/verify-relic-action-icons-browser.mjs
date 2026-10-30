@@ -101,6 +101,26 @@ try {
     assert.equal(await panel.getAttribute('open'), '', 'a single activation must still open Blue Candle choices')
     assert.equal(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun())), before,
       'opening or inspecting a relic must not spend it')
+    for (const count of [0, 2]) {
+      for (let index = 0; index < count; index++) {
+        const card = panel.locator('.campfire__deck .card').nth(index)
+        if (phone) await card.tap()
+        else await card.click()
+      }
+      assert.equal(await panel.locator('.card--selected').count(), count)
+      const cancel = panel.getByRole('button', { name: 'Cancel', exact: true })
+      if (phone) await cancel.tap()
+      else await cancel.click()
+      assert.equal(await panel.getAttribute('open'), null, 'Cancel must close the picker')
+      assert(await summary.evaluate(element => element === document.activeElement), 'Cancel must restore focus')
+      assert.equal(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun())), before,
+        'cancelling must not exhaust cards or spend the relic')
+      if (phone) await summary.tap()
+      else await summary.click()
+      assert.equal(await panel.getAttribute('open'), '')
+      assert.equal(await panel.locator('.card--selected').count(), 0, 'reopening must start with no selection')
+    }
+    await page.screenshot({ path: `${output}/${screen}-blue-candle-cancel.png` })
     const first = panel.locator('.campfire__deck .card').first()
     if (phone) await first.tap()
     else await first.click()

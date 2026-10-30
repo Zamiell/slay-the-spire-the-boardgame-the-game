@@ -6039,6 +6039,14 @@ function CombatScreenView({
                 onClick={() => useRelic(relicIndex, { cardUids: relicCardUids })}>
                 {held.defId === 'runic_pyramid' ? `Retain ${relicCardUids.length} card${relicCardUids.length === 1 ? '' : 's'}` : 'Activate'}
               </button>
+              <button type="button" onClick={(event) => {
+                setRelicCardUids([])
+                const details = event.currentTarget.closest('details')
+                if (details) {
+                  details.open = false
+                  details.querySelector('summary')?.focus()
+                }
+              }}>Cancel</button>
             </details>]
             if (held.defId === 'charons_ashes') return [<details key={relicIndex}>
               {choiceSummary('choose a card and target')}

@@ -5,6 +5,7 @@ import { chromium, setTestUsername } from './lib/profile-browser.mjs'
 import { createRun } from '../src/game/run.ts'
 import { createCombat } from '../src/game/combat/create.ts'
 import { GAME_SETTINGS_KEY } from '../src/ui/game-settings.ts'
+import { pickUpCard } from './lib/card-interactions.mjs'
 
 const out = 'artifacts/act-four-facing'
 mkdirSync(out, { recursive: true })
@@ -95,10 +96,14 @@ try {
     assert.match(await page.locator('.seat').getAttribute('aria-label'), /Facing Spire Shield/)
     check(/16/.test(await enemy('shield').locator('.enemy__intent').innerText()), `${screen}: Shield intent ignores its actual Vulnerable target in row 2`)
     const strike = page.locator('.hand .card[title="Strike"]')
-    await activate(strike)
     if (phone) {
+      await activate(strike)
       assert(await strike.evaluate(card => document.activeElement === card), 'the first tap must reveal the card')
       await activate(strike)
+    } else {
+      await pickUpCard(page, strike)
+      const box = await enemy('shield').locator('.enemy__hit-area').boundingBox()
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
     }
     await page.locator('[data-enemy-id="shield"].enemy--targeted').waitFor()
     await target('shield')

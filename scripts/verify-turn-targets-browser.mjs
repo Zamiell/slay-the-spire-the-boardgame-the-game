@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { pickUpCard, confirmCardPlay } from './lib/card-interactions.mjs'
 import { mkdirSync } from 'node:fs'
 import { chromium } from './lib/profile-browser.mjs'
 import { createServer } from 'vite'
@@ -106,10 +107,8 @@ try {
     }
 
     const playDualCast = async () => {
-      await page.locator('.hand .card[title^="Dual Cast"]').click()
-      await page.locator('.card-interaction__card').waitFor()
-      const point = await page.evaluate(() => ({ x: innerWidth * 0.45, y: innerHeight * 0.25 }))
-      await page.mouse.click(point.x, point.y)
+      await pickUpCard(page, page.locator('.hand .card[title^="Dual Cast"]'))
+      await confirmCardPlay(page)
     }
     for (const [orb, slot, upgraded, damage] of [['lightning', 1, false, 2], ['dark', 2, true, 3]]) {
       const orbs = [null, null, null]

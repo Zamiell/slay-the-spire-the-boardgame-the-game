@@ -4,14 +4,12 @@ import { animateCardFlight, cardFlightPath } from './combat-screen/card-flight.t
 import { unknownPowerRefreshDecision } from './combat-screen/unknown-power.ts'
 import { HermitTriggerChoice } from './combat-screen/HermitTriggerChoice.tsx'
 import { StartTurnOrder } from './combat-screen/StartTurnOrder.tsx'
-import { simpleCardMode } from './combat-screen/card-interaction.ts'
+import { createCardPlayCoordinator, describeCardPickup, stageHermitChamberViewer } from './combat-screen/card-play.ts'
 import { useCardInteraction } from './combat-screen/useCardInteraction.ts'
 import { CardInteractionLayer } from './combat-screen/CardInteractionLayer.tsx'
 import { HandDiscardSelection } from './combat-screen/HandDiscardSelection.tsx'
 import { useButtonShortcut } from './useButtonShortcut.ts'
-// The combat screen composes the board, hand and gameplay choices. Simple hand
-// cards use useCardInteraction; complex choices still use the legacy adapter
-// below while sharing the authoritative commit/reconciliation path.
+// Input owns pickup; the play coordinator owns choices; the engine owns mutations.
 import rigMetadata from './rig-animation-metadata.json' with { type: 'json' }
 import { enemyAbilities, enemyDef } from '../game/enemies.ts'
 import { hasStagedAttack, playerVisualId, skinTraits, type VisualId } from '../game/skins.ts'
@@ -38,8 +36,6 @@ import {
 import type { TargetContactDeadline } from './combat-screen/hooks.ts'
 import type {
   ActiveCombatVfx,
-  CardDrag,
-  CardDragStart,
   CardFlight,
   CharacterAttackMotion,
   CombatScreenProps,
@@ -73,7 +69,6 @@ import type { StagedAttackSpec } from './combat-screen/staged-attacks.ts'
 import { assetPath, potionIconPath, relicIconPath } from '../game/assets.ts'
 import { CombatAnimation, combatVideoPath, preloadCombatVideo, useSafariCombatVideo } from './CombatAnimation.tsx'
 import { cardCost, cardDef, cardIsCurse, faceOf } from '../game/cards.ts'
-import type { CardDef } from '../game/cards.ts'
 import {
   activeCardPlayWindow,
   activatePotion,
@@ -134,11 +129,8 @@ import {
   powerAbilityKey,
   powerAbilityUsed,
   powerActivationAllowed,
-  previewCardChoice,
   previewCardShivTargets,
   previewCardDamage,
-  previewCardCopyChoice,
-  previewHermitChamberCardChoice,
   previewPowerChoice,
   reachesEnemy,
   reachedTimeWarpLimit,
@@ -293,23 +285,6 @@ function downfallEnergyOrbLayers(character: DownfallCharacterId, empty: boolean)
     layer,
     src: assetPath(`combat/energy-orbs/${character}/layer${layer}${empty && layer !== base ? 'd' : ''}.png`),
   }))
-}
-
-function stageHermitChamberViewer(player: Player, card: CardInstance, free = false) {
-  const stagedCard = { ...card, hermitDeadOn: true, ...(free ? { freeThisTurn: true } : {}) }
-  return {
-    card: stagedCard,
-    player: {
-      ...player,
-      chamber: player.chamber.filter((held) => held.uid !== card.uid),
-      hand: [...player.hand, stagedCard],
-    },
-  }
-}
-
-function chargedCardEnergy(def: CardDef, player: Player, card: CardInstance): number | undefined {
-  const cost = playCost(def, player, card)
-  return typeof cost === 'number' ? cost : undefined
 }
 
 // Alpha bounds locate the painted edge rather than transparent sprite padding.
@@ -642,14 +617,6 @@ function CombatScreenView({
   const unknownPowerAction = useRef<UnknownPowerAction | null>(null)
   const unknownCardAction = useRef<UnknownCardAction | null>(null)
   const armedCardFlight = useRef<{ card: CardInstance; chamber: boolean } | null>(null)
-  const cardDragStart = useRef<CardDragStart | null>(null)
-  const cardDragLive = useRef<CardDrag | null>(null)
-  const cardDragFrame = useRef<number | null>(null)
-  const cardDragMove = useRef<{ x: number; y: number } | null>(null)
-  const cardDragOverlay = useRef<HTMLDivElement | null>(null)
-  const cardDragArrow = useRef<SVGPathElement | null>(null)
-  const cardDragArrowShadow = useRef<SVGPathElement | null>(null)
-  const suppressCardClick = useRef<string | null>(null)
   const chamberCloseTimer = useRef<number | null>(null)
   const chamberContactTimer = useRef<number | null>(null)
   const chamberReflowFrame = useRef<number | null>(null)
@@ -675,7 +642,6 @@ function CombatScreenView({
   const flightBeat = useRef(0)
   const [drawnCards, setDrawnCards] = useState<Set<string>>(new Set())
   const [cardFlights, setCardFlights] = useState<CardFlight[]>([])
-  const [cardDrag, setCardDrag] = useState<CardDrag | null>(null)
   const [motionActive, setMotionActive] = useState<Set<MotionKey>>(new Set())
   const [motionBeats, setMotionBeats] = useState<Record<MotionKey, number>>({
     energy: 0,
@@ -711,31 +677,31 @@ function CombatScreenView({
     context: `${state.combatId}:${viewerId}:${authoritativeRestoration ?? 0}:${authoritativeConnected !== false}`,
     combat: state,
     reducedMotion,
-    canUse: (card) => Boolean(viewer && viewer.hand.some((held) => held.uid === card.uid) &&
-      mutationsEnabled && authoritativeConnected !== false && !voluntaryActionsBlocked &&
+    canUse: (card, source) => Boolean(viewer && viewer[source].some((held) => held.uid === card.uid) &&
+      mutationsEnabled && authoritativeConnected !== false &&
       !document.querySelector('dialog[open], [role="dialog"][aria-modal="true"]') &&
-      cardCanStartDrag(card)),
-    targetAt: (point, card) => dragTargetAt(point.x, point.y, Boolean(viewer && pendingFor(card, null, state, viewer).hitsRow)),
-    submit: (card, targetUid, handoff, point) => {
-      if (!viewer) return
-      setPendingPowerUid(null)
-      setPendingPotion(null)
-      setSpendingShiv(false)
-      setSpendingSoulburn(false)
-      const next = pendingFor(card, null, state, viewer)
-      if (handoff) {
-        onCardClick(card, targetUid, next.needsAlly || next.playerChoices > 0 ? dragPlayerAt(point.x, point.y) : null)
-        return
-      }
-      commit({ ...next, enemyUid: targetUid })
-    },
+      (source === 'chamber' ? !chamberClosing && chamberCardCanStartDrag(card)
+        : !voluntaryActionsBlocked && cardCanStartDrag(card))),
+    targetAt: (point, pickup) => pickup.mode === 'player' ? dragPlayerAt(point.x, point.y)
+      : dragTargetAt(point.x, point.y, pickup.hitsRow),
+    confirm: (card, pickup, targetUid) => confirmCardPlay(card, pickup.source,
+      pickup.mode === 'enemy' ? targetUid : null, pickup.mode === 'player' ? targetUid : null),
     awaitingReply: () => cardActionPending.current,
     onPickup: () => playSoundEffect('card'),
     onLand: (destination) => { if (destination !== 'stage') pulseMotion([destination]) },
   })
+  const activePickup = cardInteraction.session
+  const cardTarget = activePickup && (activePickup.stage === 'dragging' || activePickup.stage === 'aiming') ? {
+    card: activePickup.card,
+    needsEnemy: activePickup.mode === 'enemy',
+    needsPlayer: activePickup.mode === 'player',
+    hitsRow: activePickup.hitsRow,
+    targetUid: activePickup.mode === 'enemy' ? activePickup.targetUid : null,
+    targetPlayerId: activePickup.mode === 'player' ? activePickup.targetUid : null,
+  } : null
   const viewerVisual = viewer ? playerVisualId(viewer) : undefined
   useHandLayout(handRef, handReducedMotion, Boolean(
-    cardDrag || cardInteraction.session || chamberClosing || pending?.evokeEnemyUids.includes(undefined)))
+    cardTarget || cardInteraction.session || chamberClosing || pending?.evokeEnemyUids.includes(undefined)))
   const skinOrb = viewerVisual !== undefined && skinTraits(viewerVisual)?.energyOrb === true
   // Hand Attacks show what they would deal now: to the enemy being dragged onto or last
   // pointed at, to the only enemy left, otherwise to a plain stand-in enemy.
@@ -743,7 +709,7 @@ function CombatScreenView({
   const previewEnemyUid = (() => {
     const living = livingEnemies(state)
     if (living.length === 1) return living[0]!.uid
-    const picked = cardInteraction.session?.targetUid ?? cardDrag?.targetUid ?? pointedEnemyUid
+    const picked = cardTarget?.targetUid ?? pointedEnemyUid
     return living.some((enemy) => enemy.uid === picked) ? picked : null
   })()
   const cardHints = useCardHints()
@@ -987,36 +953,6 @@ function CombatScreenView({
     if (state.pendingPlunderSwitches?.[0]?.playerId !== viewerId) return
     if (onAction) void onAction({ kind: 'resolvePlunderRowSwitch', row })
     else onChange?.(resolvePlunderRowSwitch(state, viewerId, row))
-  }
-
-  function submitHermitChamber(
-    card: CardInstance,
-    enemyUid: string | null = null,
-    targetPlayerId: string | null = null,
-  ) {
-    const def = faceOf(cardDef(card.defId), card.upgraded)
-    const required = state.pendingHermitChamberPlays?.[0]
-    const staged = stageHermitChamberViewer(viewer!, card,
-      required?.playerId === viewerId && required.cardUids[0] === card.uid && required.free)
-    const next = {
-      ...pendingFor(staged.card, null, state, staged.player, false, undefined, true),
-      chamberPlay: true,
-      enemyUid,
-    }
-    if (cardNeedsChoicePreview(def, state, staged.player) && next.needsEnemy) {
-      const pending = { ...next, choice: null, choiceCards: null }
-      if (enemyUid === null) {
-        setPending({ ...pending, choicePreviewPending: true })
-        return
-      }
-      stageOrCommit(pending)
-      return
-    }
-    stageOrCommit(targetPlayerId
-      ? next.playerChoices > 0
-        ? { ...next, playerIds: [targetPlayerId] }
-        : { ...next, playerId: targetPlayerId }
-      : next)
   }
 
   function skipUnplayableHermitChamber(cardUid: string) {
@@ -1638,12 +1574,6 @@ function CombatScreenView({
     motionViewer.current = viewerId
     const before = motionBaseline.current
     motionBaseline.current = next
-    const activeDrag = cardDragStart.current
-    const draggedCards = activeDrag?.chamber ? next.chamber : next.hand
-    if (activeDrag && (restored || !draggedCards.some((card) => card.uid === activeDrag.card.uid) ||
-      !(activeDrag.chamber ? chamberCardCanStartDrag(activeDrag.card) : cardCanStartDrag(activeDrag.card)))) {
-      clearCardDrag()
-    }
 
     if (!before) {
       if (!reducedMotion && animateOpeningHand && next.hand.length > 0) {
@@ -1721,7 +1651,6 @@ function CombatScreenView({
 
   useEffect(() => () => {
     for (const timer of motionTimers.current.values()) clearTimeout(timer)
-    if (cardDragFrame.current !== null) cancelAnimationFrame(cardDragFrame.current)
   }, [])
 
   function restoreUnknownPower(
@@ -4007,306 +3936,25 @@ function CombatScreenView({
     setPending(null)
   }
 
-  function withEvokeSlot(next: Pending, slot: number): Pending {
-    const def = faceOf(cardDef(next.card.defId), next.card.upgraded)
-    const evokeSlots = [...next.evokeSlots, slot]
-    const orbs = chosenEvokeOrbs(def, viewer!, evokeSlots, state.die,
-      next.mode ?? undefined, next.effectEnergy ?? 0)
-    return {
-      ...next,
-      evokeSlots,
-      evokeEnemyUids: [...next.evokeEnemyUids, ...orbs.slice(next.evokeEnemyUids.length)
-        .map((orb) => orb === 'frost' ? null : undefined)],
-    }
-  }
-
-  function stageOrCommit(next: Pending) {
-    next = withAdjacentChoices(next)
-    const def = effectiveCombatCardDef(
-      faceOf(cardDef(next.card.defId), next.card.upgraded), next.corruptedShardMode ?? viewer!.guardianMode,
-    )
-    if (def.id === 'dual_cast') {
-      const choice = nextEvokeChoice(def, viewer!, next.evokeSlots, state.die, next.mode ?? undefined, next.effectEnergy ?? 0)
-      if (choice?.options.length === 1) next = withEvokeSlot(next, choice.options[0]!.slot)
-    }
-    const evokeProgress = evokeTargetProgress(
-      def, state, viewer!, next.evokeSlots, next.evokeEnemyUids,
-      next.mode ?? undefined, next.effectEnergy ?? 0,
-    )
-    if (evokeProgress.complete && next.evokeEnemyUids.length > evokeProgress.index) {
-      next = { ...next, evokeEnemyUids: next.evokeEnemyUids.slice(0, evokeProgress.index) }
-    }
-    const overflowShivs = overflowShivCount(state,
-      cardShivsOnPlay(def, next.choice?.kind === 'discardAny' ? next.picked.length : 0))
-    const spentShivs = cardShivChoiceCount(def, viewer!)
-    if (overflowShivs !== next.overflowShivs || spentShivs !== next.spentShivs) {
-      next = {
-        ...next,
-        overflowShivs,
-        spentShivs,
-        needsEnemy: cardNeedsEnemy(def, viewer!, false, next.effectEnergy ?? undefined, false,
-          next.card.attachedGemId, next.card.uid,
-          next.energyCharged ?? undefined, next.card.hermitDeadOn === true) || spentShivs > 0 ||
-          overflowShivs > 0 || next.enemyChoices > 0,
-        shivEnemyUids: [],
-      }
-      setPending(next)
-    }
-    if (next.shivEnemyUids.length < next.spentShivs + next.overflowShivs) {
-      const progress = previewCardShivTargets(state, viewer!.id, next.card.uid, cardContext(next),
-        next.chamberPlay ? 'chamber' : next.cardInHand ? 'hand' : 'copy')
-      const unusedTarget = next.shivEnemyUids.at(-1) ?? next.enemyUid ?? livingEnemies(state)[0]?.uid
-      if (progress?.complete && unusedTarget) {
-        next = { ...next, shivEnemyUids: [...next.shivEnemyUids,
-          ...Array<string>(next.spentShivs + next.overflowShivs - next.shivEnemyUids.length).fill(unusedTarget)] }
-      }
-    }
-    const poolSize = next.choiceCards?.length ?? Math.max(0, viewer!.hand.length - Number(next.cardInHand))
-    const minimumPaid = next.picked.length >= Math.min(next.choice?.minimum ?? 0, poolSize)
-    const owed = next.choice && next.choice.kind !== 'scry' &&
-      next.choice.kind !== 'discardAny' && next.choice.kind !== 'exhaustAny' && next.choice.kind !== 'loadAny' &&
-      next.choice.kind !== 'bottomdeck'
-      ? Math.min(next.choice.amount, poolSize)
-      : 0
-    const selectionReady = next.choice?.kind === 'scry' || next.choice?.kind === 'scryToHand' || next.choice?.kind === 'discardAny' ||
-      next.choice?.kind === 'exhaustAny' || next.choice?.kind === 'loadAny' || next.choice?.kind === 'bottomdeck' ||
-      next.choice?.kind === 'recoverExhaust' && next.choice.minimum === 0 ||
-      next.picked.length === owed
-    const ready = selectionReady && minimumPaid && (!next.choiceCards || next.choiceConfirmed) &&
-      (next.choice?.kind !== 'discardAny' && next.choice?.kind !== 'exhaustAny' && next.choice?.kind !== 'loadAny' &&
-        next.choice?.kind !== 'bottomdeck' || next.choiceConfirmed) && downfallChoicesReady(next) &&
-      (!def.modes || next.mode !== null) &&
-      !nextEvokeChoice(def, viewer!, next.evokeSlots, state.die, next.mode ?? undefined, next.effectEnergy ?? 0) &&
-      !next.evokeEnemyUids.some((target) => target === undefined) &&
-      (def.cost !== 'X' || next.energySpent !== null) &&
-      (def.id !== 'slayer_metamorphosis' || next.metamorphosisPowerUid !== undefined) &&
-      (!cardNeedsEnemy(def.modes ? { ...def, modes: undefined, effects: def.modes[next.mode!]!.effects } : def,
-        viewer!, false, next.effectEnergy ?? undefined, false,
-        next.card.attachedGemId, next.card.uid,
-        next.energyCharged ?? undefined, next.card.hermitDeadOn === true) || next.enemyUid !== null) &&
-      next.enemyUids.length >= next.enemyChoices &&
-      next.shivEnemyUids.length >= next.spentShivs + next.overflowShivs &&
-      next.playerIds.length >= next.playerChoices &&
-      (!next.needsAlly || next.playerId !== null) &&
-      (!next.needsSwitch || next.switchChoiceDone)
-    if (ready && !next.choiceCards && cardNeedsChoicePreview(def, state, viewer!)) {
-      if (next.chamberPlay) requestChamberChoicePreview(next.card, next.enemyUid, next)
-      else if (next.cardInHand) requestChoicePreview(next.card, next.enemyUid, next)
-      else requestCopyChoicePreview(next.enemyUid, next)
-    } else if (ready) commit(next)
-    else setPending(next)
-  }
-
-  function preserveRevealedSelection(next: Pending, previous?: Pending) {
-    const unchanged = previous?.choiceCards && next.choice?.kind === previous.choice?.kind &&
-      next.choiceCards?.length === previous.choiceCards.length &&
-      next.choiceCards.every((card, index) => card.uid === previous.choiceCards?.[index]?.uid)
-    return unchanged ? {
-      ...next,
-      picked: previous.picked,
-      choiceConfirmed: previous.choiceConfirmed,
-      scryToHandUid: previous.scryToHandUid,
-    } : next
-  }
-
-  function requestChoicePreview(card: CardInstance, enemyUid: string | null = null,
-    selections?: Pending) {
-    if (cardActionPending.current) return
-    if (!onAction) {
-      const preview = previewCardChoice(state, viewer!.id, card.uid)
-      if (!preview) return
-      const next = preserveRevealedSelection({ ...pendingFor(card, preview.cards, state, viewer!), enemyUid,
-        slimeUids: selections?.slimeUids ?? [], slimeEnemyUids: selections?.slimeEnemyUids ?? [] }, selections)
-      if (next.choice?.kind === preview.kind) stageOrCommit(next)
-      return
-    }
-
-    cardActionPending.current = true
-    setUsingCard(true)
-    Promise.resolve(onAction({
-      kind: 'previewCard', cardUid: card.uid, spendMiracle: miracleOnCard, enemyUid,
-      slimeUids: selections?.slimeUids, slimeEnemyUids: selections?.slimeEnemyUids,
-    })).then((outcome) => {
-      cardActionPending.current = false
-      setUsingCard(false)
-      const preview = outcome?.snapshot?.cardPreview
-      const current = stateRef.current
-      const player = current.players.find((candidate) => candidate.id === viewerId)
-      const held = player?.hand.find((candidate) => candidate.uid === card.uid)
-      if (outcome?.status !== 'accepted' || !preview || preview.cardUid !== card.uid || !player || !held) return
-      const next = preserveRevealedSelection({ ...pendingFor(held, preview.cards, current, player), enemyUid: preview.enemyUid,
-        slimeUids: preview.slimeUids ?? [], slimeEnemyUids: preview.slimeEnemyUids ?? [] }, selections)
-      if (next.choice?.kind === preview.kind) stageOrCommit(next)
-    }, () => {
-      cardActionPending.current = false
-      setUsingCard(false)
-    })
-  }
-
-  function requestCopyChoicePreview(enemyUid: string | null = null,
-    selections?: Pending) {
-    if (cardActionPending.current || !viewer) return
-    const copy = state.pendingCardCopy
-    if (!copy || copy.playerId !== viewer.id) return
-    if (!onAction) {
-      const preview = previewCardCopyChoice(state, viewer.id)
-      if (!preview) return
-      const next = preserveRevealedSelection({
-        ...pendingFor(copy.card, preview.cards, state, viewer, false, copy.energySpent), enemyUid,
-        slimeUids: selections?.slimeUids ?? [], slimeEnemyUids: selections?.slimeEnemyUids ?? [] }, selections)
-      if (next.choice?.kind === preview.kind) stageOrCommit(next)
-      return
-    }
-    cardActionPending.current = true
-    setUsingCard(true)
-    Promise.resolve(onAction({ kind: 'previewCardCopy', cardUid: copy.card.uid,
-      copyId: copy.id, enemyUid,
-      slimeUids: selections?.slimeUids, slimeEnemyUids: selections?.slimeEnemyUids })).then((outcome) => {
-      cardActionPending.current = false
-      setUsingCard(false)
-      const current = stateRef.current
-      const currentCopy = current.pendingCardCopy
-      const player = current.players.find((candidate) => candidate.id === viewerId)
-      const preview = outcome?.snapshot?.cardPreview
-      if (outcome?.status !== 'accepted' || !preview?.copy || !currentCopy || !player) return
-      const next = preserveRevealedSelection({ ...pendingFor(currentCopy.card, preview.cards, current, player, false,
-        currentCopy.energySpent), enemyUid: preview.enemyUid,
-        slimeUids: preview.slimeUids ?? [], slimeEnemyUids: preview.slimeEnemyUids ?? [] }, selections)
-      if (next.choice?.kind === preview.kind) stageOrCommit(next)
-    }, () => {
-      cardActionPending.current = false
-      setUsingCard(false)
-    })
-  }
-
-  function requestChamberChoicePreview(card: CardInstance, enemyUid: string | null = null,
-    selections?: Pending) {
-    if (cardActionPending.current || !viewer) return
-    if (!onAction) {
-      const preview = previewHermitChamberCardChoice(state, viewer.id, card.uid)
-      if (!preview) return
-      const required = state.pendingHermitChamberPlays?.[0]
-      const staged = stageHermitChamberViewer(viewer, card,
-        required?.playerId === viewer.id && required.cardUids[0] === card.uid && required.free)
-      const next = preserveRevealedSelection({
-        ...pendingFor(staged.card, preview.cards, state, staged.player, false, undefined, true),
-        chamberPlay: true, enemyUid,
-        ...(selections?.energySpent === null || selections?.energySpent === undefined ? {} : {
-          energySpent: selections.energySpent, effectEnergy: selections.energySpent,
-          energyCharged: selections.energySpent,
-        }),
-        slimeUids: selections?.slimeUids ?? [], slimeEnemyUids: selections?.slimeEnemyUids ?? [] }, selections)
-      if (next.choice?.kind === preview.kind) stageOrCommit(next)
-      return
-    }
-    cardActionPending.current = true
-    setUsingCard(true)
-    Promise.resolve(onAction({ kind: 'previewHermitChamberCard', cardUid: card.uid, enemyUid,
-      energySpent: selections?.energySpent ?? undefined,
-      slimeUids: selections?.slimeUids, slimeEnemyUids: selections?.slimeEnemyUids })).then((outcome) => {
-      cardActionPending.current = false
-      setUsingCard(false)
-      const current = stateRef.current
-      const player = current.players.find((candidate) => candidate.id === viewerId)
-      const preview = outcome?.snapshot?.cardPreview
-      const held = player?.chamber.find((candidate) => candidate.uid === card.uid)
-      if (outcome?.status !== 'accepted' || !preview?.chamber || !player || !held) return
-      const required = current.pendingHermitChamberPlays?.[0]
-      const staged = stageHermitChamberViewer(player, held,
-        required?.playerId === player.id && required.cardUids[0] === held.uid && required.free)
-      const next = preserveRevealedSelection({
-        ...pendingFor(staged.card, preview.cards, current, staged.player, false, undefined, true), chamberPlay: true,
-        enemyUid: preview.enemyUid,
-        ...(preview.energySpent === undefined ? {} : { energySpent: preview.energySpent,
-          effectEnergy: preview.energySpent, energyCharged: preview.energySpent }),
-        slimeUids: preview.slimeUids ?? [], slimeEnemyUids: preview.slimeEnemyUids ?? [] }, selections)
-      if (next.choice?.kind === preview.kind) stageOrCommit(next)
-    }, () => {
-      cardActionPending.current = false
-      setUsingCard(false)
-    })
-  }
-
-  function onCardClick(
-    card: CardInstance,
-    draggedEnemyUid: string | null = null,
-    draggedPlayerId: string | null = null,
-  ) {
-    if (cardActionPending.current || endTurnResolving || pendingTrigger) return
-    setPendingPowerUid(null)
-    setSpendingShiv(false)
-    setSpendingSoulburn(false)
-    setPendingPotion(null)
-    setPotionShivEnemyUids([])
-    setPotionOverflowRequired(0)
-    // While a card is waiting on a choice, clicks in hand pick cards for it.
-    if (pending?.choice && !pending.choiceCards && card.uid !== pending.card.uid) {
-      const already = pending.picked.includes(card.uid)
-      const any = pending.choice.kind === 'discardAny' || pending.choice.kind === 'exhaustAny' ||
-        pending.choice.kind === 'bottomdeck'
-      const handChoices = Math.max(0, viewer!.hand.length - Number(pending.cardInHand))
-      const need = pending.choice.kind === 'discardAny'
-        ? handChoices
-        : Math.min(pending.choice.amount, handChoices)
-      const picked = already
-        ? pending.picked.filter((uid) => uid !== card.uid)
-        : [...pending.picked, card.uid].slice(-need)
-      const next = { ...pending, picked, choiceConfirmed: false, chamberChoiceConfirmed: false }
-      setPending(next)
-      // The card may already have been dragged onto its target. Let the shared
-      // readiness check commit as soon as its fixed hand cost is satisfied.
-      if (!any && picked.length === need && !survivorDiscard) stageOrCommit(next)
-      return
-    }
-
-    // A normal staged card can be cancelled. A card that already revealed
-    // hidden information is committed and must be finished.
-    if (pending?.card.uid === card.uid) {
-      if (pending.choiceCards && pending.choice?.kind !== 'recover' &&
-        pending.choice?.kind !== 'recoverExhaust') return
-      setPending(null)
-      return
-    }
-
-    if (pending?.choiceCards) return
-
-    // Retargeting the hand replaces an unfinished target choice; it never
-    // commits the previously selected card.
-    if (pending && pending.card.uid !== card.uid) setPending(null)
-
-    const def = faceOf(cardDef(card.defId), card.upgraded)
-    let next = pendingFor(card, null, state, viewer!)
-    const directEnemy = cardNeedsEnemy(
-      effectiveCombatCardDef(def, viewer!.guardianMode), viewer!, false, next.effectEnergy ?? undefined,
-      false, next.card.attachedGemId, card.uid, chargedCardEnergy(def, viewer!, card), card.hermitDeadOn === true,
-    )
-    if (cardNeedsChoicePreview(def, state, viewer!)) {
-      if (directEnemy || next.slimeChoice || slimeEnemyChoicesRequired(next) > 0) {
-        if (draggedEnemyUid) {
-          if (directEnemy) next = { ...next, enemyUid: draggedEnemyUid }
-          else next = { ...next, slimeEnemyUids: [draggedEnemyUid] }
-        }
-        stageOrCommit({ ...next, choice: null, choiceCards: null })
-        return
-      }
-      requestChoicePreview(card)
-      return
-    }
-    if (draggedEnemyUid) {
-      if (directEnemy) {
-        if (slayerTargetAffordable(next, state.enemies.find((enemy) => enemy.uid === draggedEnemyUid))) {
-          next = { ...next, enemyUid: draggedEnemyUid }
-        }
-      }
-      else if (next.enemyChoices > 0 || def.modes) next = { ...next, enemyUids: [draggedEnemyUid] }
-      else if (next.spentShivs + next.overflowShivs > 0) next = { ...next, shivEnemyUids: [draggedEnemyUid] }
-    }
-    if (draggedPlayerId) {
-      if (next.playerChoices > 0) next = { ...next, playerIds: [draggedPlayerId] }
-      else if (next.needsAlly) next = { ...next, playerId: draggedPlayerId }
-    }
-    stageOrCommit(next)
-  }
+  const survivorDiscard = pending?.card.defId === 'survivor' &&
+    pending.cardInHand && !pending.chamberPlay && pending.card.uid !== forcedCardUid &&
+    pending.choice?.kind === 'discard' && !pending.choiceCards && !pending.choiceConfirmed
+  const { withEvokeSlot, choose: stageOrCommit, requestChoicePreview, requestCopyChoicePreview,
+    requestChamberChoicePreview, confirm: confirmCardPlay,
+    cancel: cancelCardPlay } = createCardPlayCoordinator({
+    state, viewer, pending, miracleOnCard, blocked: Boolean(endTurnResolving || pendingTrigger),
+    survivorDiscard, stateRef, cardActionPending, onAction, setUsingCard, setPending,
+    withAdjacentChoices, downfallChoicesReady, slimeEnemyChoicesRequired, slayerTargetAffordable,
+    cardContext, commit,
+    clearOtherActions: () => {
+      setPendingPowerUid(null)
+      setSpendingShiv(false)
+      setSpendingSoulburn(false)
+      setPendingPotion(null)
+      setPotionShivEnemyUids([])
+      setPotionOverflowRequired(0)
+    },
+  })
 
   function dragTargetAt(x: number, y: number, hitsRow: boolean): string | null {
     const hit = document.elementFromPoint(x, y)
@@ -4525,110 +4173,8 @@ function CombatScreenView({
   }
 
   function onCardPointerDown(card: CardInstance, event: React.PointerEvent<HTMLButtonElement>, chamber = false) {
-    if (event.button !== 0) return
-    const canDrag = chamber ? chamberCardCanStartDrag(card) : cardCanStartDrag(card)
-    const mode = !chamber && !chamberOpen && !miracleOnCard && !playWindow &&
-      !state.pendingCardCopy && !viewer?.doubledCardsThisTurn && !viewer?.doubledAttacksThisTurn &&
-      !viewer?.tripledAttacksThisTurn && !viewer?.doubledSkillsThisTurn && simpleCardMode(card, livingPlayers.length)
-    if (canDrag && mode && cardInteraction.begin(card, mode, event)) return
-    const def = effectiveCombatCardDef(faceOf(cardDef(card.defId), card.upgraded), viewer!.guardianMode)
-    if (canDrag && !chamber && def.type === 'skill') {
-      const needsEnemy = cardNeedsEnemy(def, viewer!, false, undefined, false,
-        guardianGemForCard(viewer!, card), card.uid)
-      if (cardInteraction.begin(card, needsEnemy ? 'enemy' : 'self', event, true)) return
-    }
-    const staged = chamber ? stageHermitChamberViewer(viewer!, card,
-      state.pendingHermitChamberPlays?.[0]?.playerId === viewerId &&
-      state.pendingHermitChamberPlays[0].cardUids[0] === card.uid &&
-      state.pendingHermitChamberPlays[0].free) : null
-    const pending = canDrag ? pendingFor(staged?.card ?? card, null, state, staged?.player ?? viewer!,
-      false, undefined, chamber) : null
-    const scrollElement = event.currentTarget.closest('.hand-scroll') as HTMLDivElement | null
-    event.currentTarget.setPointerCapture(event.pointerId)
-    cardDragStart.current = {
-      card, chamber, pointerId: event.pointerId,
-      startX: event.clientX, startY: event.clientY, x: event.clientX, y: event.clientY,
-      needsEnemy: pending?.needsEnemy ?? false,
-      needsPlayer: pending ? !pending.needsEnemy && (pending.needsAlly || pending.playerChoices > 0) : false,
-      hitsRow: pending?.hitsRow ?? false,
-      element: event.currentTarget,
-      scrollElement,
-      scrollLeft: scrollElement?.scrollLeft ?? 0,
-      scrolling: false,
-      canDrag,
-      moved: false,
-    }
-  }
-
-  function onCardPointerMove(event: React.PointerEvent<HTMLElement>) {
-    const start = cardDragStart.current
-    if (!start || start.pointerId !== event.pointerId) return
-    const dx = event.clientX - start.startX
-    const dy = event.clientY - start.startY
-    if (Math.hypot(dx, dy) >= 10) start.moved = true
-    const verticallyDominant = dy < -10 && -dy >= Math.abs(dx)
-    const towardRequiredTarget = dy < -10 && -dy >= Math.abs(dx) * 0.25 &&
-      ((start.needsEnemy && dx > 0) || (start.needsPlayer && dx < 0))
-    const overRequiredTarget = dy < -10 && !verticallyDominant && !towardRequiredTarget && (start.needsEnemy
-      ? Boolean(dragTargetAt(event.clientX, event.clientY, start.hitsRow))
-      : start.needsPlayer ? Boolean(dragPlayerAt(event.clientX, event.clientY)) : false)
-    const upwardIntent = verticallyDominant || towardRequiredTarget || overRequiredTarget
-    if (!cardDragLive.current && start.scrolling) {
-      if (upwardIntent) {
-        if (start.scrollElement) start.scrollElement.scrollLeft = start.scrollLeft
-        start.scrolling = false
-      } else {
-        if (start.scrollElement) start.scrollElement.scrollLeft = start.scrollLeft - dx
-        return
-      }
-    }
-    if (!cardDragLive.current && Math.abs(dx) >= 10 && !upwardIntent && Math.abs(dx) > Math.abs(dy)) {
-      start.scrolling = true
-      if (start.scrollElement) start.scrollElement.scrollLeft = start.scrollLeft - dx
-      return
-    }
-    if (!start.canDrag) return
-    if (!cardDragLive.current &&
-      Math.hypot(dx, dy) < 10) return
-    cardDragMove.current = { x: event.clientX, y: event.clientY }
-    if (cardDragFrame.current !== null) return
-    cardDragFrame.current = requestAnimationFrame(() => {
-      cardDragFrame.current = null
-      const active = cardDragStart.current
-      const move = cardDragMove.current
-      if (!active || !move) return
-      const next: CardDrag = {
-        card: active.card,
-        chamber: active.chamber,
-        pointerId: active.pointerId,
-        startX: active.startX,
-        startY: active.startY,
-        x: move.x,
-        y: move.y,
-        targetUid: active.needsEnemy ? dragTargetAt(move.x, move.y, active.hitsRow) : null,
-        targetPlayerId: active.needsPlayer ? dragPlayerAt(move.x, move.y) : null,
-        needsEnemy: active.needsEnemy,
-        needsPlayer: active.needsPlayer,
-        hitsRow: active.hitsRow,
-      }
-      const previous = cardDragLive.current
-      cardDragLive.current = next
-      const path = `M ${next.startX} ${next.startY - 45} Q ${next.startX} ${next.y} ${next.x} ${next.y}`
-      cardDragArrow.current?.setAttribute('d', path)
-      cardDragArrowShadow.current?.setAttribute('d', path)
-      if (cardDragOverlay.current) {
-        cardDragOverlay.current.style.setProperty(
-          '--drag-y',
-          `${Math.max(0, next.y - next.startY + 210)}px`,
-        )
-        cardDragOverlay.current.style.setProperty(
-          '--drag-turn',
-          `${Math.max(-8, Math.min(8, (next.x - next.startX) / 24))}deg`,
-        )
-      }
-      if (!previous || previous.targetUid !== next.targetUid ||
-        previous.targetPlayerId !== next.targetPlayerId) setCardDrag(next)
-    })
+    if (!viewer) return
+    cardInteraction.begin(card, describeCardPickup(state, viewer, card, chamber ? 'chamber' : 'hand'), event)
   }
 
   function cardCanStartDrag(card: CardInstance) {
@@ -4645,61 +4191,9 @@ function CombatScreenView({
       canAfford(state, staged.player, staged.card)
   }
 
-  function clearCardDrag() {
-    cardDragStart.current = null
-    cardDragLive.current = null
-    cardDragMove.current = null
-    if (cardDragFrame.current !== null) cancelAnimationFrame(cardDragFrame.current)
-    cardDragFrame.current = null
-    setCardDrag(null)
-  }
-
-  function finishCardDrag(event: React.PointerEvent<HTMLElement>) {
-    const start = cardDragStart.current
-    if (!start || start.pointerId !== event.pointerId) return
-    const dx = event.clientX - start.startX
-    const dy = event.clientY - start.startY
-    const needsEnemy = cardDragLive.current?.needsEnemy ?? start.needsEnemy
-    const needsPlayer = cardDragLive.current?.needsPlayer ?? start.needsPlayer
-    const targetUid = needsEnemy ? dragTargetAt(event.clientX, event.clientY, start.hitsRow) : null
-    const targetPlayerId = needsPlayer ? dragPlayerAt(event.clientX, event.clientY) : null
-    const releaseUpwardIntent = dy < -10 && (-dy >= Math.abs(dx) || Boolean(targetUid || targetPlayerId))
-    const releaseHorizontalIntent = Math.abs(dx) >= 10 && !releaseUpwardIntent && Math.abs(dx) > Math.abs(dy)
-    const wasScrolling = releaseHorizontalIntent ||
-      (!cardDragLive.current && start.scrolling && !releaseUpwardIntent)
-    if (start.scrolling && releaseUpwardIntent && start.scrollElement) {
-      start.scrollElement.scrollLeft = start.scrollLeft
-    } else if (releaseHorizontalIntent && start.scrollElement) {
-      start.scrollElement.scrollLeft = start.scrollLeft - dx
-    }
-    const moved = start.moved || Math.hypot(dx, dy) >= 10
-    const lifted = dy < -10
-    clearCardDrag()
-    if (start.element.hasPointerCapture(event.pointerId)) start.element.releasePointerCapture(event.pointerId)
-    if (!moved) return
-    suppressCardClick.current = start.card.uid
-    setTimeout(() => {
-      if (suppressCardClick.current === start.card.uid) suppressCardClick.current = null
-    }, 0)
-    if (!start.canDrag || wasScrolling) return
-    if (lifted && (!needsEnemy || targetUid) && (!needsPlayer || targetPlayerId)) {
-      if (start.chamber) submitHermitChamber(start.card, targetUid, targetPlayerId)
-      else onCardClick(start.card, targetUid, targetPlayerId)
-    }
-  }
-
-  function cancelCardDrag(event: React.PointerEvent<HTMLElement>) {
-    if (cardDragStart.current?.pointerId !== event.pointerId) return
-    clearCardDrag()
-  }
-
   function activateCard(card: CardInstance) {
     if (cardInteraction.ownsCard(card.uid)) return
-    if (suppressCardClick.current === card.uid) {
-      suppressCardClick.current = null
-      return
-    }
-    onCardClick(card)
+    confirmCardPlay(card, 'hand')
   }
 
   // Distilled Chaos already asks which card to play. Requiring a second click
@@ -4720,7 +4214,7 @@ function CombatScreenView({
         onChange?.(deterministic)
         return
       }
-      onCardClick(card)
+      confirmCardPlay(card, 'hand')
     }
     // The forced uid is the authoritative transition. The helpers close over
     // the matching state snapshot; depending on them would re-stage each render.
@@ -5431,19 +4925,16 @@ function CombatScreenView({
           : switchChoiceReady
             ? 'Choose another player to switch rows with, or keep rows'
           : null) ?? (pending ? null : playWindowPrompt)
-  const draggedEnemy = cardDrag?.targetUid
-    ? state.enemies.find((enemy) => enemy.uid === cardDrag.targetUid)
+  const draggedEnemy = cardTarget?.targetUid
+    ? state.enemies.find((enemy) => enemy.uid === cardTarget.targetUid)
     : undefined
-  const cardDragTargetRow = cardDrag?.hitsRow ? draggedEnemy?.row : undefined
+  const cardDragTargetRow = cardTarget?.hitsRow ? draggedEnemy?.row : undefined
   const displayedPileCount = (kind: 'draw' | 'discard' | 'exhaust', count: number) =>
     Math.max(0, count - cardFlights.filter((flight) => flight.destination === kind && !flight.landed).length)
   const drawPileCount = drawCount ?? viewer.draw.length
-  const survivorDiscard = pending?.card.defId === 'survivor' &&
-    pending.cardInHand && !pending.chamberPlay && pending.card.uid !== forcedCardUid &&
-    pending.choice?.kind === 'discard' && !pending.choiceCards && !pending.choiceConfirmed
   const timeWarpCardLimit = timeWarpLimit(state)
   const timeWarpCardsPlayed = viewer.cardsPlayedThisTurn ?? 0
-  const enemyInspectionEnabled = !Boolean(pending || cardDrag || cardInteraction.session ||
+  const enemyInspectionEnabled = !Boolean(pending || cardTarget || cardInteraction.session ||
     pendingPotion || pendingPowerUid || spendingShiv || spendingSoulburn ||
     endTurnEffectAimed || endTurnEffectDrag || pendingStartChoice ||
     pendingTrigger?.playerId === viewer.id)
@@ -5948,9 +5439,9 @@ function CombatScreenView({
       {survivorDiscard && pending ? <HandDiscardSelection
         cards={viewer.hand.filter((card) => !pending.cardInHand || card.uid !== pending.card.uid)}
         selectedUid={pending.picked[0]} disabled={usingCard || !mutationsEnabled || authoritativeConnected === false}
-        onSelect={onCardClick}
+        onSelect={(card) => confirmCardPlay(card, 'hand')}
         onConfirm={() => stageOrCommit(pending)}
-        onCancel={pending.cardInHand && pending.card.uid !== forcedCardUid ? () => setPending(null) : undefined}
+        onCancel={pending.cardInHand && pending.card.uid !== forcedCardUid ? cancelCardPlay : undefined}
       /> : null}
       {prompt && !survivorDiscard ? (
         // Slayer Pack: A card-play window has no glowing piece to point at, so its
@@ -6995,7 +6486,7 @@ function CombatScreenView({
                   pendingShivProgress && !pendingShivProgress.options.some((option) => option.uid === enemy.uid))}
                 targeted={(isEndTurnEnemyTarget(enemy) ||
                   cardInteraction.session?.targetUid === enemy.uid ||
-                  cardDrag?.targetUid === enemy.uid ||
+                  cardTarget?.targetUid === enemy.uid ||
                   cardDragTargetRow !== undefined && (cardDragTargetRow === enemy.row || enemy.isBoss) ||
                   isStartTurnEnemyTarget(enemy.uid) ||
                   (pendingTrigger?.playerId === viewer.id && triggerHermitChoicesReady &&
@@ -7105,14 +6596,14 @@ function CombatScreenView({
                         (!occupant.dead && ((pendingPotion !== null && potionDef(pendingPotion).supportTarget === 'anyPlayer') ||
                           pendingPowerNeedsAlly ||
                           pendingStartPlayer?.players?.some((player) => player.id === occupant.id) ||
-                          cardDrag?.needsPlayer ||
+                          cardTarget?.needsPlayer ||
                           (independentPlayerPending && enemyChoicesDone && choiceSatisfied) ||
                           (pending?.needsAlly && pending.playerId === null && enemyChoicesDone && choiceSatisfied) ||
                           (switchChoiceReady && occupant.id !== viewerId))
                         )
                           ? 'seat--targetable'
                           : '',
-                        cardDrag?.targetPlayerId === occupant.id ||
+                        cardTarget?.targetPlayerId === occupant.id ||
                           endTurnEffectDrag?.targetUid === occupant.id ||
                           armedEndTurnAbilityId === pendingStartPlayer?.id &&
                             pendingStartPlayer.players?.some((player) => player.id === occupant.id)
@@ -7590,7 +7081,7 @@ function CombatScreenView({
                         pendingShivProgress && !pendingShivProgress.options.some((option) => option.uid === enemy.uid))}
                       targeted={(isEndTurnEnemyTarget(enemy) ||
                         cardInteraction.session?.targetUid === enemy.uid ||
-                        cardDrag?.targetUid === enemy.uid ||
+                        cardTarget?.targetUid === enemy.uid ||
                         cardDragTargetRow !== undefined && (cardDragTargetRow === enemy.row || enemy.isBoss) ||
                         isStartTurnEnemyTarget(enemy.uid) ||
                         (pendingTrigger?.playerId === viewer.id && triggerHermitChoicesReady &&
@@ -7830,7 +7321,6 @@ function CombatScreenView({
               key={card.uid}
               className={[drawnCards.has(card.uid) ? 'card--drawn' : '',
                 cardInteraction.session?.card.uid === card.uid ? 'card--interaction-source' : '',
-                cardDrag?.card.uid === card.uid ? 'card--dragging' : '',
                 chamberCard ? 'card--chamber-drawn' : '',
                 setupPlayable || exhaustChoice && pendingStartExhaust ? 'card--load-choice' : '',
                 exhaustChoice && !pendingStartExhaust ? 'card--exhaust-repick' : '',
@@ -7839,7 +7329,7 @@ function CombatScreenView({
               style={{ '--deal-index': index } as React.CSSProperties}
               inspectOnTouch
               hoverHelp={enemyInspectionEnabled}
-              shortcutKey={!cardDrag && !cardInteraction.session && index < 10 ? String((index + 1) % 10) : undefined}
+              shortcutKey={!cardTarget && !cardInteraction.session && index < 10 ? String((index + 1) % 10) : undefined}
               liveDamage={chamberCard ? undefined : cardDamage.get(card.uid)}
               card={chamberCard ? displayedCard : shownCard}
               gemPowerDamage={attachedGemId !== card.attachedGemId || undefined}
@@ -7869,15 +7359,12 @@ function CombatScreenView({
               picked={pending?.picked.includes(card.uid) === true || chosenStartExhaustUids.has(card.uid)}
               onClick={chamberCard
                 ? () => {
-                  if (suppressCardClick.current === card.uid) {
-                    suppressCardClick.current = null
-                    return
-                  }
+                  if (cardInteraction.ownsCard(card.uid)) return
                   if (chamberCancelable) {
-                    setPending(null)
+                    cancelCardPlay()
                     return
                   }
-                  submitHermitChamber(card)
+                  confirmCardPlay(card, 'chamber')
                 }
                 : exhaustChoice
                 ? () => chooseStartTurnExhaust(card.uid)
@@ -7887,10 +7374,6 @@ function CombatScreenView({
               onPointerDown={handPicksOnly && !chamberCard
                 ? undefined
                 : (event) => onCardPointerDown(card, event, chamberCard)}
-              onPointerMove={handPicksOnly && !chamberCard ? undefined : onCardPointerMove}
-              onPointerUp={handPicksOnly && !chamberCard ? undefined : finishCardDrag}
-              onPointerCancel={handPicksOnly && !chamberCard ? undefined : cancelCardDrag}
-              onLostPointerCapture={handPicksOnly && !chamberCard ? undefined : cancelCardDrag}
             />
           })}
         </div></div>
@@ -7915,30 +7398,6 @@ function CombatScreenView({
           <Card card={flight.card} playable={false} immediateArt />
         </div>
       ))}
-      {cardDrag ? (
-        <>
-          {cardDrag.needsEnemy || cardDrag.needsPlayer ? (
-            <svg className="card-target-arrow" aria-hidden="true">
-              <defs>
-                <marker id="card-target-arrowhead" markerUnits="userSpaceOnUse"
-                  markerWidth="22" markerHeight="22" refX="18" refY="11" orient="auto">
-                  <path d="M 0 0 L 22 11 L 0 22 Z" />
-                </marker>
-              </defs>
-              <path ref={cardDragArrowShadow} className="card-target-arrow__shadow" d={`M ${cardDrag.startX} ${cardDrag.startY - 45} Q ${cardDrag.startX} ${cardDrag.y} ${cardDrag.x} ${cardDrag.y}`} />
-              <path ref={cardDragArrow} className="card-target-arrow__line" d={`M ${cardDrag.startX} ${cardDrag.startY - 45} Q ${cardDrag.startX} ${cardDrag.y} ${cardDrag.x} ${cardDrag.y}`} />
-            </svg>
-          ) : null}
-          <div ref={cardDragOverlay} className="card-drag" style={{
-            left: cardDrag.startX,
-            top: cardDrag.startY - 90,
-            '--drag-y': `${Math.max(0, cardDrag.y - cardDrag.startY + 210)}px`,
-            '--drag-turn': `${Math.max(-8, Math.min(8, (cardDrag.x - cardDrag.startX) / 24))}deg`,
-          } as React.CSSProperties} aria-hidden="true" inert>
-            <Card card={cardDrag.card} playable={false} immediateArt />
-          </div>
-        </>
-      ) : null}
       <CardInteractionLayer interaction={cardInteraction}
         damage={cardInteraction.session ? cardDamage.get(cardInteraction.session.card.uid) : undefined} />
       {endTurnEffectDrag ? (

@@ -5,6 +5,7 @@ import { createRoomServer } from './room-server.mjs'
 import { apply, startRun } from './lib/rooms.mjs'
 import { createCombat } from '../src/game/combat.ts'
 import { createRng } from '../src/game/rng.ts'
+import { pickUpCard, confirmCardPlay } from './lib/card-interactions.mjs'
 
 process.env.VITE_HOSTED_SESSION = 'true'
 let roomOrigin = ''
@@ -153,7 +154,8 @@ try {
     await defend.waitFor()
     await page.waitForFunction(() => document.querySelector('.hand .card[title="Defend"]')
       ?.getAttribute('aria-disabled') === 'false')
-    await defend.click()
+    await pickUpCard(page, defend)
+    await confirmCardPlay(page)
     await page.waitForFunction(() => document.querySelector('.hand .card[title="Defend"]') === null)
     assert(room.run.combat.players[0].block > 0, 'the next card was still locked after Load')
     if (!unknown) {
@@ -175,7 +177,8 @@ try {
       await page.locator('.hand .card[title="Defend"]').waitFor()
       const chamber = page.getByRole('button', { name: /^Chamber,/ })
       if (await chamber.getAttribute('aria-expanded') !== 'true') await chamber.click()
-      await page.locator('.hand .card--chamber-drawn').first().click()
+      await pickUpCard(page, page.locator('.hand .card--chamber-drawn').first())
+      await confirmCardPlay(page)
       const replacement = page.getByRole('dialog', { name: 'Choose up to 2 to Load' })
       await replacement.getByRole('button', { name: /^Defend,/ }).click()
       await replacement.getByRole('button', { name: /^Strike,/ }).click()
@@ -202,7 +205,8 @@ try {
       room.version += 1
       rooms.publishRoom(code)
       await page.locator('.hand .card[title="Defend"]').waitFor()
-      await page.locator('.hand .card--chamber-drawn').first().click()
+      await pickUpCard(page, page.locator('.hand .card--chamber-drawn').first())
+      await confirmCardPlay(page)
       await replacement.getByRole('button', { name: /^Defend,/ }).click()
       await replacement.getByRole('button', { name: /^Strike,/ }).click()
       await replacement.getByRole('button', { name: 'Load 2 cards' }).click()
@@ -231,12 +235,12 @@ try {
       room.version += 1
       rooms.publishRoom(code)
       await page.locator('.hand .card[title="Grudge"]').waitFor()
-      await page.locator('.hand .card--chamber-drawn').click()
+      await pickUpCard(page, page.locator('.hand .card--chamber-drawn'))
+      await confirmCardPlay(page, page.locator('.enemy:not(.enemy--dead) .enemy__hit-area').first())
       const grudgeChoice = page.getByRole('dialog', { name: 'Choose 1 to Load' })
       await grudgeChoice.getByRole('button', { name: /^Grudge,/ }).click()
       await grudgeChoice.getByRole('button', { name: 'Load 1 card' }).click()
       const firstEnemy = page.locator('.enemy:not(.enemy--dead) .enemy__head').first()
-      await firstEnemy.click()
       await firstEnemy.click()
       await grudgeChoice.waitFor({ timeout: 10_000 })
       await grudgeChoice.getByRole('button', { name: /^Grudge,/ }).click()

@@ -2,24 +2,22 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import type { CardInstance } from '../../game/types.ts'
 import type { CombatState } from '../../game/combat.ts'
-import { beginGesture, followPose, moveGesture, releaseGesture } from './card-interaction.ts'
-import type { CardInteractionMode, CardPose, Gesture, Point } from './card-interaction.ts'
+import { followPose } from './card-interaction.ts'
+import type { CardPose, Point } from './card-interaction.ts'
+import { cardInputActive, cardInputStage, startCardInput, transitionCardInput } from './card-input-state.ts'
+import type { CardInputState } from './card-input-state.ts'
+import type { CardPickup, CardPlayResult, CardSource } from './card-play.ts'
 import { liftFromHand } from './hand-motion.ts'
 
-type Stage = 'dragging' | 'aiming' | 'scrolling' | 'submitted' | 'returning' | 'resolving'
 type Destination = 'draw' | 'discard' | 'exhaust' | 'stage'
-type Session = {
+type Session = CardPickup & {
   id: number
   card: CardInstance
-  mode: CardInteractionMode
-  handoff: boolean
-  stage: Stage
-  gesture: Gesture
+  state: CardInputState
   pointerId: number
   captured: boolean
   touch: boolean
-  clickToTarget: boolean
-  source: HTMLButtonElement
+  element: HTMLButtonElement
   scrollLeft: number
   width: number
   height: number
@@ -31,14 +29,15 @@ type Session = {
   returnPose?: CardPose
   destination?: Destination
 }
+type VisualSession = Session & { stage: ReturnType<typeof cardInputStage> }
 
 type Options = {
   context: string
   combat: CombatState
   reducedMotion: boolean
-  canUse: (card: CardInstance) => boolean
-  targetAt: (point: Point, card: CardInstance) => string | null
-  submit: (card: CardInstance, targetUid: string | null, handoff: boolean, point: Point) => void
+  canUse: (card: CardInstance, source: CardSource) => boolean
+  targetAt: (point: Point, pickup: CardPickup) => string | null
+  confirm: (card: CardInstance, pickup: CardPickup, targetUid: string | null, point: Point) => CardPlayResult
   awaitingReply: () => boolean
   onPickup: () => void
   onLand: (destination: Destination) => void
@@ -51,8 +50,8 @@ export function useCardInteraction(options: Options) {
   const live = useRef<Session | null>(null)
   const retiring = useRef<Session[]>([])
   const nextId = useRef(0)
-  const [session, setSession] = useState<Session | null>(null)
-  const [flights, setFlights] = useState<Session[]>([])
+  const [session, setSession] = useState<VisualSession | null>(null)
+  const [flights, setFlights] = useState<VisualSession[]>([])
   const cardElements = useRef(new Map<number, HTMLDivElement>())
   const arrowElement = useRef<SVGPathElement | null>(null)
   const clickSuppressed = useRef(false)
@@ -60,12 +59,16 @@ export function useCardInteraction(options: Options) {
   const clickTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   const publish = () => {
-    setSession(live.current ? { ...live.current } : null)
-    setFlights([...retiring.current])
+    const visual = (current: Session): VisualSession => ({ ...current, stage: cardInputStage(current.state) })
+    const current = live.current
+    const visible = current && current.state.kind !== 'scrolling' &&
+      (current.state.kind !== 'pressed' || current.state.lifted)
+    setSession(visible ? visual(current) : null)
+    setFlights(retiring.current.map(visual))
   }
   const releaseCapture = (current: Session) => {
     current.captured = false
-    if (current.source.hasPointerCapture(current.pointerId)) current.source.releasePointerCapture(current.pointerId)
+    if (current.element.hasPointerCapture(current.pointerId)) current.element.releasePointerCapture(current.pointerId)
   }
   const clear = (interrupt = false) => {
     const current = live.current
@@ -73,24 +76,27 @@ export function useCardInteraction(options: Options) {
     if (current) {
       if (interrupt && current.captured) cancelledPointer.current = current.pointerId
       releaseCapture(current)
-      liftFromHand(current.source, false, latest.current.reducedMotion)
+      liftFromHand(current.element, false, latest.current.reducedMotion)
     }
     publish()
   }
   const returnToHand = (current: Session) => {
     if (current.captured) cancelledPointer.current = current.pointerId
-    current.stage = 'returning'
+    current.state = { kind: 'returning', gesture: current.state.gesture }
     current.stageStarted = performance.now()
     current.flightStart = { ...current.pose }
     current.targetUid = null
-    liftFromHand(current.source, false, latest.current.reducedMotion)
+    liftFromHand(current.element, false, latest.current.reducedMotion)
     releaseCapture(current)
-    current.source.blur()
+    current.element.blur()
     publish()
   }
   const cancel = () => {
     const current = live.current
-    if (!current || ['returning', 'submitted', 'resolving'].includes(current.stage)) return
+    if (!current) return
+    const result = transitionCardInput(current.state, { type: 'cancel' })
+    if (result.state === current.state) return
+    if (result.state.kind === 'idle') { clear(true); return }
     returnToHand(current)
   }
   const suppressClick = () => {
@@ -98,11 +104,11 @@ export function useCardInteraction(options: Options) {
     clearTimeout(clickTimer.current)
     clickTimer.current = setTimeout(() => { clickSuppressed.current = false }, 0)
   }
-  const begin = (card: CardInstance, mode: CardInteractionMode, event: ReactPointerEvent<HTMLButtonElement>, handoff = false) => {
-    if (event.button !== 0 || !latest.current.canUse(card)) return false
+  const begin = (card: CardInstance, pickup: CardPickup, event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (event.button !== 0 || !latest.current.canUse(card, pickup.source)) return false
     cancelledPointer.current = null
-    if (live.current?.stage === 'returning') clear()
-    if (live.current?.stage === 'resolving') {
+    if (live.current?.state.kind === 'returning') clear()
+    if (live.current?.state.kind === 'resolving') {
       retiring.current.push(live.current)
       live.current = null
     }
@@ -117,9 +123,9 @@ export function useCardInteraction(options: Options) {
     source.setPointerCapture(event.pointerId)
     live.current = {
       id: ++nextId.current,
-      card, mode, handoff, source, width, height,
-      stage: 'dragging', gesture: beginGesture(pointer, innerHeight, width / 180),
-      pointerId: event.pointerId, captured: true, touch: event.pointerType !== 'mouse', clickToTarget: false,
+      ...pickup, card, element: source, width, height,
+      state: startCardInput(pointer, innerHeight, width / 180, event.pointerId, event.pointerType === 'mouse' ? 'mouse' : 'touch'),
+      pointerId: event.pointerId, captured: true, touch: event.pointerType !== 'mouse',
       scrollLeft: source.closest('.hand-scroll')?.scrollLeft ?? 0,
       pose: { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2,
         angle: Math.atan2(transform.b, transform.a) * 180 / Math.PI,
@@ -136,12 +142,12 @@ export function useCardInteraction(options: Options) {
   }
   const accept = (uid: string, destination: Destination) => {
     const current = live.current
-    if (!current || current.card.uid !== uid || current.stage !== 'submitted') return false
-    current.stage = 'resolving'
+    if (!current || current.card.uid !== uid || current.state.kind !== 'submitted') return false
+    current.state = transitionCardInput(current.state, { type: 'accepted' }).state
     current.stageStarted = performance.now()
     current.flightStart = { ...current.pose }
     current.destination = destination
-    const pile = current.source.closest('.combat')?.querySelector(`[data-pile="${destination}"]`)?.getBoundingClientRect()
+    const pile = current.element.closest('.combat')?.querySelector(`[data-pile="${destination}"]`)?.getBoundingClientRect()
       ?? document.querySelector(`[data-pile="${destination}"]`)?.getBoundingClientRect()
     current.flightEnd = pile ? { x: pile.x + pile.width / 2, y: pile.y + pile.height / 2 }
       : { x: innerWidth / 2, y: innerHeight * 0.43 }
@@ -156,11 +162,12 @@ export function useCardInteraction(options: Options) {
 
   useLayoutEffect(() => {
     const current = live.current
-    if (!current || !['dragging', 'aiming'].includes(current.stage)) return
-    if (!current.source.isConnected) { clear(true); return }
-    if (!latest.current.canUse(current.card)) { cancel(); return }
-    const target = current.mode === 'enemy' && current.gesture.pointer.y < current.gesture.playY
-      ? latest.current.targetAt(current.gesture.pointer, current.card) : null
+    if (!current || !cardInputActive(current.state)) return
+    if (!current.element.isConnected) { clear(true); return }
+    if (!latest.current.canUse(current.card, current.source)) { cancel(); return }
+    const { gesture } = current.state
+    const target = current.mode !== 'self' && gesture.pointer.y < gesture.playY
+      ? latest.current.targetAt(gesture.pointer, current) : null
     if (target !== current.targetUid) {
       current.targetUid = target
       publish()
@@ -168,37 +175,52 @@ export function useCardInteraction(options: Options) {
   }, [options.combat])
 
   useEffect(() => {
-    const move = (event: PointerEvent) => {
+    const input = (event: PointerEvent, type: 'move' | 'release') => {
       const current = live.current
-      if (!current || !['dragging', 'aiming', 'scrolling'].includes(current.stage) ||
-        (!current.clickToTarget && event.pointerId !== current.pointerId)) return
+      if (!current || !cardInputActive(current.state)) return
       const point = { x: event.clientX, y: event.clientY }
-      const next = moveGesture(current.gesture, point)
-      const dx = point.x - next.origin.x
-      const dy = point.y - next.origin.y
-      const firstLift = current.touch && !current.gesture.moved
-      if (current.touch && (firstLift || current.stage === 'scrolling')) {
-        if (current.stage === 'scrolling' || Math.abs(dx) >= 10 && Math.abs(dx) > Math.abs(dy)) {
-          current.stage = 'scrolling'
-          const scroll = current.source.closest('.hand-scroll')
-          if (scroll) scroll.scrollLeft = current.scrollLeft - dx
-          return
-        }
-        if (dy >= -10) return
-      }
-      const oldStage = current.stage
+      const target = current.mode !== 'self' && point.y < current.state.gesture.playY
+        ? latest.current.targetAt(point, current) : null
+      const previous = current.state
+      const result = transitionCardInput(previous, {
+        type, point, pointerId: event.pointerId, mode: current.mode, target,
+      })
+      if (result.state === previous) return
+      current.state = result.state
       const oldTarget = current.targetUid
-      if (firstLift) {
-        liftFromHand(current.source, true, latest.current.reducedMotion)
+      current.targetUid = target
+      if (result.effect === 'inspect') { clear(); return }
+      if (type === 'release') {
+        suppressClick()
+        event.preventDefault()
+        releaseCapture(current)
+      }
+      if (result.effect === 'scroll' || result.effect === 'lift') {
+        const scroll = current.element.closest('.hand-scroll')
+        if (scroll) scroll.scrollLeft = result.effect === 'lift' ? current.scrollLeft
+          : current.scrollLeft - (point.x - current.state.gesture.origin.x)
+      }
+      if (result.effect === 'lift') {
+        liftFromHand(current.element, true, latest.current.reducedMotion)
         latest.current.onPickup()
       }
-      current.gesture = next
-      if (next.enteredPlay && point.y > next.cancelY) { cancel(); return }
-      current.stage = next.enteredPlay ? 'aiming' : 'dragging'
-      current.targetUid = current.mode === 'enemy' && point.y < next.playY
-        ? latest.current.targetAt(point, current.card) : null
-      if (oldStage !== current.stage || oldTarget !== current.targetUid || firstLift) publish()
+      if (result.effect === 'return') { returnToHand(current); return }
+      if (current.state.kind === 'idle') { clear(); return }
+      if (result.effect === 'confirm') {
+        if (!latest.current.canUse(current.card, current.source)) { returnToHand(current); return }
+        current.stageStarted = performance.now()
+        publish()
+        const confirmed = latest.current.confirm(current.card, current, target, point)
+        if (live.current === current && current.state.kind === 'submitted') {
+          if (confirmed === 'choosing') {
+            current.state = transitionCardInput(current.state, { type: 'choose' }).state
+            clear()
+          } else if (confirmed === 'cancelled') returnToHand(current)
+        }
+      } else if (cardInputStage(previous) !== cardInputStage(current.state) ||
+        previous.kind !== current.state.kind || oldTarget !== target || result.effect === 'lift') publish()
     }
+    const move = (event: PointerEvent) => input(event, 'move')
     const up = (event: PointerEvent) => {
       if (cancelledPointer.current === event.pointerId) {
         cancelledPointer.current = null
@@ -206,42 +228,14 @@ export function useCardInteraction(options: Options) {
         event.preventDefault()
         return
       }
-      const current = live.current
-      if (current?.stage === 'scrolling' && current.pointerId === event.pointerId) { suppressClick(); clear(); return }
-      if (!current || event.button !== 0 || !['dragging', 'aiming'].includes(current.stage)) return
-      if (!current.clickToTarget && event.pointerId !== current.pointerId) return
-      if (current.touch && !current.gesture.moved) { clear(); return }
-      current.gesture = moveGesture(current.gesture, { x: event.clientX, y: event.clientY })
-      const target = current.mode === 'enemy' ? latest.current.targetAt(current.gesture.pointer, current.card) : null
-      const result = releaseGesture(current.gesture, current.mode, target, current.clickToTarget)
-      suppressClick()
-      event.preventDefault()
-      releaseCapture(current)
-      if (result === 'cancel') { cancel(); return }
-      if (result === 'aim') {
-        current.clickToTarget = true
-        publish()
-        return
-      }
-      if (!latest.current.canUse(current.card)) { cancel(); return }
-      if (current.handoff) {
-        // Enter the existing choice/preview flow only after the pickup is confirmed.
-        clear()
-        latest.current.submit(current.card, target, true, current.gesture.pointer)
-        return
-      }
-      current.stage = 'submitted'
-      current.stageStarted = performance.now()
-      current.targetUid = target
-      publish()
-      latest.current.submit(current.card, target, false, current.gesture.pointer)
+      if (event.button === 0) input(event, 'release')
     }
     const down = (event: PointerEvent) => {
       const current = live.current
-      if (!current || current.stage === 'returning' || current.stage === 'resolving') return
+      if (!current || !cardInputActive(current.state)) return
       if (event.button === 2) { event.preventDefault(); cancel(); return }
       const target = event.target instanceof Element ? event.target : null
-      if (current.clickToTarget && target?.closest('button, input, select, summary, dialog') &&
+      if (current.state.kind === 'carrying' && target?.closest('button, input, select, summary, dialog') &&
         !target.closest('.enemy, .board')) cancel()
     }
     const click = (event: MouseEvent) => {
@@ -253,7 +247,7 @@ export function useCardInteraction(options: Options) {
     const key = (event: KeyboardEvent) => {
       if (event.key === 'Tab') { cancel(); return }
       if (event.key !== 'Escape' || !live.current ||
-        ['submitted', 'resolving'].includes(live.current.stage)) return
+        ['submitted', 'resolving'].includes(live.current.state.kind)) return
       event.preventDefault()
       event.stopImmediatePropagation()
       cancel()
@@ -292,7 +286,7 @@ export function useCardInteraction(options: Options) {
       window.removeEventListener('resize', resize)
       if (live.current) {
         releaseCapture(live.current)
-        liftFromHand(live.current.source, false, true)
+        liftFromHand(live.current.element, false, true)
       }
       clearTimeout(clickTimer.current)
     }
@@ -311,17 +305,19 @@ export function useCardInteraction(options: Options) {
       const element = cardElements.current.get(current.id)
       if (!element) return
       const elapsed = now - current.stageStarted
+      const stage = cardInputStage(current.state)
+      const { gesture } = current.state
       let target: CardPose = {
-        x: current.gesture.pointer.x, y: current.gesture.pointer.y - (current.touch ? current.height * 0.4 : 0),
+        x: gesture.pointer.x, y: gesture.pointer.y - (current.touch ? current.height * 0.4 : 0),
         angle: 0, scale: 1.08,
       }
-      if (current.stage === 'aiming' && current.mode === 'enemy' || current.stage === 'submitted') {
+      if (stage === 'aiming' && current.mode !== 'self' || stage === 'submitted') {
         target = { x: innerWidth / 2, y: innerHeight - current.height * 0.55, scale: 0.85, angle: 0 }
       }
-      if (current.stage === 'returning') {
+      if (stage === 'returning') {
         if (!current.returnPose) {
-          const rect = current.source.getBoundingClientRect()
-          const transform = new DOMMatrixReadOnly(getComputedStyle(current.source).transform)
+          const rect = current.element.getBoundingClientRect()
+          const transform = new DOMMatrixReadOnly(getComputedStyle(current.element).transform)
           current.returnPose = { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2,
             scale: Math.hypot(transform.a, transform.b), angle: Math.atan2(transform.b, transform.a) * 180 / Math.PI }
         }
@@ -331,10 +327,11 @@ export function useCardInteraction(options: Options) {
         current.pose = { x: from.x + (to.x - from.x) * weight, y: from.y + (to.y - from.y) * weight,
           scale: from.scale + (to.scale - from.scale) * weight, angle: from.angle + (to.angle - from.angle) * weight }
         if (weight === 1) { finish(current); return }
-      } else if (current.stage === 'submitted' && elapsed > 150 && !latest.current.awaitingReply()) {
+      } else if (stage === 'submitted' && elapsed > 150 && !latest.current.awaitingReply()) {
         // A refusal leaves the physical card in hand. Accepted cards are handed off in layout.
+        current.state = transitionCardInput(current.state, { type: 'refused' }).state
         returnToHand(current)
-      } else if (current.stage === 'resolving' && current.flightStart) {
+      } else if (stage === 'resolving' && current.flightStart) {
         const duration = latest.current.reducedMotion ? 1 : 620
         const progress = Math.min(1, elapsed / duration)
         const start = current.flightStart
@@ -358,14 +355,14 @@ export function useCardInteraction(options: Options) {
           finish(current)
           return
         }
-      } else if (!latest.current.canUse(current.card)) { cancel() }
-      if (current.stage !== 'resolving' && current.stage !== 'returning') {
+      } else if (!latest.current.canUse(current.card, current.source)) { cancel() }
+      if (current.state.kind !== 'resolving' && current.state.kind !== 'returning') {
         current.pose = latest.current.reducedMotion ? target : followPose(current.pose, target, dt)
       }
       const pose = current.pose
       element.style.transform = `translate3d(${pose.x}px, ${pose.y}px, 0) translate(-50%, -50%) rotate(${pose.angle}deg) scale(${pose.scale})`
       if (current === live.current) {
-        const pointer = current.gesture.pointer
+        const pointer = current.state.gesture.pointer
         arrowElement.current?.setAttribute('d', `M ${pose.x} ${pose.y - current.height * pose.scale / 2} Q ${pose.x} ${pointer.y - 90} ${pointer.x} ${pointer.y}`)
       }
     }

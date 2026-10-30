@@ -11,12 +11,6 @@ html[data-mobile-performance='true'] .choice-modal::backdrop {
 
 /* Keep the same silhouettes without making iOS repaint blurred filters and a
    flowing full-screen SVG on every pointer frame. */
-html[data-mobile-performance='true'] .card-drag {
-  border-radius: 8px;
-  box-shadow: 0 1.2rem 1rem rgb(0 0 0 / 0.78);
-  filter: none;
-}
-
 html[data-mobile-performance='true'] .card-target-arrow__line {
   animation: none;
   filter: none;
@@ -44,7 +38,6 @@ html[data-mobile-performance='true'] .orbs__target .token--orb { animation: none
    OS preference must not silently delete combat; desktop still honours it. */
 @media (prefers-reduced-motion: reduce) {
   html:not([data-mobile-performance='true']) .hand .card { transition: none; }
-  html:not([data-mobile-performance='true']) .card-drag { transition: none; }
   html:not([data-mobile-performance='true']) .card-target-arrow__line { animation: none; }
 
   html:not([data-mobile-performance='true']) :is(

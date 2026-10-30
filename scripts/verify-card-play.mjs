@@ -1,0 +1,77 @@
+import assert from 'node:assert/strict'
+import { createCardPlayCoordinator, describeCardPickup } from '../src/ui/combat-screen/card-play.ts'
+import { pendingFor } from '../src/ui/combat-screen/card-play-requirements.ts'
+import { createCombat } from '../src/game/combat.ts'
+import { createPlayer } from '../src/game/run.ts'
+import { createRng } from '../src/game/rng.ts'
+
+const rng = createRng(47)
+const player = createPlayer(rng, 'p1', 'Ironclad', 'ironclad', 0)
+const state = createCombat(rng, [player], [{
+  uid: 'enemy', defId: 'jaw_worm', row: 0, hp: 30, maxHp: 30, block: 0,
+  strength: 0, weak: 0, vulnerable: 0, poison: 0, actionIndex: 0, abilityUsed: false, dead: false,
+}])
+const viewer = state.players[0]
+viewer.energy = 9
+const card = (defId, extra = {}) => ({ uid: defId, defId, upgraded: false, ...extra })
+let pending = null
+let commits = []
+let actions = []
+const options = {
+  state, viewer, stateRef: { current: state }, cardActionPending: { current: false },
+  pending, miracleOnCard: false, blocked: false, survivorDiscard: false,
+  setUsingCard() {}, setPending(next) { pending = next }, clearOtherActions() {},
+  withAdjacentChoices: next => next, downfallChoicesReady: () => true,
+  slimeEnemyChoicesRequired: () => 0, slayerTargetAffordable: () => true,
+  cardContext: () => ({}), commit: next => commits.push(next),
+}
+for (const defId of ['defend_ironclad', 'shrug_it_off', 'survivor', 'inflame', 'whirlwind']) {
+  viewer.hand = [card(defId)]
+  const before = structuredClone(state)
+  describeCardPickup(state, viewer, viewer.hand[0], 'hand')
+  assert.deepEqual(state, before, `${defId}: pickup planning mutated gameplay`)
+}
+viewer.hand = [card('defend_ironclad')]
+assert.equal(createCardPlayCoordinator(options).confirm(viewer.hand[0], 'hand'), 'submitted')
+assert.equal(commits.length, 1)
+assert.equal(commits[0].card.uid, 'defend_ironclad')
+commits = []
+viewer.hand = [card('survivor'), card('strike_ironclad')]
+assert.equal(createCardPlayCoordinator(options).confirm(viewer.hand[0], 'hand'), 'choosing')
+assert.equal(commits.length, 0)
+assert.equal(pending.choice.kind, 'discard')
+const selected = { ...pending, picked: ['strike_ironclad'], choiceConfirmed: true }
+assert.equal(createCardPlayCoordinator({ ...options, pending }).choose(selected), 'submitted')
+assert.equal(commits.length, 1)
+assert.deepEqual(commits[0].picked, ['strike_ironclad'])
+
+commits = []
+viewer.hand = [card('whirlwind')]
+assert.equal(createCardPlayCoordinator(options).confirm(viewer.hand[0], 'hand'), 'choosing')
+assert.equal(pending.energySpent, null)
+assert.equal(commits.length, 0, 'confirming pickup must still wait for an X-cost choice')
+assert.equal(createCardPlayCoordinator({ ...options, pending }).choose({
+  ...pending, energySpent: 2, energyCharged: 2, effectEnergy: 2,
+}), 'choosing', 'paying X must still wait for the row target')
+assert.equal(createCardPlayCoordinator({ ...options, pending }).choose({ ...pending, enemyUid: 'enemy' }), 'submitted')
+assert.equal(commits[0].energySpent, 2)
+
+viewer.hand = [card('prepared'), card('strike_ironclad')]
+const online = createCardPlayCoordinator({ ...options, pending: null,
+  onAction: async action => { actions.push(action); return { status: 'refused' } },
+})
+describeCardPickup(state, viewer, viewer.hand[0], 'hand')
+assert.equal(actions.length, 0, 'pickup must not request private cards')
+assert.equal(online.confirm(viewer.hand[0], 'hand'), 'choosing')
+assert.equal(actions[0].kind, 'previewCard')
+assert.equal(options.cardActionPending.current, true)
+online.confirm(viewer.hand[0], 'hand')
+assert.equal(actions.length, 1, 'a pending preview must not be sent twice')
+await Promise.resolve()
+assert.equal(options.cardActionPending.current, false)
+const revealed = { ...pendingFor(viewer.hand[0], [viewer.hand[1]], state, viewer),
+  choice: { kind: 'discard', amount: 1 } }
+pending = revealed
+assert.equal(createCardPlayCoordinator({ ...options, pending }).cancel(), 'choosing')
+assert.equal(pending, revealed, 'revealing private cards must prevent cancellation')
+console.log('PASS confirmed play coordination, choice readiness, private previews and cancellation')

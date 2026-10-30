@@ -4,6 +4,7 @@ import { createServer } from 'vite'
 import { chromium } from './lib/profile-browser.mjs'
 import { postNeowRun } from './lib/post-neow-run.mjs'
 import { enterRoom } from '../src/game/run.ts'
+import { pickUpCard, confirmCardPlay, dragCardTo } from './lib/card-interactions.mjs'
 
 const output = 'artifacts/card-interaction'
 mkdirSync(output, { recursive: true })
@@ -25,25 +26,29 @@ try {
     }
     await page.waitForFunction(() => window.__STS_DEBUG__?.getRun().phase === 'neow')
     let nonce = 0
-    const fixture = async ({ skill = 'defend_ironclad', doubled = 0 } = {}) => {
-      const run = postNeowRun(47, [{ id: 'p1', name: 'Ironclad', character: 'ironclad' }])
+    const fixture = async ({ skill = 'defend_ironclad', doubled = 0, party = false, chamber = false } = {}) => {
+      const run = postNeowRun(47, [{ id: 'p1', name: 'Player', character: chamber ? 'hermit' : 'ironclad' },
+        ...party ? [{ id: 'p2', name: 'Silent', character: 'silent' }] : []])
       const room = run.map.rows[0][0]
       run.map.rooms[room].kind = 'encounter'
       const next = enterRoom(run, room)
+      next.combat.phase = 'player'
       next.combat.combatId = `interaction-${++nonce}`
       const actor = next.combat.players[0]
+      next.combat.pendingHermitSetupLoads = []
       actor.energy = 9
       actor.block = 0
       actor.relics = []
       actor.doubledCardsThisTurn = doubled
       actor.hand = [
         { uid: 'strike', defId: 'strike_ironclad', upgraded: false },
-        { uid: 'defend', defId: skill, upgraded: false },
+        { uid: 'defend', defId: skill, upgraded: party },
         { uid: 'complex', defId: 'bash', upgraded: false },
       ]
       next.combat.enemies = [
         { ...next.combat.enemies[0], uid: 'target', hp: 30, maxHp: 30, block: 0, dead: false },
       ]
+      if (chamber) actor.chamber = [{ uid: 'chamber-defend', defId: 'hermit_defend', upgraded: false }]
       await page.evaluate((run) => window.__STS_DEBUG__.setRun(run), next)
       await page.waitForFunction((id) => window.__STS_DEBUG__.getRun().combat?.combatId === id, next.combat.combatId)
       await page.locator('.hand .card[title="Strike"]').waitFor()
@@ -102,22 +107,21 @@ try {
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.players[0].block === 1)
     await page.locator('.card-interaction').waitFor({ state: 'detached' })
     assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.players[0].energy), 7)
-    await page.locator('.hand .card[title="Bash"]').click()
-    assert.equal(await page.locator('.card-interaction').count(), 0, 'complex cards entered the new adapter')
-    await target().click()
+    await pickUpCard(page, 'Bash')
+    await confirmCardPlay(page, target())
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.enemies[0].vulnerable === 1)
 
-    for (const [skill, name, doubled, block] of [
+    for (const [skill, name, doubled, block, cost = 1] of [
       ['defend_ironclad', 'Defend', 0, 1],
       ['defend_ironclad', 'Defend', 1, 2],
       ['shrug_it_off', 'Shrug It Off', 0, 2],
       ['survivor', 'Survivor', 0, 2],
+      ['inflame', 'Inflame', 0, 0, 2],
     ]) {
       await fixture({ skill, doubled })
       const untouched = await snapshot()
       const source = page.locator(`.hand .card[title="${name}"]`)
-      await source.click()
-      await page.locator('.card-interaction__card').waitFor()
+      await pickUpCard(page, source)
       // A late native click must not leak through to the legacy immediate-play handler.
       await source.evaluate((card) => card.click())
       await page.mouse.move(empty.x, empty.y, { steps: 4 })
@@ -130,8 +134,8 @@ try {
       await page.mouse.click(empty.x, empty.y, { button: 'right' })
       await page.locator('.card-interaction').waitFor({ state: 'detached' })
       assert.equal(await snapshot(), untouched, `${name}: cancelling pickup changed combat`)
-      await source.click()
-      await page.mouse.click(empty.x, empty.y)
+      await pickUpCard(page, source)
+      await confirmCardPlay(page)
       if (skill === 'survivor') {
         const dialog = page.getByRole('dialog', { name: 'Discard 1 card', exact: true })
         await dialog.waitFor()
@@ -141,22 +145,39 @@ try {
       }
       await page.waitForFunction(() => !window.__STS_DEBUG__.getRun().combat.players[0].hand.some((card) => card.uid === 'defend'))
       const actor = await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.players[0])
-      assert.equal(actor.energy, 8, `${name}: confirmation did not spend energy exactly once`)
+      assert.equal(actor.energy, 9 - cost, `${name}: confirmation did not spend energy exactly once`)
       assert.equal(actor.block, block, `${name}: confirmation did not preserve the card's effects`)
       if (skill === 'shrug_it_off') {
         assert.equal(actor.draw.length, JSON.parse(untouched).combat.players[0].draw.length - 1)
         assert.equal(actor.hand.length, 3, 'Shrug It Off should draw exactly one card after confirmation')
       }
+      if (skill === 'inflame') assert(actor.powers.some((card) => card.uid === 'defend'),
+        'confirming a Power must put it in play rather than discard it')
       await page.waitForFunction(() => !document.querySelector('.card-interaction'))
     }
 
     await fixture({ skill: 'shrug_it_off' })
-    await lift('Shrug It Off')
-    await page.mouse.move(empty.x, empty.y, { steps: 4 })
-    await page.mouse.up()
+    await dragCardTo(page, 'Shrug It Off')
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.players[0].block === 2)
     assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.players[0].energy), 8,
       'drag-to-play must still confirm a complex skill exactly once')
+
+    await fixture({ party: true })
+    await pickUpCard(page, 'Defend+')
+    assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.players[0].energy), 9)
+    await confirmCardPlay(page, page.locator('.seat[data-player-id="p2"]'))
+    await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.players[1].block === 2)
+    assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.players[0].block), 0,
+      'support targeting must not redirect the selected ally to self')
+
+    await fixture({ chamber: true })
+    await page.getByRole('button', { name: /^Chamber,/ }).click()
+    const chamberCard = page.locator('.hand .card--chamber-drawn[title="Defend"]')
+    await pickUpCard(page, chamberCard)
+    assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.players[0].chamber.length), 1)
+    await confirmCardPlay(page)
+    await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.players[0].chamber.length === 0)
+    assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.players[0].block), 1)
 
     await fixture()
     const fresh = await snapshot()
@@ -184,6 +205,8 @@ try {
       }
       const swipe = await startTouch()
       await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ ...swipe, x: swipe.x - 100 }] })
+      assert.equal(await page.locator('.card-interaction__card').count(), 0,
+        'horizontal touch scrolling must not pick up a card')
       await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
       assert.equal(await snapshot(), fresh, 'horizontal touch scrolling played a card')
       await startTouch()
@@ -309,11 +332,10 @@ try {
       const modifiedBefore = await page.evaluate(() => JSON.stringify(window.networkFixture.state))
       for (const accepted of [false, true]) {
         const actions = await page.evaluate(() => window.networkFixture.actions.length)
-        await page.locator('.hand .card[title="Shrug It Off"]:visible').click()
-        await page.locator('.card-interaction__card').waitFor()
+        await pickUpCard(page, 'Shrug It Off')
         assert.equal(await page.evaluate(() => window.networkFixture.actions.length), actions,
           'picking up a modified skill submitted a network action')
-        await page.mouse.click(empty.x, empty.y)
+        await confirmCardPlay(page)
         await page.waitForFunction((count) => window.networkFixture.actions.length === count, actions + 1)
         assert.equal(await page.evaluate(() => JSON.stringify(window.networkFixture.state)), modifiedBefore)
         await page.evaluate((accepted) => window.networkFixture.reply(accepted), accepted)

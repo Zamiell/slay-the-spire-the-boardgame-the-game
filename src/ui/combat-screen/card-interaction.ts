@@ -1,7 +1,4 @@
-import { cardDef, faceOf } from '../../game/cards.ts'
-import type { CardInstance } from '../../game/types.ts'
-
-export type CardInteractionMode = 'enemy' | 'self'
+export type CardInteractionMode = 'enemy' | 'player' | 'self'
 export type Point = { x: number; y: number }
 export type CardPose = Point & { scale: number; angle: number }
 export type Gesture = {
@@ -11,24 +8,6 @@ export type Gesture = {
   cancelY: number
   moved: boolean
   enteredPlay: boolean
-}
-
-/**
- * First migration slice: fixed-cost, single-target attacks and self-Block skills.
- * Choice-bearing, gem, Chamber, Power and other special cards keep the legacy adapter.
- */
-export function simpleCardMode(card: CardInstance, partySize: number): CardInteractionMode | null {
-  const def = faceOf(cardDef(card.defId), card.upgraded)
-  if (card.attachedGemId || card.playWindowCost !== undefined || card.hermitDeadOn ||
-    def.cost === 'X' || def.modes || def.guardian || def.trigger || def.unplayable ||
-    def.exhaust || def.toDrawTop || def.supportTarget && partySize > 1) return null
-  if (def.type === 'attack' && (!def.target || def.target === 'enemy') &&
-    def.effects.length === 1 && def.effects[0]?.kind === 'hit' &&
-    typeof def.effects[0].amount === 'number' && !def.effects[0].when) return 'enemy'
-  if (def.type === 'skill' && !def.target &&
-    def.effects.length === 1 && def.effects[0]?.kind === 'block' &&
-    typeof def.effects[0].amount === 'number' && !def.effects[0].when) return 'self'
-  return null
 }
 
 export function beginGesture(pointer: Point, height: number, unit: number): Gesture {
@@ -51,7 +30,7 @@ export function moveGesture(gesture: Gesture, pointer: Point): Gesture {
 export function releaseGesture(gesture: Gesture, mode: CardInteractionMode, target: string | null, clickToTarget: boolean) {
   if (!gesture.moved && !clickToTarget) return 'aim'
   if (gesture.pointer.y >= gesture.playY) return 'cancel'
-  if (mode === 'enemy' && !target) return clickToTarget ? 'cancel' : 'aim'
+  if (mode !== 'self' && !target) return clickToTarget ? 'cancel' : 'aim'
   return 'submit'
 }
 

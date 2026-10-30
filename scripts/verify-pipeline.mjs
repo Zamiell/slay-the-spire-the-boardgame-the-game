@@ -21,6 +21,21 @@ const includesEvery = (actual, expected, context) => {
 }
 
 suite('verification pipeline')
+check('card interaction modules select focused input and choice coverage instead of the legacy umbrella', () => {
+  for (const file of ['card-interaction.ts', 'card-input-state.ts', 'useCardInteraction.ts', 'CardInteractionLayer.tsx',
+    'card-play.ts', 'card-play-requirements.ts']) {
+    const selected = affectedBrowser(`src/ui/combat-screen/${file}`)
+    assert(selected.includes('verify-card-interaction-browser.mjs'), `${file}: missing shared input coverage`)
+    assert(!selected.includes('verify-browser.mjs'), `${file}: selected the legacy umbrella`)
+    assert(!selected.includes('verify-combat-video-browser.mjs'), `${file}: selected unrelated video coverage`)
+    assert(selected.length <= 6, `${file}: unexpectedly broad browser coverage`)
+  }
+  includesEvery(affectedBrowser('src/ui/combat-screen/card-play.ts'),
+    ['verify-survivor-selection-browser.mjs', 'verify-turn-targets-browser.mjs', 'verify-hermit-load-reconnect-browser.mjs'],
+    'authoritative card choices')
+  includesEvery(affectedBrowser('scripts/lib/card-interactions.mjs'),
+    ['verify-card-interaction-browser.mjs', 'verify-turn-targets-browser.mjs'], 'shared browser interaction helpers')
+})
 check('deep equality compares Set and Map contents', () => {
   assertDeepEqual(new Set([1, 2]), new Set([2, 1]))
   assertThrows(() => assertDeepEqual(new Set([1]), new Set([2])))

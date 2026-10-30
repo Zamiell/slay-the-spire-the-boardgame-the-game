@@ -117,30 +117,6 @@ export type CardFlight = {
   landed?: boolean
 }
 
-export type CardDrag = {
-  card: CardInstance
-  chamber: boolean
-  pointerId: number
-  startX: number
-  startY: number
-  x: number
-  y: number
-  targetUid: string | null
-  targetPlayerId: string | null
-  needsEnemy: boolean
-  needsPlayer: boolean
-  hitsRow: boolean
-}
-
-export type CardDragStart = Omit<CardDrag, 'targetUid' | 'targetPlayerId'> & {
-  element: HTMLButtonElement
-  scrollElement: HTMLDivElement | null
-  scrollLeft: number
-  scrolling: boolean
-  canDrag: boolean
-  moved: boolean
-}
-
 export type EndTurnEffectDrag = {
   ability: EndTurnAbility | StartTurnAbility
   sourceOrb?: OrbType

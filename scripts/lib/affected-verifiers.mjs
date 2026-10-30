@@ -138,6 +138,24 @@ const focusedUiOwners = ownerMap([
   ['src/ui/styles/title-menu.css', ['verify-run-replay-browser.mjs', 'verify-replay-controls-browser.mjs', 'verify-title-menu-browser.mjs']],
 ])
 const focusedOnlyUiOwners = ownerMap([
+  ['src/ui/combat-screen/card-play-requirements.ts', [
+    'verify-card-interaction-browser.mjs', 'verify-survivor-selection-browser.mjs',
+    'verify-turn-targets-browser.mjs', 'verify-hermit-combo-browser.mjs', 'verify-hermit-load-reconnect-browser.mjs',
+  ]],
+  ['src/ui/combat-screen/card-interaction.ts', ['verify-card-interaction-browser.mjs']],
+  ['src/ui/combat-screen/card-input-state.ts', ['verify-card-interaction-browser.mjs']],
+  ['src/ui/combat-screen/useCardInteraction.ts', [
+    'verify-card-interaction-browser.mjs', 'verify-hand-layout-browser.mjs', 'verify-combat-hand-viewport-browser.mjs',
+    'verify-run-replay-browser.mjs',
+  ]],
+  ['src/ui/combat-screen/CardInteractionLayer.tsx', [
+    'verify-card-interaction-browser.mjs', 'verify-hand-layout-browser.mjs', 'verify-combat-hand-viewport-browser.mjs',
+  ]],
+  ['src/ui/combat-screen/card-play.ts', [
+    'verify-card-interaction-browser.mjs', 'verify-survivor-selection-browser.mjs', 'verify-turn-targets-browser.mjs',
+    'verify-hermit-combo-browser.mjs', 'verify-hermit-load-reconnect-browser.mjs',
+    'verify-run-replay-browser.mjs',
+  ]],
   ['.github/workflows/ci.yml', ['verify-assets.mjs', 'verify-pipeline.mjs']],
   ['scripts/audio/generate-combat-sfx.py', ['verify-assets.mjs', 'verify-safari-sound-browser.mjs', 'verify-rig-animation-browser.mjs']],
   ['scripts/lib/skin-attack-fixture.mjs', ['verify-skin-attack-browser.mjs', 'verify-monogatari-animation-browser.mjs', 'verify-monogatari-skins-browser.mjs', 'verify-defect-chan-evoke-browser.mjs']],

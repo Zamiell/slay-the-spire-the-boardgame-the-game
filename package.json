@@ -8,9 +8,10 @@
     "node": ">=22.13"
   },
   "scripts": {
-    "dev": "vite --host 0.0.0.0 --port 5180 --strictPort",
+    "dev": "pnpm run --parallel \"/^dev:(client|rooms)$/\"",
+    "dev:client": "vite --host 0.0.0.0 --port 5180 --strictPort",
     "dev:rooms": "node scripts/room-server.mjs",
-    "play": "pnpm run --parallel \"/^(dev|dev:rooms)$/\"",
+    "play": "pnpm dev",
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 0.0.0.0",
     "verify": "node scripts/verify-all.mjs",

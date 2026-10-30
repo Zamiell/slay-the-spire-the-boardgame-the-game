@@ -109,7 +109,11 @@ async function post<T>(path: string, body: Record<string, unknown>, failure: str
         body: JSON.stringify(body), signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       })
       status = response.status
-      const reply = await response.json()
+      const reply = await response.json().catch((error: unknown) => {
+        // Proxies can return an empty body or HTML when the account server is down.
+        if (error instanceof SyntaxError) throw new Error(failure, { cause: error })
+        throw error
+      })
       if (!response.ok) throw new Error(reply.error ?? failure)
       return reply as T
     } catch (error) {

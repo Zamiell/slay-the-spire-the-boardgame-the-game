@@ -1,4 +1,5 @@
 import { TreasureEffects } from "./TreasureEffects.tsx"
+import { cardTooltipPosition } from './card-tooltip-position.ts'
 import { PlayerTitle } from './PlayerTitle.tsx'
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
@@ -397,12 +398,15 @@ export function App() {
       const right = cardBox.right + gap
       const left = cardBox.left - width - gap
       const centered = cardBox.left + (cardBox.width - width) / 2
-      const candidates: [number, number][] = window.innerWidth <= 700
+      const attached = card.classList.contains('card') && !tooltip.classList.contains('card-keyword-tips--image')
+      const side = attached ? cardTooltipPosition(cardBox, { width, height },
+        { width: window.innerWidth, height: window.innerHeight }) : null
+      const candidates: [number, number][] = side ? [[side.x, side.y]] : window.innerWidth <= 700
         ? [[centered, cardBox.top - height - gap], [centered, cardBox.bottom + gap]]
         : [[right, cardBox.bottom - height], [left, cardBox.bottom - height],
             [right, cardBox.top - height - gap], [left, cardBox.top - height - gap],
             [centered, cardBox.top - height - gap], [centered, cardBox.bottom + gap]]
-      for (const x of [margin, (window.innerWidth - width) / 2, window.innerWidth - width - margin]) {
+      if (!attached) for (const x of [margin, (window.innerWidth - width) / 2, window.innerWidth - width - margin]) {
         for (const y of [margin, (window.innerHeight - height) / 2, window.innerHeight - height - margin]) {
           candidates.push([x, y])
         }
@@ -443,6 +447,9 @@ export function App() {
       tooltip.style.left = `${positioned.x}px`
       tooltip.style.top = `${positioned.y}px`
       tooltip.toggleAttribute('data-overlaps-card', positioned.overlap > 0)
+      if (attached && (card.closest('.hand[data-hand-moving]') ||
+        card.getAnimations().some(animation => animation instanceof CSSTransition &&
+          animation.transitionProperty === 'transform' && animation.playState === 'running'))) reposition()
     }
     const hide = () => {
       if (active) tooltipOf(active)?.removeAttribute('data-open')

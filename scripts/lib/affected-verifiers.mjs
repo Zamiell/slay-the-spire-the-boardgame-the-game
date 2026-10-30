@@ -138,6 +138,7 @@ const focusedUiOwners = ownerMap([
   ['src/ui/styles/title-menu.css', ['verify-run-replay-browser.mjs', 'verify-replay-controls-browser.mjs', 'verify-title-menu-browser.mjs']],
 ])
 const focusedOnlyUiOwners = ownerMap([
+  ['src/ui/card-tooltip-position.ts', ['verify-card-tooltip-browser.mjs']],
   ['src/ui/combat-screen/card-play-requirements.ts', [
     'verify-card-interaction-browser.mjs', 'verify-survivor-selection-browser.mjs',
     'verify-turn-targets-browser.mjs', 'verify-hermit-combo-browser.mjs', 'verify-hermit-load-reconnect-browser.mjs',

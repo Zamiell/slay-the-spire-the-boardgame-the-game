@@ -327,6 +327,7 @@ html[data-card-hints='false'] :is(.card__live-damage, .card__aoe) { display: non
 }
 
 .card-keyword-tip {
+  flex: 0 0 auto;
   display: grid;
   gap: 0.18rem;
   padding: 0.55rem 0.65rem;

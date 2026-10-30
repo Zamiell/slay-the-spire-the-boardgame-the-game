@@ -69,6 +69,8 @@ try {
       { defId: 'the_courier', spent: false }, { defId: 'holy_water', spent: false, cubes: 2 },
     )
     loadedRun.players[0].relics = structuredClone(loadedRun.combat.players[0].relics)
+    loadedRun.players[0].gold = 1
+    loadedRun.combat.players[0].gold = 1
     await page.evaluate(run => window.__STS_DEBUG__.setRun(run), loadedRun)
     const relicsClearOfBar = () => page.waitForFunction(() => {
       const bar = document.querySelector('.combat__bar').getBoundingClientRect()

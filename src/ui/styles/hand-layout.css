@@ -17,16 +17,20 @@
 }
 
 .hand[data-hand-layout] > .card {
+  --hand-card-shadow: drop-shadow(0 0.35rem 0.4rem #000b);
   transform-origin: center;
   transition: none;
-  filter: drop-shadow(0 0.35rem 0.4rem #000b);
+  filter: var(--hand-card-shadow);
 }
 .hand[data-hand-layout] > .card[aria-disabled='false'] {
   border-color: #52e4e6;
   box-shadow: 0 0 0 2px #1c8b96, 0 0 0.55rem #35dce780;
 }
 .hand[data-hand-layout] > .card[data-hand-focused] {
-  filter: drop-shadow(0 0.6rem 0.65rem #000c);
+  --hand-card-shadow: drop-shadow(0 0.6rem 0.65rem #000c);
+}
+.combat[data-phase='start'] .hand[data-hand-layout] > .card[aria-disabled='true'] {
+  filter: grayscale(0.65) brightness(0.8) var(--hand-card-shadow);
 }
 .hand[data-hand-layout] > .card::before {
   content: attr(data-hand-number);

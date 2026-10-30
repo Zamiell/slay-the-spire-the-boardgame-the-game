@@ -74,12 +74,18 @@ try {
     const settleHand = () => page.waitForFunction(() => !document.querySelector('.hand[data-hand-moving]'))
     await fixture({ phase: 'start' })
     await page.locator('.start-turn-order').waitFor()
+    assert(await page.locator('.hand .card').evaluateAll(cards => cards.every(card =>
+      getComputedStyle(card).filter.includes('grayscale(0.65) brightness(0.8)'))),
+    `${screen}: the unavailable start-turn hand must be partially greyed out`)
+    await page.screenshot({ path: `${output}/${screen}-start-turn-disabled.png` })
     const startBefore = await snapshot()
     for (const name of ['Strike', 'Defend', 'Bash']) {
       const card = page.locator(`.hand .card[title="${name}"]`)
       assert.equal(await card.getAttribute('aria-disabled'), 'true')
       await card.hover()
       await settleHand()
+      assert.match(await card.evaluate(card => getComputedStyle(card).filter), /grayscale\(0.65\).*drop-shadow/,
+        'hover inspection must keep the disabled tint and hand shadow')
       const box = await card.boundingBox()
       await page.mouse.click(box.x + box.width / 2, box.y + box.height / 4)
       await page.mouse.move(2, 2)
@@ -95,6 +101,8 @@ try {
     await page.mouse.up()
     assert.equal(await page.locator('.card-interaction').count(), 0, 'dragging during start turn must remain disabled')
     await blockedCard.focus()
+    assert.match(await blockedCard.evaluate(card => getComputedStyle(card).filter), /grayscale\(0.65\)/,
+      'keyboard inspection must keep the start-turn tint')
     await page.keyboard.press('Enter')
     assert.equal(await snapshot(), startBefore, 'keyboard inspection must not play a start-turn card')
     await blockedCard.evaluate(card => card.blur())
@@ -107,6 +115,9 @@ try {
       window.__STS_DEBUG__.setRun(run)
     })
     await page.waitForFunction(() => document.querySelector('.hand .card[title="Defend"]')?.getAttribute('aria-disabled') === 'false')
+    assert(await page.locator('.hand .card').evaluateAll(cards => cards.every(card =>
+      !getComputedStyle(card).filter.includes('grayscale'))),
+    'the start-turn tint must disappear when normal card play becomes available')
     const afterPhaseChange = await snapshot()
     await page.mouse.up()
     assert.equal(await snapshot(), afterPhaseChange, 'a press that began disabled must not play on release after the phase changes')

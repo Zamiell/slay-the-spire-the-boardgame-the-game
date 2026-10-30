@@ -240,6 +240,9 @@ try {
     await settle()
     assert.deepEqual(await panel.locator('.start-turn-order__badge').allTextContents(), ['Choose a card to Exhaust'])
     assert.equal(await page.locator('.hand .card.card--load-choice').count(), 3, `${name}: the hand does not offer its Exhaust choice`)
+    assert(await page.locator('.hand .card.card--load-choice').evaluateAll(cards => cards.every(card =>
+      !getComputedStyle(card).filter.includes('grayscale'))),
+    `${name}: selectable start-turn Exhaust choices must remain in full color`)
     assertLayout(await layout(), 'worthy sacrifice')
     await page.screenshot({ path: `${out}/${name}-exhaust-choice.png` })
     // A pick can be changed by tapping another card.

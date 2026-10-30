@@ -11,7 +11,7 @@ async function connection() {
   let value
   try { value = JSON.parse(await readFile(connectionPath, 'utf8')) }
   catch (error) {
-    if (error.code === 'ENOENT') throw new Error('Start the companion first: node scripts/live-run.mjs serve')
+    if (error.code === 'ENOENT') throw new Error('Start development first: pnpm run dev (or run pnpm dev:assistant for a standalone companion).')
     throw error
   }
   if (!Number.isInteger(value.port) || value.port < 1 || value.port > 65535 ||

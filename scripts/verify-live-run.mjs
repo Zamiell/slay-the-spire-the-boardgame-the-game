@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { once } from 'node:events'
 import { spawn } from 'node:child_process'
-import { copyFile, mkdir, mkdtemp, readFile, rm, stat } from 'node:fs/promises'
+import { copyFile, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { WebSocket } from 'ws'
 import { startLiveRunServer } from './lib/live-run-server.mjs'
@@ -112,6 +112,7 @@ const root = resolve(import.meta.dirname, '..')
 await mkdir(resolve(root, 'tmp'), { recursive: true })
 const checkout = await mkdtemp(resolve(root, 'tmp/live-run-cli-'))
 let companion
+let development
 try {
   await mkdir(resolve(checkout, 'scripts', 'lib'), { recursive: true })
   for (const file of ['live-run.mjs', 'lib/live-run-server.mjs']) {
@@ -163,8 +164,46 @@ try {
   companion = undefined
   await assert.rejects(readFile(credentialsPath), { code: 'ENOENT' })
   console.log('Standalone companion, owner-only credentials, CLI/MCP fresh reads, and shutdown cleanup passed.')
+
+  const { scripts } = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'))
+  await writeFile(resolve(checkout, 'package.json'), JSON.stringify({
+    private: true,
+    scripts: {
+      dev: scripts.dev,
+      'dev:assistant': `${scripts['dev:assistant']} --port=${bridge.port}`,
+      'dev:client': 'node -e "console.log(\'fixture client ready\'); setInterval(() => {}, 1000)"',
+      'dev:rooms': 'node -e "console.log(\'fixture rooms ready\'); setInterval(() => {}, 1000)"',
+    },
+  }))
+  development = spawn('pnpm', ['run', 'dev'], { cwd: checkout, detached: true, stdio: ['ignore', 'pipe', 'pipe'] })
+  let devOutput = ''
+  development.stdout.on('data', (data) => { devOutput += data })
+  development.stderr.on('data', (data) => { devOutput += data })
+  const started = AbortSignal.timeout(10_000)
+  while (!['fixture client ready', 'fixture rooms ready', 'Settings > Assistant pairing code:'].every((text) => devOutput.includes(text))) {
+    await once(development.stdout, 'data', { signal: started })
+  }
+  const devCredentials = JSON.parse(await readFile(credentialsPath, 'utf8'))
+  const notShared = await fetch(`http://127.0.0.1:${devCredentials.port}/current`, {
+    headers: { Authorization: `Bearer ${devCredentials.token}` },
+  })
+  assert.equal(notShared.status, 503)
+  assert.equal((await notShared.json()).code, 'not_paired', 'pnpm dev must not opt the browser into sharing')
+  // Signal the isolated process group just as Ctrl+C signals a terminal's foreground job.
+  const stopped = once(development, 'close', { signal: AbortSignal.timeout(10_000) })
+  process.kill(-development.pid, 'SIGINT')
+  await stopped
+  await assert.rejects(readFile(credentialsPath), { code: 'ENOENT' }, 'stopping pnpm dev removes the companion credentials')
+  await assert.rejects(fetch(`http://127.0.0.1:${devCredentials.port}/current`, { signal: AbortSignal.timeout(1_000) }),
+    'stopping pnpm dev also stops the listener')
+  console.log('pnpm dev starts the companion without sharing and Ctrl+C stops it cleanly.')
 } finally {
   for (const socket of sockets) socket.terminate()
+  if (development) {
+    try { process.kill(-development.pid, 'SIGKILL') }
+    catch (error) { if (error.code !== 'ESRCH') throw error }
+    if (development.exitCode === null && development.signalCode === null) await once(development, 'close')
+  }
   if (companion && companion.exitCode === null) {
     companion.kill('SIGTERM')
     await once(companion, 'close')

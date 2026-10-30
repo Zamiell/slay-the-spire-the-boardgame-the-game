@@ -10,20 +10,24 @@ From the checkout containing this feature:
 
 ```sh
 pnpm install --frozen-lockfile
-pnpm dev:client
+pnpm run dev
 ```
 
-In another terminal in the same checkout:
+This starts the game, API/room server, and read-only companion together.
+The companion listens only on `127.0.0.1:5181` and prints its pairing code in the
+same terminal. Starting the listener does not share any game state.
+In the game, open **Settings > Assistant**, paste that code, and select
+**Share this tab**. Close Settings to let the assistant inspect the game screen.
+Ctrl+C stops all three services, disconnects sharing, and removes the companion's
+connection file. `pnpm play` starts the same services.
 
-```sh
-node scripts/live-run.mjs serve
-```
+### Standalone and custom setups
 
-The companion listens only on `127.0.0.1:5181`. In the game, open **Settings >
-Assistant**, paste the code printed by the companion, and select **Share this
-tab**. Close Settings to let the assistant inspect the game screen.
-
-If another checkout is already using the normal game port, use a separate port:
+If you run the game separately, `pnpm dev:assistant` starts just the companion.
+Do not start a second companion while `pnpm run dev` already owns it.
+The direct script remains available for custom ports and origins.
+For example, if another checkout is using the normal game port, run these in
+separate terminals:
 
 ```sh
 pnpm exec vite --host 127.0.0.1 --port 5182 --strictPort
@@ -58,7 +62,7 @@ in Copilot CLI:
 
 The absolute script path selects the correct checkout even when the assistant
 is working elsewhere. MCP does not start a companion or grant browser access:
-start the companion and explicitly pair the game tab first. Existing CLI
+start `pnpm run dev` and explicitly pair the game tab first. Existing CLI
 sessions can use the `read` command immediately.
 
 Repository agent instructions require a fresh read before answering questions

@@ -229,7 +229,8 @@ check('shared frontend changes use cores plus named visual owners', () => {
 })
 check('toolchain changes select their focused owners', () => {
   includesEvery(affected('.github/workflows/ci.yml'), ['verify-assets.mjs', 'verify-pipeline.mjs'], 'CI toolchain owners')
-  for (const file of ['package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig.app.json', 'vite.config.ts']) {
+  assertDeepEqual(affected('package.json'), ['verify-build.mjs', 'verify-live-run.mjs', 'verify-pipeline.mjs'])
+  for (const file of ['pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig.app.json', 'vite.config.ts']) {
     assertDeepEqual(affected(file), ['verify-build.mjs', 'verify-pipeline.mjs'])
   }
 })

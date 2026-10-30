@@ -10,7 +10,7 @@ export function AssistantSettings() {
     <h3>Share run with assistant</h3>
     <p>Let your local assistant read this tab's visible game information when you ask for advice.
       It cannot play cards or change your run. Hidden cards and saved account credentials are not shared.</p>
-    <p>Start <code>node scripts/live-run.mjs serve</code> on this computer and paste its pairing code.
+    <p><code>pnpm run dev</code> starts the local companion automatically. Paste the pairing code from that terminal.
       The companion must allow this game's origin: <code>{location.origin}</code>.</p>
     {!sharing ? <form onSubmit={(event) => { event.preventDefault(); shareRun(code); setCode('') }}>
       <label>Pairing code

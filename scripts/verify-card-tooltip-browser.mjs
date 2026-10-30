@@ -102,6 +102,17 @@ try {
         return tip.closest('dialog')?.open && Math.abs(box.left - card.right - 9) < 2 &&
           Math.abs(box.top - Math.max(8, Math.min(card.top, innerHeight - box.height - 8))) < 2
       }), `${screen}: deck help must appear beside the card inside the modal's top layer`)
+      const tipBox = await tip.boundingBox()
+      await page.mouse.move(tipBox.x + tipBox.width / 2, tipBox.y + tipBox.height / 2)
+      assert.equal(await tip.getAttribute('data-open'), null,
+        'entering the tooltip must immediately close it rather than extend card hover')
+      await card.hover()
+      await tip.waitFor()
+      await page.mouse.move(2, 2)
+      assert.equal(await tip.getAttribute('data-open'), null,
+        'leaving the card must close its tooltip without a grace period')
+      await card.hover()
+      await tip.waitFor()
       assert.equal(await card.getAttribute('aria-disabled'), 'true')
       const box = await card.boundingBox()
       await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)

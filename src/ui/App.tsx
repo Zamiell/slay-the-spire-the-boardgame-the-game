@@ -378,7 +378,6 @@ export function App() {
     let pinned: HTMLElement | null = null
     let dismissed: HTMLElement | null = null
     let repositionFrame = 0
-    let hoverCloseTimer: ReturnType<typeof setTimeout> | undefined
     const cardOf = (target: EventTarget | null) => target instanceof Element
       ? target.closest<HTMLElement>('[data-keyword-help-id]') : null
     const tooltipOf = (card: HTMLElement) => document.getElementById(card.dataset.keywordHelpId ?? '')
@@ -483,10 +482,9 @@ export function App() {
     const current = () => {
       const focusCandidate = document.querySelector<HTMLElement>(':focus-visible[data-keyword-help-id]')
       const hoverCandidate = document.querySelector<HTMLElement>(':hover[data-keyword-help-id]')
-        ?? cardForTooltip(document.querySelector('.card-keyword-tips[data-open]:hover'))
       const focus = focusCandidate && helpAvailable(focusCandidate) ? focusCandidate : null
       const hover = hoverCandidate && helpAvailable(hoverCandidate) ? hoverCandidate : null
-      return preferFocus ? focus ?? hover : hover ?? focus
+      return preferFocus ? focus ?? hover : hover
     }
     const unpin = () => {
       if (pinned) tooltipOf(pinned)?.removeAttribute('data-pinned')
@@ -541,8 +539,7 @@ export function App() {
     }
     const pointerover = (event: PointerEvent) => {
       const card = cardOf(event.target)
-      if (card || cardForTooltip(event.target)) clearTimeout(hoverCloseTimer)
-      if (event.pointerType !== 'touch' && card !== dismissed && cardForTooltip(event.target) !== dismissed) dismissed = null
+      if (event.pointerType !== 'touch' && card !== dismissed) dismissed = null
       preferFocus = false
       if (!card || (card === active && tooltipOf(card)?.hasAttribute('data-open'))) return
       if (shiftHeld) pin(card)
@@ -572,12 +569,8 @@ export function App() {
     }
     const pointerout = (event: PointerEvent) => {
       if (event.pointerType === 'touch') return
-      const card = cardOf(event.target) ?? cardForTooltip(event.target)
-      if (!card || cardOf(event.relatedTarget) === card || cardForTooltip(event.relatedTarget) === card || pinned === card) return
-      if (card.hasAttribute('data-help-on-hover')) {
-        clearTimeout(hoverCloseTimer)
-        hoverCloseTimer = setTimeout(() => show(current()), 200)
-      } else queueMicrotask(() => show(current()))
+      const card = cardOf(event.target)
+      if (card && active === card && cardOf(event.relatedTarget) !== card && pinned !== card) hide()
     }
     const ready = (event: Event) => {
       const card = cardOf(event.target)
@@ -594,7 +587,6 @@ export function App() {
       queueMicrotask(() => pinned ? show(pinned) : show(current()))
     }
     const reset = () => {
-      clearTimeout(hoverCloseTimer)
       shiftHeld = false
       preferFocus = false
       pointerActive = false

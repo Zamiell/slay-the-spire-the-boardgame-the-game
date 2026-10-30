@@ -44,6 +44,43 @@ try {
     }]
     await page.evaluate(run => window.__STS_DEBUG__.setRun(run), combat)
     await page.locator('.hand .card').first().waitFor()
+    await page.waitForFunction(() => {
+      const hand = document.querySelector('.hand[data-hand-layout]')
+      return hand && !hand.hasAttribute('data-hand-moving') && !hand.querySelector('.card--drawn')
+    })
+    const beforeHelp = await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun()))
+    for (const name of ['Claw (Claw Pack)', 'Claw (Claw Pack)+']) {
+      const card = page.locator(`.hand .card[title="${name}"]`)
+      if (phone) { await page.keyboard.press('Tab'); await card.focus() }
+      else await card.hover()
+      const id = await card.getAttribute('data-keyword-help-id')
+      const help = page.locator(`[id="${id}"]`)
+      await help.waitFor()
+      const text = await help.innerText()
+      assert.match(text, /eight alternate Claw cards for the Defect/)
+      assert.match(text, /Kickstarter Collector's Edition bundles, not the standard retail game/)
+      assert.match(text, /printed card is simply Claw/)
+      assert.match(text, /Each cube adds 1 damage.*not spent/)
+      assert.match(text, /Regular Claw instead.*discard pile costs 0/)
+      assert(await help.evaluate(tip => {
+        const box = tip.getBoundingClientRect()
+        return box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight
+      }), `${screen}: Claw history must stay within the viewport`)
+      await page.screenshot({ path: `${output}/${screen}-${name.endsWith('+') ? 'upgraded-' : ''}history.png` })
+      await page.keyboard.press('Escape')
+      await help.waitFor({ state: 'hidden' })
+      await card.evaluate(card => card.blur())
+      await page.mouse.move(2, 2)
+    }
+    assert.equal(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun())), beforeHelp,
+      'reading Claw Pack history must not play either card')
+    const regularTips = await page.evaluate(async () => {
+      const [{ cardDef }, { cardKeywordTips }] = await Promise.all([
+        import('/src/game/cards.ts'), import('/src/ui/Card.tsx'),
+      ])
+      return cardKeywordTips(cardDef('claw')).map(tip => tip.name)
+    })
+    assert(!regularTips.includes('Claw Pack'), 'regular Claw must not claim to be the Kickstarter variant')
     const counter = page.locator('.combat__claw-cubes')
     assert.equal(await counter.count(), 0, 'zero cubes should not add an empty status counter')
     for (const [name, count] of [['Claw (Claw Pack)', 1], ['Claw (Claw Pack)+', 2]]) {

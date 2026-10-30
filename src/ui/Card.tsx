@@ -649,9 +649,23 @@ export function cardKeywordTips(def: CardDef): readonly CardKeywordTip[] {
   const reachesAllEnemies = target === 'allEnemies' || def.id === 'slime_boss_evolution_slime'
   const reach = target === 'row' || reachesRow ? '__row__' : reachesAllEnemies ? '__all_enemies__' : ''
   const rules = `${cardType} ${def.unplayable ? 'unplayable' : ''} ${def.id === 'daze' || def.id === 'burn' ? def.id : ''} ${hitType} ${reach} ${vulnerable ? 'vulnerable' : ''} ${weak ? '__weak__' : ''} ${block ? '__block__' : ''} ${poison ? '__poison__' : ''} ${strength ? '__strength__' : ''} ${orb ? '__orb__' : ''} ${exhaust ? '__exhaust__' : ''} ${guardianGem ? '__guardian_gem__' : ''} ${keywordRules}`
-  const tips = CARD_KEYWORD_TIPS
+  const tips: CardKeywordTip[] = CARD_KEYWORD_TIPS
     .filter(([, pattern]) => pattern.test(rules))
     .map(([name, , text, icon, statusIcon]) => ({ name, text, icon, statusIcon }))
+  if (def.id === 'claw_claw_pack') {
+    // Kickstarter FAQ: https://www.kickstarter.com/projects/contentiongames/slay-the-spire-the-board-game/faqs
+    // Bundle contents: https://www.thegamesteward.com/products/slay-the-spire-collectors-edition-kickstarter-edition-board-game
+    tips.unshift(
+      {
+        name: 'Claw Pack',
+        text: "An optional Kickstarter bonus pack of eight alternate Claw cards for the Defect, inspired by the video game's self-scaling Claw builds. Included in Kickstarter Collector's Edition bundles, not the standard retail game. The printed card is simply Claw; this app adds '(Claw Pack)' to identify the variant.",
+      },
+      {
+        name: 'Claw cubes',
+        text: `${COMBAT_TOKEN_HELP.clawCubes} Regular Claw instead gains bonus damage when the top card of your discard pile costs 0.`,
+      },
+    )
+  }
   keywordTips.set(def, tips)
   return tips
 }

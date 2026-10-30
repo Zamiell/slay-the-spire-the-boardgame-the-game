@@ -71,7 +71,7 @@ const focusedUiOwners = ownerMap([
   ['src/ui/StatsScreen.tsx', ['verify-stats-browser.mjs', 'verify-skin-cards-browser.mjs']],
   ['src/ui/skin-context.tsx', ['verify-skin-cards-browser.mjs', 'verify-card-rendering-browser.mjs']],
   ['src/ui/Card.tsx', ['verify-card-rendering-browser.mjs', 'verify-skin-cards-browser.mjs', 'verify-card-damage-preview-browser.mjs',
-    'verify-enemy-card-cube-browser.mjs']],
+    'verify-enemy-card-cube-browser.mjs', 'verify-claw-cubes-browser.mjs']],
   ['src/ui/CardFace.tsx', ['verify-card-rendering-browser.mjs', 'verify-skin-cards-browser.mjs']],
   ['src/ui/ShopScreen.tsx', ['verify-shop-browser.mjs', 'verify-wallet-sync-browser.mjs', 'verify-skin-cards-browser.mjs', 'verify-monogatari-skins-browser.mjs']],
   ['src/ui/styles/shop.css', ['verify-shop-browser.mjs']],

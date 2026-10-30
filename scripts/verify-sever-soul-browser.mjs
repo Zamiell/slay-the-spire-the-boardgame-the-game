@@ -43,13 +43,15 @@ try {
     base.combat.enemies = [{ ...base.combat.enemies[0], uid: 'target', defId: 'small_slime',
       hp: 30, maxHp: 30, block: 0, vulnerable: 0, dead: false }]
     let fixtureNumber = 0
-    const setHand = async (hand) => {
+    const setHand = async (hand, draw = [], energy = 2) => {
       const fixture = structuredClone(base)
       fixture.combat.combatId = `sever-${screen}-${fixtureNumber++}`
       fixture.combat.players[0].hand = hand
+      fixture.combat.players[0].draw = draw
+      fixture.combat.players[0].energy = energy
       await page.evaluate(run => window.__STS_DEBUG__.setRun(run), fixture)
       await page.waitForFunction(id => window.__STS_DEBUG__.getState()?.combatId === id, fixture.combat.combatId)
-      await page.locator('.hand .card[title^="Sever Soul"]').waitFor()
+      await page.locator('.hand .card').first().waitFor()
     }
     const activate = locator => phone ? locator.tap() : locator.click()
     const play = async (name) => {
@@ -63,6 +65,21 @@ try {
       await dialog.waitFor({ state: 'detached' })
       await activate(page.locator('[data-enemy-id="target"] .enemy__head'))
     }
+
+    await setHand([card('havoc', 'havoc'), ...fuel], [sever], 1)
+    await play('Havoc')
+    await dialog.waitFor()
+    assert.equal(await dialog.getByRole('button', { name: 'Cancel', exact: true }).count(), 0)
+    await dialog.focus()
+    await page.keyboard.press('Escape')
+    assert(await dialog.isVisible(), 'Havoc’s mandatory choice cannot be dismissed')
+    await activate(dialog.locator('.card[title="Defend"]'))
+    await finish()
+    await page.waitForFunction(() => !window.__STS_DEBUG__.getState().startTurnProgress?.forcedCard)
+    const havocPlayed = await read()
+    assert.equal(havocPlayed.enemies[0].hp, 27)
+    assert.equal(havocPlayed.players[0].energy, 0)
+    assert.deepEqual(havocPlayed.players[0].exhaust.map(card => card.uid).sort(), ['defend', 'sever'])
 
     await setHand([sever, ...fuel])
     const before = await read()

@@ -1911,6 +1911,8 @@ function CombatScreenView({
     severSoulExhaustCards.length)
   const severSoulExhaustOpen = severSoulExhaustCards.length > 0 &&
     (!pending?.choiceConfirmed || pending.picked.length < severSoulExhaustMinimum)
+  const severSoulCanCancel = Boolean(pending && (pending.cardInHand || pending.chamberPlay) &&
+    pending.card.uid !== forcedCardUid)
   useEffect(() => {
     const dialog = choiceDialogRef.current
     if (!dialog) return
@@ -4206,6 +4208,7 @@ function CombatScreenView({
     // A normal staged card can be cancelled. A card that already revealed
     // hidden information is committed and must be finished.
     if (pending?.card.uid === card.uid) {
+      if (card.uid === forcedCardUid) return
       if (pending.choiceCards && pending.choice?.kind !== 'recover' &&
         pending.choice?.kind !== 'recoverExhaust') return
       setPending(null)
@@ -6514,7 +6517,7 @@ function CombatScreenView({
           aria-labelledby="hand-exhaust-title" aria-describedby="hand-exhaust-description"
           onCancel={(event) => {
             event.preventDefault()
-            if (!usingCard && (pending.cardInHand || pending.chamberPlay)) setPending(null)
+            if (!usingCard && severSoulCanCancel) setPending(null)
           }}>
           <div className="choice-modal__panel">
             <h2 id="hand-exhaust-title">{severSoulExhaustMaximum === 1
@@ -6539,7 +6542,7 @@ function CombatScreenView({
                 onClick={() => stageOrCommit({ ...pending, choiceConfirmed: true })}>
                 Exhaust {pending.picked.length || 'selected'} card{pending.picked.length === 1 ? '' : 's'}
               </button>
-              {pending.cardInHand || pending.chamberPlay ? <button type="button" disabled={usingCard}
+              {severSoulCanCancel ? <button type="button" disabled={usingCard}
                 onClick={() => setPending(null)}>Cancel</button> : null}
             </div>
           </div>

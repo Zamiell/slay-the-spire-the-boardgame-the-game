@@ -204,6 +204,7 @@ import {
 } from './PowerRow.tsx'
 import { RedCubeIcon, OrbRow, TokenRow, orbDisplayValue } from './TokenRow.tsx'
 import { IncomingDamage } from './IncomingDamage.tsx'
+import { relicTooltipText } from './RelicChip.tsx'
 import { COMBAT_TOKEN_HELP } from './combat-token-help.ts'
 import { useHandLayout } from './combat-screen/useHandLayout.ts'
 import {
@@ -6008,9 +6009,10 @@ function CombatScreenView({
           <section aria-label="Relic abilities">
           {viewer.relics.flatMap((held, relicIndex) => {
             const def = relicDef(held.defId)
+            const description = relicTooltipText(held.defId, state.die)
             const simpleAction = <PotionTooltipAnchor id={held.defId} key={`${held.defId}-${relicIndex}`}
-              name={def.name} text={def.text} kindLabel="Relic" confirmLabel="use">
-              <button type="button" aria-label={`Use ${def.name}${held.cubes !== undefined ? ` (${held.cubes})` : ''}: ${def.text}`}
+              name={def.name} text={description} kindLabel="Relic" confirmLabel="use">
+              <button type="button" aria-label={`Use ${def.name}${held.cubes !== undefined ? ` (${held.cubes})` : ''}: ${description}`}
                 onClick={() => useRelic(relicIndex)}>
                 <img className="item-icon-image" src={relicIconPath(held.defId)} alt="" />
               </button>
@@ -6020,8 +6022,8 @@ function CombatScreenView({
             if (!canUseRelicNow(relicIndex)) return []
             const choiceSummary = (confirmLabel?: string) =>
               <PotionTooltipAnchor as="summary" className="relic-action__icon" id={held.defId}
-                name={def.name} text={def.text} kindLabel="Relic" confirmLabel={confirmLabel}
-                aria-label={`Use ${def.name}: ${def.text}`}>
+                name={def.name} text={description} kindLabel="Relic" confirmLabel={confirmLabel}
+                aria-label={`Use ${def.name}: ${description}`}>
                 <img className="item-icon-image" src={relicIconPath(held.defId)} alt="" />
                 <span className="visually-hidden">{def.name}</span>
               </PotionTooltipAnchor>

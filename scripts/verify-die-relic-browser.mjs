@@ -96,6 +96,44 @@ try {
     loadedRun.players[0].relics = structuredClone(loadedRun.combat.players[0].relics)
     loadedRun.players[0].gold = 1
     loadedRun.combat.players[0].gold = 1
+    for (const [die, result] of [[1, 6], [2, 1], [3, 2], [4, 3], [5, 4], [6, 5]]) {
+      await page.mouse.move(2, 2)
+      await page.locator('.potion-tip').filter({ hasText: 'Toolbox' }).waitFor({ state: 'hidden' })
+      await page.evaluate(run => window.__STS_DEBUG__.setRun(run), {
+        ...loadedRun, combat: { ...loadedRun.combat, die },
+      })
+      const expected = `-1 to the die result (${die} --> ${result})`
+      const toolbox = page.locator('.relic-bar [data-relic="toolbox"]')
+      await toolbox.hover()
+      const help = toolbox.locator('.relic-tip')
+      await help.waitFor()
+      assert((await help.innerText()).includes(expected), `${name}: header must preview ${die} to ${result}`)
+      assert((await toolbox.getAttribute('aria-label')).includes(expected))
+      await page.keyboard.press('Escape')
+      await page.mouse.move(2, 2)
+      const action = page.getByRole('button', { name: /^Use Toolbox:/ })
+      await action.hover()
+      const actionHelp = page.locator('.potion-tip').filter({ hasText: 'Toolbox' })
+      await actionHelp.waitFor()
+      assert((await actionHelp.innerText()).includes(expected), `${name}: action tooltip must match the header`)
+      assert((await action.getAttribute('aria-label')).includes(expected))
+      if (die === 5) await page.screenshot({ path: `${out}/${name}-toolbox-preview.png` })
+      if (die === 1 || die === 6) {
+        await action.click()
+        await page.waitForFunction(result => window.__STS_DEBUG__.getRun().combat.die === result, result)
+        await toolbox.hover()
+        await help.waitFor()
+        assert((await help.innerText()).includes(`(${result} --> ${result === 1 ? 6 : result - 1})`),
+          'a changed roll must immediately update the held-relic tooltip')
+        assert((await help.innerText()).includes('Face down'))
+      }
+    }
+    await page.evaluate(run => window.__STS_DEBUG__.setRun(run), { ...loadedRun, phase: 'map', combat: null })
+    const outsideToolbox = page.locator('.relic-bar [data-relic="toolbox"]')
+    await outsideToolbox.hover()
+    await outsideToolbox.locator('.relic-tip').waitFor()
+    assert((await outsideToolbox.locator('.relic-tip').innerText()).includes('(1 becomes 6)'),
+      'outside combat, Toolbox must show its general rule rather than a stale roll')
     await page.evaluate(run => window.__STS_DEBUG__.setRun(run), loadedRun)
     const relicsClearOfBar = () => page.waitForFunction(() => {
       const bar = document.querySelector('.combat__bar').getBoundingClientRect()

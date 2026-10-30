@@ -206,7 +206,7 @@ try {
     // Storm+ channels again into full slots: the second choice shows the planned Lightning in slot 3.
     await orbButton('lightning', 3).waitFor()
     await orbButton('frost', 2).click()
-    await page.getByRole('button', { name: 'Resolve start of turn' }).click()
+    await page.getByRole('button', { name: 'Resolve start of turn 1', exact: true }).click()
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.phase === 'player')
     const stormHp = await hp()
     assert(stormHp[0] === 30 && stormHp[1] < 30, `${name}: Storm's Dark Evoke missed its aimed enemy: ${stormHp}`)
@@ -234,7 +234,7 @@ try {
       `${name}: a re-opened start-of-turn source stayed armed`)
     await drag(startSource.locator('.end-turn-effect--relic'), 'e1')
     await startSource.waitFor({ state: 'detached' })
-    await page.getByRole('button', { name: 'Resolve start of turn' }).click()
+    await page.getByRole('button', { name: 'Resolve start of turn 1', exact: true }).click()
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.phase === 'player')
     assert.deepEqual(await hp(), [30, 26], `${name}: Stone Calendar hit the wrong enemy`)
 
@@ -244,7 +244,7 @@ try {
     assert.equal(await visibleCaption(), 'Drag to an enemy')
     await drag(startSource.locator('.end-turn-effect--card'), 'e1')
     await startSource.waitFor({ state: 'detached' })
-    await page.getByRole('button', { name: 'Resolve start of turn' }).click()
+    await page.getByRole('button', { name: 'Resolve start of turn 1', exact: true }).click()
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.phase === 'player')
     assert.deepEqual((await combat()).enemies.map((enemy) => enemy.poison), [0, 1], `${name}: Noxious Fumes poisoned the wrong enemy`)
 

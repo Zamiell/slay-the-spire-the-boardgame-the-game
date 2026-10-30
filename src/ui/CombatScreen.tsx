@@ -5412,7 +5412,7 @@ function CombatScreenView({
                   : canResolveStartTurn
                   ? partyStartTurnOrderPending && viewer.id === startTurnCoordinatorId ? 'Confirm start-of-turn order'
                     : startTurnChoiceId && viewer.id === fumesOwnerId ? 'Confirm Noxious Fumes target'
-                      : startTurnCount ? `Resolve start turn ${startTurnCount}` : 'Resolve start of turn'
+                      : startTurnCount ? `Resolve start turn ${startTurnCount}` : `Resolve start of turn ${state.turn}`
                   : startTurnCount ? `Resolve start turn ${startTurnCount}` : startTurnCoordinator
                     ? `Waiting for ${startTurnCoordinator.name}` : 'Waiting for start-turn order'}
                 </button> : null}

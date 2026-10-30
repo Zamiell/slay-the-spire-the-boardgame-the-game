@@ -1375,7 +1375,7 @@ const startTurnTargetLabel = await page.locator('.enemy--targeted:not([disabled]
 const startTurnTarget = startTurnInspection.controls.find((control) => control.label === startTurnTargetLabel)
 if (!startTurnTarget) throw new Error(`WebMCP did not expose a start-turn target: ${JSON.stringify(startTurnInspection)}`)
 const startTurnTargeted = await interact(startTurnTarget.id)
-const resolveStartTurn = startTurnTargeted.controls.find((control) => control.label === 'Resolve start of turn')
+const resolveStartTurn = startTurnTargeted.controls.find((control) => /^Resolve start of turn \d+$/.test(control.label))
 if (!resolveStartTurn) throw new Error(`WebMCP did not expose start-turn resolution: ${JSON.stringify(startTurnTargeted)}`)
 const startTurnResolved = await interact(resolveStartTurn.id)
 const startTurnFlow = {

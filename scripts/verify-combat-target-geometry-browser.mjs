@@ -360,7 +360,7 @@ try {
           })
           await page.locator('.character-attack').waitFor({ state: 'attached' })
           await page.waitForTimeout(2000)
-          const resolveStart = page.getByRole('button', { name: 'Resolve start of turn', exact: true })
+          const resolveStart = page.getByRole('button', { name: /^Resolve start of turn \d+$/ })
           assert((await resolveStart.evaluate(e => getComputedStyle(e).clipPath)).includes('16px'))
           assert((await resolveStart.evaluate(e => getComputedStyle(e).transition)).includes('0.24s'))
           await page.screenshot({ path: resolve(output, `${engineName}-${screen}-${orb}-${partySize}-resolve.png`) })

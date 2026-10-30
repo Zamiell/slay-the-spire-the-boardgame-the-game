@@ -378,7 +378,7 @@ try {
   await page.screenshot({ path: join(output, 'start-turn-oddly-smooth-stone-target-desktop.png'), fullPage: true })
   const staleVfxCount = await page.locator('.combat-vfx').count()
   await drag(relic, page.locator('.seat[data-player-id="relic-ally"]'))
-  await page.getByRole('button', { name: 'Resolve start of turn', exact: true }).click()
+  await page.getByRole('button', { name: /^Resolve start of turn \d+$/ }).click()
   const desktopImpact = page.locator(
     '.seat[data-player-id="relic-ally"] .combat-vfx[data-vfx-kind="turn"][data-vfx-source="oddly_smooth_stone"]',
   )
@@ -412,7 +412,7 @@ try {
   await page.screenshot({ path: join(output, 'start-turn-oddly-smooth-stone-target-horizontal-phone.png'), fullPage: true })
   await phoneRelic.click()
   await page.locator('.seat[data-player-id="relic-ally"]').press('Enter')
-  await page.getByRole('button', { name: 'Resolve start of turn', exact: true }).click()
+  await page.getByRole('button', { name: /^Resolve start of turn \d+$/ }).click()
   const phoneImpact = page.locator(
     '.seat[data-player-id="relic-ally"] .combat-vfx[data-vfx-kind="turn"][data-vfx-asset="turn-block-impact"]',
   )

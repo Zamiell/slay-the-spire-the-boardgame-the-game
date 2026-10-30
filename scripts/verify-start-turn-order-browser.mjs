@@ -39,6 +39,8 @@ try {
     const viewerId = await page.evaluate(() => window.__STS_DEBUG__.getRun().players[0].id)
     let fixtureId = 0
     async function load({ phase = 'start', character = 'silent', player = {}, teammate } = {}) {
+      await page.mouse.move(2, 2)
+      await page.evaluate(() => document.activeElement?.blur())
       await page.waitForFunction(() => !document.querySelector('.card-flight-effect'))
       const run = createRun(517, [{ id: viewerId, name: 'Silent', character },
         ...(teammate ? [{ id: 'mate', name: 'Mate', character: 'defect' }] : [])])
@@ -64,8 +66,11 @@ try {
     }
     const panel = page.locator('.start-turn-order')
     const names = () => panel.locator('.start-turn-order__name').allTextContents()
-    const settle = () => page.evaluate(() => Promise.all(document.getAnimations().map((animation) =>
-      animation.effect?.getTiming().iterations === Infinity ? null : animation.finished.catch(() => null))))
+    const settle = async () => {
+      await page.evaluate(() => Promise.all(document.getAnimations().map((animation) =>
+        animation.effect?.getTiming().iterations === Infinity ? null : animation.finished.catch(() => null))))
+      await page.waitForFunction(() => !document.querySelector('.hand[data-hand-moving], .hand .card--drawn'))
+    }
     // The panel must fit the viewport (a long list scrolls inside it) and leave
     // the hand, the enemies and the resolve button uncovered.
     async function layout() {
@@ -142,7 +147,12 @@ try {
     await page.locator('.start-turn-order > summary').click()
     assert.equal(await panel.locator('ol').isVisible(), false, `${name}: the summary no longer collapses the panel`)
     await page.locator('.start-turn-order > summary').click()
-    await page.getByRole('button', { name: 'Resolve start of turn', exact: true }).click()
+    assert(await page.evaluate(async () => {
+      const { queryRunLogControl } = await import('/src/ui/run-log.ts')
+      return queryRunLogControl(document, { selector: 'button', name: 'Resolve start of turn' })
+        ?.textContent === 'Resolve start of turn 2'
+    }), 'legacy replay controls must still find the numbered start-of-turn button')
+    await page.getByRole('button', { name: 'Resolve start of turn 2', exact: true }).click()
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.phase === 'player')
     const solo = await page.evaluate(() => window.__STS_DEBUG__.getRun().combat)
     assert.deepEqual(solo.enemies.map((enemy) => enemy.poison), [0, 1], `${name}: Noxious Fumes poisoned the wrong enemy`)
@@ -192,7 +202,7 @@ try {
     assert.equal(await page.locator('.hand .card.card--picked').count(), 1, `${name}: the chosen card is not marked alone`)
     assert.match(await page.locator('.hand .card').nth(1).getAttribute('class'), /card--picked/)
     await page.screenshot({ path: `${out}/${name}-exhaust-picked.png` })
-    await page.getByRole('button', { name: 'Resolve start of turn', exact: true }).click()
+    await page.getByRole('button', { name: 'Resolve start of turn 2', exact: true }).click()
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.phase === 'player')
     assert.deepEqual(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.players[0].exhaust.map((card) => card.uid)),
       ['ws-hand-1'], `${name}: Worthy Sacrifice exhausted the wrong card`)
@@ -218,7 +228,7 @@ try {
     assert.equal(await page.locator('.hand .card.card--load-choice').count(), 0, `${name}: the viewer's hand offers a teammate's Exhaust`)
     assert.equal(await page.locator('.card').count(), 2, `${name}: a teammate's card appeared on this seat`)
     assert.equal(await page.locator('.combat > .prompt').textContent(), 'Waiting for Mate to choose a card to Exhaust')
-    const resolve = page.getByRole('button', { name: 'Resolve start of turn', exact: true })
+    const resolve = page.getByRole('button', { name: 'Resolve start of turn 2', exact: true })
     assert(await resolve.isDisabled(), `${name}: the start of turn resolves without the teammate's Exhaust`)
     await page.screenshot({ path: `${out}/${name}-exhaust-teammate.png` })
     await page.evaluate(() => window.__STS_DEBUG__.setViewer('mate'))

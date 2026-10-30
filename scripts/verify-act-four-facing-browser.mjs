@@ -59,7 +59,7 @@ try {
     const activate = locator => phone ? locator.tap() : locator.click()
     const enemy = uid => page.locator(`[data-enemy-id="${uid}"]`)
     const target = uid => activate(enemy(uid).locator('.enemy__hit-area'))
-    const resolve = () => activate(page.getByRole('button', { name: 'Resolve start of turn', exact: true }))
+    const resolve = () => activate(page.getByRole('button', { name: /^Resolve start of turn \d+$/ }))
     const playerPhase = () => page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.phase === 'player')
     async function inspect(screen, label, { cues = 0, rowLabels = 0 } = {}) {
       await page.mouse.move(0, 0)

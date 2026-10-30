@@ -7144,7 +7144,7 @@ function CombatScreenView({
                       onThrowSkipped={onCultistThrowSkipped}
                       stageIndex={stageEnemies.findIndex((candidate) => candidate.uid === enemy.uid)}
                       inspectionEnabled={enemyInspectionEnabled}
-                      rowLabel={facingEnemies.some((facing) => facing.uid === enemy.uid) ? undefined : occupant?.name}
+                      rowLabel={state.players.length === 1 || facingEnemies.some((facing) => facing.uid === enemy.uid) ? undefined : occupant?.name}
                       defender={facingEnemies.some((facing) => facing.uid === enemy.uid)
                         ? state.players.find((player) => !player.dead && player.id === viewerId && player.facingEnemyUid === enemy.uid) ??
                           state.players.find((player) => !player.dead && player.facingEnemyUid === enemy.uid)

@@ -768,6 +768,7 @@ export function Card({
   const buttonRef = useRef<HTMLButtonElement | null>(null)
   useButtonShortcut(buttonRef, shortcutKey, playable)
   const touchNeedsInspection = useRef(false)
+  const blockedMousePress = useRef(false)
   const def = faceOf(cardDef(card.defId), card.upgraded)
   const attachedGem = card.attachedGemId ? faceOf(cardDef(card.attachedGemId), false) : null
   const skin = useCardSkin(def)
@@ -808,6 +809,11 @@ export function Card({
       onPointerDown={(event) => {
         touchNeedsInspection.current = inspectOnTouch && event.pointerType === 'touch' &&
           document.activeElement !== event.currentTarget
+        blockedMousePress.current = event.pointerType === 'mouse' && !playable
+        if (blockedMousePress.current) {
+          event.preventDefault()
+          return
+        }
         onPointerDown?.(event)
       }}
       onPointerMove={onPointerMove}
@@ -817,11 +823,14 @@ export function Card({
       onClick={(event) => {
         const inspect = touchNeedsInspection.current && event.detail !== 0
         touchNeedsInspection.current = false
+        // A disabled mouse press stays blocked even if the turn begins before release.
+        const blocked = blockedMousePress.current && event.detail !== 0
+        blockedMousePress.current = false
         if (inspect) {
           event.currentTarget.focus({ preventScroll: true })
           return
         }
-        if (!playable) {
+        if (blocked || !playable) {
           event.preventDefault()
           return
         }

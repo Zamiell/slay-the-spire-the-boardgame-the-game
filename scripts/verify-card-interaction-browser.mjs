@@ -26,19 +26,24 @@ try {
     }
     await page.waitForFunction(() => window.__STS_DEBUG__?.getRun().phase === 'neow')
     let nonce = 0
-    const fixture = async ({ skill = 'defend_ironclad', doubled = 0, party = false, chamber = false } = {}) => {
+    const fixture = async ({ skill = 'defend_ironclad', doubled = 0, party = false, chamber = false, phase = 'player' } = {}) => {
       const run = postNeowRun(47, [{ id: 'p1', name: 'Player', character: chamber ? 'hermit' : 'ironclad' },
         ...party ? [{ id: 'p2', name: 'Silent', character: 'silent' }] : []])
       const room = run.map.rows[0][0]
       run.map.rooms[room].kind = 'encounter'
       const next = enterRoom(run, room)
-      next.combat.phase = 'player'
+      next.combat.phase = phase
+      if (phase === 'start') {
+        next.combat.die = 4
+        next.combat.startTurnStage = 'effects'
+      }
       next.combat.combatId = `interaction-${++nonce}`
       const actor = next.combat.players[0]
       next.combat.pendingHermitSetupLoads = []
       actor.energy = 9
       actor.block = 0
-      actor.relics = []
+      actor.relics = phase === 'start'
+        ? [{ defId: 'gambling_chip', spent: false }, { defId: 'loaded_die', spent: false }] : []
       actor.doubledCardsThisTurn = doubled
       actor.hand = [
         { uid: 'strike', defId: 'strike_ironclad', upgraded: false },
@@ -66,6 +71,49 @@ try {
       await page.mouse.down()
       return point
     }
+    const settleHand = () => page.waitForFunction(() => !document.querySelector('.hand[data-hand-moving]'))
+    await fixture({ phase: 'start' })
+    await page.locator('.start-turn-order').waitFor()
+    const startBefore = await snapshot()
+    for (const name of ['Strike', 'Defend', 'Bash']) {
+      const card = page.locator(`.hand .card[title="${name}"]`)
+      assert.equal(await card.getAttribute('aria-disabled'), 'true')
+      await card.hover()
+      await settleHand()
+      const box = await card.boundingBox()
+      await page.mouse.click(box.x + box.width / 2, box.y + box.height / 4)
+      await page.mouse.move(2, 2)
+      await settleHand()
+      assert.equal(await page.locator('.card-interaction').count(), 0, 'start-turn cards must not be picked up')
+      assert.equal(await card.getAttribute('data-hand-focused'), null,
+        `${name}: clicking a disabled card must not leave it stuck above the hand`)
+      assert.equal(await snapshot(), startBefore, 'a disabled start-turn click changed combat')
+    }
+    const blockedCard = page.locator('.hand .card[title="Defend"]')
+    await lift('Defend')
+    await page.mouse.move(400, 100, { steps: 4 })
+    await page.mouse.up()
+    assert.equal(await page.locator('.card-interaction').count(), 0, 'dragging during start turn must remain disabled')
+    await blockedCard.focus()
+    await page.keyboard.press('Enter')
+    assert.equal(await snapshot(), startBefore, 'keyboard inspection must not play a start-turn card')
+    await blockedCard.evaluate(card => card.blur())
+    await blockedCard.hover()
+    await settleHand()
+    await page.mouse.down()
+    await page.evaluate(() => {
+      const run = structuredClone(window.__STS_DEBUG__.getRun())
+      run.combat.phase = 'player'
+      window.__STS_DEBUG__.setRun(run)
+    })
+    await page.waitForFunction(() => document.querySelector('.hand .card[title="Defend"]')?.getAttribute('aria-disabled') === 'false')
+    const afterPhaseChange = await snapshot()
+    await page.mouse.up()
+    assert.equal(await snapshot(), afterPhaseChange, 'a press that began disabled must not play on release after the phase changes')
+    await pickUpCard(page, blockedCard)
+    await confirmCardPlay(page)
+    await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.players[0].block === 1)
+
     await fixture()
     const before = await snapshot()
     const origin = await lift('Strike')

@@ -12,7 +12,7 @@ import { cardDef, cardIsCurse, faceOf } from '../cards.ts'
 import { availableTransformRewards, healingCapFor, transformCard } from '../acquisition.ts'
 import { gainBlock, gainStrength } from '../damage.ts'
 import { scry } from '../piles.ts'
-import { chosenDieRelicAbilities, potionDef, relicDef } from '../relics.ts'
+import { chosenDieRelicAbilities, manualDieRelicFaces, potionDef, relicDef } from '../relics.ts'
 import { nextInt } from '../rng.ts'
 import { CAPS } from '../types.ts'
 import type { Player } from '../types.ts'
@@ -72,16 +72,15 @@ export function canActivateRelic(state: CombatState, player: Player, relicIndex:
   const postRoll = oncePerRoll || ['gambling_chip', 'the_abacus', 'toolbox', 'fuel_canister'].includes(heldId)
   if (!manual || held.spent || heldId === 'the_courier' ||
     postRoll && (state.phase !== 'start' || state.startTurnProgress)) return false
+  const faces = manualDieRelicFaces(held.defId)
+  if (faces && !faces.includes(state.die)) return false
   if (state.pendingRelicScry) return ownScry
   if (heldId === 'centennial_puzzle' && !player.lostHpThisCombat ||
     heldId === 'mummified_hand' && !player.powerPlayedThisTurn ||
     heldId === 'self_forming_clay' && !player.lostHpThisCombat ||
     heldId === 'holy_water' && (held.cubes ?? 0) < 1 ||
-    heldId === 'charons_ashes' && (state.die > 2 || publicHandCount(player) === 0) ||
-    heldId === 'dollys_mirror' && state.die !== 1 ||
-    heldId === 'nilrys_codex' && state.die !== (held.defId === 'downfall_nilrys_codex' ? 2 : 4) ||
-    heldId === 'loaded_die' && state.die !== 6) return false
-  if (heldId === 'fuel_canister' && (!state.die || state.die > 2 || publicHandCount(player) === 0) ||
+    heldId === 'charons_ashes' && publicHandCount(player) === 0) return false
+  if (heldId === 'fuel_canister' && publicHandCount(player) === 0 ||
     heldId === 'makeshift_battery' && !player.hand.some((card) =>
       cardDef(card.defId).type === 'status' || cardIsCurse(card.defId)) ||
     heldId === 'unceasing_top' && publicHandCount(player) > 1 ||

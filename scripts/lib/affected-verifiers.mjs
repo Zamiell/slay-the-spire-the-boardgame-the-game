@@ -83,6 +83,7 @@ const focusedUiOwners = ownerMap([
   ['src/ui/styles/shop.css', ['verify-shop-browser.mjs']],
   ['src/ui/LeaderboardScreen.tsx', ['verify-leaderboard-browser.mjs']],
   ['src/ui/CombatScreen.tsx', [
+    'verify-die-breakdown-browser.mjs',
     'verify-flurry-stance-browser.mjs',
     'verify-relic-action-icons-browser.mjs',
     'verify-temporary-status-browser.mjs',
@@ -158,6 +159,8 @@ const focusedUiOwners = ownerMap([
   ['src/ui/styles/title-menu.css', ['verify-run-replay-browser.mjs', 'verify-replay-controls-browser.mjs', 'verify-title-menu-browser.mjs']],
 ])
 const focusedOnlyUiOwners = ownerMap([
+  ...['src/ui/CombatDie.tsx', 'src/ui/combat-die-breakdown.ts', 'src/ui/styles/combat-die.css']
+    .map(file => [file, ['verify-die-breakdown-browser.mjs']]),
   ...['src/ui/draw-lock-text.ts', 'src/ui/DrawLockedRules.tsx', 'src/ui/card-draw-strikes.json',
     'src/ui/styles/draw-locked-rules.css', 'src/ui/KeywordText.tsx']
     .map(file => [file, ['verify-draw-lock-browser.mjs']]),

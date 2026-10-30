@@ -128,6 +128,7 @@ try {
     await vajraTip.waitFor()
     assert.equal(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun().combat)), beforeInspection,
       'hovering or focusing Vajra must not trigger its ability')
+    await page.mouse.move(2, 2)
     await loadedChoices.getByRole('group', { name: /Red Mask · die 5\/6/ }).getByRole('img').focus()
     await page.locator('.potion-tip').filter({ hasText: 'Red Mask' }).waitFor()
     assert.equal(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun().combat)), beforeInspection,

@@ -497,6 +497,20 @@ export function chosenDieRelicAbilities(def: RelicDef): RelicAbility[] {
   return abilities
 }
 
+const MANUAL_DIE_RELIC_FACES: Readonly<Record<string, readonly number[]>> = {
+  charons_ashes: [1, 2],
+  dollys_mirror: [1],
+  nilrys_codex: [4],
+  downfall_nilrys_codex: [2],
+  loaded_die: [6],
+  fuel_canister: [1, 2],
+}
+
+/** Roll restrictions for manually activated die abilities, including copied-relic choices. */
+export function manualDieRelicFaces(defId: string): readonly number[] | undefined {
+  return MANUAL_DIE_RELIC_FACES[defId] ?? MANUAL_DIE_RELIC_FACES[defId.replace(/^downfall_/, '')]
+}
+
 export const ORDINARY_RELIC_IDS = Object.freeze(Object.values(RELICS)
   .filter((def) => def.pool === 'ordinary').map((def) => def.id))
 export const BOSS_RELIC_IDS = Object.freeze(Object.values(RELICS)

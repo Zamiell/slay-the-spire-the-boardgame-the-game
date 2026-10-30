@@ -203,6 +203,18 @@ function intentParts(action: EnemyAction, swing: (printed: number) => number): I
   }
 }
 
+/** Printed actions for a die reference, deliberately excluding live attack modifiers. */
+export function enemyDieActionText(actions: readonly EnemyAction[]): string {
+  return actions.flatMap(action => intentParts(action, amount => amount))
+    .filter(part => !part.echo)
+    .map(part => [
+      part.value === undefined ? '' : `${part.prefix ?? ''}${part.value}`,
+      part.label ?? (part.icon === 'attack' ? 'damage' : part.icon),
+      part.times ? `x${part.times}` : '',
+      part.aoe ? 'to all players' : '',
+    ].filter(Boolean).join(' ')).join('; ') || 'No action.'
+}
+
 /**
  * The enemy button's accessible name.
  *

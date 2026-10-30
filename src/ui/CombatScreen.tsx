@@ -192,7 +192,8 @@ import type { ActionOutcome, VisiblePlayer } from '../multiplayer/useRoomSession
 import { Card, slimeCommandText } from './Card.tsx'
 import { CardCollectionOverlay } from './CardCollectionOverlay.tsx'
 import { EnemyCard } from './EnemyCard.tsx'
-import { Icon, IconValue, StatusIcon, dieIcon } from './Icon.tsx'
+import { Icon, IconValue, StatusIcon } from './Icon.tsx'
+import { CombatDie } from './CombatDie.tsx'
 import { PotionTooltipAnchor } from './PotionIcon.tsx'
 import {
   PowerGlyph,
@@ -5032,9 +5033,7 @@ function CombatScreenView({
     >
       {groundedVfx}
       <header ref={combatBarRef} className="combat__bar">
-        <span className="combat__die" title="The round's shared die">
-          <Icon name={dieIcon(state.die)} size={26} decorative={false} />
-        </span>
+        <CombatDie state={state} viewerId={viewerId} />
         <span key={`${state.turn}-${state.phase}`} className={`combat__phase combat__phase--${state.phase}`}>{state.phase === 'copy'
           ? `Resolve ${copyResolutionLabel ?? 'card'}`
           : hermitSetupPending ? 'Load 1 card'

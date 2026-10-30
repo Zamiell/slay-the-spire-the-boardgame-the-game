@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { cardDef, faceOf } from '../game/cards.ts'
 import type { CardInstance } from '../game/types.ts'
 import { Card } from './Card.tsx'
+import { CardInspectionDialog } from './CardInspectionDialog.tsx'
 import { useButtonShortcut } from './useButtonShortcut.ts'
 
 type CardCollectionOverlayProps = {
@@ -16,11 +17,12 @@ type CardCollectionOverlayProps = {
   drawLocked?: boolean
   sharedDrawLocked?: boolean
   stanceChangedThisTurn?: boolean
+  inspectable?: boolean
 }
 
 /** One read-only card viewer for the deck and combat piles. */
 export function CardCollectionOverlay({
-  cards, label, triggerClassName, children, dataPile, ordered = true, shortcut, drawLocked, sharedDrawLocked, stanceChangedThisTurn,
+  cards, label, triggerClassName, children, dataPile, ordered = true, shortcut, drawLocked, sharedDrawLocked, stanceChangedThisTurn, inspectable = false,
 }: CardCollectionOverlayProps) {
   const [open, setOpen] = useState(false)
   const trigger = useRef<HTMLButtonElement | null>(null)
@@ -31,19 +33,22 @@ export function CardCollectionOverlay({
       aria-keyshortcuts={shortcut?.toUpperCase()}
       title={shortcut ? `${label} (${shortcut.toUpperCase()})` : label} onClick={() => setOpen(true)}>{children}</button>
     <CardCollectionDialog cards={cards} label={label} open={open} ordered={ordered} shortcut={shortcut}
+      inspectable={inspectable}
       stanceChangedThisTurn={stanceChangedThisTurn}
       drawLocked={drawLocked} sharedDrawLocked={sharedDrawLocked} onClose={() => setOpen(false)} />
   </>
 }
 
-export function CardCollectionDialog({ cards, label, onClose, open = true, ordered = true, shortcut, drawLocked, sharedDrawLocked, stanceChangedThisTurn }: {
+export function CardCollectionDialog({ cards, label, onClose, open = true, ordered = true, shortcut, drawLocked, sharedDrawLocked, stanceChangedThisTurn, inspectable = false }: {
   cards: readonly CardInstance[]; label: string; onClose: () => void; open?: boolean; ordered?: boolean; shortcut?: string
   drawLocked?: boolean; sharedDrawLocked?: boolean
   stanceChangedThisTurn?: boolean
+  inspectable?: boolean
 }) {
   const [sort, setSort] = useState<'obtained' | 'type' | 'cost' | 'name'>(() => ordered ? 'obtained' : 'name')
   const [ascending, setAscending] = useState(true)
   const [viewUpgrades, setViewUpgrades] = useState(false)
+  const [inspectedUid, setInspectedUid] = useState<string | null>(null)
   const dialog = useRef<HTMLDialogElement | null>(null)
   const suppressedCloses = useRef(0)
   const closeButton = useRef<HTMLButtonElement | null>(null)
@@ -52,11 +57,9 @@ export function CardCollectionDialog({ cards, label, onClose, open = true, order
   const sortOptions = ordered
     ? ([['obtained', 'Obtained'], ['type', 'Card Type'], ['cost', 'Cost'], ['name', 'A - Z']] as const)
     : ([['type', 'Card Type'], ['cost', 'Cost'], ['name', 'A - Z']] as const)
-  const sortedCards = useMemo(() => cards.map((card, index) => ({
-    card: viewUpgrades && cardDef(card.defId).upgrade ? { ...card, upgraded: true } : card, index,
-  })).sort((left, right) => {
-    const leftDef = faceOf(cardDef(left.card.defId), left.card.upgraded)
-    const rightDef = faceOf(cardDef(right.card.defId), right.card.upgraded)
+  const sortedCards = useMemo(() => cards.map((card, index) => ({ card, index })).sort((left, right) => {
+    const leftDef = faceOf(cardDef(left.card.defId), left.card.upgraded || viewUpgrades && Boolean(cardDef(left.card.defId).upgrade))
+    const rightDef = faceOf(cardDef(right.card.defId), right.card.upgraded || viewUpgrades && Boolean(cardDef(right.card.defId).upgrade))
     const byName = leftDef.name.localeCompare(rightDef.name)
     const byType = leftDef.type.localeCompare(rightDef.type) || byName
     const leftCost = typeof leftDef.cost === 'number' ? leftDef.cost : Number.POSITIVE_INFINITY
@@ -88,8 +91,14 @@ export function CardCollectionDialog({ cards, label, onClose, open = true, order
     }
   }, [open])
 
+  useEffect(() => { if (!open) setInspectedUid(null) }, [open])
+
   return <dialog ref={dialog} className="choice-modal card-collection" aria-labelledby={titleId}
-      onClose={() => { if (suppressedCloses.current > 0) suppressedCloses.current -= 1; else onClose() }}>
+      onClose={(event) => {
+        if (event.target !== event.currentTarget) return
+        if (suppressedCloses.current > 0) suppressedCloses.current -= 1
+        else onClose()
+      }}>
       <div className="choice-modal__panel">
         <header className="card-collection__header"><h2 id={titleId}>{label}</h2>
           <span>{cards.length} card{cards.length === 1 ? '' : 's'}</span></header>
@@ -101,7 +110,9 @@ export function CardCollectionDialog({ cards, label, onClose, open = true, order
             </button>)}
         </div>
         <div className="choice-modal__cards">
-          {open ? sortedCards.map((card) => <Card key={card.uid} card={card} playable={false} hoverHelp
+          {open ? sortedCards.map((card) => <Card key={card.uid}
+            card={viewUpgrades && cardDef(card.defId).upgrade ? { ...card, upgraded: true } : card}
+            playable={inspectable} hoverHelp onClick={inspectable ? () => setInspectedUid(card.uid) : undefined}
             stanceChangedThisTurn={stanceChangedThisTurn}
             drawLocked={drawLocked} sharedDrawLocked={sharedDrawLocked} />) : null}
           {open && cards.length === 0 ? <span className="muted">No cards.</span> : null}
@@ -113,5 +124,8 @@ export function CardCollectionDialog({ cards, label, onClose, open = true, order
           onChange={(event) => setViewUpgrades(event.target.checked)} /> View Upgrades</label>
         </footer>
       </div>
+      {open && inspectedUid !== null ? <CardInspectionDialog cards={sortedCards} initialCardUid={inspectedUid}
+        viewAllUpgraded={viewUpgrades} onClose={() => setInspectedUid(null)}
+        drawLocked={drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn} /> : null}
     </dialog>
 }

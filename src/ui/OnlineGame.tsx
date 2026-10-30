@@ -805,7 +805,7 @@ export function OnlineGame({ onLocal, settings, onSettings }: Props) {
         <VoiceControls voice={voice} seats={snapshot.seats} connected={room.connection === 'connected'}
           volume={settings.voiceVolume} compact />
         {viewer?.deck ? (
-          <CardCollectionOverlay cards={viewer.deck} label="Current deck" triggerClassName="deck-peek__open" shortcut="d"
+          <CardCollectionOverlay cards={viewer.deck} label="Current deck" triggerClassName="deck-peek__open" shortcut="d" inspectable
             stanceChangedThisTurn={run.phase === 'combat' ? run.combat?.viewerStanceChangedThisTurn : undefined}
             drawLocked={run.phase === 'combat' && headerViewer?.drawLocked}
             sharedDrawLocked={combat?.players.filter(player => !player.dead).every(player => player.drawLocked)}>

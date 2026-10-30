@@ -64,9 +64,11 @@ const focusedUiOwners = ownerMap([
   ['src/ui/chrome/rewards.css', ['verify-loot-browser.mjs', 'verify-boss-relic-picker-browser.mjs']],
   ['src/ui/combat-screen/StartTurnOrder.tsx', ['verify-start-turn-order-browser.mjs']],
   ['src/ui/CardCollectionOverlay.tsx', [
+    'verify-deck-inspection-browser.mjs',
     'verify-flurry-stance-browser.mjs',
     'verify-card-tooltip-browser.mjs', 'verify-card-picker-browser.mjs', 'verify-keyboard-browser.mjs', 'verify-pile-controls-browser.mjs',
   ]],
+  ['src/ui/styles/card-picker.css', ['verify-card-picker-browser.mjs', 'verify-deck-inspection-browser.mjs']],
   ['src/ui/App.tsx', ['verify-ascension-sync-browser.mjs', 'verify-restricted-browser.mjs', 'verify-run-replay-browser.mjs', 'verify-replay-controls-browser.mjs', 'verify-courier-browser.mjs',
     'verify-combat-vfx-preload-browser.mjs', 'verify-tutorial-browser.mjs', 'verify-enemy-hover-browser.mjs', 'verify-skin-browser.mjs']],
   ['src/ui/CampfireScene.tsx', ['verify-art-scenes-browser.mjs', 'verify-skin-browser.mjs']],
@@ -146,7 +148,7 @@ const focusedUiOwners = ownerMap([
     'verify-hermit-combo-browser.mjs', 'verify-hermit-online-staged-trigger-browser.mjs',
   ]],
   ['src/ui/combat-screen/vfx.tsx', ['verify-lightning-act2-browser.mjs', 'verify-skin-attack-browser.mjs', 'verify-defect-chan-evoke-browser.mjs']],
-  ['src/ui/styles/compendium.css', ['verify-compendium-browser.mjs']],
+  ['src/ui/styles/compendium.css', ['verify-compendium-browser.mjs', 'verify-deck-inspection-browser.mjs']],
   ['src/ui/styles/prompt.css', ['verify-hermit-combo-browser.mjs']],
   ['src/ui/TokenRow.tsx', [
     'verify-resource-tooltips-browser.mjs',
@@ -160,6 +162,7 @@ const focusedUiOwners = ownerMap([
   ['src/ui/styles/title-menu.css', ['verify-run-replay-browser.mjs', 'verify-replay-controls-browser.mjs', 'verify-title-menu-browser.mjs']],
 ])
 const focusedOnlyUiOwners = ownerMap([
+  ['src/ui/CardInspectionDialog.tsx', ['verify-deck-inspection-browser.mjs']],
   ...['src/ui/CombatDie.tsx', 'src/ui/combat-die-breakdown.ts', 'src/ui/styles/combat-die.css']
     .map(file => [file, ['verify-die-breakdown-browser.mjs']]),
   ...['src/ui/draw-lock-text.ts', 'src/ui/DrawLockedRules.tsx', 'src/ui/card-draw-strikes.json',

@@ -2,8 +2,9 @@ import { useEffect, useId, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { GameSettings } from './game-settings.ts'
 import { defaultGameSettings } from './game-settings.ts'
+import { AssistantSettings } from './AssistantSettings.tsx'
 
-type Tab = 'general' | 'gameplay' | 'video' | 'audio'
+type Tab = 'general' | 'gameplay' | 'video' | 'audio' | 'assistant'
 
 export function SettingsDialog({ open, onClose, settings, onChange, generalChildren }: {
   open: boolean
@@ -76,12 +77,15 @@ export function SettingsDialog({ open, onClose, settings, onChange, generalChild
           <h2 id={`${id}-title`}>Settings</h2>
         </header>
         <nav aria-label="Settings sections">
-          {(generalChildren ? ['general', 'gameplay', 'video', 'audio'] as const : ['gameplay', 'video', 'audio'] as const)
+          {(generalChildren ? ['general', 'gameplay', 'video', 'audio', 'assistant'] as const : ['gameplay', 'video', 'audio', 'assistant'] as const)
             .map((section) => <button type="button" className="settings-dialog__key" key={section}
             id={`${id}-${section}-tab`} aria-pressed={tab === section}
             aria-controls={`${id}-${section}-panel`} onClick={() => setTab(section)}>{section}</button>)}
         </nav>
         <div className="settings-dialog__body">
+          {tab === 'assistant' ? <section id={`${id}-assistant-panel`} role="tabpanel" aria-labelledby={`${id}-assistant-tab`}>
+            <AssistantSettings />
+          </section> : null}
           {tab === 'general' ? <section id={`${id}-general-panel`} role="tabpanel" aria-labelledby={`${id}-general-tab`}>
             {generalChildren}
           </section> : null}

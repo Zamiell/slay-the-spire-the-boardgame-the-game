@@ -1,0 +1,6 @@
+.assistant-settings { min-width: 0; }
+.assistant-settings h3 { margin-top: 0; }
+.assistant-settings p { overflow-wrap: anywhere; }
+.assistant-settings form { display: flex; flex-wrap: wrap; align-items: end; gap: 0.8rem; }
+.assistant-settings label { display: grid; flex: 1 1 14rem; gap: 0.4rem; min-width: 0; }
+.assistant-settings input { box-sizing: border-box; width: 100%; min-width: 0; padding: 0.5rem; }

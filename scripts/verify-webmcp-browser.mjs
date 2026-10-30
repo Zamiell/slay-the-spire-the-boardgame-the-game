@@ -974,7 +974,7 @@ await page.waitForFunction((before) => {
 const settledEndTurnInspection = await inspectAll()
 const afterEndTurnNumber = await page.evaluate(() => window.__STS_DEBUG__.getState().turn)
 const combatFlow = {
-  seesTurn: /Turn \d+/.test(combatInspection.screen.text),
+  seesTurn: combatInspection.controls.some((control) => /^End Turn \d+$/.test(control.label)),
   seesEnergy: /\b\d+ Energy\b/.test(combatInspection.screen.text),
   seesDrawPile: combatInspection.controls.some((control) => /^Draw pile, \d+ cards$/.test(control.label)),
   richAttack: attack.label,

@@ -315,6 +315,33 @@ function gameScreen(announcementNodes = announcementElements()) {
   }
 }
 
+/** Observation only: do not rotate WebMCP control IDs or acknowledge its announcements. */
+export function captureAssistantGame() {
+  const choices = activeScopes().flatMap((scope) => [...scope.querySelectorAll<HTMLElement>(CONTROL_SELECTOR)])
+    .filter((element) => rendered(element) && !element.closest('[data-webmcp-passive]') &&
+      controlKind(element) === 'button')
+    .map((element) => ({
+      label: label(element),
+      context: contextLabel(element),
+      description: referencedText(element, 'aria-describedby') || undefined,
+      available: available(element),
+    }))
+  const grouped = new Map<string, typeof choices[number] & { count: number }>()
+  for (const choice of choices) {
+    const key = JSON.stringify(choice)
+    const previous = grouped.get(key)
+    if (previous) previous.count += 1
+    else grouped.set(key, { ...choice, count: 1 })
+  }
+  const run = [...document.querySelectorAll<HTMLElement>('[data-assistant-run-id]')].find(rendered)
+  return {
+    run: run ? { id: run.dataset.assistantRunId, phase: run.dataset.assistantPhase, mode: run.dataset.assistantMode } : null,
+    pending: interactionPending(),
+    screen: gameScreen(announcementElements(true)),
+    choices: [...grouped.values()],
+  }
+}
+
 function context(): ModelContext | undefined {
   return (document as Document & { modelContext?: ModelContext }).modelContext ??
     (navigator as Navigator & { modelContext?: ModelContext }).modelContext

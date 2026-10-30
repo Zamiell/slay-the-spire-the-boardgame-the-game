@@ -775,6 +775,7 @@ export function OnlineGame({ onLocal, settings, onSettings }: Props) {
     <>
     <SkinProvider seats={run.players}>
     <main ref={runShell} tabIndex={-1} inert={compendiumOpen || undefined} aria-hidden={compendiumOpen || undefined}
+      data-assistant-run-id={run.campaign.runId} data-assistant-phase={run.phase} data-assistant-mode="online"
       data-webmcp-pending={room.entering || room.mutationPending || leaving || undefined}
       className={`app-shell app-shell--online sts-scope${run.phase === 'combat' ? ' app-shell--combat' : ''}${run.phase === 'neow' ? ' app-shell--neow' : ''}${run.roomState?.kind === 'event' ? ' app-shell--event' : ''}${compendiumOpen ? ' app-shell--compendium-open' : ''}`}>
       <header className="app-shell__header">

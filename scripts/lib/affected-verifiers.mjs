@@ -101,7 +101,7 @@ const focusedUiOwners = ownerMap([
   ['src/ui/chrome/campfire.css', ['verify-art-scenes-browser.mjs', 'verify-card-picker-browser.mjs']],
   ['src/ui/styles/staged-attacks.css', ['verify-skin-attack-browser.mjs']],
   ['src/ui/styles/attack-timing.css', ['verify-defect-chan-evoke-browser.mjs']],
-  ['src/ui/SettingsDialog.tsx', ['verify-card-damage-preview-browser.mjs']],
+  ['src/ui/SettingsDialog.tsx', ['verify-card-damage-preview-browser.mjs', 'verify-live-run-browser.mjs']],
   ['src/ui/game-settings.ts', ['verify-card-damage-preview-browser.mjs']],
   ['src/ui/rig-animation-metadata.json', ['verify-elite-intent-browser.mjs', 'verify-hero-potions-browser.mjs']],
   ['src/ui/hero-art-head.json', ['verify-hero-potions-browser.mjs', 'verify-assets.mjs']],
@@ -183,7 +183,11 @@ const focusedOnlyUiOwners = ownerMap([
   ['scripts/calibrate-elite-intent.py', ['verify-elite-intent-browser.mjs', 'verify-art-bakes.mjs']],
   ['scripts/animation/elite_signatures.py', ['verify-art-bakes.mjs', 'verify-elite-signatures-browser.mjs']],
   ['src/mail.ts', ['verify-mail-browser.mjs']],
-  ['src/ui/useWebMcp.ts', ['verify-webmcp-browser.mjs']],
+  ['src/ui/useWebMcp.ts', ['verify-webmcp-browser.mjs', 'verify-live-run-browser.mjs']],
+  ...['src/ui/live-run.ts', 'src/ui/AssistantSettings.tsx', 'src/ui/assistant-settings.css']
+    .map((file) => [file, ['verify-live-run-browser.mjs']]),
+  ...['scripts/live-run.mjs', 'scripts/lib/live-run-server.mjs']
+    .map((file) => [file, ['verify-live-run.mjs', 'verify-live-run-browser.mjs']]),
   ['src/ui/TutorialCoach.tsx', ['verify-tutorial-browser.mjs']],
   ...['common', 'general', 'helpers', 'index', 'lessons', 'run', 'types',
     ...['defect', 'guardian', 'hermit', 'hexaghost', 'ironclad', 'silent', 'slime_boss', 'watcher'].map((hero) => `heroes/${hero}`)]

@@ -1346,7 +1346,9 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
   return (
     <>
     <SkinProvider seats={run.players}>
-    <main key={replayEpoch} ref={runShell} tabIndex={-1} inert={compendium || undefined} aria-hidden={compendium || undefined} className={`app-shell sts-scope${run.phase === 'combat' ? ' app-shell--combat' : ''}${run.phase === 'neow' ? ' app-shell--neow' : ''}${run.roomState?.kind === 'event' ? ' app-shell--event' : ''}${compendium ? ' app-shell--compendium-open' : ''}`}>
+    <main key={replayEpoch} ref={runShell} tabIndex={-1} inert={compendium || undefined} aria-hidden={compendium || undefined}
+      data-assistant-run-id={run.campaign.runId} data-assistant-phase={run.phase} data-assistant-mode={replayLog ? 'replay' : 'local'}
+      className={`app-shell sts-scope${run.phase === 'combat' ? ' app-shell--combat' : ''}${run.phase === 'neow' ? ' app-shell--neow' : ''}${run.roomState?.kind === 'event' ? ' app-shell--event' : ''}${compendium ? ' app-shell--compendium-open' : ''}`}>
       <header className="app-shell__header">
         <PlayerTitle character={headerViewer?.character} />
         <div className="run-status">

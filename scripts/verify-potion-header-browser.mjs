@@ -60,7 +60,7 @@ try {
       await page.getByRole('button', { name, exact: true }).click()
     }
     await checkBelt(page, [])
-    for (const potions of [['fire_potion'], ['fire_potion', 'block_potion', 'energy_potion'], []]) {
+    for (const potions of [['distilled_chaos'], ['fire_potion'], ['fire_potion', 'block_potion', 'energy_potion'], []]) {
       await page.evaluate((potions) => {
         const run = structuredClone(window.__STS_DEBUG__.getRun())
         run.phase = 'map'; run.neow = null
@@ -68,6 +68,8 @@ try {
         window.__STS_DEBUG__.setRun(run)
       }, potions)
       await checkBelt(page, potions)
+      assert.equal(await page.locator('.outside-potions__give').count(), 0,
+        'solo potion inventory must not show Give controls')
     }
     await page.evaluate(() => {
       const run = structuredClone(window.__STS_DEBUG__.getRun())
@@ -96,6 +98,27 @@ try {
     await checkBelt(page, [])
     assert(await page.evaluate(() => window.__STS_DEBUG__.getRun().players[0].hp > 5),
       'the moved out-of-combat potion action stopped working')
+    await page.evaluate(() => {
+      const run = structuredClone(window.__STS_DEBUG__.getRun())
+      run.players[0].potions = ['distilled_chaos']
+      run.players.push({ ...structuredClone(run.players[0]), id: 'potion-recipient', name: 'Teammate', row: 1, potions: [] })
+      window.__STS_DEBUG__.setRun(run)
+    })
+    await checkBelt(page, ['distilled_chaos'])
+    await belt.getByRole('button', { name: 'Give Distilled Chaos', exact: true }).click()
+    await belt.getByRole('button', { name: 'Give to Teammate', exact: true }).click()
+    await checkBelt(page, [])
+    assert.deepEqual(await page.evaluate(() => window.__STS_DEBUG__.getRun().players[1].potions), ['distilled_chaos'],
+      'party potion trading must remain available')
+    await page.evaluate(() => {
+      const run = structuredClone(window.__STS_DEBUG__.getRun())
+      run.players = [run.players[0]]
+      run.players[0].potions = ['distilled_chaos']
+      window.__STS_DEBUG__.setRun(run)
+    })
+    await checkBelt(page, ['distilled_chaos'])
+    assert.equal(await belt.getByRole('button', { name: /^Give / }).count(), 0,
+      'returning to one character must hide all Give controls')
     const heldPotions = ['fire_potion', 'weak_potion', 'swift_potion']
     await page.evaluate(async potions => {
       const { EVENT_DEFINITIONS } = await import('/src/game/events.ts')

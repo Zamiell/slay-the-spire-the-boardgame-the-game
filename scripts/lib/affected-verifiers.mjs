@@ -151,6 +151,7 @@ const focusedUiOwners = ownerMap([
   ['src/ui/styles/title-menu.css', ['verify-run-replay-browser.mjs', 'verify-replay-controls-browser.mjs', 'verify-title-menu-browser.mjs']],
 ])
 const focusedOnlyUiOwners = ownerMap([
+  ['src/ui/OutsidePotionBar.tsx', ['verify-potion-header-browser.mjs']],
   ...['src/ui/IncomingDamage.tsx', 'src/ui/styles/incoming-damage.css']
     .map(file => [file, ['verify-incoming-damage-browser.mjs']]),
   ...['src/ui/DeveloperConsole.tsx', 'src/ui/developer-commands.ts', 'src/ui/console-rewind.ts', 'src/ui/styles/developer-console.css']

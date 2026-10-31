@@ -174,6 +174,33 @@ try {
     await page.waitForFunction(() => document.querySelectorAll('.seat__incoming-damage').length === 2)
     assert.equal(await page.locator('.row__seat:has([data-player-id="p1"]) .seat__incoming-damage').innerText(), 'Incoming: 0')
     assert.equal(await page.locator('.row__seat:has([data-player-id="p2"]) .seat__incoming-damage').innerText(), 'Incoming: 1')
+    const partyBeforeFrost = await page.evaluate(() => structuredClone(window.__STS_DEBUG__.getRun()))
+    await page.evaluate(() => {
+      const run = structuredClone(window.__STS_DEBUG__.getRun())
+      run.combat.players[1].orbs = ['frost', null, null]
+      window.__STS_DEBUG__.setRun(run)
+    })
+    const teammateCounter = page.locator('.row__seat:has([data-player-id="p2"]) .seat__incoming-damage')
+    await page.waitForFunction(() => document.querySelector('.row__seat:has([data-player-id="p2"]) .seat__incoming-damage')
+      ?.textContent === 'Incoming: 0')
+    const beforeFrostInspection = await page.evaluate(() => window.__STS_DEBUG__.getRun())
+    await teammateCounter.focus()
+    const frostTip = page.locator('.potion-tip').filter({ hasText: 'plus 1 Block from Frost Orbs' })
+    await frostTip.waitFor()
+    assert.match(await frostTip.innerText(), /current bonuses and the Block cap/)
+    assert.deepEqual(await page.evaluate(() => window.__STS_DEBUG__.getRun()), beforeFrostInspection)
+    assert.equal(beforeFrostInspection.combat.players[1].block, 0, 'forecast Frost must not grant live Block')
+    await page.screenshot({ path: `${output}/${screen}-frost.png` })
+    await page.keyboard.press('Escape')
+    await page.evaluate(() => {
+      const run = structuredClone(window.__STS_DEBUG__.getRun())
+      run.combat.players[1].orbEndTurnBonus = 1
+      window.__STS_DEBUG__.setRun(run)
+    })
+    await page.waitForFunction(() => document.querySelector('.row__seat:has([data-player-id="p2"]) .seat__incoming-damage')
+      ?.textContent === 'Incoming: 0 (+1)')
+    await page.evaluate(run => window.__STS_DEBUG__.setRun(run), partyBeforeFrost)
+    await teammateCounter.getByText('Incoming: 1', { exact: true }).waitFor()
     await page.evaluate(() => {
       const run = structuredClone(window.__STS_DEBUG__.getRun())
       Object.assign(run.combat.enemies[1], { hp: 1, poison: 1 })

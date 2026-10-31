@@ -58,6 +58,59 @@ check('incoming damage spends Block once across attacks and includes overkill wi
   assertDeepEqual(state, before)
 })
 
+check('incoming damage includes Frost passives, their bonuses, and the Block cap without mutating combat', () => {
+  for (const [bonus, block, expected] of [
+    [0, 0, { damage: 1, wastedBlock: 0, frostBlock: 2 }],
+    [1, 0, { damage: 0, wastedBlock: 1, frostBlock: 4 }],
+    [-1, 0, { damage: 3, wastedBlock: 0 }],
+    [-2, 0, { damage: 3, wastedBlock: 0 }],
+    [2, 19, { damage: 0, wastedBlock: 17, frostBlock: 1 }],
+  ]) {
+    const state = incoming([player({ character: 'defect', block, orbs: ['frost', null, 'frost'],
+      orbEndTurnBonus: bonus, lightningEndTurnBonus: 7, orbEvokeBonus: 8, cardBlockBonus: 4 })],
+    [enemy({ defId: 'small_slime', strength: 2, hp: 100, maxHp: 100 })])
+    const before = structuredClone(state)
+    assertDeepEqual(previewIncomingDamage(state).get('p1'), expected)
+    assertDeepEqual(previewIncomingDamage({ ...state, phase: 'start' }).get('p1'), expected)
+    const actual = enemyTurn(endPlayerTurn(state))
+    assertEqual(actual.players[0].hp, state.players[0].hp - expected.damage)
+    assertEqual(actual.players[0].block, expected.wastedBlock)
+    assertDeepEqual(state, before)
+  }
+})
+
+check('Frost forecasts respect each owner and effects that prevent Block', () => {
+  const state = incoming([
+    player({ orbs: ['frost', 'lightning', 'dark'] }),
+    player({ id: 'p2', row: 1, orbs: ['frost', 'frost', null], orbEndTurnBonus: 1 }),
+  ], [enemy({ uid: 'a', defId: 'small_slime' }), enemy({ uid: 'b', defId: 'small_slime', row: 1 })])
+  assertDeepEqual([...previewIncomingDamage(state)], [
+    ['p1', { damage: 0, wastedBlock: 0, frostBlock: 1 }],
+    ['p2', { damage: 0, wastedBlock: 3, frostBlock: 4 }],
+  ])
+  const panicButton = Object.values(CARDS).find(def => def.persistentEffects?.some(effect => effect.kind === 'preventBlock'))
+  state.players[0].powers.push(instance(panicButton.id))
+  assertDeepEqual(previewIncomingDamage(state).get('p1'), { damage: 1, wastedBlock: 0 })
+})
+
+check('Frost forecasts follow remaining end-turn order without reapplying resolved effects', () => {
+  const state = incoming([player({ stance: 'wrath', orbs: ['frost', null, null] })],
+    [enemy({ defId: 'jaw_worm' })], { die: 6 })
+  assertDeepEqual(previewIncomingDamage(state).get('p1'), { damage: 0, wastedBlock: 0, frostBlock: 1 })
+  state.endTurnProgress = { order: ['p1/wrath', 'p1/orb:0'] }
+  assertDeepEqual(previewIncomingDamage(state).get('p1'), { damage: 1, wastedBlock: 1, frostBlock: 1 })
+  state.endTurnProgress = { order: ['p1/orb:0', 'p1/wrath'] }
+  assertDeepEqual(previewIncomingDamage(state).get('p1'), { damage: 0, wastedBlock: 0, frostBlock: 1 })
+  state.players[0].block = 1
+  state.endTurnProgress.order = ['p1/wrath']
+  assertDeepEqual(previewIncomingDamage(state).get('p1'), { damage: 0, wastedBlock: 0 })
+  state.players[0].block = 0
+  state.endTurnProgress.order = []
+  assertDeepEqual(previewIncomingDamage(state).get('p1'), { damage: 0, wastedBlock: 0 })
+  state.endTurnProgress = { order: ['p1/orb:0', 'p1/wrath'], loopRepeats: ['p1/orb:0'] }
+  assertDeepEqual(previewIncomingDamage(state).get('p1'), { damage: 0, wastedBlock: 1, frostBlock: 2 })
+})
+
 check('incoming damage includes Wrath before enemies and cannot spend the same Block twice', () => {
   const state = incoming([player({ stance: 'wrath' })], [enemy({ defId: 'jaw_worm' })], { die: 6 })
   const before = structuredClone(state)

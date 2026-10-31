@@ -5,10 +5,11 @@
 // resolver is not what drives this phase. It is still what an action's
 // consequences run through: damage to a player, a death, and settling the
 // fight once every enemy has acted.
-import { clone, combatIsOver, enemyLabel, playersInRowOf, retainedBlockAtStartOfTurn } from './board.ts'
+import { clone, combatIsOver, enemyLabel, orbEndTurnAmount, playersInRowOf, retainedBlockAtStartOfTurn } from './board.ts'
 import { damagePlayer, resolveEnemyPoison, settle, shedSlayerCardsOnLeave, triggerEnemyDeath } from './effects.ts'
-import { addDaze, addStatus, playerCanGainDebuffs, resolveDueSummons, reviveAll } from './pieces.ts'
+import { addDaze, addStatus, playerCanGainBlock, playerCanGainDebuffs, resolveDueSummons, reviveAll } from './pieces.ts'
 import type { CombatState } from './types.ts'
+import { endTurnChoiceId } from './types.ts'
 import { applyDamage, attackerModsOfEnemy, gainBlock, gainStrength, gainVulnerable, gainWeak, hitDamage } from '../damage.ts'
 import { actionsForEnemy, advanceCube, enemyAbilities, enemyAttackBonus, enemyDef, startingHp } from '../enemies.ts'
 import type { EnemyAction } from '../enemies.ts'
@@ -30,6 +31,7 @@ function matchesSummon(defId: string, summonId: string): boolean {
 export type IncomingDamagePreview = {
   damage: number
   wastedBlock: number
+  frostBlock?: number
 }
 
 /**
@@ -100,7 +102,7 @@ function resolveEnemyTurn(state: CombatState, receiveAttack: typeof damagePlayer
 }
 
 /**
- * Wrath and current enemy attacks after Poison and Block, before HP-loss prevention or
+ * Project Poison, Frost, Wrath and current enemy attacks, before HP-loss prevention or
  * other end-of-turn effects. Use the real enemy action order and targeting, but
  * don't stop at lethal damage or consume Buffer/Fairy effects.
  */
@@ -111,6 +113,7 @@ export function previewIncomingDamage(state: CombatState): ReadonlyMap<string, I
   if (state.phase === 'start' && (progress?.beforeDraw || progress?.rollPending || progress?.pauseAfterDraw ||
     !Number.isInteger(state.die) || state.die < 1 || state.die > 6)) return null
   const incoming = new Map(state.players.filter(player => !player.dead).map(player => [player.id, 0]))
+  const frostBlock = new Map<string, number>()
   const probe = clone({ ...state, log: [], presentationEvents: [] })
   const receiveDamage: typeof damagePlayer = (_state, player, amount) => {
     const outcome = applyDamage(player.block, Number.MAX_SAFE_INTEGER, amount)
@@ -118,13 +121,31 @@ export function previewIncomingDamage(state: CombatState): ReadonlyMap<string, I
     incoming.set(player.id, (incoming.get(player.id) ?? 0) + outcome.hpLost)
     return outcome
   }
-  for (const enemy of probe.enemies) {
-    if (combatIsOver(probe)) break
-    resolveEnemyPoison(probe, enemy)
-  }
+  const endEffects = new Map<string, () => void>()
+  for (const enemy of probe.enemies) endEffects.set(`poison:${enemy.uid}`, () => resolveEnemyPoison(probe, enemy))
   for (const player of probe.players) {
+    if (player.dead) continue
+    player.orbs.forEach((orb, slot) => {
+      if (orb !== 'frost') return
+      endEffects.set(`${player.id}/orb:${slot}`, () => {
+        if (player.dead || !playerCanGainBlock(player)) return
+        const before = player.block
+        // Forecast the passive Block, not optional on-Block triggers.
+        player.block = gainBlock(before, orbEndTurnAmount(player, 'frost'))
+        frostBlock.set(player.id, (frostBlock.get(player.id) ?? 0) + player.block - before)
+      })
+    })
+    if (player.stance === 'wrath') endEffects.set(`${player.id}/wrath`, () => {
+      if (!player.dead) receiveDamage(probe, player, 1)
+    })
+  }
+  // Chosen Loop repeats stay separate until the remaining Orb choices are made.
+  const order = state.endTurnProgress
+    ? [...(state.endTurnProgress.loopRepeats ?? []), ...state.endTurnProgress.order].map(endTurnChoiceId)
+    : [...endEffects.keys()]
+  for (const id of order) {
     if (combatIsOver(probe)) break
-    if (!player.dead && player.stance === 'wrath') receiveDamage(probe, player, 1)
+    endEffects.get(id)?.()
   }
   resolveDueSummons(probe, 'endOfTurn')
   probe.phase = 'enemy'
@@ -133,7 +154,9 @@ export function previewIncomingDamage(state: CombatState): ReadonlyMap<string, I
   if (!ended && next === probe) return null
   return new Map(next.players.filter(player => incoming.has(player.id)).map(player => {
     const retained = next.phase === 'won' || next.phase === 'lost' ? 0 : retainedBlockAtStartOfTurn(player)
-    return [player.id, { damage: incoming.get(player.id)!, wastedBlock: Math.max(0, player.block - retained) }]
+    const frost = frostBlock.get(player.id) ?? 0
+    return [player.id, { damage: incoming.get(player.id)!, wastedBlock: Math.max(0, player.block - retained),
+      ...(frost > 0 ? { frostBlock: frost } : {}) }]
   }))
 }
 

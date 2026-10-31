@@ -1,4 +1,5 @@
 import { TreasureEffects } from "./TreasureEffects.tsx"
+import { MapDrawingProvider } from './MapDrawing.tsx'
 import { savedProfile } from '../profile.ts'
 import { PlayerTitle } from './PlayerTitle.tsx'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -774,6 +775,8 @@ export function OnlineGame({ onLocal, settings, onSettings }: Props) {
   return (
     <>
     <SkinProvider seats={run.players}>
+    <MapDrawingProvider key={`${run.campaign.runId}:${snapshot.you.playerId}`}
+      runId={`${run.campaign.runId}:${snapshot.you.playerId}`}>
     <main ref={runShell} tabIndex={-1} inert={compendiumOpen || undefined} aria-hidden={compendiumOpen || undefined}
       data-assistant-run-id={run.campaign.runId} data-assistant-phase={run.phase} data-assistant-mode="online"
       data-webmcp-pending={room.entering || room.mutationPending || leaving || undefined}
@@ -1155,6 +1158,7 @@ export function OnlineGame({ onLocal, settings, onSettings }: Props) {
       <CardMorphAnnouncement key={`${snapshot?.run?.campaign.runId ?? ''}:${snapshot?.you.playerId ?? ''}`}
         request={morph.current} name={(card) => faceOf(cardDef(card.defId), card.upgraded).name} />
     </main>
+    </MapDrawingProvider>
     </SkinProvider>
     {compendiumOpen ? <CompendiumScreen onBack={() => {
       setCompendiumOpen(false)

@@ -1,4 +1,5 @@
 import { TreasureEffects } from "./TreasureEffects.tsx"
+import { MapDrawingProvider } from './MapDrawing.tsx'
 import { cardTooltipPosition } from './card-tooltip-position.ts'
 import { DeveloperConsole } from './DeveloperConsole.tsx'
 import { ConsoleCommandError, executeConsoleCommand } from './developer-commands.ts'
@@ -1367,6 +1368,7 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
   return (
     <>
     <SkinProvider seats={run.players}>
+    <MapDrawingProvider key={run.campaign.runId} runId={run.campaign.runId}>
     <main key={replayEpoch} ref={runShell} tabIndex={-1} inert={compendium || undefined} aria-hidden={compendium || undefined}
       data-assistant-run-id={run.campaign.runId} data-assistant-phase={run.phase} data-assistant-mode={replayLog ? 'replay' : 'local'}
       className={`app-shell sts-scope${run.phase === 'combat' ? ' app-shell--combat' : ''}${run.phase === 'neow' ? ' app-shell--neow' : ''}${run.roomState?.kind === 'event' ? ' app-shell--event' : ''}${compendium ? ' app-shell--compendium-open' : ''}`}>
@@ -1741,6 +1743,7 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
       <CardMorphAnnouncement key={`${open ? run.campaign.runId : ''}:${viewerId}`} request={morph.current}
         name={(card) => faceOf(cardDef(card.defId), card.upgraded).name} />
     </main>
+    </MapDrawingProvider>
     </SkinProvider>
     {active && !replayLog && !tutorial && !compendium ? <DeveloperConsole key={run.campaign.runId}
       modified={Boolean(run.consoleModified)} onExecute={async command => {

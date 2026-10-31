@@ -61,6 +61,8 @@ const focusedEngineOwners = ownerMap([
   ['src/game/run/rewards.ts', ['verify-loot-browser.mjs', 'verify-tiny-house-browser.mjs']],
 ])
 const focusedUiOwners = ownerMap([
+  ...['src/ui/MapDrawing.tsx', 'src/ui/styles/map-drawing.css', 'src/ui/MapOverlay.tsx']
+    .map(file => [file, ['verify-map-drawing-browser.mjs']]),
   ...['src/ui/chrome/keys.css', 'src/ui/chrome/stone-keys.css']
     .map(file => [file, ['verify-button-borders-browser.mjs']]),
   ['src/ui/useButtonShortcut.ts', ['verify-keyboard-browser.mjs', 'verify-card-picker-browser.mjs']],
@@ -145,7 +147,7 @@ const focusedUiOwners = ownerMap([
   ['src/ui/styles/elite-signatures.css', ['verify-elite-signatures-browser.mjs', 'verify-elite-intent-browser.mjs']],
   ['src/ui/ItemImage.tsx', ['verify-courier-browser.mjs']],
   ['src/ui/MailBox.tsx', ['verify-mail-browser.mjs']],
-  ['src/ui/MapScreen.tsx', ['verify-wing-focus-browser.mjs']],
+  ['src/ui/MapScreen.tsx', ['verify-map-drawing-browser.mjs', 'verify-wing-focus-browser.mjs']],
   ['src/ui/RoomScreen.tsx', ['verify-joust-browser.mjs', 'verify-scrap-ooze-browser.mjs', 'verify-event-panels-browser.mjs', 'verify-potion-header-browser.mjs', 'verify-relic-refresh-browser.mjs']],
   ['src/ui/chrome/item-tiles.css', ['verify-relic-refresh-browser.mjs']],
   ['src/ui/chrome/event-phone.css', ['verify-event-panels-browser.mjs', 'verify-scrap-ooze-browser.mjs']],

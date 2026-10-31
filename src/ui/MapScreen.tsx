@@ -6,6 +6,7 @@ import { Icon } from './Icon.tsx'
 import type { IconName } from './icons.ts'
 import { POINTER_CLICK_WINDOW_MS, useHoverUnavailable } from './touch-input.ts'
 import { usePrefersReducedMotion } from './combat-screen/hooks.ts'
+import { MapDrawing, MapDrawingTools, useMapDrawMode } from './MapDrawing.tsx'
 
 const MAP_SELECTION_MS = 800
 const MAP_TRANSITION_MS = 1_120
@@ -149,6 +150,8 @@ export function MapScreen({
   onSelectionChange, wingChoices = [], wingUses = 0, pick = false, pickedId,
 }: MapScreenProps) {
   const frameRef = useRef<HTMLDivElement | null>(null)
+  const paperRef = useRef<HTMLDivElement | null>(null)
+  const drawMode = useMapDrawMode()
   const wasBlocked = useRef(blocked)
   const [lines, setLines] = useState<Line[]>([])
   const walkable = new Set(choices.map((room) => room.id))
@@ -395,6 +398,7 @@ export function MapScreen({
 
   return (
     <div className={`map${entering ? ' map--entering' : ''}`} hidden={blocked || undefined} inert={blocked || undefined} aria-disabled={blocked || undefined}>
+      <MapDrawingTools act={map.act} />
       <p className="map__hint muted">
         {readOnly
           ? tapToRead ? 'Tap a room to read it.' : 'Hover a room to read it.'
@@ -427,6 +431,7 @@ export function MapScreen({
           : ''}
       </span>
 
+      <div className="map__paper" ref={paperRef} data-draw-mode={drawMode || undefined}>
       <div className="map__frame" ref={frameRef}>
         <svg className="map__paths" aria-hidden="true">
           {lines.map((line) => (
@@ -603,6 +608,8 @@ export function MapScreen({
             })}
           </div>
         ))}
+      </div>
+      <MapDrawing key={map.act} act={map.act} surfaceRef={paperRef} frameRef={frameRef} />
       </div>
       <aside className="map__legend" aria-label="Map legend">
         <strong>Legend</strong>

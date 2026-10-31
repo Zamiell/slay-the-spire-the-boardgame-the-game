@@ -5012,6 +5012,12 @@ function CombatScreenView({
   const vigorActionAvailable = resourceActionsAvailable && Boolean(viewer.guardianMode) &&
     viewer.vigor > 0 && !viewer.cardPlayLocked && !reachedTimeWarpLimit(state, viewer)
   const soulburnActionAvailable = resourceActionsAvailable && !viewer.cardPlayLocked && viewer.soulburn > 0
+  const availableRelics = viewer.relics.map((held, relicIndex) => ({ held, relicIndex }))
+    .filter(({ relicIndex }) => canUseRelicNow(relicIndex))
+  const relicActionGroups = [true, false].map(startOnly => ({
+    startOnly,
+    relics: availableRelics.filter(({ relicIndex }) => isPostRollStartTurnRelicChoice(state, viewer, relicIndex) === startOnly),
+  })).filter(group => group.relics.length > 0)
 
   return (
     <div
@@ -6010,9 +6016,12 @@ function CombatScreenView({
 
       {!forcedCard && !distilled && !relicScry && !voluntaryActionsBlocked &&
         (state.phase === 'player' || state.phase === 'start' || state.phase === 'discard') ? (
-        <div className="relic-actions">
-          <section aria-label="Relic abilities">
-          {viewer.relics.flatMap((held, relicIndex) => {
+        <div className="relic-actions" role="group" aria-label="Relic abilities">
+          {relicActionGroups.map(({ startOnly, relics }) => <section key={String(startOnly)}
+            className={startOnly ? 'relic-actions__start-turn' : undefined}
+            aria-label={startOnly ? 'Start of Turn relic abilities' : 'Other relic abilities'}>
+          {startOnly ? <h3 className="relic-actions__heading">Start of Turn only</h3> : null}
+          {relics.flatMap(({ held, relicIndex }) => {
             const def = relicDef(held.defId)
             const description = relicTooltipText(held.defId, state.die)
             const simpleAction = <PotionTooltipAnchor id={held.defId} key={`${held.defId}-${relicIndex}`}
@@ -6024,7 +6033,6 @@ function CombatScreenView({
             </PotionTooltipAnchor>
             const heldId = held.defId.replace(/^downfall_/, '')
             const reroute = ['dollys_mirror', 'nilrys_codex', 'loaded_die'].includes(heldId)
-            if (!canUseRelicNow(relicIndex)) return []
             const choiceSummary = (confirmLabel?: string) =>
               <PotionTooltipAnchor as="summary" className="relic-action__icon" id={held.defId}
                 name={def.name} text={description} kindLabel="Relic" confirmLabel={confirmLabel}
@@ -6120,7 +6128,7 @@ function CombatScreenView({
             }
             return [simpleAction]
           })}
-          </section>
+          </section>)}
         </div>
       ) : null}
 

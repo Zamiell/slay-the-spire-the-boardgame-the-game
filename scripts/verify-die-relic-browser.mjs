@@ -53,7 +53,7 @@ try {
     const bounds = await redMask.boundingBox()
     assert(bounds && bounds.x >= 0 && bounds.x + bounds.width <= width &&
       bounds.y >= 0 && bounds.y + bounds.height <= height, `${name}: the Red Mask choice is clipped`)
-    const panelBox = await page.locator('.relic-actions > section').boundingBox()
+    const panelBox = await page.locator('.relic-actions').boundingBox()
     assert(panelBox && panelBox.x >= 0 && panelBox.x + panelBox.width <= width &&
       panelBox.y + panelBox.height <= height, `${name}: the die Relic panel runs off screen`)
     await page.screenshot({ path: `${out}/${name}-mirror-red-mask.png` })
@@ -137,7 +137,7 @@ try {
     await page.evaluate(run => window.__STS_DEBUG__.setRun(run), loadedRun)
     const relicsClearOfBar = () => page.waitForFunction(() => {
       const bar = document.querySelector('.combat__bar').getBoundingClientRect()
-      const actions = document.querySelector('.relic-actions > section')?.getBoundingClientRect()
+      const actions = document.querySelector('.relic-actions')?.getBoundingClientRect()
       return actions && actions.height > 0 && actions.top >= bar.bottom + 4 &&
         actions.left >= 0 && actions.right <= innerWidth && actions.bottom <= innerHeight
     })
@@ -161,6 +161,8 @@ try {
     await barVajra.hover()
     await barVajra.locator('.relic-tip').waitFor()
     const vajraRules = await barVajra.locator('.relic-tip').innerText()
+    await page.keyboard.press('Escape')
+    await page.mouse.move(2, 2)
     const loadedDie = page.getByRole('button', { name: /^Use Loaded Die:/ })
     const loadedIcon = loadedDie.locator('img.item-icon-image')
     await loadedIcon.evaluate(image => image.decode())

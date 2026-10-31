@@ -1,14 +1,19 @@
+.relic-actions {
+  display: grid;
+  gap: 0.45rem;
+  max-height: calc(100dvh - var(--combat-bar-viewport-bottom, calc(var(--combat-bar-height) + 4rem)) - 1rem);
+  overflow: hidden auto;
+}
+
+.relic-actions:empty { display: none; }
+
 .relic-actions > section {
-  position: absolute;
-  top: calc(100% + 0.55rem);
-  left: 0;
+  position: static;
   display: grid;
   gap: 0.4rem;
   width: max-content;
   min-width: 13rem;
   max-width: min(26rem, calc(100vw - 2rem));
-  max-height: calc(100dvh - var(--combat-bar-viewport-bottom, calc(var(--combat-bar-height) + 4rem)) - 1.4rem);
-  overflow-y: auto;
   padding: 0.75rem;
   background: linear-gradient(180deg, #2b1f1a, #15100c 72%);
   box-shadow:
@@ -22,7 +27,7 @@
 
 /* The original game keeps immediately usable Relics as a compact icon strip.
    Only targeted/card-choice Relics need the framed disclosure panel below. */
-.relic-actions > section:not(:has(details[open])) {
+.relic-actions > section:where(:not(:has(details[open]))) {
   position: static;
   display: flex;
   flex-wrap: nowrap;
@@ -38,6 +43,22 @@
 }
 
 .relic-actions > section:not(:has(details[open]))::-webkit-scrollbar { display: none; }
+
+.relic-actions > section.relic-actions__start-turn {
+  padding: 0.4rem;
+  border: 1px solid var(--trim-dim);
+  background: rgb(36 28 18 / 92%);
+}
+
+.relic-actions__heading {
+  flex: 0 0 5.5rem;
+  align-self: center;
+  margin: 0;
+  color: var(--sts-gold);
+  font-size: 0.75rem;
+  line-height: 1.25;
+  letter-spacing: 0.04em;
+}
 
 .relic-actions > section:not(:has(details[open])) > button,
 .relic-actions > section:not(:has(details[open])) > details,

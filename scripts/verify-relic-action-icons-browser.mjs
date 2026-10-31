@@ -57,6 +57,10 @@ try {
       actor.shivs = scenario.shivs
       if (scenario.shortHand) actor.hand = actor.hand.slice(-1)
       const available = actor.relics.filter((_, relicIndex) => canActivateRelic(fixture.combat, actor, relicIndex))
+      const usableDuringPlayerTurn = relic =>
+        canActivateRelic({ ...fixture.combat, phase: 'player' }, actor, actor.relics.indexOf(relic))
+      const displayedOrder = [...available.filter(relic => !usableDuringPlayerTurn(relic)),
+        ...available.filter(usableDuringPlayerTurn)]
       available.forEach(relic => seen.add(relic.defId))
       await page.evaluate(run => window.__STS_DEBUG__.setRun(run), fixture)
       await page.waitForFunction(id => window.__STS_DEBUG__.getState()?.combatId === id, fixture.combat.combatId)
@@ -69,14 +73,20 @@ try {
         const image = control.querySelector('img.item-icon-image')
         return { label: control.getAttribute('aria-label'), src: image.getAttribute('src'),
           width: image.getBoundingClientRect().width, loaded: image.complete && image.naturalWidth > 0,
-          summary: control.tagName === 'SUMMARY', iconSummary: control.classList.contains('relic-action__icon') }
+          summary: control.tagName === 'SUMMARY', iconSummary: control.classList.contains('relic-action__icon'),
+          group: control.closest('section').getAttribute('aria-label') }
       }))
-      for (const [at, relic] of available.entries()) {
+      for (const [at, relic] of displayedOrder.entries()) {
         assert(rendered[at].label.startsWith(`Use ${RELICS[relic.defId].name}`))
         assert.equal(rendered[at].src, relicIconPath(relic.defId))
         assert(rendered[at].loaded && rendered[at].width > 0)
         assert(!rendered[at].summary || rendered[at].iconSummary, `${relic.defId}: disclosure lacks icon styling`)
+        assert.equal(rendered[at].group, usableDuringPlayerTurn(relic)
+          ? 'Other relic abilities' : 'Start of Turn relic abilities',
+        `${relic.defId}: action must be grouped by its actual phase restriction`)
       }
+      assert.equal(await page.locator('.relic-actions__heading').count(),
+        available.some(relic => !usableDuringPlayerTurn(relic)) ? 1 : 0)
     }
     assert.deepEqual(manualIds.filter(id => !seen.has(id)), [], 'every activatable relic must be exercised')
 
@@ -105,9 +115,32 @@ try {
       pendingTriggers: [], startTurnStage: 'effects', startTurnProgress: undefined })
     candle.combat.players[0].relics = ['blue_candle', 'toolbox'].map(createRelicInstance)
     await page.evaluate(run => window.__STS_DEBUG__.setRun(run), candle)
+    const startRow = page.getByRole('region', { name: 'Start of Turn relic abilities', exact: true })
+    const otherRow = page.getByRole('region', { name: 'Other relic abilities', exact: true })
+    await startRow.waitFor()
+    await otherRow.waitFor()
+    assert.equal(await startRow.locator('h3').innerText(), 'Start of Turn only')
+    assert.equal(await startRow.getByRole('button', { name: /^Use Toolbox:/ }).count(), 1)
+    assert.equal(await otherRow.getByRole('button', { name: /^Use Blue Candle:/ }).count(), 1)
+    const startBounds = await startRow.boundingBox()
+    const otherBounds = await otherRow.boundingBox()
+    assert(startBounds.y + startBounds.height <= otherBounds.y,
+      `${screen}: start-only and general relics must occupy separate rows`)
+    assert(await startRow.evaluate(row => {
+      const box = row.getBoundingClientRect()
+      return parseFloat(getComputedStyle(row).borderTopWidth) > 0 &&
+        box.left >= 0 && box.right <= innerWidth && box.top >= 0 && box.bottom <= innerHeight
+    }), `${screen}: the start-only row must be visibly delineated and fit the screen`)
+    await page.screenshot({ path: `${output}/${screen}-start-turn-row.png` })
+    await startRow.getByRole('button', { name: /^Use Toolbox:/ }).press('Enter')
+    await page.waitForFunction(() => window.__STS_DEBUG__.getState().die === 2)
+    assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getState().players[0].relics[0].spent), false,
+      'regrouping must preserve original relic indexes')
+    await startRow.waitFor({ state: 'detached' })
+    await page.waitForFunction(() => window.__STS_DEBUG__.getState().phase === 'player')
     const summary = page.getByRole('button', { name: /^Use Blue Candle:/ })
     await summary.waitFor()
-    const before = await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun()))
+    const before = await page.evaluate(() => window.__STS_DEBUG__.getRun())
     if (!phone) {
       await summary.hover()
       const tip = page.locator('.potion-tip').filter({ hasText: 'Blue Candle' })
@@ -120,7 +153,7 @@ try {
     else await summary.click()
     const panel = summary.locator('..')
     assert.equal(await panel.getAttribute('open'), '', 'a single activation must still open Blue Candle choices')
-    assert.equal(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun())), before,
+    assert.deepEqual(await page.evaluate(() => window.__STS_DEBUG__.getRun()), before,
       'opening or inspecting a relic must not spend it')
     for (const count of [0, 2]) {
       for (let index = 0; index < count; index++) {
@@ -134,7 +167,7 @@ try {
       else await cancel.click()
       assert.equal(await panel.getAttribute('open'), null, 'Cancel must close the picker')
       assert(await summary.evaluate(element => element === document.activeElement), 'Cancel must restore focus')
-      assert.equal(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun())), before,
+      assert.deepEqual(await page.evaluate(() => window.__STS_DEBUG__.getRun()), before,
         'cancelling must not exhaust cards or spend the relic')
       if (phone) await summary.tap()
       else await summary.click()

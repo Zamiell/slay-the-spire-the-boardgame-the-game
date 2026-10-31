@@ -7320,7 +7320,7 @@ function CombatScreenView({
                       onThrowPrepared={onCultistThrowPrepared}
                       onThrowStart={onCultistThrowStart}
                       onThrowSkipped={onCultistThrowSkipped}
-                      stageIndex={stageEnemies.findIndex((candidate) => candidate.uid === enemy.uid)}
+                      stageIndex={stageEnemies.length - 1 - stageEnemies.findIndex((candidate) => candidate.uid === enemy.uid)}
                       inspectionEnabled={enemyInspectionEnabled}
                       rowLabel={state.players.length === 1 || facingEnemies.some((facing) => facing.uid === enemy.uid) ? undefined : occupant?.name}
                       defender={facingEnemies.some((facing) => facing.uid === enemy.uid)

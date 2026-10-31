@@ -62,6 +62,7 @@ const focusedEngineOwners = ownerMap([
   ['src/game/run/rewards.ts', ['verify-loot-browser.mjs', 'verify-tiny-house-browser.mjs']],
 ])
 const focusedUiOwners = ownerMap([
+  ['src/ui/board-signals.ts', ['verify-die-relic-browser.mjs', 'verify-combat-layout-reload-browser.mjs']],
   ...['src/ui/styles/painterly-combat-stage.css', 'src/ui/styles/hand-layout.css']
     .map(file => [file, ['verify-hand-size-browser.mjs', ...(file.endsWith('/hand-layout.css')
       ? ['verify-card-interaction-browser.mjs', 'verify-start-turn-order-browser.mjs'] : [])]]),

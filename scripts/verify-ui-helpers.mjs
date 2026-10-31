@@ -57,7 +57,7 @@ check('enemy target buttons follow stage order without changing combat order', (
   ]
   const original = enemies.map(enemy => enemy.uid)
   assertDeepEqual(livingEnemiesInStageOrder(enemies).map(enemy => enemy.uid),
-    ['donu', 'deca', 'mystic', 'centurion'])
+    ['donu', 'deca', 'centurion', 'mystic'])
   assertDeepEqual(enemies.map(enemy => enemy.uid), original, 'display sorting must not reorder engine targets')
 })
 

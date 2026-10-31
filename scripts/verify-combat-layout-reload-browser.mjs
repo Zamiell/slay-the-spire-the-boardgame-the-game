@@ -86,6 +86,10 @@ try {
       })
     }
     const crowded = await layout(9)
+    const enemyOrder = formation => formation.actors.filter(actor => actor.id?.startsWith('enemy-'))
+      .sort((left, right) => left.x - right.x).map(actor => actor.id)
+    assert.deepEqual(enemyOrder(crowded), originalCombat.enemies.map(enemy => enemy.uid),
+      `${screen}: enemies must appear in encounter order from left to right`)
     assert.equal(snapshot().initialEnemyCount, 9, `${screen}: original count missing from server snapshot`)
     assert.equal(crowded.slots, 9, `${screen}: initial encounter has nine enemy slots`)
     assert(await combat.getAttribute('data-stage-motion') !== null, `${screen}: stage motion unexpectedly disabled`)
@@ -94,8 +98,8 @@ try {
       window.reflowTransitions = []
       element.addEventListener('transitionrun', event => {
         if (event.target === element) window.reflowTransitions.push(event.propertyName)
-        else if (event.target instanceof HTMLElement && event.target.dataset.enemyId === 'enemy-8') {
-          window.reflowTransitions.push(`enemy-8:${event.propertyName}`)
+        else if (event.target instanceof HTMLElement && event.target.dataset.enemyId === 'enemy-0') {
+          window.reflowTransitions.push(`enemy-0:${event.propertyName}`)
         }
       })
     })
@@ -111,8 +115,9 @@ try {
     assert(before.scale > crowded.scale + .05, `${screen}: survivors must grow without reload`)
     assert(recoveryTransitions.includes('--stage-scale') && recoveryTransitions.includes('--stage-enemy-count'),
       `${screen}: stage did not animate its scale and formation: ${recoveryTransitions}`)
-    assert(recoveryTransitions.includes('enemy-8:--stage-index'),
-      `${screen}: the rightmost survivor jumped to its new slot: ${recoveryTransitions}`)
+    assert(recoveryTransitions.includes('enemy-0:--stage-index'),
+      `${screen}: the leftmost survivor jumped to its new slot: ${recoveryTransitions}`)
+    assert.deepEqual(enemyOrder(before), ['enemy-0', 'enemy-4', 'enemy-8'])
     assert.equal(before.board.scrollLeft, 0, `${screen}: the board must recenter when survivors fit`)
     assert(before.actors.every(actor => actor.x >= before.board.left - 2 &&
       actor.x + actor.width <= before.board.right + 2), `${screen}: a survivor is still offscreen`)
@@ -129,7 +134,10 @@ try {
       ...room.run.combat.enemies[0], uid: `enemy-0-summon-1-0-${index}`, dead: false, hp: 50,
     })))
     publish()
-    assert.equal((await layout(10)).slots, 10, `${screen}: live summons must grow the stage`)
+    const summoned = await layout(10)
+    assert.equal(summoned.slots, 10, `${screen}: live summons must grow the stage`)
+    assert.deepEqual(enemyOrder(summoned), room.run.combat.enemies.filter(enemy => !enemy.dead).map(enemy => enemy.uid),
+      `${screen}: new summons must follow surviving enemies without reversing their order`)
     room.run.combat.enemies.slice(-7).forEach(enemy => Object.assign(enemy, { hp: 0, dead: true }))
     publish()
     const recovered = await layout(3)

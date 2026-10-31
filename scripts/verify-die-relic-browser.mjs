@@ -46,7 +46,7 @@ try {
     const redMaskGroup = mirror.getByRole('group', { name: /Red Mask · die 5\/6/ })
     await redMaskGroup.waitFor({ state: 'visible' })
     const redMask = redMaskGroup.getByRole('button', { name: /Jaw Worm #1$/ })
-    assert.deepEqual(await redMaskGroup.getByRole('button').allTextContents(), ['Jaw Worm #2', 'Jaw Worm #1'])
+    assert.deepEqual(await redMaskGroup.getByRole('button').allTextContents(), ['Jaw Worm #1', 'Jaw Worm #2'])
     assert.equal(await redMaskGroup.getByRole('button').count(), 2, `${name}: Red Mask should offer one chip per enemy`)
     assert.equal(await mirror.locator('.die-relic').count(), 7, `${name}: expected one tile per die Relic ability`)
     await redMask.scrollIntoViewIfNeeded()
@@ -76,17 +76,39 @@ try {
     const ashes = page.getByRole('dialog', { name: 'Exhaust 1 card', exact: true })
     await ashes.waitFor()
     const hitButtons = ashes.getByRole('button', { name: /^Hit / })
-    assert.deepEqual((await hitButtons.allTextContents()).map(text => text.trim()), ['Hit Mystic', 'Hit Centurion'])
+    assert.deepEqual((await hitButtons.allTextContents()).map(text => text.trim()), ['Hit Centurion', 'Hit Mystic'])
     const stageOrder = await page.locator('.enemy:not(.enemy--dead)').evaluateAll(enemies =>
       enemies.map(enemy => ({ uid: enemy.dataset.enemyId, x: enemy.getBoundingClientRect().x }))
         .sort((left, right) => left.x - right.x).map(enemy => enemy.uid))
-    assert.deepEqual(stageOrder, ['mystic', 'centurion'], `${name}: the fixture must match the visible board order`)
+    assert.deepEqual(stageOrder, ['centurion', 'mystic'], `${name}: the fixture must match the visible board order`)
     await ashes.locator('.card').click()
     await page.screenshot({ path: `${out}/${name}-ashes-target-order.png` })
     await hitButtons.first().click()
-    await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.enemies.find(enemy => enemy.uid === 'mystic').hp === 8)
-    assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.enemies.find(enemy => enemy.uid === 'centurion').hp), 15,
-      'the left button must damage Mystic, not the first enemy in engine order')
+    await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.enemies.find(enemy => enemy.uid === 'centurion').hp === 13)
+    assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.enemies.find(enemy => enemy.uid === 'mystic').hp), 10,
+      'the left button must damage the leftmost enemy')
+    const cultistRun = structuredClone(run)
+    Object.assign(cultistRun.combat, { combatId: `cultist-order-${name}`, phase: 'player', startTurnStage: undefined })
+    Object.assign(cultistRun.combat.players[0], {
+      relics: [], hand: [{ uid: 'ordered-strike', defId: 'strike_ironclad', upgraded: false }],
+    })
+    cultistRun.combat.enemies = [0, 1, 2].map(index => ({ ...enemy, uid: `cultist-${index}`, defId: 'cultist' }))
+    await page.evaluate(run => window.__STS_DEBUG__.setRun(run), cultistRun)
+    await page.locator('[data-enemy-id="cultist-2"]').waitFor()
+    const physicalOrder = await page.locator('.enemy').evaluateAll(enemies => enemies
+      .map(enemy => ({ uid: enemy.dataset.enemyId, label: enemy.querySelector('.enemy__name').textContent,
+        x: enemy.getBoundingClientRect().x }))
+      .sort((left, right) => left.x - right.x))
+    assert.deepEqual(physicalOrder.map(enemy => enemy.label), ['Cultist #1', 'Cultist #2', 'Cultist #3'])
+    assert.deepEqual(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.enemies), cultistRun.combat.enemies,
+      'visual placement must not reorder or modify the engine enemies')
+    await page.screenshot({ path: `${out}/${name}-cultists-left-to-right.png` })
+    await page.locator('.hand .card[data-card-name="Strike"]').focus()
+    await page.keyboard.press('Enter')
+    await page.locator('[data-enemy-id="cultist-0"] .enemy__hit-area').click()
+    await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.enemies[0].hp === 29)
+    assert.deepEqual(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.enemies.map(enemy => enemy.hp)), [29, 30, 30],
+      'the leftmost Cultist must retain its original targeting identity')
     const loadedRun = structuredClone(run)
     loadedRun.combat.die = 6
     loadedRun.combat.players[0].relics[0] = { defId: 'loaded_die', spent: false }

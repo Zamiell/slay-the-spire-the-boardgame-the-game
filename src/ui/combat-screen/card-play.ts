@@ -33,6 +33,16 @@ export type CardPlayResult = 'submitted' | 'choosing' | 'cancelled'
 export type CardSource = 'hand' | 'chamber'
 export type CardPickup = { mode: CardInteractionMode; source: CardSource; hitsRow: boolean; displayedCard: CardInstance; cost: number | 'X' }
 
+export function singleRequiredHandCard(pending: Pending | null, viewer: Player | undefined): CardInstance | undefined {
+  const choice = pending?.choice
+  if (!pending || !viewer || !choice ||
+    (choice.kind !== 'discard' && choice.kind !== 'exhaust' && choice.kind !== 'exhaustAny')) return undefined
+  const minimum = choice.kind === 'exhaustAny' ? choice.minimum ?? 0 : choice.amount
+  if (minimum === 0) return undefined
+  const cards = pending.choiceCards ?? viewer.hand.filter(card => !pending.cardInHand || card.uid !== pending.card.uid)
+  return cards.length === 1 ? cards[0] : undefined
+}
+
 export function describeCardPickup(state: CombatState, viewer: Player, card: CardInstance, source: CardSource): CardPickup {
   const required = state.pendingHermitChamberPlays?.[0]
   const staged = source === 'chamber' ? stageHermitChamberViewer(viewer, card,
@@ -129,6 +139,8 @@ export function createCardPlayCoordinator(options: Options) {
 
   function stageOrCommit(next: Pending): CardPlayResult {
     next = withAdjacentChoices(next)
+    const onlyHandCard = singleRequiredHandCard(next, viewer)
+    if (onlyHandCard) next = { ...next, picked: [onlyHandCard.uid], choiceConfirmed: true }
     if (next.choiceCards?.length === 0 &&
       (next.choice?.kind === 'scry' || next.choice?.kind === 'scryToHand')) {
       next = { ...next, choiceConfirmed: true }

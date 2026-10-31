@@ -117,6 +117,14 @@ try {
     await page.keyboard.press('Enter')
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.players[0].block === 3)
     assert.equal(await dialog.count(), 0, 'a lone Survivor was stranded in an empty discard selection')
+    const singleDiscard = fixture([{ id: playerId, name: 'Silent', character: 'silent' }], `${screen}-single`)
+    singleDiscard.combat.players[0].hand = singleDiscard.combat.players[0].hand.slice(0, 2)
+    await page.evaluate(run => window.__STS_DEBUG__.setRun(run), singleDiscard)
+    await play()
+    await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.players[0].block === 2)
+    assert.equal(await dialog.count(), 0, 'Survivor must automatically discard its only candidate')
+    assert.deepEqual(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.players[0].discard.map(card => card.uid)),
+      ['discard-strike', 'survivor-source'])
     await context.close()
 
     const online = await browser.newContext({ viewport, hasTouch: phone, isMobile: phone })
@@ -176,6 +184,18 @@ try {
     assert.equal(room.run.combat.players[0].energy, 1)
     assert.deepEqual(room.run.combat.players[0].exhaust.map(card => card.uid), ['discard-daze'])
     assert.equal(room.run.combat.enemies[0].hp, 26)
+    const singleOnline = fixture(room.seats.map(seat => ({
+      id: seat.playerId, name: seat.name, character: seat.character,
+    })), `online-single-${screen}`)
+    singleOnline.combat.players[0].hand = singleOnline.combat.players[0].hand.slice(0, 2)
+    room.run = singleOnline
+    room.version++
+    rooms.publishRoom(session.code)
+    await tab.locator('.hand .card[data-card-name="Survivor"]').focus()
+    await tab.keyboard.press('Enter')
+    await tab.waitForFunction(() => !document.querySelector('.hand .card[data-card-name="Survivor"]'))
+    assert.equal(await onlineDialog.count(), 0)
+    assert.deepEqual(room.run.combat.players[0].discard.map(card => card.uid), ['discard-strike', 'survivor-source'])
     await online.close()
     console.log(`PASS ${screen}: Survivor selection, replacement, cancellation, confirmation and authoritative co-op play`)
   }

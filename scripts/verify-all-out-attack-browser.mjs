@@ -50,9 +50,8 @@ try {
       await card.focus()
       await page.waitForFunction(() => !document.querySelector('.hand[data-hand-moving], .hand .card--drawn'))
       await dragCardTo(page, card, target)
-      const discard = page.getByRole('dialog', { name: 'Choose a card in your hand to Discard', exact: true })
-      await discard.getByRole('button', { name: /^Defend,/ }).click()
-      await discard.getByRole('button', { name: 'Discard 1 card', exact: true }).click()
+      assert.equal(await page.getByRole('dialog', { name: 'Choose a card in your hand to Discard', exact: true }).count(), 0,
+        'the only required discard must be selected automatically')
       await page.waitForFunction(() => {
         const combat = window.__STS_DEBUG__.getRun().combat
         return combat.players[0].discard.some((card) => card.uid === 'all-out') &&

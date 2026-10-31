@@ -39,6 +39,11 @@ assert.equal(commits.length, 1)
 assert.equal(commits[0].card.uid, 'defend_ironclad')
 commits = []
 viewer.hand = [card('survivor'), card('strike_ironclad')]
+assert.equal(createCardPlayCoordinator(options).confirm(viewer.hand[0], 'hand'), 'submitted')
+assert.deepEqual(commits[0].picked, ['strike_ironclad'])
+assert.equal(commits[0].choiceConfirmed, true)
+commits = []
+viewer.hand.push(card('defend_ironclad'))
 assert.equal(createCardPlayCoordinator(options).confirm(viewer.hand[0], 'hand'), 'choosing')
 assert.equal(commits.length, 0)
 assert.equal(pending.choice.kind, 'discard')
@@ -46,6 +51,33 @@ const selected = { ...pending, picked: ['strike_ironclad'], choiceConfirmed: tru
 assert.equal(createCardPlayCoordinator({ ...options, pending }).choose(selected), 'submitted')
 assert.equal(commits.length, 1)
 assert.deepEqual(commits[0].picked, ['strike_ironclad'])
+
+for (const [defId, upgraded] of [['true_grit', false], ['sever_soul', true]]) {
+  commits = []
+  viewer.hand = [card(defId, { upgraded }), card('defend_ironclad')]
+  assert.equal(createCardPlayCoordinator({ ...options, pending: null })
+    .confirm(viewer.hand[0], 'hand', 'enemy'), 'submitted')
+  assert.deepEqual(commits[0].picked, ['defend_ironclad'])
+  assert.equal(commits[0].choiceConfirmed, true)
+}
+for (const defId of ['purity', 'concentrate']) {
+  commits = []
+  viewer.hand = [card(defId), card('defend_ironclad')]
+  assert.equal(createCardPlayCoordinator({ ...options, pending: null }).confirm(viewer.hand[0], 'hand'), 'choosing')
+  assert.equal(commits.length, 0, `${defId}: choosing none must remain possible`)
+  assert.deepEqual(pending.picked, [])
+}
+commits = []
+viewer.hand = [card('prepared')]
+const onlyDrawn = card('defend_ironclad', { uid: 'newly-drawn' })
+assert.equal(createCardPlayCoordinator({ ...options, pending: null })
+  .choose(pendingFor(viewer.hand[0], [onlyDrawn], state, viewer)), 'submitted')
+assert.deepEqual(commits[0].picked, ['newly-drawn'], 'post-draw discards must use the revealed pool')
+commits = []
+viewer.hand = [card('defend_ironclad')]
+const copied = { ...pendingFor(card('sever_soul'), null, state, viewer, false), enemyUid: 'enemy' }
+assert.equal(createCardPlayCoordinator({ ...options, pending: null }).choose(copied), 'submitted')
+assert.deepEqual(commits[0].picked, ['defend_ironclad'], 'a copy must not exclude an unrelated hand card')
 
 commits = []
 viewer.hand = [card('whirlwind')]

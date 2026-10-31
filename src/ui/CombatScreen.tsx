@@ -4,7 +4,7 @@ import { animateCardFlight, cardFlightPath } from './combat-screen/card-flight.t
 import { unknownPowerRefreshDecision } from './combat-screen/unknown-power.ts'
 import { HermitTriggerChoice } from './combat-screen/HermitTriggerChoice.tsx'
 import { pendingSneckoEyeCost, StartTurnOrder } from './combat-screen/StartTurnOrder.tsx'
-import { createCardPlayCoordinator, describeCardPickup, stageHermitChamberViewer } from './combat-screen/card-play.ts'
+import { createCardPlayCoordinator, describeCardPickup, singleRequiredHandCard, stageHermitChamberViewer } from './combat-screen/card-play.ts'
 import { useCardInteraction } from './combat-screen/useCardInteraction.ts'
 import { trackCombatResources } from './combat-screen/resource-visibility.ts'
 import { CardInteractionLayer } from './combat-screen/CardInteractionLayer.tsx'
@@ -1883,7 +1883,8 @@ function CombatScreenView({
   // (the potion is not spent) and the player reopens them afterwards.
   const owesChoice = Boolean(viewerPlayerChoice) ||
     (slayerChoice?.playerId === viewerId && state.phase !== 'lost')
-  const survivorDiscard = pending?.card.defId === 'survivor' &&
+  const onlyHandCard = singleRequiredHandCard(pending, viewer)
+  const survivorDiscard = !onlyHandCard && pending?.card.defId === 'survivor' &&
     pending.cardInHand && !pending.chamberPlay && pending.card.uid !== forcedCardUid &&
     pending.choice?.kind === 'discard' && !pending.choiceCards && !pending.choiceConfirmed
   const handSelectionAction = pending?.choice?.kind === 'exhaust' || pending?.choice?.kind === 'exhaustAny'
@@ -1897,7 +1898,7 @@ function CombatScreenView({
   const handSelectionMinimum = Math.min(pending?.choice?.kind === 'exhaustAny' ||
     pending?.choice?.kind === 'discardAny' || pending?.choice?.kind === 'bottomdeck'
     ? pending.choice.minimum ?? 0 : pending?.choice?.amount ?? 0, handSelectionCards.length)
-  const handSelectionOpen = handSelectionCards.length > 0 &&
+  const handSelectionOpen = !onlyHandCard && handSelectionCards.length > 0 &&
     (!pending?.choiceConfirmed || pending.picked.length < handSelectionMinimum)
   const handSelectionCanCancel = Boolean(pending && (pending.cardInHand || pending.chamberPlay) &&
     pending.card.uid !== forcedCardUid)
@@ -3998,6 +3999,13 @@ function CombatScreenView({
       setPotionOverflowRequired(0)
     },
   })
+
+  useLayoutEffect(() => {
+    if (!pending || !onlyHandCard || usingCard || !mutationsEnabled || authoritativeConnected === false ||
+      owesChoice || voluntaryActionsBlocked ||
+      pending.choiceConfirmed && pending.picked.length === 1 && pending.picked[0] === onlyHandCard.uid) return
+    stageOrCommit({ ...pending, picked: [onlyHandCard.uid], choiceConfirmed: true })
+  }, [pending, onlyHandCard, usingCard, mutationsEnabled, authoritativeConnected, owesChoice, voluntaryActionsBlocked])
 
   function dragTargetAt(x: number, y: number, hitsRow: boolean): string | null {
     const hit = document.elementFromPoint(x, y)
@@ -6259,7 +6267,7 @@ function CombatScreenView({
         onCancel={handSelectionCanCancel ? cancelCardPlay : undefined}
       /> : null}
 
-      {pending?.choiceCards && pending.choice && !pending.choiceConfirmed ? (
+      {pending?.choiceCards && pending.choice && !pending.choiceConfirmed && !onlyHandCard ? (
         <dialog ref={choiceDialogRef}
           className={`choice-modal${pending.choice.kind === 'scryToHand' ? ' choice-modal--scry-to-hand' : ''}`}
           aria-labelledby="choice-modal-title"

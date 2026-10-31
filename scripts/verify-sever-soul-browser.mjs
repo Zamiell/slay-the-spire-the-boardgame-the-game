@@ -399,6 +399,33 @@ try {
     await page.waitForFunction(() => window.__STS_DEBUG__.getState().players[0].energy === 0)
     assert.equal(await dialog.count(), 0, 'an empty eligible hand must not strand the play')
     assert.equal((await read()).enemies[0].hp, 27)
+    for (const [defId, upgraded] of [
+      ['true_grit', false], ['burning_pact', false], ['sever_soul', false], ['sever_soul', true], ['rampage', true],
+    ]) {
+      await setHand([card(defId, 'only-source', upgraded), fuel[0]], [], 9)
+      await play(faceOf(CARDS[defId], upgraded).name)
+      await page.waitForFunction(() => window.__STS_DEBUG__.getState().players[0].cardsPlayedThisTurn === 1)
+      assert.equal(await dialog.count(), 0, `${defId}: one mandatory candidate must bypass the picker`)
+      assert.deepEqual((await read()).players[0].exhaust.map(card => card.uid), ['defend'])
+    }
+    await setHand([card('purity', 'optional-source'), fuel[0]], [], 9)
+    await play('Purity')
+    await dialog.waitFor()
+    assert(await confirm().isEnabled(), 'one optional candidate must still allow exhausting none')
+    await activate(confirm())
+    await dialog.waitFor({ state: 'detached' })
+    assert((await read()).players[0].hand.some(card => card.uid === 'defend'))
+
+    await setHand([sever, ...fuel], [], 9)
+    await play('Sever Soul')
+    await dialog.waitFor()
+    await page.evaluate(() => {
+      const run = structuredClone(window.__STS_DEBUG__.getRun())
+      run.combat.players[0].hand = run.combat.players[0].hand.filter(card => card.uid === 'sever' || card.uid === 'defend')
+      window.__STS_DEBUG__.setRun(run)
+    })
+    await dialog.waitFor({ state: 'detached' })
+    await page.waitForFunction(() => window.__STS_DEBUG__.getState().players[0].exhaust.some(card => card.uid === 'defend'))
     assert.deepEqual(errors, [])
     await page.close()
     console.log(`PASS ${screen}: ${exhaustFaces.length} Exhaust faces, recovery, automatic effects, forced plays and live hand`)

@@ -4463,11 +4463,7 @@ function settleDiscard(room, strict = false) {
     .filter((player) => discardNeedsChoice(player) && connected.has(player.id) && !submitted[player.id])
     .map((player) => player.id)
   if (waiting.length > 0) return waiting
-  const orders = Object.fromEntries(combat.players.map((player) => [
-    player.id,
-    submitted[player.id] ?? player.hand.map((card) => card.uid),
-  ]))
-  const next = endPlayerTurn(combat, orders)
+  const next = endPlayerTurn(combat, submitted)
   if (next === combat) {
     // A seat's own submission is told; a settle pass has nobody to tell and the turn simply stays open.
     if (strict) fail('Discard order is no longer valid')

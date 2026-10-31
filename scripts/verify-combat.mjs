@@ -7501,6 +7501,42 @@ check('Well-Laid Plans optionally Retains cards in addition to innate Retain', (
   }
 })
 
+check('Well-Laid Plans automatically keeps a hand that fits its allowance', () => {
+  for (const [upgraded, count, automatic] of [
+    [false, 1, true], [true, 1, true], [true, 2, true], [false, 2, false], [true, 3, false],
+  ]) {
+    const plans = instance('well_laid_plans', upgraded)
+    const held = Array.from({ length: count }, (_, index) => instance(index % 2 ? 'deflect' : 'strike_silent'))
+    let state = combat([makePlayer({
+      character: 'silent', hand: [plans, ...held], draw: [instance('claw')], energy: 1,
+    })], [makeEnemy()])
+    state = playCard(state, 'p1', plans.uid, { enemyUid: null, playerId: null })
+    const ended = beginEndPlayerTurn(state)
+    assertEqual(ended.phase, automatic ? 'enemy' : 'discard')
+    assertDeepEqual(ended.players[0].hand.map(card => card.uid), held.map(card => card.uid))
+    if (automatic) {
+      assert(ended.players[0].hand.every(card => card.retainedLastTurn))
+      assertEqual(ended.players[0].retainCardsThisTurn, 0)
+      assertDeepEqual(ended.players[0].discard.map(card => card.uid), [])
+    }
+  }
+
+  const plans = instance('well_laid_plans')
+  const kept = [instance('strike_silent'), instance('regret'),
+    { ...instance('defend_silent'), retainThisTurn: true },
+    { ...instance('defend_silent'), endTurnProtected: true }]
+  const played = playCard(combat([makePlayer({
+    character: 'silent', hand: [plans, ...kept], energy: 1,
+  })], [makeEnemy()]), 'p1', plans.uid, { enemyUid: null, playerId: null })
+  const ended = beginEndPlayerTurn(played)
+  assertEqual(ended.phase, 'enemy', 'independently retained cards must not use the allowance')
+  assertDeepEqual(ended.players[0].hand.map(card => card.uid), kept.map(card => card.uid))
+  const optional = structuredClone(played)
+  optional.players[0].hand.push({ ...instance('eruption'), mayRetainThisTurn: true })
+  assertEqual(beginEndPlayerTurn(optional).phase, 'discard',
+    'other optional Retain abilities must not silently expand Well-Laid Plans automatic allowance')
+})
+
 check('Collector Claws gain one shared combat cube before dealing scaled damage', () => {
   const first = instance('claw_claw_pack')
   const second = instance('claw_claw_pack')

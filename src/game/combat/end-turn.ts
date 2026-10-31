@@ -553,7 +553,8 @@ function continueEndPlayerTurn(
  * Whether this player's end-of-turn discard is a decision or a formality.
  *
  * Only two things make it a decision. An optional Retain, where the player picks
- * which cards stay. And the order itself — but that decides one thing only, what
+ * which cards stay (Well-Laid Plans automatically keeps a hand that fits its allowance).
+ * And the order itself — but that decides one thing only, what
  * sits on TOP of the discard pile, which nothing reads unless this player owns a
  * Claw, Scrape, or a Steam Barrier. So the prompt asks a Defect running Claws and stays
  * out of everybody else's way; it used to stop all four players every round to
@@ -565,19 +566,29 @@ function continueEndPlayerTurn(
  * nothing in `src/ui/` should ask it again.
  */
 export function discardTopNeedsChoice(player: Player): boolean {
-  if (player.dead) return false
+  if (player.dead || wellLaidPlansRetainsHand(player)) return false
   const discarding = player.hand.filter((card) => !card.endTurnProtected && !card.retainThisTurn &&
     !cardHasRetain(player, card))
   return discardOrderNeedsChoice(player, discarding)
 }
 
 export function discardNeedsChoice(player: Player): boolean {
-  if (player.dead) return false
+  if (player.dead || wellLaidPlansRetainsHand(player)) return false
   const discarding = player.hand.filter((card) => !card.endTurnProtected && !card.retainThisTurn &&
     !cardHasRetain(player, card))
   return (player.retainCardsThisTurn ?? 0) > 0 && discarding.length > 0 || discardTopNeedsChoice(player) ||
     // Slayer Pack: Master Reality+'s returned card may be kept.
     discarding.some((card) => card.mayRetainThisTurn)
+}
+
+function wellLaidPlansRetainsHand(player: Player): boolean {
+  const effects = player.powers.filter(power => power.defId === 'well_laid_plans')
+    .flatMap(power => faceOf(cardDef(power.defId), power.upgraded).effects)
+  const plansAllowance = effects.reduce((total, effect) =>
+    total + (effect.kind === 'retainAtEndOfTurn' ? effect.amount : 0), 0)
+  const allowance = Math.min(player.retainCardsThisTurn ?? 0, plansAllowance)
+  return allowance > 0 && player.hand.filter(card => !card.endTurnProtected && !card.retainThisTurn &&
+    !cardHasRetain(player, card)).length <= allowance
 }
 
 function endTurnSource(state: CombatState, ability: EndTurnAbility) {
@@ -807,7 +818,7 @@ export function endPlayerTurn(state: CombatState, discardOrders: DiscardOrders =
   for (const player of next.players) {
     if (player.dead) continue
     const held = player.hand.length
-    const order = discardOrders[player.id]
+    const order = discardOrders[player.id] ?? (wellLaidPlansRetainsHand(player) ? [] : undefined)
     const ordered = new Set(order ?? player.hand.map((card) => card.uid))
     const hand = order
       ? [...order.map((uid) => player.hand.find((card) => card.uid === uid)!),

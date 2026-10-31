@@ -5653,6 +5653,35 @@ check('Well-Laid Plans grants its private Retain choices only at End of Turn', (
     'Well-Laid Plans leaked the private retained cards to a teammate')
 })
 
+check('automatic Well-Laid Plans retention survives another seat ordering its discards', () => {
+  const { room, a, b } = twoSeatRoom()
+  const actor = room.run.combat.players.find(player => player.id === a.playerId)
+  const other = room.run.combat.players.find(player => player.id === b.playerId)
+  const held = [
+    { uid: 'auto-plans-strike', defId: 'strike_silent', upgraded: false },
+    { uid: 'auto-plans-deflect', defId: 'deflect', upgraded: false },
+  ]
+  Object.assign(actor, {
+    hand: held, draw: [{ uid: 'auto-claw', defId: 'claw', upgraded: false }], discard: [], relics: [], orbs: [],
+    powers: [{ uid: 'auto-plans', defId: 'well_laid_plans', upgraded: true }],
+  })
+  Object.assign(other, {
+    hand: [
+      { uid: 'other-keep', defId: 'defend_ironclad', upgraded: false },
+      { uid: 'other-discard', defId: 'strike_ironclad', upgraded: false },
+    ], draw: [], discard: [], relics: [], powers: [], orbs: [], retainCardsThisTurn: 1,
+  })
+  for (const seat of [a, b]) apply(room, seat.token, { kind: 'endTurn' })
+  assertEqual(room.run.combat.phase, 'discard')
+  assertDeepEqual(snapshotFor(room, a.token).endTurnRequired, [b.playerId])
+  assertDeepEqual(snapshotFor(room, a.token).endTurnTopPlayerIds, [])
+  apply(room, b.token, { kind: 'discardHand', discardOrder: ['other-discard'] })
+  assertEqual(room.run.combat.phase, 'enemy')
+  const kept = room.run.combat.players.find(player => player.id === a.playerId)
+  assertDeepEqual(kept.hand.map(card => card.uid), held.map(card => card.uid))
+  assert(kept.hand.every(card => card.retainedLastTurn))
+})
+
 check('discard confirmation counts only players with a meaningful end-turn choice', () => {
   const { room, a, b, c } = threeSeatRoom()
   const silent = room.run.combat.players.find((player) => player.id === a.playerId)

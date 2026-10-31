@@ -71,6 +71,7 @@ import type { StagedAttackSpec } from './combat-screen/staged-attacks.ts'
 import { assetPath, potionIconPath, relicIconPath } from '../game/assets.ts'
 import { CombatAnimation, combatVideoPath, preloadCombatVideo, useSafariCombatVideo } from './CombatAnimation.tsx'
 import { cardDef, cardIsCurse, faceOf } from '../game/cards.ts'
+import { mandatoryCardPlayWindowOwners } from '../game/combat/queries.ts'
 import {
   activeCardPlayWindow,
   activatePotion,
@@ -2964,6 +2965,19 @@ function CombatScreenView({
   }, [onAction, autoAdvance, autoAdvanceRetry, authoritativeRefresh, state.phase, state.turn, canResolveStartTurn,
     meaningfulStartTurnChoice, baseStartTurnScries.length, activeStartTurnScry,
     activeStartTurnDiscard, pendingTrigger, forcedCard])
+
+  // A paused discard can become automatic after a forced play changes the hand.
+  useEffect(() => {
+    if (onAction || !autoAdvance || !mutationsEnabled || state.phase !== 'discard' ||
+      endTurnParticipants.some(id => discardOrders[id] === undefined) ||
+      forcedCard || state.pendingCardCopy || voluntaryActionsBlocked ||
+      mandatoryCardPlayWindowOwners(state).length > 0) return
+    const next = endPlayerTurn(state, discardOrders)
+    if (next === state) return
+    const timer = window.setTimeout(() => onChange?.(next), 250)
+    return () => window.clearTimeout(timer)
+  }, [onAction, onChange, autoAdvance, mutationsEnabled, state, endTurnParticipants.length, discardOrders,
+    forcedCard, voluntaryActionsBlocked])
 
   const weakByActor = [
     ...state.players.map((player) => [`player:${player.id}`, player.weak] as const),

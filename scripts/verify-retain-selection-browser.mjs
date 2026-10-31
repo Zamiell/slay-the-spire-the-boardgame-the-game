@@ -3,7 +3,7 @@ import { mkdirSync } from 'node:fs'
 import { createServer } from 'vite'
 import { chromium } from './lib/profile-browser.mjs'
 import { createRoomServer } from './room-server.mjs'
-import { createRoom, joinRoom, snapshotFor } from './lib/rooms.mjs'
+import { apply, createRoom, joinRoom, snapshotFor } from './lib/rooms.mjs'
 import { postNeowRun } from './lib/post-neow-run.mjs'
 import { createRun, enterRoom } from '../src/game/run.ts'
 import { createCombat, beginEndTurnResolution } from '../src/game/combat.ts'
@@ -86,6 +86,25 @@ try {
       assert.deepEqual(retained.sort(), ['automatic', 'protected', 'already',
         ...(picks ? ['strike'] : []), ...(picks === 2 ? ['defend'] : []), ...(bonus ? ['bonus'] : [])].sort())
     }
+    for (const [upgraded, count, alreadyDiscarding] of [[false, 1], [true, 1], [true, 2], [false, 1, true]]) {
+      const fixture = structuredClone(baseline)
+      Object.assign(fixture.combat.players[0], {
+        hand: Array.from({ length: count }, (_, i) => card(`auto-kept-${i}`, i ? 'deflect' : 'strike_silent')),
+        draw: [card('auto-claw', 'claw'), ...Array.from({ length: 10 }, (_, i) => card(`auto-draw-${i}`, 'strike_silent'))],
+        discard: [], relics: [], powers: [card('auto-plans', 'well_laid_plans', { upgraded })],
+      })
+      if (alreadyDiscarding) {
+        fixture.combat.phase = 'discard'
+        fixture.combat.players[0].retainCardsThisTurn = 1
+      }
+      await page.evaluate(fixture => window.__STS_DEBUG__.setRun(fixture), fixture)
+      if (!alreadyDiscarding) await page.getByRole('button', { name: /^End Turn \d+/ }).click()
+      assert.equal(await page.locator('dialog.hand-discard').count(), 0, 'a hand that fits needs no Retain or discard-order picker')
+      await page.waitForFunction(turn => window.__STS_DEBUG__.getState().turn > turn, fixture.combat.turn)
+      assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getState().players[0].hand
+        .filter(card => card.uid.startsWith('auto-kept-') && card.retainedLastTurn).length), count)
+    }
+
     const party = createRun(47, [
       { id: 'p1', name: 'Silent', character: 'silent' }, { id: 'p2', name: 'Defect', character: 'defect' },
     ])
@@ -168,6 +187,25 @@ try {
     assert(snapshotFor(table, seats[0].token).discardOrder.includes('own-defend'))
     assert(!snapshotFor(table, seats[0].token).discardOrder.includes('own-strike'))
     assert.equal(table.run.combat.phase, 'discard', "one seat cannot submit another seat's choices")
+
+    table.run.combat = createCombat({ seed: 47, calls: 0 }, table.run.players, baseline.combat.enemies, `auto-retain-${screen}`)
+    table.run.combat.players.forEach((player, index) => Object.assign(player, {
+      hand: [card(`auto-online-${index}-keep`, 'defend_ironclad'), card(`auto-online-${index}-other`, 'deflect')],
+      draw: [card(`auto-online-claw-${index}`, 'claw')], discard: [], relics: [], orbs: [],
+      powers: index ? [] : [card('auto-online-plans', 'well_laid_plans', { upgraded: true })],
+      retainCardsThisTurn: index ? 1 : 0,
+    }))
+    table.endTurnOrders = undefined
+    table.run.combat = beginEndTurnResolution(table.run.combat)
+    table.version++
+    await page.reload()
+    await page.locator('.combat[data-phase="discard"]').waitFor()
+    assert.equal(await dialog.count(), 0, 'an automatic online seat must not see the Retain picker')
+    assert.deepEqual(snapshotFor(table, seats[0].token).endTurnRequired, [seats[1].playerId])
+    apply(table, seats[1].token, { kind: 'discardHand', discardOrder: ['auto-online-1-other'] })
+    assert.equal(table.run.combat.phase, 'enemy')
+    assert.deepEqual(table.run.combat.players[0].hand.map(card => card.uid),
+      ['auto-online-0-keep', 'auto-online-0-other'])
     assert.deepEqual(errors, [])
     console.log(`PASS ${screen}: Retain rules, supported layout, online ordering, readiness, updates and reconnect`)
     await page.close()

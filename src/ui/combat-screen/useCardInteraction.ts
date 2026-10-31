@@ -251,7 +251,7 @@ export function useCardInteraction(options: Options) {
     }
     const key = (event: KeyboardEvent) => {
       if (event.key === 'Tab') { cancel(); return }
-      if (event.key !== 'Escape' || !live.current ||
+      if (event.key !== 'Escape' || !live.current || document.querySelector('.card-inspection[open]') ||
         ['submitted', 'resolving'].includes(live.current.state.kind)) return
       event.preventDefault()
       event.stopImmediatePropagation()

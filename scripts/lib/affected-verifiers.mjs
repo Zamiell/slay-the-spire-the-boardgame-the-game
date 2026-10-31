@@ -175,7 +175,8 @@ const focusedUiOwners = ownerMap([
   ['src/ui/styles/title-menu.css', ['verify-run-replay-browser.mjs', 'verify-replay-controls-browser.mjs', 'verify-title-menu-browser.mjs']],
 ])
 const focusedOnlyUiOwners = ownerMap([
-  ['src/ui/CardInspectionDialog.tsx', ['verify-deck-inspection-browser.mjs']],
+  ...['src/ui/CardInspectionDialog.tsx', 'src/ui/CardInspectionProvider.tsx', 'src/ui/card-inspection-context.ts']
+    .map(file => [file, ['verify-deck-inspection-browser.mjs', 'verify-card-context-inspection-browser.mjs']]),
   ...['src/ui/CombatDie.tsx', 'src/ui/combat-die-breakdown.ts', 'src/ui/styles/combat-die.css']
     .map(file => [file, ['verify-die-breakdown-browser.mjs']]),
   ...['src/ui/draw-lock-text.ts', 'src/ui/DrawLockedRules.tsx', 'src/ui/card-draw-strikes.json',

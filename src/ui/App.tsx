@@ -94,6 +94,7 @@ import { RoomScreen } from './RoomScreen.tsx'
 import { NeowScreen } from './NeowScreen.tsx'
 import { QuickSetupScreen } from './QuickSetupScreen.tsx'
 import { CardMorph, CardMorphAnnouncement } from './CardMorph.tsx'
+import { CardInspectionProvider } from './CardInspectionProvider.tsx'
 import { RunSummary, summarySeat } from './RunSummary.tsx'
 import { useCardMorphs } from './useCardMorphs.ts'
 import { usePrefersReducedMotion } from './combat-screen/hooks.ts'
@@ -638,6 +639,7 @@ export function App() {
   }, [])
   return (
     <SkinProvider>
+    <CardInspectionProvider>
     <Suspense fallback={<main className="app-loading" role="status">Loading…</main>}>
       {online === null ? <main className="app-loading" role="status">Loading…</main> : <>
       <div className="game-mode" hidden={online}>
@@ -647,6 +649,7 @@ export function App() {
       {online && OnlineGame ? <OnlineGame onLocal={() => setOnline(false)} settings={settings} onSettings={setSettings} /> : null}
       </>}
     </Suspense>
+    </CardInspectionProvider>
     </SkinProvider>
   )
 }

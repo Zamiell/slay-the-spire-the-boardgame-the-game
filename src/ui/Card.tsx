@@ -5,7 +5,7 @@ import { cardDef, faceOf } from '../game/cards.ts'
 import type { CardDef } from '../game/cards.ts'
 import type { Amount, Condition, CountOf, Effect, EnemyTokenKind } from '../game/cards.ts'
 import type { HandEndOfTurnEffect } from '../game/cards.ts'
-import { cardThumbPath } from '../game/assets.ts'
+import { cardImagePath, cardThumbPath } from '../game/assets.ts'
 import { useCardSkin } from './skin-context.tsx'
 import { CardFace, cardTypeLabel } from './CardFace.tsx'
 import { Icon, StatusIcon } from './Icon.tsx'
@@ -16,6 +16,7 @@ import { useButtonShortcut } from './useButtonShortcut.ts'
 import { COMBAT_TOKEN_HELP } from './combat-token-help.ts'
 import { drawLockText } from './draw-lock-text.ts'
 import { DrawLockedRules } from './DrawLockedRules.tsx'
+import { useInspectCard } from './card-inspection-context.ts'
 
 type CardProps = {
   card: CardInstance
@@ -30,6 +31,7 @@ type CardProps = {
   shortcutKey?: string
   /** Transient copies must paint an already-visible scan on their first frame. */
   immediateArt?: boolean
+  fullArt?: boolean
   /** Staged for play, waiting on a target or a choice. */
   selected?: boolean
   /** Chosen as the subject of another card's discard or exhaust effect. */
@@ -48,6 +50,7 @@ type CardProps = {
   /** Appended to the accessible name, e.g. to tell a just-drawn duplicate apart. */
   accessibleNote?: string
   onClick?: (card: CardInstance) => void
+  onInspect?: (card: CardInstance) => void
   onPointerDown?: React.PointerEventHandler<HTMLButtonElement>
   onPointerMove?: React.PointerEventHandler<HTMLButtonElement>
   onPointerUp?: React.PointerEventHandler<HTMLButtonElement>
@@ -784,6 +787,7 @@ export function Card({
   hoverHelp = false,
   shortcutKey,
   immediateArt = false,
+  fullArt = false,
   selected = false,
   picked = false,
   gemPowerDamage,
@@ -795,12 +799,14 @@ export function Card({
   tabIndex,
   accessibleNote,
   onClick,
+  onInspect,
   onPointerDown,
   onPointerMove,
   onPointerUp,
   onPointerCancel,
   onLostPointerCapture,
 }: CardProps) {
+  const inspectCard = useInspectCard()
   const buttonRef = useRef<HTMLButtonElement | null>(null)
   useButtonShortcut(buttonRef, shortcutKey, playable)
   const touchNeedsInspection = useRef(false)
@@ -824,7 +830,8 @@ export function Card({
     }] : []),
   ], [blockedRules, showStanceBonus, stanceChangedThisTurn])
   const skin = useCardSkin(def)
-  const scan = cardThumbPath(def, card.upgraded, attachedGem ?? undefined, skin)
+  const scan = fullArt && !attachedGem ? cardImagePath(def, card.upgraded, skin)
+    : cardThumbPath(def, card.upgraded, attachedGem ?? undefined, skin)
   const hasPublisherScan = def.publisherScan !== false
   const [scanUnavailable, setScanUnavailable] = useState(!hasPublisherScan)
   useEffect(() => setScanUnavailable(!hasPublisherScan), [hasPublisherScan, scan])
@@ -860,6 +867,7 @@ export function Card({
       } as React.CSSProperties}
       aria-disabled={!playable}
       onPointerDown={(event) => {
+        if (event.button !== 0) return
         touchNeedsInspection.current = inspectOnTouch && event.pointerType === 'touch' &&
           document.activeElement !== event.currentTarget
         blockedMousePress.current = event.pointerType === 'mouse' && !playable
@@ -873,6 +881,16 @@ export function Card({
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerCancel}
       onLostPointerCapture={onLostPointerCapture}
+      onContextMenu={event => {
+        if (onInspect) {
+          event.preventDefault()
+          event.stopPropagation()
+          event.currentTarget.focus({ preventScroll: true })
+          onInspect(card)
+        } else inspectCard(event, {
+          cards: [card], initialCardUid: card.uid, drawLocked, sharedDrawLocked, stanceChangedThisTurn,
+        })
+      }}
       onClick={(event) => {
         const inspect = touchNeedsInspection.current && event.detail !== 0
         touchNeedsInspection.current = false

@@ -17,8 +17,8 @@ import { publicRunFrame, reduceRunHistory, type RunHistory } from './live-run-hi
 const RUN_LOG_KEY = 'sts-run-vod'
 const RUN_LOG_DATABASE = 'sts-run-vod-v2'
 const CONTROL = 'button, input, select, textarea, summary, [role="button"]'
-const INSPECTION = '.map-peek, .map-peek__open, .card-collection, .compendium, .deck-peek__open, .game-settings, .settings-dialog, [data-pile], .pause-menu, .room:not(.room--reachable), .die-breakdown-trigger, .die-breakdown'
-const OPEN_INSPECTION = '.settings-dialog[open], .map-peek[open], .card-collection[open], .die-breakdown[open], .compendium, .replay-bar__menu'
+const INSPECTION = '.map-peek, .map-peek__open, .card-collection, .card-inspection, .compendium, .deck-peek__open, .game-settings, .settings-dialog, [data-pile], .pause-menu, .room:not(.room--reachable), .die-breakdown-trigger, .die-breakdown'
+const OPEN_INSPECTION = '.settings-dialog[open], .map-peek[open], .card-collection[open], .card-inspection[open], .die-breakdown[open], .compendium, .replay-bar__menu'
 const FORBIDDEN_PATH = new Set(['__proto__', 'prototype', 'constructor'])
 const RUN_PHASES = new Set(['neow', 'map', 'combat', 'reward', 'betweenCombat', 'room', 'setup', 'victory', 'defeat'])
 const ROOM_KINDS = new Set(['encounter', 'elite', 'event', 'campfire', 'treasure', 'merchant', 'boss'])
@@ -1417,7 +1417,7 @@ function skippedClick(ref: ControlRef) {
   console.warn(`Replay skipped a click: ${ref.name ?? ref.selector} did not appear.`)
 }
 
-const paused = (doc: Document) => doc.querySelector('.pause-menu[open], .settings-dialog[open], .map-peek[open], .card-collection[open], .compendium')
+const paused = (doc: Document) => doc.querySelector('.pause-menu[open], .settings-dialog[open], .map-peek[open], .card-collection[open], .card-inspection[open], .compendium')
 
 async function waitForControl(doc: Document, ref: ControlRef, pace: Pace) {
   let waited = 0

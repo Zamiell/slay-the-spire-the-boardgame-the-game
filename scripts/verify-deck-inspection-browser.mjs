@@ -186,6 +186,22 @@ try {
           return box.left >= 0 && box.right <= innerWidth && box.top >= 0 && box.bottom <= innerHeight
         })
     }), `${screen}: enlarged card and controls must fit`)
+    assert(await inspection.evaluate(element => {
+      const card = element.querySelector('.card-inspection__card').getBoundingClientRect()
+      const arrow = element.querySelector('.compendium__detail-nav').getBoundingClientRect()
+      const footer = element.querySelector('.card-inspection__footer').getBoundingClientRect()
+      const checkbox = element.querySelector('input[type="checkbox"]').getBoundingClientRect()
+      const rem = parseFloat(getComputedStyle(document.documentElement).fontSize)
+      return Math.abs(card.height / innerHeight - .78) < .01 &&
+        Math.abs(card.x + card.width / 2 - innerWidth / 2) < 2 &&
+        Math.abs(card.y + card.height / 2 - innerHeight / 2) < 2 &&
+        Math.abs(arrow.width - Math.max(2.75 * rem, .09 * innerHeight)) < 2 &&
+        Math.abs(checkbox.width - Math.max(1.3 * rem, .04 * innerHeight)) < 2 &&
+        Math.abs(checkbox.height - checkbox.width) < 1 &&
+        Math.abs(footer.top - card.bottom - .033 * innerHeight) < 2
+    }), `${screen}: inspector proportions must match the supplied game reference`)
+    assert.match(await preview.locator('img.card__art').getAttribute('src'), /\/assets\/cards\//,
+      'large inspection cards must use full-resolution scans')
     await page.screenshot({ path: `${output}/${screen}-upgraded.png` })
     await activate(next)
     assert.equal(await preview.getAttribute('data-card-name'), 'Defend+')

@@ -8,6 +8,7 @@ import { StatusIcon } from './Icon.tsx'
 import { CardKeywordHelp, cardAccessibleName, cardPlayText, revealDecodedImage } from './Card.tsx'
 import { CardFace } from './CardFace.tsx'
 import { CARD_PACKS } from '../game/packs.ts'
+import { useInspectCard } from './card-inspection-context.ts'
 
 type Pool = CardDef['owner'] | 'all'
 
@@ -97,6 +98,7 @@ function PackBadge() {
 }
 
 export function CompendiumScreen({ onBack, backLabel = 'Back to main menu' }: { onBack: () => void; backLabel?: string }) {
+  const inspectCard = useInspectCard()
   const [pool, setPool] = useState<Pool>('all')
   const [search, setSearch] = useState('')
   const [type, setType] = useState<'all' | CardDef['type']>('all')
@@ -134,6 +136,10 @@ export function CompendiumScreen({ onBack, backLabel = 'Back to main menu' }: { 
       return (
         <CardKeywordHelp def={face} key={card.id}>{(keywordHelpProps) => (
           <button {...keywordHelpProps} type="button" className={`compendium-card compendium-card--${card.owner}`} style={gemTint(face)}
+            onContextMenu={event => inspectCard(event, {
+              cards: cards.map(def => ({ uid: def.id, defId: def.id, upgraded: false })),
+              initialCardUid: card.id, viewAllUpgraded: upgraded,
+            })}
             onClick={() => { setSelected(card); setDetailUpgraded(upgraded) }} aria-label={`${cardAccessibleName(face)}${card.pack ? ', Slayer Pack' : ''}, ${face.rarity}`}>
             <ScannedCardFace def={face} upgraded={showUpgrade} />
             {card.pack ? <PackBadge /> : null}
@@ -141,7 +147,7 @@ export function CompendiumScreen({ onBack, backLabel = 'Back to main menu' }: { 
         )}</CardKeywordHelp>
       )
     })}
-  </div>, [cards, upgraded])
+  </div>, [cards, upgraded, inspectCard])
 
   const toggleRarity = (value: CardDef['rarity']) => setRarities((current) => {
     const next = new Set(current)
@@ -247,6 +253,10 @@ export function CompendiumScreen({ onBack, backLabel = 'Back to main menu' }: { 
             </button>
             <CardKeywordHelp def={selectedFace}>{(keywordHelpProps) => (
               <span {...keywordHelpProps} className="compendium__detail-card" role="group" tabIndex={0} style={gemTint(selectedFace)}
+                onContextMenu={event => inspectCard(event, {
+                  cards: [{ uid: selectedFace.id, defId: selectedFace.id, upgraded: detailUpgraded }],
+                  initialCardUid: selectedFace.id,
+                })}
                 aria-label={cardAccessibleName(selectedFace)}>
                 <ScannedCardFace key={`${selected?.id}:${detailUpgraded}`} def={selectedFace} upgraded={detailUpgraded && Boolean(selected?.upgrade)} full />
               </span>

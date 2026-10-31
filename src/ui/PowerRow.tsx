@@ -12,11 +12,12 @@ import { CardFace } from './CardFace.tsx'
 import { blockedCardDrawRules, CardKeywordHelp, cardRuleDescription, cardRulesText } from './Card.tsx'
 import { DrawLockedRules } from './DrawLockedRules.tsx'
 import { KeywordText } from './KeywordText.tsx'
+import { useInspectCard } from './card-inspection-context.ts'
 
 type PowerRowProps = { powers: CardInstance[]; drawLocked?: boolean; sharedDrawLocked?: boolean }
 
 /** The enlarged card or text fallback, and where to put it. */
-type Zoom = { uid: string; src: string; def: CardDef; attachedGem?: CardDef; description: string; x: number; y: number; pinned: boolean; loaded: boolean }
+type Zoom = { uid: string; src: string; def: CardDef; attachedGem?: CardDef; description: string; x: number; y: number; pinned: boolean; loaded: boolean; opener: HTMLElement }
 
 const ZOOM_WIDTH = 190
 const ZOOM_HEIGHT = ZOOM_WIDTH * (4 / 3)
@@ -73,8 +74,15 @@ export function releaseCardZoom(close: () => void) {
 }
 
 export function PowerRow({ powers, drawLocked = false, sharedDrawLocked = drawLocked }: PowerRowProps) {
+  const inspectCard = useInspectCard()
   const skins = useCardSkins()
   const [zoom, setZoom] = useState<Zoom | null>(null)
+  const zoomElement = useRef<HTMLSpanElement>(null)
+  const overZoom = (event: MouseEvent) => {
+    const box = zoomElement.current?.getBoundingClientRect()
+    return box && event.clientX >= box.left && event.clientX <= box.right &&
+      event.clientY >= box.top && event.clientY <= box.bottom
+  }
   const blockedRules = zoom ? blockedCardDrawRules(zoom.def, drawLocked, sharedDrawLocked, zoom.attachedGem) : null
   // The SAME function object that is registered below, so this row can ask the
   // others to close without also closing itself.
@@ -100,6 +108,23 @@ export function PowerRow({ powers, drawLocked = false, sharedDrawLocked = drawLo
     return () => cancelAnimationFrame(frame)
   }, [zoom?.uid, zoom?.x, zoom?.y])
 
+  useEffect(() => {
+    if (!zoom) return
+    // Hover cards stay pointer-transparent for play, but their painted area can be inspected.
+    const inspect = (event: MouseEvent) => {
+      if (document.querySelector('dialog:modal') || !overZoom(event)) return
+      inspectCard({
+        currentTarget: zoom.opener,
+        preventDefault: () => event.preventDefault(),
+        stopPropagation: () => event.stopPropagation(),
+      }, { cards: powers, initialCardUid: zoom.uid, drawLocked, sharedDrawLocked })
+      releaseCardZoom(close.current)
+      setZoom(null)
+    }
+    document.addEventListener('contextmenu', inspect, true)
+    return () => document.removeEventListener('contextmenu', inspect, true)
+  }, [zoom, powers, drawLocked, sharedDrawLocked, inspectCard])
+
   // While a card is pinned, Escape has to work from anywhere and the card must
   // not sit at coordinates measured against a window that has since changed
   // size. A listener on the tile could not do either: once Tab moved focus off
@@ -119,6 +144,7 @@ export function PowerRow({ powers, drawLocked = false, sharedDrawLocked = drawLo
     // Clicking anywhere else puts the card down, the way it would at a table.
     // Without this it floated over the board while you played your turn.
     const clickAway = (event: PointerEvent) => {
+      if (event.button === 2 && overZoom(event)) return
       const target = event.target as HTMLElement | null
       if (!target?.closest('.powers')) drop()
     }
@@ -164,6 +190,7 @@ export function PowerRow({ powers, drawLocked = false, sharedDrawLocked = drawLo
     const def = faceOf(cardDef(card.defId), card.upgraded)
     const attachedGem = card.attachedGemId ? faceOf(cardDef(card.attachedGemId), false) : undefined
     setZoom({
+      opener: target,
       uid: card.uid,
       src: cardThumbPath(def, card.upgraded, attachedGem, cardSkin(skins, def)),
       def,
@@ -207,6 +234,11 @@ export function PowerRow({ powers, drawLocked = false, sharedDrawLocked = drawLo
                 className={['power', showing ? 'power--open' : ''].filter(Boolean).join(' ')}
                 aria-expanded={showing}
                 aria-label={described}
+                onContextMenu={event => {
+                  inspectCard(event, { cards: powers, initialCardUid: card.uid, drawLocked, sharedDrawLocked })
+                  releaseCardZoom(close.current)
+                  setZoom(null)
+                }}
                 // A pinned card belongs to the player, not to the pointer:
                 // drifting across a neighbour used to silently destroy the pin.
                 onMouseEnter={(event) => {
@@ -241,6 +273,7 @@ export function PowerRow({ powers, drawLocked = false, sharedDrawLocked = drawLo
       {zoom
         ? createPortal(
             <span
+              ref={zoomElement}
               className={`power__zoom${zoom.loaded ? '' : ' power__zoom--fallback'}`}
               role="tooltip"
               style={{ left: `${Math.round(zoom.x)}px`, top: `${Math.round(zoom.y)}px` }}

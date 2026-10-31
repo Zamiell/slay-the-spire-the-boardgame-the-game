@@ -67,7 +67,7 @@ export function CardInspectionDialog({
           <svg viewBox="0 0 100 110" aria-hidden="true"><path d="M88 7 Q94 3 94 13 L94 97 Q94 107 85 102 L9 61 Q0 55 9 49 Z" /></svg>
         </button>
         <Card key={card.uid} card={{ ...card, upgraded: upgraded && Boolean(cardDef(card.defId).upgrade) }}
-          className="card-inspection__card" playable={false} tabIndex={-1}
+          className="card-inspection__card" playable={false} tabIndex={-1} fullArt immediateArt
           drawLocked={drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn} />
         <button type="button" className="compendium__detail-nav compendium__detail-nav--next" aria-label="Next card"
           style={{ visibility: index < cards.length - 1 ? undefined : 'hidden' }} disabled={index === cards.length - 1}

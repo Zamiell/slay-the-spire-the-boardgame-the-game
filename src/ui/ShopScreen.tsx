@@ -22,6 +22,7 @@ import { purchasePack, purchaseSkin } from '../wallet-storage.ts'
 import { CardKeywordHelp, cardAccessibleName } from './Card.tsx'
 import { CoinAmount, CoinIcon, formatCoins } from './Coins.tsx'
 import { ScannedCardFace } from './CompendiumScreen.tsx'
+import { useInspectCard } from './card-inspection-context.ts'
 import { cardSkin, usePreferredSkins, useCardSkins } from './skin-context.tsx'
 import { CHARACTER_LABEL } from './run-summary-data.ts'
 import { playSoundEffect } from './sfx.ts'
@@ -132,6 +133,7 @@ function PackTile({ pack, owned, short, onBuy, onBrowse }: {
 
 /** Every card of a pack, both faces, zoomable like the Compendium. */
 function PackBrowser({ pack, onClose }: { pack: CardPackDef; onClose: () => void }) {
+  const inspectCard = useInspectCard()
   const dialog = useRef<HTMLDialogElement>(null)
   const zoomDialog = useRef<HTMLDialogElement>(null)
   const [upgraded, setUpgraded] = useState(false)
@@ -164,6 +166,10 @@ function PackBrowser({ pack, onClose }: { pack: CardPackDef; onClose: () => void
           return <li key={card.id}>
             <CardKeywordHelp def={face}>{(keywordHelpProps) => (
               <button {...keywordHelpProps} type="button" className={`compendium-card compendium-card--${card.owner} shop-browse__card`}
+                onContextMenu={event => inspectCard(event, {
+                  cards: cards.map(def => ({ uid: def.id, defId: def.id, upgraded: false })),
+                  initialCardUid: card.id, viewAllUpgraded: upgraded,
+                })}
                 aria-label={`${cardAccessibleName(face)}, ${face.rarity}`} onClick={() => setZoomed(card)}>
                 <ScannedCardFace def={face} upgraded={upgraded && Boolean(card.upgrade)} />
               </button>
@@ -179,7 +185,10 @@ function PackBrowser({ pack, onClose }: { pack: CardPackDef; onClose: () => void
         {[false, true].filter((face) => !face || Boolean(zoomed.upgrade)).map((face) => {
           const def = faceOf(zoomed, face)
           return <figure key={String(face)}>
-            <span className="compendium__detail-card shop-zoom__card" role="group" tabIndex={0} aria-label={cardAccessibleName(def)}>
+            <span className="compendium__detail-card shop-zoom__card" role="group" tabIndex={0} aria-label={cardAccessibleName(def)}
+              onContextMenu={event => inspectCard(event, {
+                cards: [{ uid: def.id, defId: def.id, upgraded: face }], initialCardUid: def.id,
+              })}>
               <ScannedCardFace def={def} upgraded={face} full />
             </span>
             <figcaption>{face ? 'Upgraded' : 'Base'}</figcaption>

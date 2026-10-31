@@ -165,7 +165,7 @@ const focusedUiOwners = ownerMap([
   ['src/ui/MapScreen.tsx', ['verify-map-drawing-browser.mjs', 'verify-wing-focus-browser.mjs']],
   ['src/ui/RoomScreen.tsx', ['verify-card-choices-browser.mjs', 'verify-merchant-overflow-browser.mjs',
     'verify-joust-browser.mjs', 'verify-scrap-ooze-browser.mjs', 'verify-event-panels-browser.mjs', 'verify-potion-header-browser.mjs', 'verify-relic-refresh-browser.mjs']],
-  ['src/ui/chrome/item-tiles.css', ['verify-relic-refresh-browser.mjs']],
+  ['src/ui/chrome/item-tiles.css', ['verify-relic-refresh-browser.mjs', 'verify-map-drawing-browser.mjs']],
   ['src/ui/chrome/event-phone.css', ['verify-event-panels-browser.mjs', 'verify-scrap-ooze-browser.mjs']],
   ['src/ui/chrome/event-loot.css', ['verify-event-panels-browser.mjs', 'verify-scrap-ooze-browser.mjs', 'verify-potion-header-browser.mjs']],
   ['src/ui/chrome/merchant-arrival.css', ['verify-event-panels-browser.mjs', 'verify-merchant-overflow-browser.mjs', 'verify-assets.mjs']],

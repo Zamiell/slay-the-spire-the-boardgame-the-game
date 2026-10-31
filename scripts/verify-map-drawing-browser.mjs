@@ -46,6 +46,25 @@ try {
     }
     const startNode = map.locator('.room--reachable').first()
     await startNode.waitFor()
+    const headerGap = () => map.evaluate(element =>
+      element.getBoundingClientRect().top -
+      element.closest('.app-shell').querySelector('.app-shell__header').getBoundingClientRect().bottom)
+    assert(Math.abs(await headerGap()) <= 1, `${screen}: map parchment must meet the header without a black strip`)
+    await page.getByRole('button', { name: 'Settings', exact: true }).click()
+    await page.locator('.settings-dialog[open]').waitFor()
+    assert(Math.abs(await headerGap()) <= 1, 'opening a dialog must not move the map away from the header')
+    await page.keyboard.press('Escape')
+    await page.locator('.settings-dialog[open]').waitFor({ state: 'detached' })
+    assert(Math.abs(await headerGap()) <= 1, 'closing a dialog must not reintroduce the map gap')
+    assert(await map.evaluate(element => {
+      const panel = document.createElement('section')
+      panel.className = 'room-screen'
+      panel.textContent = 'Waiting for another player to resolve a Relic.'
+      element.before(panel)
+      const clear = element.getBoundingClientRect().top >= panel.getBoundingClientRect().bottom - 1
+      panel.remove()
+      return clear
+    }), 'an in-flow acquisition panel must not be overlapped by the map')
     assert.deepEqual(await tools.getByRole('button').evaluateAll(buttons => buttons.map(button => button.getAttribute('aria-label'))),
       ['Draw', 'Erase', 'Clear drawings'])
     assert.equal((await tools.innerText()).trim(), '', 'drawing controls must be icons, not a labeled toolbar')
@@ -262,6 +281,7 @@ try {
       await page.reload()
       const onlineNode = map.locator('.room--reachable').first()
       await onlineNode.waitFor()
+      assert(Math.abs(await headerGap()) <= 1, 'the online map must still meet the header')
       const onlinePoint = await center(onlineNode)
       await page.mouse.move(onlinePoint.x, onlinePoint.y)
       await page.mouse.down({ button: 'right' })

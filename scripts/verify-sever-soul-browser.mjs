@@ -59,7 +59,8 @@ try {
     const play = async (name) => {
       const target = page.locator('[data-enemy-id="target"] .enemy__hit-area')
       await pickUpCard(page, name)
-      if (name.startsWith('Sever Soul')) await targetInstruction.waitFor()
+      if (name.startsWith('Sever Soul')) assert.equal(await targetInstruction.count(), 0,
+        'a sole enemy is selected automatically while lifting the attack')
       await confirmCardPlay(page, target)
     }
     const dialog = page.getByRole('dialog', { name: /^Exhaust (?:\d|up to)/ })

@@ -4997,7 +4997,7 @@ function CombatScreenView({
           pendingShivProgress.options.some((option) => option.uid === enemy.uid))) ||
         (pendingEvokeTarget >= 0 && !pendingEvokeUsesRows && pendingEvokeTargetUids.has(enemy.uid))) && choiceSatisfied))
   ))
-  const aimingAttack = activePickup?.mode === 'enemy' &&
+  const aimingAttack = activePickup?.mode === 'enemy' && activePickup.aimWithArrow &&
     (activePickup.stage === 'dragging' || activePickup.stage === 'aiming')
   const showEnemyTargetPrompt = !over && !usingCard && !survivorDiscard && !handSelectionOpen &&
     !itemModalOpen && !owesChoice && !(pending?.choiceCards && !pending.choiceConfirmed) &&

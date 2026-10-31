@@ -152,6 +152,7 @@ try {
     await page.mouse.move(empty.x, empty.y, { steps: 5 })
     await page.mouse.up()
     await page.locator('.card-interaction[data-stage="aiming"]').waitFor()
+    await page.locator('.card-interaction__arrow').waitFor()
     assert.equal(await snapshot(), before, 'releasing without a target played the attack')
     await page.evaluate(() => { window.interactionCard = document.querySelector('.card-interaction__card') })
     const hit = await target().boundingBox()
@@ -173,6 +174,15 @@ try {
     const soleOrigin = await lift('Strike')
     await page.mouse.move(empty.x, empty.y, { steps: 5 })
     await page.locator('.card-interaction[data-target="target"]').waitFor()
+    assert.equal(await page.locator('.card-interaction__arrow').count(), 0,
+      'automatically targeting the sole enemy must not draw an aiming line')
+    assert.equal(await page.locator('.combat__target-instruction').count(), 0)
+    const followsPointer = point => page.waitForFunction(point => {
+      const box = document.querySelector('.card-interaction__card')?.getBoundingClientRect()
+      return box && Math.abs(box.x + box.width / 2 - point.x) < 10 &&
+        Math.abs(box.y + box.height / 2 - point.y) < 10
+    }, point)
+    await followsPointer(empty)
     assert.equal(await snapshot(), soleBefore, 'automatic targeting must not play until release')
     await page.mouse.move(soleOrigin.x, soleOrigin.y, { steps: 5 })
     await page.mouse.up()
@@ -180,6 +190,7 @@ try {
     assert.equal(await snapshot(), soleBefore, 'returning a sole-enemy attack to the hand must still cancel')
     await lift('Strike')
     await page.mouse.move(empty.x, empty.y, { steps: 5 })
+    await followsPointer(empty)
     await page.screenshot({ path: `${output}/${screen}-sole-enemy-auto-target.png` })
     await page.mouse.up()
     await page.waitForFunction(() => window.__STS_DEBUG__.getState().enemies[0].hp === 29)
@@ -195,6 +206,7 @@ try {
       window.__STS_DEBUG__.setRun(run)
     })
     await page.waitForFunction(() => window.__STS_DEBUG__.getState().enemies.length === 2)
+    await page.locator('.card-interaction__arrow').waitFor()
     await page.mouse.up()
     await page.locator('.card-interaction[data-stage="aiming"]').waitFor()
     assert.deepEqual(await page.evaluate(() => window.__STS_DEBUG__.getState().enemies.map(enemy => enemy.hp)), [30, 30],
@@ -212,21 +224,43 @@ try {
       window.__STS_DEBUG__.setRun(run)
     })
     await page.locator('.card-interaction[data-target="target-1"]').waitFor()
+    assert.equal(await page.locator('.card-interaction__arrow').count(), 0)
+    await followsPointer(empty)
     await page.mouse.up()
     await page.waitForFunction(() => window.__STS_DEBUG__.getState().enemies[1].hp === 29)
     await page.locator('.card-interaction').waitFor({ state: 'detached' })
     assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getState().enemies[0].hp), 0,
       'the sole living enemy, not the defeated one, must receive the attack')
+    await fixture({ enemyCount: 2 })
+    await lift('Strike')
+    const pointed = await target().boundingBox()
+    const pointedCenter = { x: pointed.x + pointed.width / 2, y: pointed.y + pointed.height / 2 }
+    await page.mouse.move(pointedCenter.x, pointedCenter.y, { steps: 5 })
+    await page.locator('.card-interaction[data-target="target"] .card-interaction__arrow').waitFor()
+    await page.evaluate(() => {
+      const run = structuredClone(window.__STS_DEBUG__.getRun())
+      Object.assign(run.combat.enemies[1], { hp: 0, dead: true })
+      window.__STS_DEBUG__.setRun(run)
+    })
+    await page.locator('.card-interaction__arrow').waitFor({ state: 'detached' })
+    await followsPointer(pointedCenter)
+    await page.mouse.up()
+    await page.waitForFunction(() => window.__STS_DEBUG__.getState().enemies[0].hp === 29)
+    await page.locator('.card-interaction').waitFor({ state: 'detached' })
     if (phone) {
       await fixture()
       const strike = page.locator('.hand .card[data-card-name="Strike"]')
       await settleHand()
       const box = await strike.boundingBox()
+      const cardHeight = await strike.evaluate(card => parseFloat(getComputedStyle(card).height))
       const touch = await context.newCDPSession(page)
       await touch.send('Input.dispatchTouchEvent', { type: 'touchStart',
         touchPoints: [{ x: box.x + box.width / 2, y: box.y + box.height / 4, id: 1 }] })
       await touch.send('Input.dispatchTouchEvent', { type: 'touchMove',
         touchPoints: [{ x: box.x + box.width / 2, y: empty.y, id: 1 }] })
+      await page.locator('.card-interaction[data-target="target"]').waitFor()
+      assert.equal(await page.locator('.card-interaction__arrow').count(), 0)
+      await followsPointer({ x: box.x + box.width / 2, y: empty.y - cardHeight * 0.4 })
       await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
       await page.waitForFunction(() => window.__STS_DEBUG__.getState().enemies[0].hp === 29)
       await page.locator('.card-interaction').waitFor({ state: 'detached' })

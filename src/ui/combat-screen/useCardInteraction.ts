@@ -23,6 +23,7 @@ type Session = CardPickup & {
   height: number
   pose: CardPose
   targetUid: string | null
+  aimWithArrow: boolean
   stageStarted: number
   flightStart?: CardPose
   flightEnd?: Point
@@ -57,6 +58,8 @@ export function useCardInteraction(options: Options) {
   const clickSuppressed = useRef(false)
   const cancelledPointer = useRef<number | null>(null)
   const clickTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const needsTargetArrow = (pickup: CardPickup) => pickup.mode !== 'self' &&
+    (pickup.mode !== 'enemy' || latest.current.combat.enemies.filter(enemy => !enemy.dead).length !== 1)
 
   const publish = () => {
     const visual = (current: Session): VisualSession => ({ ...current, stage: cardInputStage(current.state) })
@@ -130,7 +133,7 @@ export function useCardInteraction(options: Options) {
       pose: { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2,
         angle: Math.atan2(transform.b, transform.a) * 180 / Math.PI,
         scale: Math.hypot(transform.a, transform.b) },
-      targetUid: null, stageStarted: performance.now(),
+      targetUid: null, aimWithArrow: needsTargetArrow(pickup), stageStarted: performance.now(),
     }
     // Touch needs to distinguish an inspection tap, a horizontal scroll, and a lift first.
     if (!live.current.touch) {
@@ -168,8 +171,10 @@ export function useCardInteraction(options: Options) {
     const { gesture } = current.state
     const target = current.mode !== 'self' && gesture.pointer.y < gesture.playY
       ? latest.current.targetAt(gesture.pointer, current) : null
-    if (target !== current.targetUid) {
+    const aimWithArrow = needsTargetArrow(current)
+    if (target !== current.targetUid || aimWithArrow !== current.aimWithArrow) {
       current.targetUid = target
+      current.aimWithArrow = aimWithArrow
       publish()
     }
   }, [options.combat])
@@ -311,7 +316,7 @@ export function useCardInteraction(options: Options) {
         x: gesture.pointer.x, y: gesture.pointer.y - (current.touch ? current.height * 0.4 : 0),
         angle: 0, scale: 1.08,
       }
-      if (stage === 'aiming' && current.mode !== 'self' || stage === 'submitted') {
+      if (stage === 'aiming' && current.aimWithArrow || stage === 'submitted') {
         target = { x: innerWidth / 2, y: innerHeight - current.height * 0.55, scale: 0.85, angle: 0 }
       }
       if (stage === 'returning') {

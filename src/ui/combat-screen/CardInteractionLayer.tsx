@@ -14,7 +14,7 @@ export function CardInteractionLayer({ interaction, damage, drawLocked, sharedDr
   return createPortal(<>{[...flights, ...(session ? [session] : [])].map((current) =>
     <div key={current.id} className="card-interaction" data-stage={current.stage}
       data-target={current.targetUid ?? undefined} aria-hidden="true" inert>
-    {current.mode !== 'self' && current.stage === 'aiming' ? <svg className="card-interaction__arrow" viewBox={`0 0 ${innerWidth} ${innerHeight}`}>
+    {current.aimWithArrow && current.stage === 'aiming' ? <svg className="card-interaction__arrow" viewBox={`0 0 ${innerWidth} ${innerHeight}`}>
       <defs><marker id="interaction-arrowhead" markerUnits="userSpaceOnUse" markerWidth="20" markerHeight="20"
         refX="17" refY="10" orient="auto"><path d="M 0 0 L 20 10 L 0 20 Z" /></marker></defs>
       <path ref={arrowElement} className="card-interaction__path" />

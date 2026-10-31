@@ -754,37 +754,22 @@ function EventScreen({
     printsRulesInline ? undefined : relicOptionLabel(id, withCost);
   const player =
     players.find((candidate) => candidate.id === viewerId) ?? players[0]!;
-  const automaticSkip = useRef("");
-  const [automaticSkipRetry, setAutomaticSkipRetry] = useState(0);
+  const leavingRef = useRef(false);
+  const [leaving, setLeaving] = useState(false);
+  const continueUnavailableEvent = async () => {
+    if (!eventCanSkip || !onSkipEvent || leavingRef.current) return;
+    leavingRef.current = true;
+    setLeaving(true);
+    try {
+      await onSkipEvent(player.id);
+    } finally {
+      leavingRef.current = false;
+      setLeaving(false);
+    }
+  };
   // On mount: a child die's own unmount cleanup runs after its parent's, so
   // forgetting on the way out would be undone by the die it just unmounted.
   useEffect(() => { forgetShownRolls(); }, []);
-  useEffect(() => {
-    if (!eventCanSkip) {
-      automaticSkip.current = "";
-      return;
-    }
-    const key = `${room.card.instanceId}/${player.id}`;
-    if (automaticSkip.current === key) return;
-    automaticSkip.current = key;
-    const pending = onSkipEvent?.(player.id);
-    if (!pending) return;
-    let timer = 0;
-    const rearm = (outcome?: ActionOutcome) => {
-      if (automaticSkip.current !== key) return;
-      if (outcome?.status === "accepted") return;
-      const next = outcome?.snapshot;
-      const nextRoom = next?.run?.roomState;
-      if (next && (nextRoom?.kind !== "event" || nextRoom.card.instanceId !== room.card.instanceId || !next.eventCanSkip)) return;
-      timer = window.setTimeout(() => {
-        if (automaticSkip.current !== key) return;
-        automaticSkip.current = "";
-        setAutomaticSkipRetry((attempt) => attempt + 1);
-      }, 250);
-    };
-    void pending.then(rearm, () => rearm());
-    return () => window.clearTimeout(timer);
-  }, [automaticSkipRetry, eventCanSkip, player.id, room.card.instanceId]);
   const [cards, setCards] = useState<string[]>([]);
   const [pickerCardUids, setPickerCardUids] = useState<string[]>([]);
   const [tradeCardDraft, setTradeCardDraft] = useState({ stage: "", uid: "" });
@@ -820,6 +805,8 @@ function EventScreen({
   const tradeCardUid = tradeCardDraft.stage === pendingTradeStage ? tradeCardDraft.uid : "";
   const pendingDecision = room.pendingDecisions?.[player.id];
   const decided = room.decisions[player.id];
+  const noAvailableChoices = eventCanSkip || !decided && !room.pendingDecisions?.[player.id] &&
+    room.card.options.length > 0 && room.card.options.every(option => unavailableEventOptionIds.includes(option.id));
   const draftOptionIds = decided ? [] : pendingDecision?.optionIds ?? selectedOptions;
   const selectionOpen = draftOptionIds.length > 0;
   const itemOfferStage = JSON.stringify([itemOffers, pendingDecision?.rewardItemIds?.length ?? 0]);
@@ -1422,6 +1409,19 @@ function EventScreen({
       </div>
     </section>;
   }
+  if (noAvailableChoices) return <section className="room-stage event-stage" style={eventArt} aria-labelledby="event-title">
+    <div className="event-art" aria-hidden="true" />
+    <div className="event-panel event-panel--unavailable">
+      <div className="room-banner"><span>Event</span><h2 id="event-title">{room.card.name}</h2></div>
+      <h3>No available choices</h3>
+      <p id="event-unavailable-description" role="status">{eventCanSkip
+        ? "None of this event's options are available to you. You can continue without choosing an option."
+        : "Another player is resolving a choice. Your options may change when they finish."}</p>
+      <button type="button" className="room-proceed" aria-describedby="event-unavailable-description"
+        disabled={leaving || !eventCanSkip || !onSkipEvent}
+        onClick={() => void continueUnavailableEvent()}>{leaving ? "Leaving event…" : "Continue →"}</button>
+    </div>
+  </section>;
   return (
     <section className="room-stage event-stage" style={eventArt} aria-labelledby="event-title">
       <div className="event-art" aria-hidden="true" />
@@ -1647,7 +1647,9 @@ function EventScreen({
           </button>
         ) : null}
         {decided ? (
-          <p role="status">Your choice is locked. Waiting for the party…</p>
+          <p role="status">{decided.optionIds.includes("unavailable")
+            ? "No options are available for you. Waiting for the rest of the party…"
+            : "Your choice is locked. Waiting for the party…"}</p>
         ) : null}
       </div>
       {usesCardPicker && cardPickerStep ? createPortal(<CardPicker
@@ -1679,7 +1681,6 @@ function EventScreen({
           selectedOptionInvalidated || selectedOptionUnavailable || selectedUnaffordable}
         disabled={Boolean(pendingDecision?.cardUids?.length)}
       />, document.body) : null}
-      {eventCanSkip ? <p className="room-proceed" role="status">No legal choice · leaving event automatically…</p> : null}
     </section>
   );
 }

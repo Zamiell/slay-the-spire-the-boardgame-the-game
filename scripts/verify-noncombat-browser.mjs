@@ -2876,6 +2876,8 @@ await page.evaluate(() => {
   ] }, decisions: {}, dieRolls: {}, availableRewardSources: { card: [], rare: [] } }
   debug.setRun(run)
 })
+await page.getByRole('heading', { name: 'No available choices', exact: true }).waitFor()
+await page.getByRole('button', { name: 'Continue →', exact: true }).click()
 const exhaustedPrismaticSettled = await page.waitForFunction(() => {
   const run = window.__STS_DEBUG__.getRun()
   return run.phase === 'map' && run.roomState === null
@@ -2899,6 +2901,8 @@ await page.evaluate(() => {
   ] }, decisions: {}, dieRolls: {} }
   debug.setRun(run)
 })
+await page.getByRole('heading', { name: 'No available choices', exact: true }).waitFor()
+await page.getByRole('button', { name: 'Continue →', exact: true }).click()
 const impossiblePrayerSettled = await page.waitForFunction(() => {
   const run = window.__STS_DEBUG__.getRun()
   return run.phase === 'map' && run.roomState === null
@@ -3081,13 +3085,15 @@ await page.evaluate(() => {
   run.roomState = { kind: 'event', card: { id: 'old_beggar', instanceId: 'browser-no-choice', act: 2, minAscension: 0, requiresColorlessUnlock: false, name: 'Old Beggar', scope: 'player', options: [{ id: 'give', label: 'Give', description: 'Pay 2 Gold. Remove a card.', effects: [{ tag: 'pay-gold', amount: 2 }, { tag: 'remove-card' }] }] }, decisions: {}, dieRolls: {} }
   debug.setRun(run)
 })
+await page.getByRole('heading', { name: 'No available choices', exact: true }).waitFor()
+await page.getByRole('button', { name: 'Continue →', exact: true }).click()
 await page.waitForFunction(() => window.__STS_DEBUG__.getRun().roomState === null)
 const skippedEvent = await page.evaluate(() => ({
   phase: window.__STS_DEBUG__.getRun().phase,
   redundantActions: document.querySelectorAll('button').length && [...document.querySelectorAll('button')]
     .filter((button) => button.textContent?.includes('No legal choice')).length,
 }))
-check('an Event with no legal Pay or Give option advances without a redundant action', () => {
+check('an Event with no legal Pay or Give option advances after acknowledgment', () => {
   assertEqual(skippedEvent.redundantActions, 0)
   assertEqual(skippedEvent.phase, 'map')
 })
@@ -3912,10 +3918,13 @@ liveRoom.run.roomState = {
 }
 liveRoom.version += 1
 rooms.publishRoom(create.snapshot.code)
+await ann.getByRole('button', { name: 'Continue →', exact: true }).click()
+await ann.getByRole('alert').filter({ hasText: 'transient test refusal' }).waitFor()
+await ann.getByRole('button', { name: 'Continue →', exact: true }).click()
 await waitForAutomaticRetry(eventRetry.attempts)
 await eventRetry.stop()
 const eventRetryPhase = liveRoom.run.phase
-check('automatic Event exit retries a transient authoritative refusal', () => {
+check('Event acknowledgment can be retried after a transient authoritative refusal', () => {
   assertEqual(eventRetryPhase, 'map')
   assertEqual(eventRetry.attempts(), 2)
 })
@@ -4018,12 +4027,14 @@ liveRoom.run.roomState = {
 }
 liveRoom.version += 1
 rooms.publishRoom(create.snapshot.code)
+await ann.getByRole('heading', { name: 'No available choices', exact: true }).waitFor()
+await ann.getByRole('button', { name: 'Continue →', exact: true }).click()
 await ann.locator('.map').waitFor()
 const onlineExhaustedPrismaticEvent = {
   phase: liveRoom.run.phase,
   redundantActions: await ann.getByRole('button', { name: /No legal choice/ }).count(),
 }
-check('online exhausted normal and Rare Prismatic Events advance without an action', () => {
+check('online exhausted normal and Rare Prismatic Events advance after acknowledgment', () => {
   assertEqual(onlineExhaustedPrismaticEvent.phase, 'map')
   assertEqual(onlineExhaustedPrismaticEvent.redundantActions, 0)
 })

@@ -101,6 +101,44 @@
 .card-collection__footer input, .card-picker__view-upgrades input { width: 1.2rem; height: 1.2rem; vertical-align: -.2rem; }
 .card-picker__view-upgrades { display: block; margin-top: .35rem; font-size: 1rem; }
 
+.card-collection--deck {
+  transition: display 500ms allow-discrete, overlay 500ms allow-discrete;
+}
+.card-collection--deck:not([open]) { visibility: hidden; pointer-events: none; }
+.card-collection--deck::backdrop {
+  visibility: visible;
+  opacity: 0;
+  transition: opacity 500ms cubic-bezier(0.215, 0.61, 0.355, 1),
+    display 500ms allow-discrete, overlay 500ms allow-discrete;
+}
+.card-collection--deck[open]::backdrop { opacity: 1; }
+.card-collection--deck:not([open])::backdrop { pointer-events: none; }
+@starting-style {
+  .card-collection--deck[open]::backdrop { opacity: 0; }
+}
+.card-collection--deck .choice-modal__cards { min-height: 0; padding: 3rem 2rem; container-type: size; }
+.card-collection--deck .choice-modal__cards > .card {
+  max-width: calc(100cqh / var(--card-ratio));
+  justify-self: center;
+  transform-origin: center;
+  transform: scale(1);
+  transition: transform 500ms cubic-bezier(0.19, 1, 0.22, 1);
+}
+.card-collection--deck .choice-modal__cards > .card:is(:hover, :focus-visible) {
+  z-index: 2;
+  transform: scale(1.25);
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .card-collection--deck,
+  .card-collection--deck::backdrop,
+  .card-collection--deck .choice-modal__cards > .card { transition: none; }
+}
+html[data-reduced-motion='true'] .card-collection--deck,
+html[data-reduced-motion='true'] .card-collection--deck::backdrop,
+html[data-reduced-motion='true'] .card-collection--deck .choice-modal__cards > .card { transition: none; }
+html[data-reduced-motion='true'] .card-inspection__card { animation: none; }
+
 .card-inspection {
   --inspect-card-width: min(26rem, calc((100dvh - 8rem) / var(--card-ratio)), 42vw);
   position: fixed;

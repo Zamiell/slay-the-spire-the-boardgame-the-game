@@ -46,6 +46,85 @@ try {
     const previous = inspection.getByRole('button', { name: 'Previous card' })
     const next = inspection.getByRole('button', { name: 'Next card' })
     const bash = grid.locator('.card[data-card-name="Bash"]')
+    const sampleMotion = (locator, property) => locator.evaluate(async (element, property) => {
+      const start = performance.now()
+      const read = () => property === 'backdrop'
+        ? Number(getComputedStyle(element, '::backdrop').opacity) : element.getBoundingClientRect().width
+      const initial = read()
+      let changedAt
+      const frames = []
+      do {
+        await new Promise(requestAnimationFrame)
+        const value = read()
+        if (value !== initial && changedAt === undefined) changedAt = performance.now()
+        frames.push(value)
+      } while (performance.now() - (changedAt ?? start) < 600 && performance.now() - start < 2000)
+      return frames
+    }, property)
+    const oldMotion = await page.evaluate(() => document.documentElement.dataset.reducedMotion)
+    await page.emulateMedia({ reducedMotion: 'no-preference' })
+    await page.evaluate(() => { document.documentElement.dataset.reducedMotion = 'false' })
+    const sortButton = deck.getByRole('button', { name: /Obtained/ })
+    await page.mouse.move(2, 2)
+    await sortButton.focus()
+    const resting = await bash.boundingBox()
+    await bash.hover()
+    assert(Math.abs((await bash.boundingBox()).width / resting.width - 1.25) < .01,
+      `${screen}: deck hover must immediately enlarge by 25%`)
+    assert(await bash.evaluate(card => {
+      const box = card.getBoundingClientRect()
+      const grid = card.parentElement.getBoundingClientRect()
+      return box.left >= grid.left && box.right <= grid.right && box.top >= grid.top && box.bottom <= grid.bottom
+    }), `${screen}: enlarged edge cards must not be clipped by the scroller: ${await bash.evaluate(card =>
+      JSON.stringify({ card: card.getBoundingClientRect(), grid: card.parentElement.getBoundingClientRect(),
+        scroll: card.parentElement.scrollTop }))}`)
+    await page.screenshot({ path: `${output}/${screen}-grid-hover.png` })
+    const shrinking = sampleMotion(bash, 'width')
+    await page.mouse.move(2, 2)
+    const widths = await shrinking
+    assert(new Set(widths.filter(width => width > resting.width + 1 && width < resting.width * 1.25 - 1)
+      .map(width => width.toFixed(2))).size >= 3, `${screen}: deck cards must visibly ease back`)
+    assert(Math.abs(widths.at(-1) - resting.width) < 1)
+    await page.keyboard.press('Tab')
+    await bash.focus()
+    assert(Math.abs((await bash.boundingBox()).width / resting.width - 1.25) < .01,
+      'keyboard focus must use the same enlargement')
+    await sortButton.focus()
+    const surface = page.locator('.card-collection')
+    const closing = sampleMotion(surface, 'backdrop')
+    await activate(deck.getByRole('button', { name: 'Back', exact: true }))
+    const closeFrames = await closing
+    assert(closeFrames.some(alpha => alpha > .05 && alpha < .95) && closeFrames.at(-1) === 0,
+      `${screen}: the deck backdrop must fade out: ${JSON.stringify(closeFrames)}`)
+    const opening = sampleMotion(surface, 'backdrop')
+    await activate(page.getByRole('button', { name: /^Current deck,/ }))
+    const openFrames = await opening
+    assert(openFrames.some(alpha => alpha > .05 && alpha < .95) && openFrames.at(-1) === 1,
+      `${screen}: the deck backdrop must fade in`)
+    await page.keyboard.press('d')
+    await page.keyboard.press('d')
+    await deck.waitFor()
+    assert(await deck.evaluate(dialog => dialog.matches(':modal')),
+      'reopening during the closing fade must preserve the new modal')
+    for (const mode of ['system', 'game']) {
+      await page.emulateMedia({ reducedMotion: mode === 'system' ? 'reduce' : 'no-preference' })
+      await page.evaluate(mode => { document.documentElement.dataset.reducedMotion = String(mode === 'game') }, mode)
+      assert(await surface.evaluate(dialog => [getComputedStyle(dialog), getComputedStyle(dialog, '::backdrop')]
+        .every(style => style.transitionDuration.split(',').every(duration => parseFloat(duration) <= .001))),
+      `${screen}/${mode}: reduced motion must disable backdrop fading`)
+      await page.mouse.move(2, 2)
+      await sortButton.focus()
+      await bash.hover()
+      assert(Math.abs((await bash.boundingBox()).width / resting.width - 1.25) < .01)
+      await page.mouse.move(2, 2)
+      assert(Math.abs((await bash.boundingBox()).width - resting.width) < 1,
+        `${screen}/${mode}: reduced motion keeps inspection but removes the return tween`)
+    }
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.evaluate(oldMotion => {
+      if (oldMotion === undefined) delete document.documentElement.dataset.reducedMotion
+      else document.documentElement.dataset.reducedMotion = oldMotion
+    }, oldMotion)
     await activate(bash)
     await inspection.waitFor()
     assert.equal(await previous.count(), 0, 'the first card must not offer wraparound navigation')

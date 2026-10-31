@@ -93,7 +93,7 @@ export function CardCollectionDialog({ cards, label, onClose, open = true, order
 
   useEffect(() => { if (!open) setInspectedUid(null) }, [open])
 
-  return <dialog ref={dialog} className="choice-modal card-collection" aria-labelledby={titleId}
+  return <dialog ref={dialog} className={`choice-modal card-collection${inspectable ? ' card-collection--deck' : ''}`} aria-labelledby={titleId}
       onClose={(event) => {
         if (event.target !== event.currentTarget) return
         if (suppressedCloses.current > 0) suppressedCloses.current -= 1

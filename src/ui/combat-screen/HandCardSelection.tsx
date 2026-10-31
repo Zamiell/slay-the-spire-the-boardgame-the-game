@@ -4,13 +4,14 @@ import { Card } from '../Card.tsx'
 import { HandSelectionScreen } from './HandSelectionScreen.tsx'
 
 export function HandCardSelection({
-  cards, minimum, maximum, source, initialSelected = [], disabled, active = true,
+  cards, minimum, maximum, source, sourceCard, initialSelected = [], disabled, active = true,
   action = 'Exhaust', drawLocked, sharedDrawLocked, stanceChangedThisTurn, onConfirm, onCancel,
 }: {
   cards: readonly CardInstance[]
   minimum: number
   maximum: number
   source: string
+  sourceCard?: CardInstance
   initialSelected?: readonly string[]
   disabled: boolean
   active?: boolean
@@ -34,7 +35,7 @@ export function HandCardSelection({
     else if (!active && element.open) element.close()
   }, [active])
   if (action === 'Exhaust') return <HandSelectionScreen
-    cards={cards} selectedUids={selected} minimum={minimum} maximum={maximum} source={source} action={action}
+    cards={cards} selectedUids={selected} minimum={minimum} maximum={maximum} source={source} sourceCard={sourceCard} action={action}
     disabled={disabled} active={active} drawLocked={drawLocked} sharedDrawLocked={sharedDrawLocked}
     stanceChangedThisTurn={stanceChangedThisTurn} onSelect={toggle}
     onConfirm={() => onConfirm(selected)} onCancel={onCancel} />

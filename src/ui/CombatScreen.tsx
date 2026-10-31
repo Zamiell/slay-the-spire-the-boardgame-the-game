@@ -5605,6 +5605,7 @@ function CombatScreenView({
       ) : null}
 
       {survivorDiscard && pending ? <HandSelectionScreen action="Discard" source="Survivor"
+        sourceCard={pending.card}
         cards={viewer.hand.filter((card) => !pending.cardInHand || card.uid !== pending.card.uid)}
         selectedUids={pending.picked} minimum={Math.min(1, choicePoolSize)} maximum={Math.min(1, choicePoolSize)}
         disabled={usingCard || !mutationsEnabled || authoritativeConnected === false}
@@ -6318,7 +6319,7 @@ function CombatScreenView({
       {pendingPower?.attachedGemId === 'guardian_jasper' && !powerGemContext && !gemFinderScryOpen
         ? <HandCardSelection key={pendingPower.uid}
           cards={viewer.hand} minimum={0} maximum={Math.min(3, viewer.hand.length)}
-          source={`${pendingPowerDef!.name} — Jasper`} initialSelected={powerExhaustUids}
+          source={`${pendingPowerDef!.name} — Jasper`} sourceCard={pendingPower} initialSelected={powerExhaustUids}
           disabled={usingPower || !mutationsEnabled || authoritativeConnected === false} active={!owesChoice}
           drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked}
           stanceChangedThisTurn={stanceChangedThisTurn}
@@ -6331,7 +6332,7 @@ function CombatScreenView({
       {handSelectionOpen && pending ? <HandCardSelection key={pending.card.uid}
         cards={handSelectionCards} minimum={handSelectionMinimum} maximum={handSelectionMaximum}
         action={handSelectionAction}
-        source={pendingDef!.name} initialSelected={pending.picked}
+        source={pendingDef!.name} sourceCard={pending.card} initialSelected={pending.picked}
         disabled={usingCard || !mutationsEnabled || authoritativeConnected === false} active={!owesChoice}
         drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked}
         stanceChangedThisTurn={stanceChangedThisTurn}

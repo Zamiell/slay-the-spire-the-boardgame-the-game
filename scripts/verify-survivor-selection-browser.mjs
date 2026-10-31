@@ -42,7 +42,7 @@ const fixture = (players, suffix, upgraded = false, alone = false) => {
 
 try {
   for (const [screen, viewport, phone] of [
-    ['desktop', { width: 1440, height: 900 }, false],
+    ['desktop', { width: 1920, height: 1080 }, false],
     ['horizontal-phone', { width: 844, height: 390 }, true],
   ]) {
     const context = await browser.newContext({ viewport, hasTouch: phone, isMobile: phone })
@@ -71,10 +71,31 @@ try {
       'the original hand remained visible behind the discard selection')
     const hand = dialog.getByRole('group', { name: 'Cards available to discard' })
     const selected = dialog.getByRole('group', { name: 'Selected discard' })
-    const confirm = dialog.getByRole('button', { name: 'Confirm discard', exact: true })
+    const confirm = dialog.getByRole('button', { name: 'Confirm discard', exact: true, includeHidden: true })
     assert.equal(await hand.locator('.card').count(), 3)
     assert.equal(await dialog.getByRole('button', { name: /^Survivor,/ }).count(), 0)
     assert(await confirm.isDisabled())
+    assert.equal(await dialog.locator('h2').innerText(), 'Choose a card to Discard.')
+    assert.equal(await dialog.locator('.hand-discard__source .card[data-card-name="Survivor"]').count(), 1)
+    await page.screenshot({ path: `${output}/${screen}-choosing.png` })
+    const daze = hand.getByRole('button', { name: /^Daze,/ })
+    const resting = await daze.boundingBox()
+    if (phone) await daze.tap()
+    else await daze.hover()
+    await page.waitForFunction(() => !document.querySelector('.hand-discard__hand[data-hand-moving]'))
+    const raised = await daze.boundingBox()
+    assert(raised.y < resting.y - 20 && raised.height > resting.height * 1.15,
+      `${screen}: the hovered card must lift and enlarge from the recessed fan`)
+    assert(raised.y >= 0 && raised.y + raised.height <= await page.evaluate(() => innerHeight))
+    await page.screenshot({ path: `${output}/${screen}-hover.png` })
+    await dialog.getByRole('button', { name: 'View battlefield', exact: true }).click()
+    assert(await dialog.getByRole('button', { name: 'Return to card selection', exact: true }).isVisible())
+    assert.equal(await dialog.locator('.hand-discard__source .card__art').isVisible(), false)
+    await page.keyboard.press('2')
+    assert.equal(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun())), initial,
+      'viewing the battlefield must not enable gameplay shortcuts')
+    await page.keyboard.press('Escape')
+    assert(await dialog.isVisible(), 'leaving the battlefield preview must not cancel the play')
     await hand.getByRole('button', { name: /^Daze,/ }).click()
     assert.equal(await selected.locator('.card').count(), 1)
     assert(await confirm.isEnabled())
@@ -87,7 +108,7 @@ try {
     assert((await selected.locator('.card').getAttribute('aria-label')).startsWith('Daze,'))
     assert.equal(await hand.locator('.card').count(), 2)
     assert(await dialog.evaluate((element) => {
-      const controls = [...element.querySelectorAll('.card, footer button')]
+      const controls = [...element.querySelectorAll('.hand-discard__selection .card, footer button')]
       return controls.every((node) => {
         const box = node.getBoundingClientRect()
         return box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight
@@ -101,8 +122,10 @@ try {
     assert.equal(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun())), initial,
       'cancelling the uncommitted play spent cards or Energy')
     await play()
-    await hand.getByRole('button', { name: /^Daze,/ }).focus()
-    await page.keyboard.press('Enter')
+    await dialog.waitFor()
+    await page.keyboard.press('2')
+    assert.equal(await selected.locator('.card[data-card-name="Daze"]').count(), 1,
+      'the numbered fan shortcut must choose a discard, not play the underlying hand card')
     await confirm.focus()
     await page.keyboard.press('Enter')
     await dialog.waitFor({ state: 'detached' })
@@ -125,6 +148,37 @@ try {
     assert.equal(await dialog.count(), 0, 'Survivor must automatically discard its only candidate')
     assert.deepEqual(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.players[0].discard.map(card => card.uid)),
       ['discard-strike', 'survivor-source'])
+    const reference = fixture([{ id: playerId, name: 'Silent', character: 'silent' }], `${screen}-reference`)
+    reference.combat.players[0].hand = [reference.combat.players[0].hand[0],
+      ...['defend_silent', 'neutralize', 'strike_silent', 'defend_silent', 'strike_silent', 'defend_silent']
+        .map((defId, index) => ({ uid: `reference-${index}`, defId, upgraded: false }))]
+    await page.evaluate(run => window.__STS_DEBUG__.setRun(run), reference)
+    await play()
+    await dialog.waitFor()
+    await page.mouse.move(0, 0)
+    await page.waitForFunction(() => !document.querySelector('.hand-discard__hand[data-hand-moving]'))
+    assert(await dialog.evaluate(element => {
+      const source = element.querySelector('.hand-discard__source').getBoundingClientRect()
+      const heading = element.querySelector('h2').getBoundingClientRect()
+      const header = document.querySelector('.app-shell__header').getBoundingClientRect()
+      return Math.abs(source.x + source.width / 2 - innerWidth / 2) < 2 &&
+        source.top > innerHeight * .2 && source.bottom < innerHeight * .65 &&
+        heading.top >= header.bottom && heading.bottom < source.top &&
+        Number.parseFloat(getComputedStyle(element).getPropertyValue('--selection-header-bottom')) === header.bottom
+    }), `${screen}: the title, dimmed source card, and unobscured header must match the reference proportions`)
+    await page.screenshot({ path: `${output}/${screen}-reference.png` })
+    const neutralize = hand.getByRole('button', { name: /^Neutralize,/ })
+    const box = await neutralize.boundingBox()
+    const position = { x: box.width / 2, y: 30 }
+    if (phone) await neutralize.tap({ position })
+    else await neutralize.hover({ position })
+    await page.waitForFunction(() => !document.querySelector('.hand-discard__hand[data-hand-moving]'))
+    assert.equal(await selected.locator('.card').count(), 0, 'previewing a fanned card must not select it')
+    await page.screenshot({ path: `${output}/${screen}-reference-hover.png` })
+    if (phone) await neutralize.tap()
+    else await neutralize.click()
+    assert.equal(await selected.locator('.card[data-card-name="Neutralize"]').count(), 1)
+    await dialog.getByRole('button', { name: 'Cancel play', exact: true }).click()
     await context.close()
 
     const online = await browser.newContext({ viewport, hasTouch: phone, isMobile: phone })
@@ -165,7 +219,7 @@ try {
     const exhaustDialog = tab.getByRole('dialog', { name: 'Exhaust 1 or 2 cards', exact: true })
     const exhaustHand = exhaustDialog.getByRole('group', { name: 'Cards available to exhaust' })
     const exhaustSelected = exhaustDialog.getByRole('group', { name: 'Selected exhaust' })
-    const exhaustConfirm = exhaustDialog.getByRole('button', { name: 'Confirm exhaust', exact: true })
+    const exhaustConfirm = exhaustDialog.getByRole('button', { name: 'Confirm exhaust', exact: true, includeHidden: true })
     await exhaustHand.getByRole('button', { name: /^Daze,/ }).focus()
     await tab.keyboard.press('Enter')
     assert(await exhaustSelected.locator('.card').evaluate(card => document.activeElement === card),

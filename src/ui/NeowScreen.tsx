@@ -226,7 +226,10 @@ export function NeowScreen({ players, progress, viewerId, ascension, enabled = t
         onResolve={(choice) => submit(() => onReward(viewer.id, choice, viewerProgress.redReward ? 'red' : 'reward'))} /> : null}
       {blueReady && card ? <div className="neow-options">
         {card.options.map((option, index) => <button type="button" key={option.label} disabled={!canAct}
-          onClick={() => submit(() => onChoose(activeViewer.id, index, {}))}>
+          onClick={() => submit(() => {
+            if (option.effects.some(effect => effect.kind === 'randomRare')) onArmCardGain?.()
+            return onChoose(activeViewer.id, index, {})
+          })}>
           <span>{index + 1}</span><strong>{option.label}</strong>
         </button>)}
       </div> : null}

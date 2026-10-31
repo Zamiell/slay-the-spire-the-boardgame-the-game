@@ -91,7 +91,7 @@ export function nextNeowReward(state: RunState, playerId: string): RunState {
         },
       }
       const owner = next.players.find((candidate) => candidate.id === playerId)
-      return kind.kind === 'transform' && owner && availableTransformRewards(owner) === 0
+      return kind.kind === 'randomRare' || kind.kind === 'transform' && owner && availableTransformRewards(owner) === 0
         ? resolveNeowEffect(pending, playerId, true)
         : pending
     }
@@ -173,7 +173,7 @@ export function resumeNeow(state: RunState): RunState {
   if (state.phase !== 'neow' || !state.neow) return state
   let next = grantLegacyNeowGold(state)
   for (const [playerId, progress] of Object.entries(state.neow.players)) {
-    if (progress.pendingEffect?.kind === 'gold') {
+    if (progress.pendingEffect?.kind === 'gold' || progress.pendingEffect?.kind === 'randomRare') {
       next = resolveNeowEffect(next, playerId, true)
       continue
     }

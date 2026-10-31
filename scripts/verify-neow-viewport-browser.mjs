@@ -8,6 +8,7 @@ import { createRoomServer } from './room-server.mjs'
 import { createRoom, joinRoom, startRun } from './lib/rooms.mjs'
 import { installScreenAudit } from './lib/browser-screen-audit.mjs'
 import { checkRewardSweep } from './lib/reward-hover.mjs'
+import { cardDef } from '../src/game/cards.ts'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const out = join(root, 'artifacts/neow-viewport')
@@ -149,6 +150,35 @@ try {
     assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().players[0].gold),
       goldFixture.players[0].gold + 7, 'Gold must be granted immediately, followed by the solo completion bonus')
     assert.equal(await page.getByRole('button', { name: 'Gain reward', exact: true }).count(), 0)
+    const rareFixture = structuredClone(goldFixture)
+    rareFixture.neow.players.p1.cardId = 'neow_02'
+    const rare = rareFixture.players[0].rareRewards[0]
+    await page.evaluate(run => window.__STS_DEBUG__.setRun(run), rareFixture)
+    await page.getByRole('button', { name: /Gain 1 random Rare card/ }).click()
+    await page.locator('.map').waitFor()
+    await page.locator('.card-morph--gain').waitFor()
+    assert.equal(await page.locator('.card-morph--gain .card').getAttribute('data-card-name'), cardDef(rare).name,
+      'automatically gaining a random Rare must still reveal the gained card')
+    assert.equal(await page.getByRole('button', { name: 'Gain reward', exact: true }).count(), 0)
+    assert.equal(await page.getByRole('button', { name: 'Skip reward', exact: true }).count(), 0)
+    let rarePlayer = await page.evaluate(() => window.__STS_DEBUG__.getRun().players[0])
+    assert.equal(rarePlayer.deck.length, rareFixture.players[0].deck.length + 1)
+    assert.equal(rarePlayer.deck.at(-1).defId, rare)
+    assert.deepEqual(rarePlayer.rareRewards, rareFixture.players[0].rareRewards.slice(1))
+    await page.locator('.card-morph--gain').waitFor({ state: 'detached' })
+    const legacyRare = structuredClone(rareFixture)
+    Object.assign(legacyRare.neow.players.p1, { blueOption: 1, pendingEffect: { kind: 'randomRare' } })
+    await page.evaluate(run => window.__STS_DEBUG__.setRun(run), legacyRare)
+    await page.waitForFunction(() => JSON.parse(localStorage.getItem('sts-solo-run'))?.run.neow?.players.p1.pendingEffect?.kind === 'randomRare')
+    for (let reload = 0; reload < 2; reload++) {
+      await page.reload()
+      await page.getByRole('button', { name: 'Resume', exact: true }).click()
+      await page.locator('.map').waitFor()
+      rarePlayer = await page.evaluate(() => window.__STS_DEBUG__.getRun().players[0])
+      assert.equal(rarePlayer.deck.length, rareFixture.players[0].deck.length + 1)
+      assert.equal(rarePlayer.deck.at(-1).defId, rare)
+      assert.deepEqual(rarePlayer.rareRewards, rareFixture.players[0].rareRewards.slice(1))
+    }
     const legacyGold = structuredClone(goldFixture)
     Object.assign(legacyGold.neow.players.p1, { blueOption: 1, pendingEffect: { kind: 'gold', amount: 5 } })
     await page.evaluate(run => window.__STS_DEBUG__.setRun(run), legacyGold)
@@ -217,6 +247,34 @@ try {
     assert.equal(room.run.neow.players[seats[0].playerId].pendingEffect, null)
     assert.equal(room.run.neow.players[seats[0].playerId].rewardKind, 'potion')
     assert.equal(await page.getByRole('button', { name: 'Gain reward', exact: true }).count(), 0)
+    const rareRoom = createRoom(rooms.store)
+    const rareOwner = joinRoom(rareRoom, { character: 'watcher', name: 'Rare owner' })
+    joinRoom(rareRoom, { character: 'silent', name: 'Other seat' })
+    startRun(rareRoom, rareOwner.token, { seed: 'neow-random-rare' })
+    rareRoom.run.neow.players[rareOwner.playerId].cardId = 'neow_02'
+    await page.evaluate(saved => sessionStorage.setItem('sts-room-session', JSON.stringify(saved)),
+      { code: rareRoom.code, token: rareOwner.token })
+    await page.reload()
+    await page.locator('.connection--connected').waitFor()
+    await page.getByRole('button', { name: 'Skip', exact: true }).click()
+    await page.locator('.neow-options').waitFor()
+    const ownerBefore = structuredClone(rareRoom.run.players[0])
+    const peerBefore = structuredClone(rareRoom.run.players[1])
+    await page.getByRole('button', { name: /Gain 1 random Rare card/ }).click()
+    await page.locator('.neow-face--active.neow-face--done').waitFor()
+    await page.locator('.card-morph--gain').waitFor()
+    assert.equal(await page.locator('.card-morph--gain .card').getAttribute('data-card-name'),
+      cardDef(ownerBefore.rareRewards[0]).name)
+    assert.equal(rareRoom.run.players[0].deck.length, ownerBefore.deck.length + 1)
+    assert.equal(rareRoom.run.players[0].deck.at(-1).defId, ownerBefore.rareRewards[0])
+    assert.deepEqual(rareRoom.run.players[0].rareRewards, ownerBefore.rareRewards.slice(1))
+    assert.deepEqual(rareRoom.run.players[1], peerBefore)
+    assert.equal(rareRoom.run.neow.players[rareOwner.playerId].pendingEffect, null)
+    assert.equal(await page.getByRole('button', { name: 'Gain reward', exact: true }).count(), 0)
+    await page.reload()
+    await page.locator('.connection--connected').waitFor()
+    await page.locator('.neow-face--active.neow-face--done').waitFor()
+    assert.equal(rareRoom.run.players[0].deck.length, ownerBefore.deck.length + 1, 'reconnect must not repeat the Rare gain')
     assert.deepEqual(errors, [])
     console.log(`Neow viewport checks passed: ${viewport.width}x${viewport.height}${phone ? ' touch' : ' desktop'}`)
     await context.close()

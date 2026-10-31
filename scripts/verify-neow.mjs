@@ -502,12 +502,6 @@ check('Gold is automatic while meaningful card rewards remain independently skip
   transform = chooseNeow(transform, 'p1', 1)
   transform = resolveNeowEffect(transform, 'p1', false)
   assertDeepEqual(transform.players[0].deck, transformDeck)
-
-  let rare = forceCard(beginBlue(4275), 'neow_02')
-  const rareDeck = [...rare.players[0].rareRewards]
-  rare = chooseNeow(rare, 'p1', 1)
-  rare = resolveNeowEffect(rare, 'p1', false)
-  assertDeepEqual(rare.players[0].rareRewards, rareDeck)
 })
 
 check('Gold rewards respect Ectoplasm and do not skip the following card reward or its cost', () => {
@@ -551,7 +545,8 @@ check('direct random Rare differs from a staged three-card Rare Reward', () => {
   let direct = forceCard(beginBlue(4301), 'neow_02')
   const top = direct.players[0].rareRewards[0]
   direct = chooseNeow(direct, 'p1', 1)
-  direct = resolveImmediate(direct)
+  assertEqual(direct.neow.players.p1.pendingEffect, null, 'the chosen random Rare must not ask for confirmation')
+  assertEqual(direct.neow.players.p1.done, true)
   assert(direct.players[0].deck.some((card) => card.defId === top))
   assertEqual(direct.players[0].rareRewards.includes(top), false)
   assertEqual(direct.neow.players.p1.reward, null)
@@ -562,6 +557,68 @@ check('direct random Rare differs from a staged three-card Rare Reward', () => {
   staged = revealNeowReward(staged, 'p1')
   assertEqual(staged.neow.players.p1.reward.kind, 'rare')
   assertEqual(staged.neow.players.p1.reward.choices.length, 3)
+})
+
+check('every random Rare blessing grants one card atomically and leaves the other seats untouched', () => {
+  for (const card of [...NEOW_CARDS, ...HEARTS_BOON_CARDS]) for (const [index, option] of card.options.entries()) {
+    const effect = option.effects.find(effect => effect.kind === 'randomRare')
+    if (!effect) continue
+    const run = forceCard(beginBlue(4303), card.id)
+    const before = structuredClone(run)
+    const next = chooseNeow(run, 'p1', index)
+    assertEqual(next.players[0].deck.length, run.players[0].deck.length + 1, card.id)
+    assertEqual(next.players[0].deck.at(-1).defId, run.players[0].rareRewards[0], card.id)
+    assertEqual(next.players[0].deck.at(-1).upgraded, effect.upgraded === true)
+    assertDeepEqual(next.players[0].rareRewards, run.players[0].rareRewards.slice(1))
+    assertEqual(next.neow.players.p1.pendingEffect, null)
+    assertEqual(next.neow.players.p1.done, true)
+    assertDeepEqual(next.players[1], run.players[1])
+    assertDeepEqual(next.neow.players.p2, run.neow.players.p2)
+    assertEqual(chooseNeow(next, 'p1', index), next, 'repeated submission must not grant a second card')
+    assertEqual(resolveNeowEffect(next, 'p1', true), next)
+    assertDeepEqual(run, before, 'choosing must not mutate the previous state')
+  }
+})
+
+check('saved random Rare confirmations resolve once, preserve upgrades, and continue queued rewards', () => {
+  for (const empty of [false, true]) {
+    const saved = forceCard(beginBlue(4304), 'neow_02')
+    if (empty) saved.players[0].rareRewards = []
+    saved.neow.players.p1 = { ...saved.neow.players.p1, blueOption: 1,
+      pendingEffect: { kind: 'randomRare', upgraded: true },
+      rewardQueue: [{ kind: 'loseHp', amount: 2 }, 'potion'] }
+    const before = structuredClone(saved)
+    const next = resumeNeow(saved)
+    assertEqual(next.players[0].deck.length, saved.players[0].deck.length + Number(!empty))
+    if (!empty) {
+      assertEqual(next.players[0].deck.at(-1).defId, saved.players[0].rareRewards[0])
+      assertEqual(next.players[0].deck.at(-1).upgraded, true)
+    }
+    assertEqual(next.players[0].hp, saved.players[0].hp - 2)
+    assertEqual(next.neow.players.p1.pendingEffect, null)
+    assertEqual(next.neow.players.p1.rewardKind, 'potion')
+    const restored = JSON.parse(JSON.stringify(next))
+    assertDeepEqual(resumeNeow(restored), restored)
+    assertDeepEqual(saved, before)
+  }
+})
+
+check('automatic random Rares still wait for real Guardian Socket choices', () => {
+  const boon = HEARTS_BOON_CARDS.find(card => card.options.some(option =>
+    option.effects.some(effect => effect.kind === 'randomRare')))
+  let run = beginHeart(4305, boon.id)
+  const rare = Object.values(CARDS).find(card => card.owner === 'guardian' && card.rarity === 'rare' && card.guardian?.socket)
+  run.players[0].rareRewards = [rare.id, ...run.players[0].rareRewards.filter(id => id !== rare.id)]
+  run = chooseNeow(run, 'p1', boon.options.findIndex(option => option.effects.some(effect => effect.kind === 'randomRare')))
+  assertEqual(run.phase, 'neow')
+  assertEqual(run.neow.players.p1.pendingEffect, null)
+  assertEqual(run.pendingGuardianSockets.length, 1)
+  const pending = run.pendingGuardianSockets[0]
+  assertDeepEqual(resumeNeow(run), run, 'the real Socket choice must stay pending')
+  run = resolveGuardianSocket(run, 'p1', pending.cardUid, pending.gemIds[0])
+  assertEqual(run.phase, 'map')
+  assertEqual(run.players[0].deck.filter(card => card.defId === rare.id).length, 1)
+  assertEqual(run.players[0].deck.find(card => card.uid === pending.cardUid).attachedGemId, pending.gemIds[0])
 })
 
 check('two Colorless rewards resolve sequentially and conserve their shared physical deck', () => {

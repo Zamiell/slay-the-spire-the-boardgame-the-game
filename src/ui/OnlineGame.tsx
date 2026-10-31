@@ -804,6 +804,7 @@ export function OnlineGame({ onLocal, settings, onSettings }: Props) {
             active={!run.courier.offer && courierPeekPhase(combat) && room.connection === 'connected' && !foreignInteractionLock && !giveUpStartPending}
             onReveal={revealCourierOnline} /> : null}
           {headerViewer ? <RelicBar relics={headerViewer.relics} label={`${headerViewer.name}'s relics`}
+            exhaustCount={run.phase === 'combat' ? headerViewer.exhaust.length : undefined}
             die={run.phase === 'combat' ? run.combat?.die : undefined} /> : null}
         </div>
         <VoiceControls voice={voice} seats={snapshot.seats} connected={room.connection === 'connected'}

@@ -90,6 +90,46 @@ try {
     }
     assert.deepEqual(manualIds.filter(id => !seen.has(id)), [], 'every activatable relic must be exercised')
 
+    const branch = structuredClone(base)
+    Object.assign(branch.combat, { phase: 'player', turn: 2, combatId: `dead-branch-${screen}`,
+      pendingTriggers: [], startTurnProgress: undefined })
+    branch.combat.players[0].relics = [createRelicInstance('dead_branch')]
+    await page.evaluate(run => window.__STS_DEBUG__.setRun(run), branch)
+    const branchChip = page.locator('.relic-bar [data-relic="dead_branch"]')
+    if (phone) await branchChip.tap()
+    else await branchChip.hover()
+    const branchTip = branchChip.locator('.relic-tip')
+    await branchTip.waitFor()
+    for (const count of [2, 1, 0]) {
+      await page.evaluate(count => {
+        const run = structuredClone(window.__STS_DEBUG__.getRun())
+        run.combat.players[0].exhaust = run.combat.players[0].exhaust.slice(0, count)
+        window.__STS_DEBUG__.setRun(run)
+      }, count)
+      const expected = `Exhaust pile (${count} card${count === 1 ? '' : 's'})`
+      assert((await branchTip.innerText()).includes(expected), 'an open tooltip must follow the current Exhaust pile')
+      assert((await branchChip.getAttribute('aria-label')).includes(expected))
+      assert((await page.getByRole('button', { name: /^Use Dead Branch:/ }).getAttribute('aria-label')).includes(expected))
+    }
+    await page.keyboard.press('Escape')
+    await page.mouse.move(2, 2)
+    const branchAction = page.getByRole('button', { name: /^Use Dead Branch:/ })
+    if (phone) await branchAction.tap()
+    else await branchAction.hover()
+    const branchActionTip = page.locator('.potion-tip').filter({ hasText: 'Dead Branch' })
+    await branchActionTip.waitFor()
+    assert((await branchActionTip.innerText()).includes('Exhaust pile (0 cards)'))
+    assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getState().players[0].relics[0].spent), false)
+    const outside = structuredClone(branch)
+    outside.phase = 'map'
+    outside.combat = null
+    outside.players[0].relics = [createRelicInstance('dead_branch')]
+    await page.evaluate(run => window.__STS_DEBUG__.setRun(run), outside)
+    if (phone) await branchChip.tap()
+    else await branchChip.hover()
+    await branchTip.waitFor()
+    assert(!(await branchTip.innerText()).includes('Exhaust pile ('), 'outside combat, do not show a stale Exhaust count')
+
     const skull = structuredClone(base)
     Object.assign(skull.combat, { phase: 'player', turn: 2, combatId: `red-skull-${screen}`,
       pendingTriggers: [], startTurnProgress: undefined })

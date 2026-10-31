@@ -1423,6 +1423,7 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
               {run.phase === 'combat' && run.combat ? <CourierPeek placement="header" active={!run.courier.offer && courierPeekPhase(run.combat)}
                 players={run.combat.players} viewerId={viewerId} usedBy={run.courier.usedBy} onReveal={revealLocalCourier} /> : null}
               <RelicBar relics={headerViewer.relics} label={`${headerViewer.name}'s relics`}
+                exhaustCount={run.phase === 'combat' ? headerViewer.exhaust.length : undefined}
                 die={run.phase === 'combat' ? run.combat?.die : undefined} />
             </>
           ) : null}

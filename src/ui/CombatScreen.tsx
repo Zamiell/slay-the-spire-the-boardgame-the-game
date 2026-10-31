@@ -6093,7 +6093,7 @@ function CombatScreenView({
           {startOnly ? <h3 className="relic-actions__heading">Start of Turn only</h3> : null}
           {relics.flatMap(({ held, relicIndex }) => {
             const def = relicDef(held.defId)
-            const description = relicTooltipText(held.defId, state.die)
+            const description = relicTooltipText(held.defId, state.die, viewer.exhaust.length)
             const simpleAction = <PotionTooltipAnchor id={held.defId} key={`${held.defId}-${relicIndex}`}
               name={def.name} text={description} kindLabel="Relic" confirmLabel="use">
               <button type="button" aria-label={`Use ${def.name}${held.cubes !== undefined ? ` (${held.cubes})` : ''}: ${description}`}

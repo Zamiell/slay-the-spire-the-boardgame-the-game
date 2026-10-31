@@ -353,6 +353,15 @@ async function onlineChecks(screen, viewport, skin, hero) {
   await assertAll(ann, '.hand .card > img:not(.card__gem)', SKIN_THUMB, `${screen} online Ann after reload: hand faces`)
   await annContext.close()
   await boContext.close()
+  // Closing tabs preserves run seats for reconnection; release each fixture before hitting the per-IP room cap.
+  room.phase = 'lobby'
+  for (const token of room.seats.map(seat => seat.token)) {
+    const response = await fetch(`${origin}/api/rooms/${code}/leave`, {
+      method: 'POST', headers: { 'content-type': 'application/json', 'x-room-token': token }, body: '{}',
+    })
+    assert(response.ok, `could not release skin-test room ${code}: ${await response.text()}`)
+  }
+  assert(!rooms.store.rooms.has(code), 'skin-test room must not count toward later cases')
 }
 
 try {

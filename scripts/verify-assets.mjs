@@ -445,6 +445,25 @@ check('generated status scans decode at the shipped card resolution', () => {
 // the reward and merchant rows, the compendium grid. A card missing from it
 // renders as a broken image, and one left at full resolution silently puts the
 // 3 MB decode back — which is the whole reason the tier exists.
+check('Inflame and Inflame+ use the same printed Strength sentence in every image tier', () => {
+  const roots = ['cards', 'cards-sm', ...['kratos', 'monogatari_ironclad'].flatMap(skin =>
+    [`skin-cards/${skin}`, `skin-cards-sm/${skin}`])]
+  const result = spawnSync('python3', ['-c', `
+import sys
+from pathlib import Path
+from PIL import Image, ImageChops, ImageStat
+for root in sys.argv[1:]:
+    base = Image.open(Path(root) / 'ironclad__normal__inflame.webp').convert('RGB')
+    upgraded = Image.open(Path(root) / 'ironclad__normal__inflame+.webp').convert('RGB')
+    assert base.size == upgraded.size, root
+    box = tuple(round(value * scale) for value, scale in zip(
+        (180, 630, 570, 840), (base.width / 744, base.height / 1039) * 2))
+    difference = ImageStat.Stat(ImageChops.difference(base.crop(box), upgraded.crop(box)))
+    assert max(difference.mean) < 3, (root, difference.mean)
+`, ...roots.map(root => join(publicRoot, 'assets', root))], { encoding: 'utf8' })
+  assert(result.status === 0, result.stderr || 'Inflame rules-panel image comparison failed')
+})
+
 check('every card scan has a thumbnail inside the decode budget', () => {
   if (cardFiles.length === 0) return // not synced
   assertDeepEqual(

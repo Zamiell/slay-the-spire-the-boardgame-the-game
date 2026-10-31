@@ -143,7 +143,11 @@ try {
         assert.equal(await card.locator('.card-face').evaluate(face => getComputedStyle(face).visibility), 'visible',
           'failed scans must restore the native fallback')
         assert.equal(await card.locator('.card-face__rules').textContent(), 'gain 1 Block')
-        await card.locator('.card-face__illustration').evaluate(image => image.decode())
+        await page.waitForFunction(() => {
+          const image = document.querySelector('.card-face__illustration')
+          return image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0 &&
+            image.currentSrc.endsWith('/ironclad/defend_ironclad.webp')
+        })
         await page.screenshot({ path: resolve(output, `${engineName}-${screen}-scan-fallback.png`) })
         const icon = page.locator('#rendered-icons .icon-value .icon')
         const previousSource = await icon.getAttribute('src')

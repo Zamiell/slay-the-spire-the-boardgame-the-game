@@ -11,6 +11,7 @@
 //   node scripts/sync-card-assets.mjs --force --characters # upgrade existing character cards
 //   node scripts/sync-card-assets.mjs --width=480 --quality=74 # override export settings
 //   node scripts/sync-card-assets.mjs --limit=20  # sample, for a quick check
+//   node scripts/sync-card-assets.mjs --force --key=ironclad__normal__inflame+
 import { readdirSync, readFileSync, existsSync, mkdirSync, writeFileSync, rmSync, statSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join, resolve } from 'node:path'
@@ -38,6 +39,7 @@ const width = Number(flag('width', '0'))
 const quality = Number(flag('quality', '0'))
 const limit = Number(flag('limit', '0'))
 const concurrency = Number(flag('jobs', '8'))
+const onlyKey = flag('key', '')
 
 const index = JSON.parse(readFileSync(join(repoRoot, 'data/card-index.json'), 'utf8'))
 const isCharacter = (entry) => ['ironclad', 'silent', 'defect', 'watcher'].includes(entry.tier.split('/')[0])
@@ -77,7 +79,9 @@ for (const entry of index) {
   jobs.push({ entry, upgraded: false })
   if (entry.hasUpgrade) jobs.push({ entry, upgraded: true })
 }
-const selected = limit > 0 ? jobs.slice(0, limit) : jobs
+const matching = onlyKey ? jobs.filter(({ entry, upgraded }) => assetKey(entry, upgraded) === onlyKey) : jobs
+if (onlyKey && matching.length === 0) throw new Error(`Unknown card scan key: ${onlyKey}`)
+const selected = limit > 0 ? matching.slice(0, limit) : matching
 
 mkdirSync(outRoot, { recursive: true })
 mkdirSync(thumbRoot, { recursive: true })
@@ -148,14 +152,37 @@ async function fetchOne({ entry, upgraded }) {
     writeFileSync(source, Buffer.from(await response.arrayBuffer()))
   }
 
+  let exportSource = source
+  const corrected = join(outRoot, `.${key}.corrected.png`)
+  if (upgraded && entry.name === 'Inflame' && entry.tier.startsWith('ironclad/')) {
+    const base = join(outRoot, `.${key}.base.png`)
+    const response = await fetch(sourceUrl(entry, false))
+    if (!response.ok) {
+      if (!hasMaster) rmSync(source, { force: true })
+      return { key, error: `Inflame text source: HTTP ${response.status}` }
+    }
+    writeFileSync(base, Buffer.from(await response.arrayBuffer()))
+    const correction = await run('python3', [
+      join(repoRoot, 'scripts/art/normalize-inflame-text.py'), base, source, corrected,
+    ])
+    rmSync(base, { force: true })
+    if (correction.code !== 0) {
+      if (!hasMaster) rmSync(source, { force: true })
+      rmSync(corrected, { force: true })
+      return { key, error: correction.stderr.trim() || 'Inflame text correction failed (requires Pillow)' }
+    }
+    exportSource = corrected
+  }
+
   // Two steps on purpose: this ffmpeg build has no WebP encoder, and ffmpeg's
   // lanczos scaler is better than cwebp's built-in resize.
   const scale = await run('ffmpeg', [
     '-v', 'error', '-y',
-    '-i', source,
+    '-i', exportSource,
     '-vf', hasMaster && width === 0 ? 'null' : `scale=${targetWidth}:-1:flags=lanczos`,
     scaled,
   ])
+  rmSync(corrected, { force: true })
   if (scale.code !== 0) {
     if (!hasMaster) rmSync(source, { force: true })
     return { key, error: scale.stderr.trim() || 'ffmpeg scale failed' }

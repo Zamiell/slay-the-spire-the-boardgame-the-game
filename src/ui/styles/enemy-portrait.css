@@ -404,6 +404,7 @@ html[data-mobile-performance='true'] .end-turn-effects__orb-choices {
 }
 
 button.end-turn-effect--orb,
+button.end-turn-effect--poison,
 button.end-turn-effect--slime,
 button.end-turn-effect--relic {
   display: grid;
@@ -417,7 +418,8 @@ button.end-turn-effect--relic {
   box-shadow: 0 0.35rem 1.1rem rgb(0 0 0 / 0.62), inset 0 0 1.2rem rgb(225 250 255 / 0.2);
 }
 
-button.end-turn-effect--slime {
+button.end-turn-effect--slime,
+button.end-turn-effect--poison {
   background: radial-gradient(circle, rgb(160 239 69 / 0.36), rgb(28 63 26 / 0.78) 66%, rgb(8 18 9 / 0.9));
 }
 
@@ -436,6 +438,8 @@ button.end-turn-effect--relic .item-icon-image,
 
 button.end-turn-effect--orb:hover:not(:disabled),
 button.end-turn-effect--orb[aria-pressed='true'],
+button.end-turn-effect--poison:hover:not(:disabled),
+button.end-turn-effect--poison[aria-pressed='true'],
 button.end-turn-effect--slime:hover:not(:disabled),
 button.end-turn-effect--slime[aria-pressed='true'],
 button.end-turn-effect--relic:hover:not(:disabled),

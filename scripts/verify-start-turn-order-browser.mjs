@@ -174,7 +174,7 @@ try {
     // Tap-to-arm, then tap the enemy: the same path a touch player takes. Once
     // Noxious Fumes is picked up, the list folds to its heading so every enemy
     // is visible and reachable.
-    await page.locator('.start-turn-effects .end-turn-effect--card').click()
+    await page.locator('.start-turn-effects .end-turn-effect--poison').click()
     assert.equal(await list.isVisible(), false, `${name}: the order list stays open while aiming`)
     assert(await panel.locator('summary').isVisible(), `${name}: the order heading is hidden while aiming`)
     await page.screenshot({ path: `${out}/${name}-solo-aiming.png` })
@@ -195,7 +195,7 @@ try {
     await page.screenshot({ path: `${out}/${name}-solo-reordered.png` })
     // Reordering re-plans the turn, so Noxious Fumes asks for its target again.
     await page.locator('.start-turn-effects').waitFor()
-    await page.locator('.start-turn-effects .end-turn-effect--card').click()
+    await page.locator('.start-turn-effects .end-turn-effect--poison').click()
     await page.locator('[data-enemy-id="e1"] .enemy__head').click()
     await page.locator('.start-turn-effects').waitFor({ state: 'detached' })
     await page.locator('.start-turn-order > summary').click()

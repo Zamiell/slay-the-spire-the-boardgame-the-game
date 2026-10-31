@@ -184,7 +184,8 @@ try {
     await defect.getByRole('button', { name: 'Evoke lightning Orb 1', exact: true }).click()
     await defect.locator('[data-enemy-id="e0"].enemy--targeted .enemy__hit-area').click()
     await defect.getByRole('button', { name: 'Evoke dark Orb 1', exact: true }).click()
-    await defect.locator('[data-enemy-id="e1"].enemy--targeted .enemy__hit-area').click()
+    // The projected board now has one living enemy, so Dark targets it automatically.
+    await defect.locator('[data-enemy-id="e1"].enemy--targeted').waitFor({ state: 'hidden' })
     await defect.getByRole('button', { name: 'Evoke lightning Orb 1', exact: true }).click()
     await action(defect, () => resolveButton(defect).click())
     if (room.run.combat.phase === 'start') {

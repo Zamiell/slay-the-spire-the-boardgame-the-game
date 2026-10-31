@@ -59,20 +59,42 @@ try {
       await page.locator('[data-enemy-id="e1"]').waitFor()
       await page.waitForTimeout(400)
     }
-    async function drag(source, enemyUid, orbDamage) {
+    async function drag(source, enemyUid, preview) {
       const from = await source.boundingBox()
       const to = await page.locator(`[data-enemy-id="${enemyUid}"]`).evaluate((element) => {
         const rect = (element.querySelector('.enemy__hit-area') ?? element).getBoundingClientRect()
         return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 }
       })
-      await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2)
-      await page.mouse.down()
-      await page.mouse.move(to.x, to.y, { steps: 10 })
-      if (orbDamage !== undefined) {
-        assert.equal(await page.locator('.end-turn-effect-drag .orb__value').innerText(), String(orbDamage),
+      let touch
+      if (preview === 'poison' && name !== 'desktop') {
+        touch = await page.context().newCDPSession(page)
+        const start = { x: from.x + from.width / 2, y: from.y + from.height / 2 }
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...start, id: 1 }] })
+        for (const progress of [.25, .5, 1]) {
+          await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{
+            x: start.x + (to.x - start.x) * progress, y: start.y + (to.y - start.y) * progress, id: 1,
+          }] })
+        }
+      } else {
+        await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2)
+        await page.mouse.down()
+        await page.mouse.move(to.x, to.y, { steps: 10 })
+      }
+      if (preview === 'poison') {
+        const ghost = page.locator('.end-turn-effect-drag')
+        await ghost.locator('.icon--status[src*="poison"]').waitFor()
+        assert.equal(await ghost.locator('.card').count(), 0, 'Poison targeting must not drag the Power card')
+        const box = await ghost.boundingBox()
+        assert(box.width < 100 && box.height < 100, 'the Poison ghost must stay Orb-sized')
+        await page.screenshot({ path: `${out}/${name}-poison-drag.png` })
+      } else if (preview !== undefined) {
+        assert.equal(await page.locator('.end-turn-effect-drag .orb__value').innerText(), String(preview),
           `${name}: the dragged Orb lost its damage number`)
       }
-      await page.mouse.up()
+      if (touch) {
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+        await touch.detach()
+      } else await page.mouse.up()
     }
     const caption = page.locator('.end-turn-effects__prompt')
     const visibleCaption = () => caption.evaluate((element) => [...element.childNodes]
@@ -238,15 +260,26 @@ try {
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.phase === 'player')
     assert.deepEqual(await hp(), [30, 26], `${name}: Stone Calendar hit the wrong enemy`)
 
-    // A targeted start-of-turn Power floats its card as the source.
-    await load({ phase: 'start', player: { powers: [c('fumes', 'noxious_fumes')] } })
-    await startSource.locator('.end-turn-effect--card').waitFor()
-    assert.equal(await visibleCaption(), 'Drag to an enemy')
-    await drag(startSource.locator('.end-turn-effect--card'), 'e1')
-    await startSource.waitFor({ state: 'detached' })
-    await page.getByRole('button', { name: 'Resolve start of turn 1', exact: true }).click()
-    await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.phase === 'player')
-    assert.deepEqual((await combat()).enemies.map((enemy) => enemy.poison), [0, 1], `${name}: Noxious Fumes poisoned the wrong enemy`)
+    for (const upgraded of [false, true]) {
+      await load({ phase: 'start', boss: upgraded, player: { powers: [c('fumes', 'noxious_fumes', upgraded)] } })
+      const poison = startSource.locator('.end-turn-effect--poison')
+      await poison.waitFor()
+      assert.equal(await startSource.locator('.card').count(), 0)
+      assert.equal(await visibleCaption(), 'Drag to an enemy')
+      assert(await poison.evaluate(async (element, upgraded) => {
+        const { queryRunLogControl } = await import('/src/ui/run-log.ts')
+        const { cardAccessibleName } = await import('/src/ui/Card.tsx')
+        const { cardDef, faceOf } = await import('/src/game/cards.ts')
+        return queryRunLogControl(document, { selector: '.end-turn-effect--card',
+          name: cardAccessibleName(faceOf(cardDef('noxious_fumes'), upgraded)) }) === element
+      }, upgraded), 'recorded card-source controls must still find the Poison icon')
+      await drag(poison, 'e1', 'poison')
+      await startSource.waitFor({ state: 'detached' })
+      await page.getByRole('button', { name: 'Resolve start of turn 1', exact: true }).click()
+      await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.phase === 'player')
+      assert.deepEqual((await combat()).enemies.map((enemy) => enemy.poison), upgraded ? [0, 1, 1] : [0, 1],
+        `${name}: Noxious Fumes must keep its single-target or row-and-boss effect`)
+    }
 
     // End-of-turn Lightning keeps its drag source with only a short caption.
     await load({ player: { hand: [c('deflect', 'deflect')], orbs: ['lightning', 'lightning', null] } })

@@ -192,7 +192,7 @@ import { DieRelicChoiceList, dieRelicChoices } from './DieRelicChoices.tsx'
 import { CAPS, DOWNFALL_CHARACTER_IDS } from '../game/types.ts'
 import type { CardInstance, DownfallCharacterId, Enemy, Player } from '../game/types.ts'
 import type { ActionOutcome, VisiblePlayer } from '../multiplayer/useRoomSession.ts'
-import { Card, slimeCommandText } from './Card.tsx'
+import { Card, cardAccessibleName, slimeCommandText } from './Card.tsx'
 import { CardCollectionOverlay } from './CardCollectionOverlay.tsx'
 import { EnemyCard } from './EnemyCard.tsx'
 import { Icon, IconValue, StatusIcon } from './Icon.tsx'
@@ -2577,6 +2577,7 @@ function CombatScreenView({
     ? state.players.find((player) => player.id === endTurnEffectDrag.ability.playerId)
       ?.powers.find((power) => power.uid === endTurnEffectDragVisual.cardUid)
     : undefined
+  const draggingPoison = endTurnEffectDragCard?.defId === 'noxious_fumes'
   const endTurnEffectDragSlimeAsset = !endTurnEffectDrag?.sourceOrb && endTurnEffectDragVisual?.kind === 'slime'
     ? assetPath(`combat/slimes/${slimeAssetSlug(endTurnEffectDragVisual.cardId)}.webp`)
     : undefined
@@ -6495,7 +6496,21 @@ function CombatScreenView({
               : startTurnEffectDraggable ? 'Drag to an enemy' : 'Choose an Orb'}
           </p>
           <div className="start-turn-effects__source" inert={!startTurnEffectDraggable}>
-          {startTurnEffectCard ? (
+          {startTurnEffectCard?.defId === 'noxious_fumes' ? (
+            <button type="button" className="end-turn-effect end-turn-effect--poison"
+              disabled={!canResolveStartTurn}
+              aria-label={cardAccessibleName(faceOf(cardDef(startTurnEffectCard.defId), startTurnEffectCard.upgraded),
+                startTurnEffectCard.playWindowCost)}
+              aria-pressed={armedEndTurnAbilityId === startTurnEffectSource.id}
+              onClick={() => activateEndTurnEffect(startTurnEffectSource)}
+              onPointerDown={(event) => onEndTurnEffectPointerDown(startTurnEffectSource, event)}
+              onPointerMove={onEndTurnEffectPointerMove}
+              onPointerUp={finishEndTurnEffectDrag}
+              onPointerCancel={cancelEndTurnEffectDrag}
+              onLostPointerCapture={cancelEndTurnEffectDrag}>
+              <StatusIcon name="poison" size={56} />
+            </button>
+          ) : startTurnEffectCard ? (
             <Card
               className="end-turn-effect end-turn-effect--card"
               card={startTurnEffectCard}
@@ -7632,10 +7647,11 @@ function CombatScreenView({
               d={`M ${endTurnEffectDrag.startX} ${endTurnEffectDrag.startY + (endTurnEffectDrag.y < endTurnEffectDrag.startY ? -28 : 28)} Q ${endTurnEffectDrag.startX} ${endTurnEffectDrag.y} ${endTurnEffectDrag.x} ${endTurnEffectDrag.y}`} />
           </svg>
           <div ref={endTurnEffectDragOverlay}
-            className={endTurnEffectDragCard ? 'end-turn-effect-drag end-turn-effect-drag--card' : 'end-turn-effect-drag'}
+            className={endTurnEffectDragCard && !draggingPoison ? 'end-turn-effect-drag end-turn-effect-drag--card' : 'end-turn-effect-drag'}
             style={{ left: endTurnEffectDrag.startX, top: endTurnEffectDrag.startY } as React.CSSProperties}
             aria-hidden="true" inert>
-            {endTurnEffectDragCard ? <Card card={endTurnEffectDragCard} playable={false} immediateArt
+            {draggingPoison ? <StatusIcon name="poison" size={56} />
+              : endTurnEffectDragCard ? <Card card={endTurnEffectDragCard} playable={false} immediateArt
               drawLocked={state.players.find(player => player.id === endTurnEffect?.playerId)?.drawLocked}
               sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn} />
               : endTurnEffectDragRelicId ? (

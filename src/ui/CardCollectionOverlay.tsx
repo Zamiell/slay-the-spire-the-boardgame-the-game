@@ -93,6 +93,29 @@ export function CardCollectionDialog({ cards, label, onClose, open = true, order
 
   useEffect(() => { if (!open) setInspectedUid(null) }, [open])
 
+  useEffect(() => {
+    if (!open || !inspectable) return
+    const grid = dialog.current?.querySelector('.choice-modal__cards')
+    if (!grid) return
+    let frame = 0
+    const followCard = () => {
+      document.dispatchEvent(new Event('card-keyword-help-reposition'))
+      frame = grid.getAnimations({ subtree: true }).some(animation => animation.playState === 'running')
+        ? requestAnimationFrame(followCard) : 0
+    }
+    const start = (event: Event) => {
+      if (event instanceof TransitionEvent && event.propertyName === 'transform' &&
+        event.target instanceof Element && event.target.classList.contains('card') && !frame) {
+        frame = requestAnimationFrame(followCard)
+      }
+    }
+    grid.addEventListener('transitionrun', start)
+    return () => {
+      cancelAnimationFrame(frame)
+      grid.removeEventListener('transitionrun', start)
+    }
+  }, [open, inspectable])
+
   return <dialog ref={dialog} className={`choice-modal card-collection${inspectable ? ' card-collection--deck' : ''}`} aria-labelledby={titleId}
       onClose={(event) => {
         if (event.target !== event.currentTarget) return

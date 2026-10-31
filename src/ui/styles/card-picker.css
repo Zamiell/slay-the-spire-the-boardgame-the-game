@@ -122,12 +122,11 @@
   justify-self: center;
   transform-origin: center;
   transform: scale(1);
-  transition: transform 500ms cubic-bezier(0.19, 1, 0.22, 1);
+  transition: transform 500ms var(--ease-lerp);
 }
 .card-collection--deck .choice-modal__cards > .card:is(:hover, :focus-visible) {
   z-index: 2;
   transform: scale(1.25);
-  transition: none;
 }
 @media (prefers-reduced-motion: reduce) {
   .card-collection--deck,

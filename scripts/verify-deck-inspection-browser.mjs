@@ -68,9 +68,19 @@ try {
     await page.mouse.move(2, 2)
     await sortButton.focus()
     const resting = await bash.boundingBox()
+    const growing = sampleMotion(bash, 'width')
     await bash.hover()
-    assert(Math.abs((await bash.boundingBox()).width / resting.width - 1.25) < .01,
-      `${screen}: deck hover must immediately enlarge by 25%`)
+    const growth = await growing
+    assert(new Set(growth.filter(width => width > resting.width + 1 && width < resting.width * 1.25 - 1)
+      .map(width => width.toFixed(2))).size >= 3, `${screen}: deck cards must visibly tween larger, not snap`)
+    assert(Math.abs(growth.at(-1) / resting.width - 1.25) < .01,
+      `${screen}: deck hover must finish at 25% enlargement`)
+    const tips = page.locator('.card-keyword-tips[data-open]')
+    await tips.waitFor()
+    const helpBox = await tips.boundingBox()
+    const cardBox = await bash.boundingBox()
+    assert(helpBox.x >= cardBox.x + cardBox.width - 1 || helpBox.x + helpBox.width <= cardBox.x + 1,
+      'keyword help must follow the growing card instead of covering it')
     assert(await bash.evaluate(card => {
       const box = card.getBoundingClientRect()
       const grid = card.parentElement.getBoundingClientRect()
@@ -86,10 +96,41 @@ try {
       .map(width => width.toFixed(2))).size >= 3, `${screen}: deck cards must visibly ease back`)
     assert(Math.abs(widths.at(-1) - resting.width) < 1)
     await page.keyboard.press('Tab')
+    await sortButton.focus()
+    const focusing = sampleMotion(bash, 'width')
     await bash.focus()
-    assert(Math.abs((await bash.boundingBox()).width / resting.width - 1.25) < .01,
+    const focusWidths = await focusing
+    assert(new Set(focusWidths.filter(width => width > resting.width + 1 && width < resting.width * 1.25 - 1)
+      .map(width => width.toFixed(2))).size >= 3, 'keyboard enlargement must tween too')
+    assert(Math.abs(focusWidths.at(-1) / resting.width - 1.25) < .01,
       'keyboard focus must use the same enlargement')
     await sortButton.focus()
+    await page.waitForFunction(card => card.getAnimations().every(animation => animation.playState === 'finished'),
+      await bash.elementHandle())
+    const sweep = grid.evaluate(async grid => {
+      const cards = [...grid.querySelectorAll(':scope > .card')].slice(0, 2)
+      const start = performance.now()
+      const frames = []
+      do {
+        await new Promise(requestAnimationFrame)
+        frames.push(cards.map(card => card.getBoundingClientRect().width))
+      } while (performance.now() - start < 1000)
+      return frames
+    })
+    const second = await grid.locator(':scope > .card').nth(1).boundingBox()
+    await page.mouse.move(resting.x + resting.width / 2, resting.y + resting.height / 2)
+    await page.waitForTimeout(100)
+    await page.mouse.move(second.x + second.width / 2, second.y + second.height / 2)
+    await page.waitForTimeout(100)
+    await page.mouse.move(resting.x + resting.width / 2, resting.y + resting.height / 2)
+    const swept = await sweep
+    for (const [index, width] of [resting.width, second.width].entries()) {
+      assert(new Set(swept.map(frame => frame[index]).filter(value => value > width + 1 && value < width * 1.25 - 1)
+        .map(value => value.toFixed(2))).size >= 3, 'rapid hover changes must preserve intermediate animation frames')
+    }
+    assert(Math.abs(swept.at(-1)[0] / resting.width - 1.25) < .01 && Math.abs(swept.at(-1)[1] - second.width) < 1,
+      'a rapid hover reversal must finish on the current card only')
+    await page.mouse.move(2, 2)
     const surface = page.locator('.card-collection')
     const closing = sampleMotion(surface, 'backdrop')
     await activate(deck.getByRole('button', { name: 'Back', exact: true }))

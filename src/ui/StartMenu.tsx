@@ -323,17 +323,17 @@ export function StartMenu({
         </section>
         <nav className="start-menu__nav" aria-label="Main menu" inert={resumePending || undefined}>
         {onResume ? <button type="button" aria-label="Resume"
-          disabled={resumePending} onClick={onResume}>Resume</button> : null}
+          disabled={resumePending} onClick={onResume}><span className="start-menu__label">Resume</span></button> : null}
         <button type="button" aria-label="Single Player"
-          ref={mainMenuButton} onClick={() => { warmRunSetup(hero.id); setTutorialSetup(false); setScreen('mode') }}>Single Player</button>
+          ref={mainMenuButton} onClick={() => { warmRunSetup(hero.id); setTutorialSetup(false); setScreen('mode') }}><span className="start-menu__label">Single Player</span></button>
         <button type="button" aria-label="Tutorial"
-          onClick={() => { setTutorialSetup(true); startCharacterSelection() }}>Tutorial</button>
-        {!SINGLE_PLAYER_ONLY && onOnline ? <button type="button" aria-label="Play online" onClick={onOnline}>Multiplayer</button>
+          onClick={() => { setTutorialSetup(true); startCharacterSelection() }}><span className="start-menu__label">Tutorial</span></button>
+        {!SINGLE_PLAYER_ONLY && onOnline ? <button type="button" aria-label="Play online" onClick={onOnline}><span className="start-menu__label">Multiplayer</span></button>
           : null}
         <button type="button" aria-label="Replay"
-          onClick={() => setScreen('replay')}>Replay</button>
-        <button type="button" aria-label="Compendium" onClick={onCompendium}>Compendium</button>
-        <button type="button" aria-label="Shop" onClick={onShop}>Shop</button>
+          onClick={() => setScreen('replay')}><span className="start-menu__label">Replay</span></button>
+        <button type="button" aria-label="Compendium" onClick={onCompendium}><span className="start-menu__label">Compendium</span></button>
+        <button type="button" aria-label="Shop" onClick={onShop}><span className="start-menu__label">Shop</span></button>
         </nav>
         {resumePending ? <p role="status">Restoring your run…</p> : null}
         {resumeError ? <p role="alert">{resumeError}</p> : null}

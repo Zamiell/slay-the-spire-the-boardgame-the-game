@@ -326,15 +326,16 @@ export function OnlineGame({ onLocal, settings, onSettings }: Props) {
       if (!details?.open) return
       if (event instanceof KeyboardEvent) {
         if (event.key !== 'Escape' || event.defaultPrevented || document.querySelector('dialog[open]')) return
+        event.preventDefault()
         const hadFocus = details.contains(document.activeElement)
         details.open = false
         if (hadFocus) details.querySelector('summary')?.focus()
       } else if (!details.contains(event.target as Node)) details.open = false
     }
-    document.addEventListener('keydown', dismiss)
+    document.addEventListener('keydown', dismiss, true)
     document.addEventListener('pointerdown', dismiss)
     return () => {
-      document.removeEventListener('keydown', dismiss)
+      document.removeEventListener('keydown', dismiss, true)
       document.removeEventListener('pointerdown', dismiss)
     }
   }, [])

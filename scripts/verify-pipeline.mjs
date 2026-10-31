@@ -21,6 +21,10 @@ const includesEvery = (actual, expected, context) => {
 }
 
 suite('verification pipeline')
+check('shared interface polish selects its focused interaction coverage', () => {
+  for (const file of ['src/ui/chrome/interaction-polish.css', 'src/ui/useControlPress.ts', 'src/ui/StartMenu.tsx', 'src/ui/SettingsDialog.tsx'])
+    assert(affected(file).includes('verify-ui-polish-browser.mjs'), `${file}: missing UI polish coverage`)
+})
 check('shared tooltip changes select the focused browser suite and native-title audit', () => {
   for (const file of ['src/ui/Tooltip.tsx', 'src/ui/Card.tsx', 'src/ui/App.tsx', 'src/ui/chrome/tooltip-panels.css'])
     assert(affected(file).includes('verify-tooltips-browser.mjs'), `${file}: missing custom tooltip coverage`)

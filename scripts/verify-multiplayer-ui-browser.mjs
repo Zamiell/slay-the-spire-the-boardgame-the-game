@@ -89,14 +89,18 @@ try {
     }))
     assert(entryBackHover.filter.includes('brightness(1.2)') && entryBackHover.filter.includes('drop-shadow'), `${viewport.name}: back hover lost its clean glow: ${JSON.stringify(entryBackHover)}`)
     assert.equal(entryBackHover.outline, 'none', `${viewport.name}: back hover retains the clipped outline`)
-    for (let i = 0; i < 2; i++) await page.keyboard.press('Shift+Tab')
+    await page.keyboard.press('Tab')
+    await entry.locator('.online-character-roster button').first().focus()
+    await page.keyboard.press('Shift+Tab')
     await page.waitForTimeout(250)
     const entryBackFocus = await entryBack.evaluate((button) => ({
       focusVisible: button.matches(':focus-visible'),
       outline: getComputedStyle(button).outlineStyle,
+      offset: parseFloat(getComputedStyle(button).outlineOffset),
     }))
     assert(entryBackFocus.focusVisible, `${viewport.name}: keyboard navigation did not focus Back`)
-    assert.equal(entryBackFocus.outline, 'none', `${viewport.name}: back focus restores the clipped outline`)
+    assert(entryBackFocus.outline === 'solid' && entryBackFocus.offset < 0,
+      `${viewport.name}: back focus must have a visible inset ring, inside the ribbon silhouette`)
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.mouse.move(1, 1)
     await page.keyboard.press('Tab')

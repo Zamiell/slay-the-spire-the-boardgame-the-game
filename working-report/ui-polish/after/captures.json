@@ -1,0 +1,242 @@
+[
+  {
+    "screen": "desktop",
+    "name": "main-menu",
+    "file": "desktop-main-menu.jpg",
+    "interaction": "mouse hover"
+  },
+  {
+    "screen": "desktop",
+    "name": "settings-video",
+    "file": "desktop-settings-video.jpg",
+    "interaction": "mouse hover"
+  },
+  {
+    "screen": "desktop",
+    "name": "settings-audio",
+    "file": "desktop-settings-audio.jpg",
+    "interaction": "mouse hover"
+  },
+  {
+    "screen": "desktop",
+    "name": "stats",
+    "file": "desktop-stats.jpg",
+    "interaction": "mouse hover"
+  },
+  {
+    "screen": "desktop",
+    "name": "leaderboard",
+    "file": "desktop-leaderboard.jpg",
+    "interaction": "mouse hover"
+  },
+  {
+    "screen": "desktop",
+    "name": "profile",
+    "file": "desktop-profile.jpg",
+    "interaction": "mouse hover"
+  },
+  {
+    "screen": "desktop",
+    "name": "compendium",
+    "file": "desktop-compendium.jpg",
+    "interaction": "mouse hover"
+  },
+  {
+    "screen": "desktop",
+    "name": "shop",
+    "file": "desktop-shop.jpg",
+    "interaction": "mouse hover"
+  },
+  {
+    "screen": "desktop",
+    "name": "run-mode",
+    "file": "desktop-run-mode.jpg",
+    "interaction": "mouse hover"
+  },
+  {
+    "screen": "desktop",
+    "name": "character",
+    "file": "desktop-character.jpg",
+    "interaction": "mouse hover"
+  },
+  {
+    "screen": "desktop",
+    "name": "campaign",
+    "file": "desktop-campaign.jpg",
+    "interaction": "mouse hover"
+  },
+  {
+    "screen": "desktop",
+    "name": "neow",
+    "file": "desktop-neow.jpg",
+    "interaction": "mouse hover"
+  },
+  {
+    "screen": "desktop",
+    "name": "map",
+    "file": "desktop-map.jpg",
+    "interaction": "mouse hover"
+  },
+  {
+    "screen": "desktop",
+    "name": "combat",
+    "file": "desktop-combat.jpg",
+    "interaction": "mouse hover"
+  },
+  {
+    "screen": "desktop",
+    "name": "deck",
+    "file": "desktop-deck.jpg",
+    "interaction": "mouse hover"
+  },
+  {
+    "screen": "desktop",
+    "name": "merchant",
+    "file": "desktop-merchant.jpg",
+    "interaction": "mouse hover"
+  },
+  {
+    "screen": "desktop",
+    "name": "campfire",
+    "file": "desktop-campfire.jpg",
+    "interaction": "mouse hover"
+  },
+  {
+    "screen": "desktop",
+    "name": "event",
+    "file": "desktop-event.jpg",
+    "interaction": "mouse hover"
+  },
+  {
+    "screen": "desktop",
+    "name": "rewards",
+    "file": "desktop-rewards.jpg",
+    "interaction": "mouse hover"
+  },
+  {
+    "screen": "desktop",
+    "name": "pause",
+    "file": "desktop-pause.jpg",
+    "interaction": "mouse hover"
+  },
+  {
+    "screen": "horizontal-phone",
+    "name": "main-menu",
+    "file": "horizontal-phone-main-menu.jpg",
+    "interaction": "keyboard focus"
+  },
+  {
+    "screen": "horizontal-phone",
+    "name": "settings-video",
+    "file": "horizontal-phone-settings-video.jpg",
+    "interaction": "keyboard focus"
+  },
+  {
+    "screen": "horizontal-phone",
+    "name": "settings-audio",
+    "file": "horizontal-phone-settings-audio.jpg",
+    "interaction": "keyboard focus"
+  },
+  {
+    "screen": "horizontal-phone",
+    "name": "stats",
+    "file": "horizontal-phone-stats.jpg",
+    "interaction": "keyboard focus"
+  },
+  {
+    "screen": "horizontal-phone",
+    "name": "leaderboard",
+    "file": "horizontal-phone-leaderboard.jpg",
+    "interaction": "keyboard focus"
+  },
+  {
+    "screen": "horizontal-phone",
+    "name": "profile",
+    "file": "horizontal-phone-profile.jpg",
+    "interaction": "keyboard focus"
+  },
+  {
+    "screen": "horizontal-phone",
+    "name": "compendium",
+    "file": "horizontal-phone-compendium.jpg",
+    "interaction": "keyboard focus"
+  },
+  {
+    "screen": "horizontal-phone",
+    "name": "shop",
+    "file": "horizontal-phone-shop.jpg",
+    "interaction": "keyboard focus"
+  },
+  {
+    "screen": "horizontal-phone",
+    "name": "run-mode",
+    "file": "horizontal-phone-run-mode.jpg",
+    "interaction": "keyboard focus"
+  },
+  {
+    "screen": "horizontal-phone",
+    "name": "character",
+    "file": "horizontal-phone-character.jpg",
+    "interaction": "keyboard focus"
+  },
+  {
+    "screen": "horizontal-phone",
+    "name": "campaign",
+    "file": "horizontal-phone-campaign.jpg",
+    "interaction": "keyboard focus"
+  },
+  {
+    "screen": "horizontal-phone",
+    "name": "neow",
+    "file": "horizontal-phone-neow.jpg",
+    "interaction": "keyboard focus"
+  },
+  {
+    "screen": "horizontal-phone",
+    "name": "map",
+    "file": "horizontal-phone-map.jpg",
+    "interaction": "keyboard focus"
+  },
+  {
+    "screen": "horizontal-phone",
+    "name": "combat",
+    "file": "horizontal-phone-combat.jpg",
+    "interaction": "keyboard focus"
+  },
+  {
+    "screen": "horizontal-phone",
+    "name": "deck",
+    "file": "horizontal-phone-deck.jpg",
+    "interaction": "keyboard focus"
+  },
+  {
+    "screen": "horizontal-phone",
+    "name": "merchant",
+    "file": "horizontal-phone-merchant.jpg",
+    "interaction": "keyboard focus"
+  },
+  {
+    "screen": "horizontal-phone",
+    "name": "campfire",
+    "file": "horizontal-phone-campfire.jpg",
+    "interaction": "keyboard focus"
+  },
+  {
+    "screen": "horizontal-phone",
+    "name": "event",
+    "file": "horizontal-phone-event.jpg",
+    "interaction": "keyboard focus"
+  },
+  {
+    "screen": "horizontal-phone",
+    "name": "rewards",
+    "file": "horizontal-phone-rewards.jpg",
+    "interaction": "keyboard focus"
+  },
+  {
+    "screen": "horizontal-phone",
+    "name": "pause",
+    "file": "horizontal-phone-pause.jpg",
+    "interaction": "keyboard focus"
+  }
+]

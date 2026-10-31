@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import type { GameSettings } from './game-settings.ts'
 import { defaultGameSettings } from './game-settings.ts'
 import { AssistantSettings } from './AssistantSettings.tsx'
@@ -131,9 +131,10 @@ export function SettingsDialog({ open, onClose, settings, onChange, generalChild
 }
 
 function Volume({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) {
+  const fill: CSSProperties & { '--volume-fill': string } = { '--volume-fill': `${value}%` }
   return <label className="settings-volume">
     <span><strong>{label}</strong><output>{value}%</output></span>
-    <input type="range" min="0" max="100" step="5" value={value}
+    <input type="range" min="0" max="100" step="5" value={value} style={fill}
       aria-label={`${label} volume`} onChange={(event) => onChange(Number(event.target.value))} />
   </label>
 }

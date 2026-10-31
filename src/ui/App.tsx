@@ -6,6 +6,7 @@ import { ConsoleCommandError, executeConsoleCommand } from './developer-commands
 import { PlayerTitle } from './PlayerTitle.tsx'
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Tooltip } from './Tooltip.tsx'
+import { useControlPress } from './useControlPress.ts'
 import { flushSync } from 'react-dom'
 import { orderStartTurnScries, resolveHermitSetupLoad, resolveStartTurnScry, type CombatState } from '../game/combat.ts'
 import { assetPath, preloadImages, releasePreloadedImages } from '../game/assets.ts'
@@ -336,6 +337,7 @@ function campaignBeforePendingRun(run: RunState): CampaignProgress {
 }
 
 export function App() {
+  useControlPress()
   useWebMcp()
   const [account, setAccount] = useState(() => savedProfile()?.token)
   // Refresh account coins and Ascension on visits, account changes and reconnects.

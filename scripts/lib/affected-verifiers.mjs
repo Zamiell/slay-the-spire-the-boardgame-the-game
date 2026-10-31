@@ -62,6 +62,8 @@ const focusedEngineOwners = ownerMap([
   ['src/game/run/rewards.ts', ['verify-loot-browser.mjs', 'verify-tiny-house-browser.mjs']],
 ])
 const focusedUiOwners = ownerMap([
+  ['src/ui/chrome/interaction-polish.css', ['verify-ui-polish-browser.mjs']],
+  ['src/ui/useControlPress.ts', ['verify-ui-polish-browser.mjs']],
   ...['src/ui/Tooltip.tsx', 'src/ui/chrome/tooltip-panels.css']
     .map(file => [file, ['verify-tooltips-browser.mjs']]),
   ['src/ui/board-signals.ts', ['verify-die-relic-browser.mjs', 'verify-combat-layout-reload-browser.mjs']],
@@ -153,7 +155,7 @@ const focusedUiOwners = ownerMap([
   ['src/ui/chrome/campfire.css', ['verify-art-scenes-browser.mjs', 'verify-card-picker-browser.mjs']],
   ['src/ui/styles/staged-attacks.css', ['verify-skin-attack-browser.mjs']],
   ['src/ui/styles/attack-timing.css', ['verify-defect-chan-evoke-browser.mjs']],
-  ['src/ui/SettingsDialog.tsx', ['verify-card-damage-preview-browser.mjs', 'verify-live-run-browser.mjs']],
+  ['src/ui/SettingsDialog.tsx', ['verify-card-damage-preview-browser.mjs', 'verify-live-run-browser.mjs', 'verify-ui-polish-browser.mjs']],
   ['src/ui/game-settings.ts', ['verify-card-damage-preview-browser.mjs']],
   ['src/ui/rig-animation-metadata.json', ['verify-elite-intent-browser.mjs', 'verify-hero-potions-browser.mjs']],
   ['src/ui/hero-art-head.json', ['verify-hero-potions-browser.mjs', 'verify-assets.mjs']],
@@ -179,7 +181,7 @@ const focusedUiOwners = ownerMap([
   ['src/ui/DieRelicChoices.tsx', ['verify-die-relic-browser.mjs']],
   ['src/ui/OnlineGame.tsx', ['verify-retain-selection-browser.mjs', 'verify-courier-browser.mjs', 'verify-skin-browser.mjs', 'verify-skin-cards-browser.mjs', 'verify-start-turn-resync-browser.mjs', 'verify-monogatari-online-browser.mjs']],
   ['src/ui/OnlineCampfireScreen.tsx', ['verify-art-scenes-browser.mjs', 'verify-monogatari-online-browser.mjs']],
-  ['src/ui/StartMenu.tsx', ['verify-run-replay-browser.mjs', 'verify-title-menu-browser.mjs', 'verify-tutorial-browser.mjs', 'verify-skin-browser.mjs']],
+  ['src/ui/StartMenu.tsx', ['verify-run-replay-browser.mjs', 'verify-title-menu-browser.mjs', 'verify-tutorial-browser.mjs', 'verify-skin-browser.mjs', 'verify-ui-polish-browser.mjs']],
   ['src/ui/ProfileScreen.tsx', ['verify-skin-profile-browser.mjs', 'verify-account-browser.mjs', 'verify-wallet-sync-browser.mjs', 'verify-restricted-browser.mjs']],
   ['src/profile.ts', ['verify-account-browser.mjs', 'verify-restricted-browser.mjs', 'verify-ascension-sync-browser.mjs']],
   ['src/campaign-storage.ts', ['verify-ascension-sync-browser.mjs', 'verify-daily-climb-browser.mjs', 'verify-multiplayer-resume-browser.mjs']],

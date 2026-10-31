@@ -76,7 +76,7 @@ export function nextNeowReward(state: RunState, playerId: string): RunState {
         } },
       },
     }
-    if (['upgrade', 'remove', 'transform', 'gold', 'randomRare', 'randomCards'].includes(kind.kind)) {
+    if (['upgrade', 'remove', 'transform', 'randomRare', 'randomCards'].includes(kind.kind)) {
       const pending: RunState = {
         ...next,
         neow: {
@@ -103,7 +103,8 @@ export function nextNeowReward(state: RunState, playerId: string): RunState {
     next = {
       ...next,
       players: next.players.map((candidate) => candidate.id !== playerId ? candidate
-        : curse ? addCard(candidate, curse, `c${nextRunUid(next.players)}`)
+        : kind.kind === 'gold' ? gainGold(candidate, kind.amount)
+          : curse ? addCard(candidate, curse, `c${nextRunUid(next.players)}`)
           : kind.kind === 'loseGold' ? { ...candidate, gold: Math.max(0, candidate.gold - kind.amount) }
             : maxHp !== undefined ? { ...candidate, maxHp, hp: Math.min(candidate.hp, maxHp) }
               : hp === undefined ? candidate : { ...candidate, hp, dead: hp === 0 }),
@@ -172,6 +173,10 @@ export function resumeNeow(state: RunState): RunState {
   if (state.phase !== 'neow' || !state.neow) return state
   let next = grantLegacyNeowGold(state)
   for (const [playerId, progress] of Object.entries(state.neow.players)) {
+    if (progress.pendingEffect?.kind === 'gold') {
+      next = resolveNeowEffect(next, playerId, true)
+      continue
+    }
     if (progress.redRewardPending) {
       if (!progress.pendingEffect && !neowPreview(next, playerId)?.prismatic) {
         next = revealNeowReward(next, playerId)

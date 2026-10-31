@@ -21,6 +21,7 @@ export type NeowEffect =
   | { kind: 'potions'; count: 1 | 2 | 3 }
   | { kind: 'curse' }
 
+/** Gold remains readable here for saves awaiting the former confirmation step. */
 export type NeowImmediateReward = Extract<NeowEffect,
   { kind: 'upgrade' | 'remove' | 'transform' | 'gold' | 'randomRare' | 'randomCards' }>
 export type NeowQueuedEffect = NeowRewardKind | NeowEffect

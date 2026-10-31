@@ -472,7 +472,7 @@ check('opening rewards wait for a starting Relic choice and open immediately aft
   assertEqual(run.neow.players.p1.blueOption, null)
 })
 
-check('every immediate positive reward may be skipped independently while ordered penalties still resolve', () => {
+check('Gold is automatic while meaningful card rewards remain independently skippable', () => {
   let red = createRun(4270, party(2))
   assertEqual(red.players[0].gold, 3)
   assert(red.neow.players.p1.redRewardPending, 'the Card Reward is still pending after the automatic Gold')
@@ -480,10 +480,10 @@ check('every immediate positive reward may be skipped independently while ordere
   let gold = forceCard(beginBlue(4271), 'neow_01')
   const hp = gold.players[0].hp
   gold = chooseNeow(gold, 'p1', 2)
-  assertEqual(gold.players[0].hp, hp, 'later HP loss resolved before the preceding Gold decision')
-  gold = resolveNeowEffect(gold, 'p1', false)
-  assertEqual(gold.players[0].gold, 3)
+  assertEqual(gold.players[0].gold, 13)
   assertEqual(gold.players[0].hp, hp - 2)
+  assertEqual(gold.neow.players.p1.pendingEffect, null)
+  assertEqual(gold.neow.players.p1.done, true)
 
   let upgrade = forceCard(beginBlue(4272), 'neow_01')
   const upgradeUid = upgrade.players[0].deck.find((card) => !card.upgraded && CARDS[card.defId]?.upgrade)?.uid
@@ -508,6 +508,43 @@ check('every immediate positive reward may be skipped independently while ordere
   rare = chooseNeow(rare, 'p1', 1)
   rare = resolveNeowEffect(rare, 'p1', false)
   assertDeepEqual(rare.players[0].rareRewards, rareDeck)
+})
+
+check('Gold rewards respect Ectoplasm and do not skip the following card reward or its cost', () => {
+  for (const blocked of [false, true]) {
+    let run = beginBlue(4276)
+    const blessing = NEOW_CARDS.find(card => card.options.some(option =>
+      option.effects.some(effect => effect.kind === 'gold') &&
+      option.effects.some(effect => effect.kind === 'reward') &&
+      option.effects.some(effect => effect.kind === 'curse')))
+    run = forceCard(run, blessing.id)
+    if (blocked) run.players[0].relics.push({ defId: 'ectoplasm', spent: false })
+    const option = blessing.options.findIndex(option => option.effects.some(effect => effect.kind === 'gold'))
+    const curses = run.itemDecks.curses.length
+    run = chooseNeow(run, 'p1', option)
+    assertEqual(run.players[0].gold, blocked ? 3 : 8)
+    assertEqual(run.neow.players.p1.pendingEffect, null)
+    assertEqual(run.neow.players.p1.rewardKind, 'card')
+    assertEqual(run.itemDecks.curses.length, curses, 'the later cost must wait for the card reward')
+    run = resolveNeowReward(run, 'p1', null)
+    assertEqual(run.itemDecks.curses.length, curses - 1)
+  }
+})
+
+check('saved Gold confirmations resolve once, including queued costs and subsequent rewards', () => {
+  let saved = beginBlue(4277)
+  saved.neow.players.p1 = { ...saved.neow.players.p1, blueOption: 1,
+    pendingEffect: { kind: 'gold', amount: 5 }, rewardQueue: [{ kind: 'loseHp', amount: 2 }, 'potion'] }
+  const hp = saved.players[0].hp
+  const original = JSON.stringify(saved)
+  const resumed = resumeNeow(JSON.parse(original))
+  assertEqual(JSON.stringify(saved), original)
+  assertEqual(resumed.players[0].gold, 8)
+  assertEqual(resumed.players[0].hp, hp - 2)
+  assertEqual(resumed.neow.players.p1.pendingEffect, null)
+  assertEqual(resumed.neow.players.p1.rewardKind, 'potion')
+  const savedAgain = JSON.parse(JSON.stringify(resumed))
+  assertDeepEqual(resumeNeow(savedAgain), savedAgain)
 })
 
 check('direct random Rare differs from a staged three-card Rare Reward', () => {

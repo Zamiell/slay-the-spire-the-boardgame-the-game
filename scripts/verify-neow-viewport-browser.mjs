@@ -137,6 +137,29 @@ try {
     await page.getByRole('button', { name: 'Skip', exact: true }).click()
     await page.locator('.neow-options').waitFor()
     await capture('choices')
+    const goldFixture = await page.evaluate(() => {
+      const run = structuredClone(window.__STS_DEBUG__.getRun())
+      run.neow.players[run.players[0].id].cardId = 'neow_03'
+      window.__STS_DEBUG__.setRun(run)
+      return run
+    })
+    await page.waitForFunction(() => window.__STS_DEBUG__.getRun().neow.players.p1.cardId === 'neow_03')
+    await page.getByRole('button', { name: /Gain 5 Gold/ }).click()
+    await page.locator('.map').waitFor()
+    assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().players[0].gold),
+      goldFixture.players[0].gold + 7, 'Gold must be granted immediately, followed by the solo completion bonus')
+    assert.equal(await page.getByRole('button', { name: 'Gain reward', exact: true }).count(), 0)
+    const legacyGold = structuredClone(goldFixture)
+    Object.assign(legacyGold.neow.players.p1, { blueOption: 1, pendingEffect: { kind: 'gold', amount: 5 } })
+    await page.evaluate(run => window.__STS_DEBUG__.setRun(run), legacyGold)
+    await page.waitForFunction(() => JSON.parse(localStorage.getItem('sts-solo-run'))?.run.neow?.players.p1.pendingEffect?.kind === 'gold')
+    for (let reload = 0; reload < 2; reload++) {
+      await page.reload()
+      await page.getByRole('button', { name: 'Resume', exact: true }).click()
+      await page.locator('.map').waitFor()
+      assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().players[0].gold),
+        goldFixture.players[0].gold + 7, 'restoring an old Gold confirmation must grant it exactly once')
+    }
 
     // Use the real online wrapper and server-owned mixed-party Heart's Boon state.
     const room = createRoom(rooms.store)
@@ -188,6 +211,12 @@ try {
     await capture('party-reconnected')
     assert.equal(await page.locator('.neow-face--active .neow-face__owner strong').textContent(), 'guardian')
     assert.equal(room.run.players[0].gold, 3, 'reconnect must not duplicate the opening Gold')
+    await page.getByRole('button', { name: /Gain 2 Gold and 2 Potions/ }).click()
+    await page.getByRole('button', { name: 'Reveal Potion', exact: true }).waitFor()
+    assert.equal(room.run.players[0].gold, 5, 'the server must grant the chosen Boon Gold without a second action')
+    assert.equal(room.run.neow.players[seats[0].playerId].pendingEffect, null)
+    assert.equal(room.run.neow.players[seats[0].playerId].rewardKind, 'potion')
+    assert.equal(await page.getByRole('button', { name: 'Gain reward', exact: true }).count(), 0)
     assert.deepEqual(errors, [])
     console.log(`Neow viewport checks passed: ${viewport.width}x${viewport.height}${phone ? ' touch' : ' desktop'}`)
     await context.close()

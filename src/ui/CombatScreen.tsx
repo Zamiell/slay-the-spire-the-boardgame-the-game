@@ -228,6 +228,7 @@ import { enemyAttackTargetPlayerIds, enemyAttackArrivalMsFor, cardVfxRecipe, orb
 import { combatBodyPoint } from './combat-geometry.ts'
 import { playSoundEffect } from './sfx.ts'
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Tooltip } from './Tooltip.tsx'
 import { CourierPeek, courierPeekPhase } from './CourierPanel.tsx'
 import { createPortal } from 'react-dom'
 
@@ -5185,7 +5186,7 @@ function CombatScreenView({
           {viewer && viewerPlayerChoice ? (
             <span className="player-choice" role="group" aria-label={`${viewerPlayerChoice.sourceLabel} choice`}>
               {viewerPlayerChoice.kind === 'drawOrDiscard' ? <>
-                <span className="combat__power-hint" title={`${viewerPlayerChoice.sourceLabel}: you may draw a card or discard a card`}>
+                <span className="combat__power-hint">
                   {viewerPlayerChoice.sourceLabel}:
                 </span>
                 <button type="button" disabled={usingPlayerChoice || viewer.drawLocked ||
@@ -5196,13 +5197,13 @@ function CombatScreenView({
                 <button type="button" disabled={usingPlayerChoice}
                   onClick={() => submitPlayerChoice({})}>Neither</button>
               </> : <>
-                <span className="combat__power-hint"
-                  title={`${viewerPlayerChoice.sourceLabel}: you may return cards from the top of your discard pile`}>
+                <Tooltip name={viewerPlayerChoice.sourceLabel} text="You may return cards from the top of your discard pile.">{help =>
+                <span {...help} className="combat__power-hint">
                   <span className="player-choice__source">{viewerPlayerChoice.sourceLabel.replace(/^.*'s /, '')}: </span>
                   {viewer.discard.slice(
                     viewer.discard.length - Math.min(viewerPlayerChoice.upTo, viewer.discard.length)).reverse()
                     .map((card) => faceOf(cardDef(card.defId), card.upgraded).name).join(', ')}
-                </span>
+                </span>}</Tooltip>
                 {Array.from({ length: Math.min(viewerPlayerChoice.upTo, viewer.discard.length) }, (_unused, index) => {
                   const names = viewer.discard.slice(viewer.discard.length - index - 1).reverse()
                     .map((card) => faceOf(cardDef(card.defId), card.upgraded).name).join(' and ')
@@ -5340,16 +5341,17 @@ function CombatScreenView({
               {/* The count lives on the End turn button itself. A co-op turn
                   ends when everyone says so, and being told who the table is
                   waiting on is the whole reason a second screen existed. */}
-              {!forcedCard && !distilled && !(playWindow && !playWindow.optional) ? <button type="button" ref={endTurnRef} className="combat__end-turn" onClick={finishTurn}
+              {!forcedCard && !distilled && !(playWindow && !playWindow.optional) ? <Tooltip name="End turn"
+                text={state.phase === 'player' ? 'Keyboard shortcut: Space' : ''}>{help =>
+                <button {...help} type="button" ref={element => { endTurnRef.current = element; help.ref?.(element) }} className="combat__end-turn" onClick={finishTurn}
                 aria-keyshortcuts={state.phase === 'player' ? 'Space' : undefined}
-                title={state.phase === 'player' ? `End Turn ${state.turn} (Space)` : undefined}
                 disabled={Boolean(pending?.choiceCards) || Boolean(pendingTrigger) || endTurnResolving || chamberClosing ||
                   state.phase === 'player' && voluntaryActionsBlocked ||
                   state.phase === 'discard' && !viewerNeedsEndTurnChoice}>
                 {state.phase === 'discard'
                   ? `${discardOrders[viewer.id] ? 'Update' : 'Confirm'} end-turn effect (${confirmedDiscards}/${endTurnParticipants.length})`
                   : `End Turn ${state.turn}${endTurnCount ? ` (${endTurnCount})` : ''}`}
-              </button> : null}
+              </button>}</Tooltip> : null}
             </>
           ) : null}
           {seenResources?.has('shivs') ? (
@@ -5419,10 +5421,9 @@ function CombatScreenView({
             </PotionTooltipAnchor>
           ) : null}
           {seenResources?.has('vigor') ? (
-            <button type="button"
+            <Tooltip name="Vigor" text="Spend 1 Vigor to boost your card effects for the rest of this turn">{help => <button {...help} type="button"
               disabled={!vigorActionAvailable || Boolean(pending?.choiceCards)}
               aria-label={`Spend 1 Vigor, ${viewer.vigor} available`}
-              title="Spend 1 Vigor to boost your card effects for the rest of this turn"
               onClick={() => {
                 setPending(null)
                 setPendingPowerUid(null)
@@ -5434,7 +5435,7 @@ function CombatScreenView({
               }}>
               <StatusIcon name="vigor" size={22} />
               <span aria-hidden="true">x{viewer.vigor}</span>
-            </button>
+            </button>}</Tooltip>
           ) : null}
           {seenResources?.has('soulburn') ? (
             <button
@@ -7043,9 +7044,9 @@ function CombatScreenView({
                       <span className="seat__name">
                         <span className="seat__label">{occupant.name}</span>
                         {facingDescription ? (
-                          <span className="seat__facing" title={facingDescription}>
+                          <Tooltip name="Facing" text={facingDescription}>{help => <span {...help} className="seat__facing">
                             → {facingName?.replace(/^Spire /, '') ?? 'Away'}
-                          </span>
+                          </span>}</Tooltip>
                         ) : null}
                       </span>
                       <span className="bar">
@@ -7059,15 +7060,16 @@ function CombatScreenView({
                         </span>
                       </span>
                       <span className="seat__meta">
-                       {!occupant.dead && Number.isFinite(timeWarpCardLimit) ? <span className="combat__time-warp"
+                       {!occupant.dead && Number.isFinite(timeWarpCardLimit) ? <Tooltip name="Time Warp"
+                         text={`${occupant.name} has played ${timeWarpCardsPlayed} of ${timeWarpCardLimit} cards this turn. Each player has a separate limit.`}>{help =>
+                         <span {...help} className="combat__time-warp"
                          data-warning={timeWarpCardsPlayed >= timeWarpCardLimit - 1 || undefined}
                          data-limit-reached={timeWarpCardsPlayed >= timeWarpCardLimit || undefined}
-                         aria-live="polite" aria-atomic="true"
-                         title={`Time Eater's Time Warp: ${occupant.name} has played ${timeWarpCardsPlayed} of ${timeWarpCardLimit} cards this turn. Each player has a separate limit.`}>
+                         aria-live="polite" aria-atomic="true">
                          <span>Time Warp</span>
                          <strong>{timeWarpCardsPlayed}/{timeWarpCardLimit}</strong>
                          <span>{timeWarpCardsPlayed >= timeWarpCardLimit ? 'Limit reached' : 'cards'}</span>
-                       </span> : null}
+                       </span>}</Tooltip> : null}
                       {occupant.strengthLossAtEndOfTurn > 0 ? (
                         <span className="seat__pending">
                           −{occupant.strengthLossAtEndOfTurn} Strength at end of turn
@@ -7453,13 +7455,12 @@ function CombatScreenView({
       <footer className="hand-area" data-character={viewer.character}
         data-has-chamber={viewer.chamberSlots > 0 || undefined}>
         <div className="hand-area__stats">
-          <span className={[
+          <Tooltip name="Energy">{help => <span {...help} className={[
             'pip',
             'pip--energy',
             motionActive.has('energy') ? `motion-pulse-${motionBeats.energy % 2}` : '',
           ].filter(Boolean).join(' ')} data-character={skinOrb ? viewerVisual : viewer.character} data-skin-orb={skinOrb || undefined}
-          data-guardian-mode={viewer.guardianMode ?? undefined} data-empty={viewer.energy === 0 || undefined}
-          title="Energy">
+          data-guardian-mode={viewer.guardianMode ?? undefined} data-empty={viewer.energy === 0 || undefined}>
             {skinOrb ? <img className="energy-orb__skin"
               src={assetPath(`combat/energy-orbs/${viewerVisual}.webp`)} alt="" aria-hidden="true" /> : null}
             {downfallCharacter && !skinOrb ? <span className="energy-orb__layers" aria-hidden="true">
@@ -7467,23 +7468,23 @@ function CombatScreenView({
                 <img key={layer} data-layer={layer} src={src} alt="" />)}
             </span> : null}
             <IconValue name="energy" value={viewer.energy} size={26} />
-          </span>
+          </span>}</Tooltip>
           {viewer.chamberSlots > 0 ? (
-            <button ref={chamberTriggerRef} type="button" className={[
+            <Tooltip name={chamberClosing ? 'Returning Chamber cards' : chamberOpen
+              ? 'Return Chamber cards' : 'Show Chamber cards'}>{help =>
+            <button {...help} ref={element => { chamberTriggerRef.current = element; help.ref?.(element) }} type="button" className={[
               'hermit-chamber-trigger',
               chamberContact ? 'hermit-chamber-trigger--contact' : '',
             ].filter(Boolean).join(' ')}
               aria-expanded={chamberOpen}
               aria-label={`Chamber, ${viewer.chamber.length} of ${viewer.chamberSlots} slots filled`}
-              title={chamberClosing ? 'Returning Chamber cards' : chamberOpen
-                ? 'Return Chamber cards' : 'Show Chamber cards'}
               disabled={chamberClosing}
               onClick={toggleChamber}>
               <img src={assetPath(chamberOpen || chamberClosing || viewer.chamber.length === 0
                 ? 'icons/hermit-chamber.png'
                 : 'icons/hermit-chamber-loaded.png')} alt="" />
               <span aria-hidden="true">{viewer.chamber.length}/{viewer.chamberSlots}</span>
-            </button>
+            </button>}</Tooltip>
           ) : null}
           {requiredHermitChamberCard?.playerId === viewer.id &&
           (!requiredChamberCard || requiredChamberUnplayable) ? (

@@ -723,7 +723,7 @@ export function CardKeywordHelp({ def, additionalDef, gemPowerDamage, extraTips 
     ] : []
     const tips = [...(def ? cardKeywordTips(def) : []), ...additionalTips, ...extraTips]
       .filter((tip, index, all) => all.findIndex((candidate) => candidate.name === tip.name) === index)
-    return { tips, tipsKey: JSON.stringify(tips), description: tips.map((tip) => `${tip.name}: ${tip.text}`).join(' ') }
+    return { tips, tipsKey: JSON.stringify(tips), description: tips.map((tip) => [tip.name, tip.text].filter(Boolean).join(': ')).join(' ') }
   }, [def, additionalDef, gemPowerDamage, extraTips])
   const tooltipId = `card-keyword-help-${useId()}`
   const anchorRef = useRef<HTMLElement | null>(null)
@@ -751,7 +751,7 @@ export function CardKeywordHelp({ def, additionalDef, gemPowerDamage, extraTips 
       {image ? `${image.alt}. ` : ''}{description}
     </span> : null}
     {host && hasHelp ? createPortal(
-      <span className={`card-keyword-tips${image ? ' card-keyword-tips--image' : ''}`}
+      <span className={`card-keyword-tips${image ? ' card-keyword-tips--image' : tips.length === 1 && !tips[0]?.text ? ' card-keyword-tips--brief' : ''}`}
         data-landscape={image && image.width > image.height || undefined} id={tooltipId} role="tooltip">
         {image ? <span className="card-keyword-image-frame">
           <img className="card-keyword-image" src={image.src} alt={image.alt}
@@ -763,7 +763,7 @@ export function CardKeywordHelp({ def, additionalDef, gemPowerDamage, extraTips 
           <span className="card-keyword-tip" key={tip.name}>
             <strong>{tip.icon ? <Icon name={tip.icon} size={18} />
               : tip.statusIcon ? <StatusIcon name={tip.statusIcon} size={18} /> : null}{tip.name}</strong>
-            <span>{tip.text}</span>
+            {tip.text ? <span>{tip.text}</span> : null}
           </span>
         ))}
       </span>,
@@ -944,7 +944,7 @@ export function Card({
         {stanceChangedThisTurn ? 'Stance changed' : 'No stance change'}
       </span> : null}
       {attachedGem && scanUnavailable ? <img className="card__gem" src={cardThumbPath(attachedGem, false)} alt=""
-        draggable={false} title={`${attachedGem.name}: ${cardRuleDescription(attachedGem)}`} /> : null}
+        draggable={false} /> : null}
       {liveDamage ? (
         // The scan prints the base number; this is what the hit really deals now.
         <span className="card__live-damage" aria-hidden="true"

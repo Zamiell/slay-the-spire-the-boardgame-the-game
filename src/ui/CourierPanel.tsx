@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import { Tooltip } from './Tooltip.tsx'
 import { assetPath } from '../game/assets.ts'
 import { potionLimit } from '../game/acquisition.ts'
 import { courierCost, type CourierOffer } from '../game/noncombat.ts'
@@ -163,8 +164,9 @@ export function CourierPanel({ players, viewerId, ascension, offer, pledge, onli
           </div>}
           {potionFull && !potionBlocked && viewer.id === owner.id && !pledge ? <fieldset className="courier__replace" aria-label="Replace Potion">
             <legend>Replace</legend>
-            {owner.potions.map((id, index) => <button type="button" key={`${id}-${index}`} title={potionDef(id).name} aria-label={potionDef(id).name}
-              aria-pressed={discardPotionId === id} onClick={() => setChoice({ offerKey, potionId: discardPotionId === id ? '' : id })}><ItemImage kind="potion" id={id} /></button>)}
+            {owner.potions.map((id, index) => <Tooltip key={`${id}-${index}`} name={potionDef(id).name} text={potionDef(id).text}>{help =>
+              <button {...help} type="button" aria-label={potionDef(id).name}
+              aria-pressed={discardPotionId === id} onClick={() => setChoice({ offerKey, potionId: discardPotionId === id ? '' : id })}><ItemImage kind="potion" id={id} /></button>}</Tooltip>)}
           </fieldset> : null}
           <div className="courier__actions">
             <button type="button" className="courier__buy" disabled={!canFund} aria-label={shownContribution ? `${action} ${contribution} Gold` : action}

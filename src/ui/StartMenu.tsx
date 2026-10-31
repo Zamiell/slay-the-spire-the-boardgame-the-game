@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Tooltip } from './Tooltip.tsx'
 import { assetPath, isPreloadedImageDecoded, preloadImages, releasePreloadedImages } from '../game/assets.ts'
 import type { DailyModifier, DailyModifierId, RunMode } from '../game/meta.ts'
 import { relicDef, STARTING_RELIC } from '../game/relics.ts'
@@ -297,23 +298,23 @@ export function StartMenu({
         <span><strong>THE PARTY</strong><small>Board Game Chronicle</small></span>
       </div> : null}
       {screen === 'main' ? <div className="start-menu__corner">
-        <button type="button" className="start-menu__purse"
-          aria-label={`Shop · ${wallet.coins} ${wallet.coins === 1 ? 'coin' : 'coins'}`} title="Your coins · open the Shop" onClick={onShop}>
+        <Tooltip name="Your coins · open the Shop">{help => <button {...help} type="button" className="start-menu__purse"
+          aria-label={`Shop · ${wallet.coins} ${wallet.coins === 1 ? 'coin' : 'coins'}`} onClick={onShop}>
           <CoinAmount coins={wallet.coins} size={30} />
-        </button>
-        <button type="button" className="start-menu__icon" aria-label="Leaderboard" title="Leaderboard" onClick={onLeaderboard}>
+        </button>}</Tooltip>
+        <Tooltip name="Leaderboard">{help => <button {...help} type="button" className="start-menu__icon" aria-label="Leaderboard" onClick={onLeaderboard}>
           <img src={assetPath('menu/leaderboard-trophy.png')} alt="" />
-        </button>
-        <button type="button" className="start-menu__icon" aria-label="Stats" title="Stats" onClick={onStats}>
+        </button>}</Tooltip>
+        <Tooltip name="Stats">{help => <button {...help} type="button" className="start-menu__icon" aria-label="Stats" onClick={onStats}>
           <img src={assetPath('menu/stats-ledger.png')} alt="" />
-        </button>
+        </button>}</Tooltip>
         {!SINGLE_PLAYER_ONLY ? <MailBox /> : null}
-        <button type="button" className="start-menu__icon" aria-label="Profile" title="Profile" onClick={onProfile}>
+        <Tooltip name="Profile">{help => <button {...help} type="button" className="start-menu__icon" aria-label="Profile" onClick={onProfile}>
           <img src={assetPath('menu/profile-medallion.png')} alt="" />
-        </button>
-        <button type="button" className="start-menu__icon" aria-label="Settings" title="Settings" onClick={() => setSettingsOpen(true)}>
+        </button>}</Tooltip>
+        <Tooltip name="Settings">{help => <button {...help} type="button" className="start-menu__icon" aria-label="Settings" onClick={() => setSettingsOpen(true)}>
           <img src={assetPath('menu/settings-cog.png')} alt="" />
-        </button>
+        </button>}</Tooltip>
       </div> : null}
 
       {screen === 'main' ? <div className="start-menu__landing">
@@ -433,18 +434,19 @@ export function StartMenu({
             <img src={assetPath(`menu/character-select/portrait-${heroArt(candidate.id)}.png`)} alt="" />
           </button>)}
         </div>
-        <button type="button" className="start-menu__character-back ribbon-back" aria-label="Back" title="Back"
-          onClick={() => { returnToMain(); onCharacterBack() }}><span aria-hidden="true"></span></button>
-        {tutorialSetup ? <button type="button" className="start-menu__character-embark" aria-label="Start tutorial" title="Start tutorial"
-          disabled={embarking} onClick={() => { setEmbarking(true); onTutorial() }}><span aria-hidden="true">✓</span></button>
-          : <button type="button" className="start-menu__character-embark" aria-label="Embark" title="Embark" disabled={embarking}
-          aria-busy={embarking || undefined} onClick={daily ? () => onStart('base') : startCampaign}><span aria-hidden="true">✓</span></button>}
+        <Tooltip name="Back">{help => <button {...help} type="button" className="start-menu__character-back ribbon-back" aria-label="Back"
+          onClick={() => { returnToMain(); onCharacterBack() }}><span aria-hidden="true"></span></button>}</Tooltip>
+        {tutorialSetup ? <Tooltip name="Start tutorial">{help => <button {...help} type="button" className="start-menu__character-embark" aria-label="Start tutorial"
+          disabled={embarking} onClick={() => { setEmbarking(true); onTutorial() }}><span aria-hidden="true">✓</span></button>}</Tooltip>
+          : <Tooltip name="Embark">{help => <button {...help} type="button" className="start-menu__character-embark" aria-label="Embark" disabled={embarking}
+          aria-busy={embarking || undefined} onClick={daily ? () => onStart('base') : startCampaign}><span aria-hidden="true">✓</span></button>}</Tooltip>}
       </section> : null}
       {screen === 'character' && preparingCharacter ? <section className="start-menu__character-select start-menu__character-loading"
         aria-label="Preparing character selection" aria-busy="true">
         <p role="status">Preparing character artwork…</p>
-        <button type="button" className="start-menu__character-back ribbon-back" aria-label="Back" title="Back"
-          ref={loadingBack} onClick={() => { returnToMain(); onCharacterBack() }}><span aria-hidden="true"></span></button>
+        <Tooltip name="Back">{help => <button {...help} type="button" className="start-menu__character-back ribbon-back" aria-label="Back"
+          ref={element => { loadingBack.current = element; help.ref?.(element) }}
+          onClick={() => { returnToMain(); onCharacterBack() }}><span aria-hidden="true"></span></button>}</Tooltip>
       </section> : null}
 
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} settings={settings} onChange={onSettings} />

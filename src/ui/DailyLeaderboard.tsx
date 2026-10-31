@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Tooltip } from './Tooltip.tsx'
 import { assetPath } from '../game/assets.ts'
 import { cardDef } from '../game/cards.ts'
 import { dailyDate } from '../daily-date.ts'
@@ -67,14 +68,15 @@ export function DailyLeaderboard({ characters }: { characters: CharacterId[] }) 
       : !board ? <div className="leaderboard__message" aria-live="polite"><span className="leaderboard__spinner" aria-hidden="true"></span><strong>Loading…</strong></div>
       : rows.length === 0 ? <div className="leaderboard__message"><strong>No climbs yet</strong><span>Finish a Daily Climb to claim the first place.</span></div>
       : <div className="leaderboard__table-wrap"><table className="daily-board__table">
-        <thead><tr><th scope="col" title="Rank">#</th><th scope="col">Player</th><th scope="col" title="Hero">Hero</th>
-          <th scope="col" title="Floors reached">Floors</th><th scope="col" title="Result">Result</th><th scope="col" title="Damage / fight">Dmg</th>
-          <th scope="col" title="Blocked">Block</th><th scope="col">Deck</th></tr></thead>
+        <thead><tr><th scope="col" aria-label="Rank">#</th><th scope="col">Player</th><th scope="col">Hero</th>
+          <th scope="col">Floors</th><th scope="col">Result</th><th scope="col" aria-label="Damage / fight">
+            <Tooltip name="Damage / fight">{help => <span {...help} tabIndex={0}>Dmg</span>}</Tooltip></th>
+          <th scope="col">Block</th><th scope="col">Deck</th></tr></thead>
         <tbody>{rows.map((row) => { const result = dailyClimbResult(row.highestBossActDefeated); return <tr key={`${row.rank}:${row.username}`}>
           <td data-label="Rank"><span className="leaderboard__rank">{row.rank}</span></td>
           <th scope="row" className="daily-board__player">{row.username}</th>
-          <td data-label="Hero"><span className="leaderboard__party-icons" title={CHARACTER_LABEL[row.character]}>
-            <img src={assetPath(`menu/compendium-icons/${row.character}.webp`)} alt={CHARACTER_LABEL[row.character]} /></span></td>
+          <td data-label="Hero"><Tooltip name={CHARACTER_LABEL[row.character] ?? row.character}>{help => <span {...help} tabIndex={0} className="leaderboard__party-icons">
+            <img src={assetPath(`menu/compendium-icons/${row.character}.webp`)} alt={CHARACTER_LABEL[row.character]} /></span>}</Tooltip></td>
           <td data-label="Floors reached"><strong>{row.floorsCleared}</strong></td>
           <td data-label="Result" className={result.won ? 'daily-board__result daily-board__result--won' : 'daily-board__result'}>{result.label}</td>
           <td data-label="Damage / fight">{decimal(row.averageDamagePerFight)}</td>

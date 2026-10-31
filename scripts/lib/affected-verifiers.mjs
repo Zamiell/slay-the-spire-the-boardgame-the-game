@@ -62,6 +62,8 @@ const focusedEngineOwners = ownerMap([
   ['src/game/run/rewards.ts', ['verify-loot-browser.mjs', 'verify-tiny-house-browser.mjs']],
 ])
 const focusedUiOwners = ownerMap([
+  ...['src/ui/Tooltip.tsx', 'src/ui/chrome/tooltip-panels.css']
+    .map(file => [file, ['verify-tooltips-browser.mjs']]),
   ['src/ui/board-signals.ts', ['verify-die-relic-browser.mjs', 'verify-combat-layout-reload-browser.mjs']],
   ...['src/ui/styles/painterly-combat-stage.css', 'src/ui/styles/hand-layout.css']
     .map(file => [file, ['verify-hand-size-browser.mjs', ...(file.endsWith('/hand-layout.css')
@@ -101,7 +103,7 @@ const focusedUiOwners = ownerMap([
     'verify-card-tooltip-browser.mjs', 'verify-card-picker-browser.mjs', 'verify-keyboard-browser.mjs', 'verify-pile-controls-browser.mjs',
   ]],
   ['src/ui/styles/card-picker.css', ['verify-card-picker-browser.mjs', 'verify-deck-inspection-browser.mjs']],
-  ['src/ui/App.tsx', ['verify-room-resume-browser.mjs', 'verify-ascension-sync-browser.mjs', 'verify-restricted-browser.mjs', 'verify-run-replay-browser.mjs', 'verify-replay-controls-browser.mjs', 'verify-courier-browser.mjs',
+  ['src/ui/App.tsx', ['verify-tooltips-browser.mjs', 'verify-room-resume-browser.mjs', 'verify-ascension-sync-browser.mjs', 'verify-restricted-browser.mjs', 'verify-run-replay-browser.mjs', 'verify-replay-controls-browser.mjs', 'verify-courier-browser.mjs',
     'verify-combat-vfx-preload-browser.mjs', 'verify-tutorial-browser.mjs', 'verify-enemy-hover-browser.mjs', 'verify-skin-browser.mjs']],
   ['src/ui/CampfireScene.tsx', ['verify-art-scenes-browser.mjs', 'verify-skin-browser.mjs']],
   ['src/ui/campfire-seats.ts', ['verify-art-scenes-browser.mjs', 'verify-skin-browser.mjs']],
@@ -110,7 +112,7 @@ const focusedUiOwners = ownerMap([
   ['src/ui/StatsScreen.tsx', ['verify-stats-browser.mjs', 'verify-skin-cards-browser.mjs']],
   ['src/ui/skin-context.tsx', ['verify-skin-cards-browser.mjs', 'verify-card-rendering-browser.mjs']],
   ['src/ui/Card.tsx', ['verify-card-block-preview-browser.mjs', 'verify-card-rendering-browser.mjs', 'verify-skin-cards-browser.mjs', 'verify-card-damage-preview-browser.mjs',
-    'verify-flurry-stance-browser.mjs',
+    'verify-flurry-stance-browser.mjs', 'verify-tooltips-browser.mjs',
     'verify-enemy-card-cube-browser.mjs', 'verify-claw-cubes-browser.mjs']],
   ['src/ui/CardFace.tsx', ['verify-card-rendering-browser.mjs', 'verify-skin-cards-browser.mjs']],
   ['src/ui/ShopScreen.tsx', ['verify-shop-browser.mjs', 'verify-wallet-sync-browser.mjs', 'verify-skin-cards-browser.mjs', 'verify-monogatari-skins-browser.mjs']],
@@ -470,6 +472,7 @@ export function affectedVerifiers(root, changedFiles, scripts) {
 
   for (const file of changed) {
     let covered = [...selected].some((script) => dependenciesOf(join('scripts', script)).has(resolve(root, file)))
+    if (/^src\/ui\/.*\.tsx$/.test(file)) selected.add('verify-tooltips.mjs')
     if (file === 'scripts/animation/kratos.py' || file.startsWith('scripts/animation/sources/kratos/')
       || file === 'scripts/animation/skin-attack.py' || file === 'scripts/animation/skin_geometry.py'
       || file === 'scripts/animation/audit-poses.py' || new RegExp(`^scripts/animation/(monogatari[\\w]*|${NAMED_SKIN}|measure-[\\w-]+)\\.py$`).test(file)

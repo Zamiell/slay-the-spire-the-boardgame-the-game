@@ -986,6 +986,14 @@ export function EnemyCard({
     if (existing) existing.text += `; ${text}`
     else tips.push({ name, text })
   }
+  if (showHelp) {
+    for (const entry of visibleEnemy.slayerAttachments ?? []) {
+      const card = faceOf(cardDef(entry.card.defId), entry.card.upgraded)
+      tips.push({ name: card.name, text: cardRuleDescription(card) })
+    }
+    if (visibleEnemy.corpseExplosion) tips.push({ name: 'Corpse Explosion',
+      text: `Deals ${visibleEnemy.corpseExplosion.damage} damage to its row on death.` })
+  }
   return (
     <CardKeywordHelp extraTips={tips} hover
       image={!preview ? undefined : {
@@ -1082,9 +1090,7 @@ export function EnemyCard({
       )) : null}
 
       {(visibleEnemy.slayerAttachments ?? []).map((entry) => (
-        <span key={entry.card.uid} className="enemy__attachment" data-slayer-attachment={entry.card.defId}
-          title={`${faceOf(cardDef(entry.card.defId), entry.card.upgraded).name}: ${
-            cardRuleDescription(faceOf(cardDef(entry.card.defId), entry.card.upgraded))}`}>
+        <span key={entry.card.uid} className="enemy__attachment" data-slayer-attachment={entry.card.defId}>
           <img src={cardThumbPath(cardDef(entry.card.defId), entry.card.upgraded, undefined, cardSkin(skins, cardDef(entry.card.defId)))} alt=""
             onLoad={(event) => revealDecodedImage(event.currentTarget)}
             onError={(event) => { event.currentTarget.style.visibility = 'hidden' }} />
@@ -1105,7 +1111,7 @@ export function EnemyCard({
       )) : null}
 
       {visibleEnemy.corpseExplosion ? (
-        <span className="enemy__attachment" title={`Corpse Explosion · ${visibleEnemy.corpseExplosion.damage} row damage on death`}>
+        <span className="enemy__attachment">
           <img src={cardThumbPath(cardDef(visibleEnemy.corpseExplosion.card.defId), visibleEnemy.corpseExplosion.card.upgraded,
             undefined, cardSkin(skins, cardDef(visibleEnemy.corpseExplosion.card.defId)))} alt=""
             onLoad={(event) => revealDecodedImage(event.currentTarget)}
@@ -1219,7 +1225,7 @@ export function EnemyCard({
         /> : null}
         {vfx}
         {rowLabel ? (
-          <span className="enemy__row" title={`Row ${enemy.row + 1} · ${rowLabel}`} aria-hidden="true">
+          <span className="enemy__row" aria-hidden="true">
             <span className="enemy__row-long">{rowLabel}</span>
             <span className="enemy__row-short">P{enemy.row + 1}</span>
           </span>

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { Tooltip } from './Tooltip.tsx'
 import { assetPath } from '../game/assets.ts'
 import { SKIN_PRICES } from '../game/coins.ts'
 import { SKIN_LABELS, skinsOf, visualId } from '../game/skins.ts'
@@ -116,7 +117,7 @@ export function ProfileScreen({ onBack, onShop }: { onBack: () => void; onShop: 
     <aside className="profile__rail menu-board menu-board--slate">
       <button type="button" className="profile__back ribbon-back" onClick={onBack} aria-label="Back to main menu"><span aria-hidden="true"></span></button>
       <h1>Profile</h1>
-      <p className="profile__name" title={profile.username}>{profile.username}</p>
+      <Tooltip name={profile.username}>{help => <p {...help} tabIndex={0} className="profile__name">{profile.username}</p>}</Tooltip>
       {stats?.firstRunAt ? <p className="profile__since">Climbing since {new Date(stats.firstRunAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</p> : null}
       <div className="profile__tabs" role="tablist" aria-label="Profile sections" aria-orientation="vertical">
         {SECTIONS.map(({ id, label, icon }) => <button type="button" role="tab" className="profile__tab" key={id} id={`profile-tab-${id}`}

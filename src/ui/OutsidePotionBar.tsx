@@ -55,7 +55,7 @@ export function OutsidePotionBar({ players, viewerId, ascension, ruleset, disabl
           else's control, and the belt kept spending potions on first touch. */}
       {id === 'blood_potion' ? <PotionTooltipAnchor id={id} confirmLabel="drink">
         <button type="button" aria-label={`Use ${potionDef(id).name}`}
-          title={`Use ${potionDef(id).name}`} disabled={unavailable || viewer.hp >= healingCapFor(viewer, ruleset)}
+          disabled={unavailable || viewer.hp >= healingCapFor(viewer, ruleset)}
           onClick={() => onUse(id)}><ItemImage kind="potion" id={id} /></button>
       </PotionTooltipAnchor> : null}
       {/* Entropic Brew only drinks when there is room for what it pours; on a
@@ -67,7 +67,7 @@ export function OutsidePotionBar({ players, viewerId, ascension, ruleset, disabl
         <button type="button" aria-label={`Use ${potionDef(id).name}`}
           aria-expanded={!sozu && viewer.potions.length - 1 + 2 > viewerPotionLimit
             ? replacing?.context === inventoryContext && replacing.index === index && replacing.id === id : undefined}
-          title={`Use ${potionDef(id).name}`} disabled={unavailable} onClick={() => {
+          disabled={unavailable} onClick={() => {
           if (sozu || viewer.potions.length - 1 + 2 <= viewerPotionLimit) onUse(id)
           else setReplacing(replacing?.context === inventoryContext && replacing.index === index && replacing.id === id
             ? null : { index, id, context: inventoryContext })
@@ -81,7 +81,7 @@ export function OutsidePotionBar({ players, viewerId, ascension, ruleset, disabl
           }}><ItemImage kind="potion" id={held} />Replace {potionDef(held).name}</button>)}
       </div> : null}
       {players.length > 1 ? <button type="button" className="outside-potions__give" aria-label={`Give ${potionDef(id).name}`}
-        title={`Give ${potionDef(id).name}`} disabled={recipients.length === 0}
+        disabled={recipients.length === 0}
         aria-expanded={recipients.length > 0
           ? giving?.context === giveContext && giving.index === index && giving.id === id : undefined} onClick={() =>
         setGiving(giving?.context === giveContext && giving.index === index && giving.id === id

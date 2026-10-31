@@ -165,8 +165,11 @@ const until = async (check, message, timeout = 5_000) => {
 }
 
 const secondsPerMove = async ({ page, bar }, label) => {
-  await bar.speed(label)
+  // Measure steady playback, not the initial Neow dialog taking focus from the speed menu.
   await page.mouse.click(...Object.values(await bar.at(0.3)))
+  await until(async () => (await bar.floors()) === (await expectedFloor(page, await bar.position())),
+    'The timing fixture has not reached its seek position')
+  await bar.speed(label)
   const start = await bar.position()
   const began = Date.now()
   await page.waitForFunction((target) => Number(document.querySelector('[role="slider"]').getAttribute('aria-valuenow')) >= target, start + 5)

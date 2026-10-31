@@ -4947,7 +4947,7 @@ try {
   })
   const afterPlay = await snapshot(b)
   const afterRemotePlayer = afterPlay.run.combat.players.find((player) => player.id === aView.you.playerId)
-  const shownDraw = Number(await a.locator('.pile[title="Draw pile"] .pile__count').textContent())
+  const shownDraw = Number(await a.locator('.pile[data-pile="draw"] .pile__count').textContent())
   const actualDraw = afterPlay.run.combat.players.find((player) => player.id === aView.you.playerId).drawCount
   check('an action in one browser updates the other browser', () => {
     assertEqual(afterRemotePlayer.handCount, beforeRemotePlayer.handCount - 1,

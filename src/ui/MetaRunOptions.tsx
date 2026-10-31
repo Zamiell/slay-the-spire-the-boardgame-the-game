@@ -53,7 +53,7 @@ export function MetaRunOptions({
 
     {mode === 'custom' ? <fieldset className="start-menu__custom">
       <legend>Modifiers <small>Choose any combination.</small></legend>
-      {DAILY_MODIFIERS.map((modifier) => <label key={modifier.id} title={modifier.rule}>
+      {DAILY_MODIFIERS.map((modifier) => <label key={modifier.id}>
         <input type="checkbox" checked={customModifierIds.includes(modifier.id)}
           onChange={(event) => onCustomModifierChange(modifier.id, event.target.checked)} />
         <span><strong>{modifier.name}</strong> — {modifier.rule}</span>

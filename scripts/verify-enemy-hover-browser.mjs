@@ -92,10 +92,15 @@ try {
             const card = cards.nth(index)
             const point = await card.evaluate(node => {
               const r = node.getBoundingClientRect()
-              for (let y = Math.min(innerHeight - 3, Math.floor(r.bottom - 3)); y >= Math.max(3, r.top + 3); y--)
-                for (let x = Math.ceil(r.left + 3); x < r.right - 3; x++)
-                  if (document.elementFromPoint(x, y)?.closest('.card') === node) return { x, y }
-              return null
+              const bottom = Math.min(innerHeight, r.bottom)
+              const center = { x: r.left + r.width / 2, y: (Math.max(0, r.top) + bottom) / 2 }
+              const points = []
+              // A rotating edge can move away from a single-pixel hit; inspect the exposed interior.
+              for (let y = Math.max(8, r.top + 8); y < bottom - 8; y += 8)
+                for (let x = Math.max(8, r.left + 8); x < Math.min(innerWidth, r.right) - 8; x += 8)
+                  if (document.elementFromPoint(x, y)?.closest('.card') === node) points.push({ x, y })
+              return points.sort((a, b) => Math.hypot(a.x - center.x, a.y - center.y) -
+                Math.hypot(b.x - center.x, b.y - center.y))[0] ?? null
             })
             assert(point, `${screen}: card ${index} has no resting hit area`)
             await page.mouse.move(point.x, point.y)

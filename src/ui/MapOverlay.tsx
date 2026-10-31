@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { assetPath } from '../game/assets.ts'
 import type { SpireMap } from '../game/map.ts'
 import { MapScreen } from './MapScreen.tsx'
+import { Tooltip } from './Tooltip.tsx'
 import { useButtonShortcut } from './useButtonShortcut.ts'
 
 type MapOverlayProps = {
@@ -46,18 +47,20 @@ export function MapOverlay({ map, act, bossDefId }: MapOverlayProps) {
 
   return (
     <>
-      <button ref={triggerRef} className="map-peek__open" type="button" aria-label="Map"
-        aria-keyshortcuts="M" title="Map (M)" onClick={() => setOpen(true)}>
+      <Tooltip name="Map (M)">{help => <button {...help} ref={element => { triggerRef.current = element; help.ref?.(element) }}
+        className="map-peek__open" type="button" aria-label="Map"
+        aria-keyshortcuts="M" onClick={() => setOpen(true)}>
         <img src={assetPath('menu/map-scroll.png')} alt="" />
-      </button>
+      </button>}</Tooltip>
       <dialog className="map-peek" ref={dialogRef}
         onClose={() => { if (suppressedCloses.current > 0) suppressedCloses.current -= 1; else setOpen(false) }}
         aria-label={`Act ${act} map`}>
         <div className="map-peek__panel">
           <header>
             <h2>Act {act}</h2>
-            <button ref={closeRef} className="map-peek__close" type="button" aria-keyshortcuts="M"
-              title="Close map (M)" onClick={() => setOpen(false)}>Close</button>
+            <Tooltip name="Close map (M)">{help => <button {...help} ref={element => { closeRef.current = element; help.ref?.(element) }}
+              className="map-peek__close" type="button" aria-keyshortcuts="M"
+              onClick={() => setOpen(false)}>Close</button>}</Tooltip>
           </header>
           {/* `readOnly`, not `blocked`: `blocked` marks the map `inert`, which
               would kill the hover the party opened this to use. With no

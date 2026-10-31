@@ -122,11 +122,16 @@ try {
         'leaving the card must close its tooltip without a grace period')
       await card.hover()
       await tip.waitFor()
-      assert.equal(await card.getAttribute('aria-disabled'), 'true')
       const box = await card.boundingBox()
       await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
+      const inspection = page.getByRole('dialog', { name: /^Inspect Survivor/ })
+      await inspection.waitFor()
       assert.equal(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun())), beforeDeck,
         'inspecting a deck card must not play it or modify the run')
+      await page.keyboard.press('Escape')
+      await inspection.waitFor({ state: 'hidden' })
+      await card.hover()
+      await tip.waitFor()
       await page.screenshot({ path: `${output}/${screen}-deck${upgraded ? '-upgraded' : ''}.png` })
     }
     await deck.locator('.card-keyword-tips[data-open]').waitFor()

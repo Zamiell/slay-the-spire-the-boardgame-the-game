@@ -58,7 +58,7 @@ export function TokenRow({ showHelp = false, children, ...props }: TokenRowProps
             {content}
           </PotionTooltipAnchor>
         ) : (
-          <span key={key} className={`token token--${key}`} title={`${label} ${props[key]}`}>
+          <span key={key} className={`token token--${key}`}>
             {content}
           </span>
         )
@@ -120,7 +120,7 @@ export function OrbRow({
         const token = (
           <span
             className={`token token--orb token--orb-${orb ?? 'empty'}`}
-            title={orb ? undefined : 'Empty Orb slot'} aria-hidden="true"
+            aria-hidden="true"
             style={{ '--orb-depth': Math.abs(index - (orbs.length - 1) / 2) } as CSSProperties}
           >
             {value !== null ? <span className="orb__value">{value}</span> : null}

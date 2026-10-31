@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Tooltip } from './Tooltip.tsx'
 import type { CSSProperties } from 'react'
 import { cardIsCurse, faceOf, releasedCardDefs } from '../game/cards.ts'
 import type { CardDef } from '../game/cards.ts'
@@ -175,10 +176,10 @@ export function CompendiumScreen({ onBack, backLabel = 'Back to main menu' }: { 
           </label>
           <div className="compendium__pools" role="group" aria-label="Card pool">
             {POOLS.map((entry) => (
-              <button key={entry.id} type="button" title={entry.label} aria-label={entry.label}
+              <Tooltip key={entry.id} name={entry.label}>{help => <button {...help} type="button" aria-label={entry.label}
                 aria-pressed={pool === entry.id} onClick={() => setPool(entry.id)}>
                 <img src={assetPath(`menu/compendium-icons/${entry.id}.webp`)} alt="" />
-              </button>
+              </button>}</Tooltip>
             ))}
           </div>
           <section className="compendium__filter-block">

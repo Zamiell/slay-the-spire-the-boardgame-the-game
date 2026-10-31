@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Tooltip } from './Tooltip.tsx'
 import { assetPath, cardArtPath, cardThumbPath } from '../game/assets.ts'
 import { useCardSkin } from './skin-context.tsx'
 import { CARDS, releasedCardDefs, type CardDef } from '../game/cards.ts'
@@ -54,7 +55,7 @@ function CardFilter({ bucket, label, choices, selected, onAdd, onRemove }: {
     <strong className="stats__filter-label">{label}</strong>
     <div className="stats__filter-content">
       {selected.map((choice) => <button type="button" className="stats__chip" key={choiceKey(choice)}
-        title={`Remove ${choice.label}`} aria-label={`Remove ${choice.label} from ${label}`} onClick={() => onRemove(choice)}>
+        aria-label={`Remove ${choice.label} from ${label}`} onClick={() => onRemove(choice)}>
         {CARDS[choice.id] && <CardPreview card={CARDS[choice.id]!} upgraded={Boolean(choice.upgraded)} />}
         {choice.label}<span aria-hidden="true">×</span>
       </button>)}
@@ -200,9 +201,10 @@ export function StatsScreen({ onBack }: { onBack: () => void }) {
       <h1 id="stats-title">Stats</h1>
       <div className="stats__rail-filters">
         <div className="stats__heroes" role="group" aria-label="Filter by hero">
-          <button type="button" title="All heroes" aria-pressed={character === 'all'} onClick={() => setCharacter('all')}><span className="stats__all-icon" aria-hidden="true">✦</span><span className="stats__hero-name">All heroes</span></button>
-          {HEROES.map((hero) => <button type="button" key={hero} title={CHARACTER_LABEL[hero]} aria-pressed={character === hero} onClick={() => setCharacter(hero)}>
-            <img src={assetPath(`menu/compendium-icons/${hero}.webp`)} alt="" /><span className="stats__hero-name">{CHARACTER_LABEL[hero]}</span></button>)}
+          <Tooltip name="All heroes">{help => <button {...help} type="button" aria-pressed={character === 'all'} onClick={() => setCharacter('all')}><span className="stats__all-icon" aria-hidden="true">✦</span><span className="stats__hero-name">All heroes</span></button>}</Tooltip>
+          {HEROES.map((hero) => <Tooltip key={hero} name={CHARACTER_LABEL[hero] ?? hero}>{help =>
+            <button {...help} type="button" aria-pressed={character === hero} onClick={() => setCharacter(hero)}>
+            <img src={assetPath(`menu/compendium-icons/${hero}.webp`)} alt="" /><span className="stats__hero-name">{CHARACTER_LABEL[hero]}</span></button>}</Tooltip>)}
         </div>
         <div className="stats__rail-selects">
           <label><span className="visually-hidden">Ascension</span><select value={ascension} onChange={(event) => setAscension(event.target.value === 'all' ? 'all'
@@ -236,10 +238,10 @@ export function StatsScreen({ onBack }: { onBack: () => void }) {
             <CardFilter bucket="any" label="Any of these" choices={CHOICES} selected={buckets.any} onAdd={(choice) => addChoice('any', choice)} onRemove={(choice) => removeChoice('any', choice)} />
             <CardFilter bucket="none" label="None of these" choices={CHOICES} selected={buckets.none} onAdd={(choice) => addChoice('none', choice)} onRemove={(choice) => removeChoice('none', choice)} />
           </div> : <div className="stats__expression">
-            <div><input value={expression} aria-label="Card expression" onChange={(event) => setExpression(event.target.value)}
-              title={'Combine cards with and, or, not and ( ). Quote names with spaces; @strike_defect matches one hero\'s card, any upgrade.'}
+            <div><Tooltip name="Card expression" text={'Combine cards with and, or, not and ( ). Quote names with spaces; @strike_defect matches one hero\'s card, any upgrade.'}>{help =>
+              <input {...help} value={expression} aria-label="Card expression" onChange={(event) => setExpression(event.target.value)}
               onKeyDown={(event) => { if (event.key === 'Enter') applyExpression() }}
-              placeholder={'("Dual Cast" or "Dual Cast+") and not @strike_defect'} />
+              placeholder={'("Dual Cast" or "Dual Cast+") and not @strike_defect'} />}</Tooltip>
               <button type="button" onClick={applyExpression}>Apply</button></div>
             {expressionError && <p role="alert">{expressionError}</p>}
           </div>}
@@ -267,8 +269,8 @@ export function StatsScreen({ onBack }: { onBack: () => void }) {
                   <tbody>{rows.map((row) => <tr key={row.deckType} onClick={(event) => {
                     const button = event.currentTarget.querySelector<HTMLButtonElement>('button')
                     if (button) openDeck(row.deckType, button)
-                  }}><th scope="row"><button type="button" className="stats__row-button" title={row.deckType} onClick={(event) => { event.stopPropagation(); openDeck(row.deckType, event.currentTarget) }}>
-                    <img src={assetPath(`menu/compendium-icons/${row.character}.webp`)} alt="" /><span><strong>{row.deckType}</strong><small>{row.runs} deck{row.runs === 1 ? '' : 's'}</small></span><span className="stats__row-arrow" aria-hidden="true">›</span></button></th>
+                  }}><th scope="row"><Tooltip name={row.deckType}>{help => <button {...help} type="button" className="stats__row-button" onClick={(event) => { event.stopPropagation(); openDeck(row.deckType, event.currentTarget) }}>
+                    <img src={assetPath(`menu/compendium-icons/${row.character}.webp`)} alt="" /><span><strong>{row.deckType}</strong><small>{row.runs} deck{row.runs === 1 ? '' : 's'}</small></span><span className="stats__row-arrow" aria-hidden="true">›</span></button>}</Tooltip></th>
                     <td>{decimal(row.averageFloors)}</td><td>{decimal(row.averageDamage)}</td><td>{percent(row.averageBlock)}</td></tr>)}</tbody></table></div>}
         </section>
 
@@ -276,11 +278,12 @@ export function StatsScreen({ onBack }: { onBack: () => void }) {
           <header className="stats__section-heading"><h2>Card impact</h2></header>
           {snapshot && snapshot.nextCards.length > 0 ? <div className="stats__next-list">{snapshot.nextCards.map((entry) => {
             const card = CARDS[entry.defId]
-            return <button type="button" key={entry.defId} className="stats__next-card" onClick={() => addNextCard(entry.defId)} title="Add to filters">
+            return <Tooltip key={entry.defId} name="Add to filters">{help => <button {...help} type="button" className="stats__next-card"
+              aria-label={`Add ${card?.name ?? entry.defId} to filters`} onClick={() => addNextCard(entry.defId)}>
               {card && <CardPreview card={card} lazy />}
               <span className="stats__next-name"><strong>{card?.name ?? entry.defId}</strong><small><span>{entry.runs} decks</span><span>{delta(entry.deltaDamage)} dmg</span><span>{delta(entry.deltaBlock, '%')} block</span></small></span>
               <span className="stats__next-delta" data-positive={entry.deltaFloors != null && entry.deltaFloors >= 0}>{delta(entry.deltaFloors)} <small>floors</small></span><span className="stats__next-add" aria-hidden="true">＋</span>
-            </button>
+            </button>}</Tooltip>
           })}</div> : <div className="stats__message stats__message--compact">Not enough decks yet</div>}
         </section>
       </div>

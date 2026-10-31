@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { Tooltip } from './Tooltip.tsx'
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import { REPLAY_JUMP, REPLAY_SPEEDS, type ReplaySession } from './run-replay.ts'
 import './styles/replay-bar.css'
@@ -17,7 +18,7 @@ const Close = () => <svg {...GLYPH}><path d="m5 5 10 10M15 5 5 15" fill="none" s
 const speedLabel = (speed: number) => `${speed}×`
 
 function IconButton({ label, onClick, children, ...rest }: { label: string; onClick: () => void; children: ReactNode; disabled?: boolean; 'data-action'?: string }) {
-  return <button type="button" className="replay-bar__button" aria-label={label} title={label} onClick={onClick} {...rest}>{children}</button>
+  return <Tooltip name={label}>{help => <button {...help} type="button" className="replay-bar__button" aria-label={label} onClick={onClick} {...rest}>{children}</button>}</Tooltip>
 }
 
 export function ReplayBar({ session, onSeek, onExit }: {
@@ -225,10 +226,11 @@ export function ReplayBar({ session, onSeek, onExit }: {
           setMenuOpen(false)
           speedButton.current?.focus()
         }}>
-          <button ref={speedButton} type="button" className="replay-bar__button replay-bar__button--speed" aria-haspopup="menu"
-            aria-expanded={menuOpen} aria-label={`Playback speed ${speedLabel(speed)}`} title="Playback speed" onClick={() => setMenuOpen((open) => !open)}>
+          <Tooltip name="Playback speed">{help => <button {...help} ref={element => { speedButton.current = element; help.ref?.(element) }}
+            type="button" className="replay-bar__button replay-bar__button--speed" aria-haspopup="menu"
+            aria-expanded={menuOpen} aria-label={`Playback speed ${speedLabel(speed)}`} onClick={() => setMenuOpen((open) => !open)}>
             {speedLabel(speed)}
-          </button>
+          </button>}</Tooltip>
           {menuOpen ? <div className="replay-bar__menu" role="menu" aria-label="Playback speed" onKeyDown={onMenuKey}
             onBlur={(event) => { if (event.relatedTarget && !event.currentTarget.parentElement?.contains(event.relatedTarget as Node)) setMenuOpen(false) }}>
             {REPLAY_SPEEDS.map((option) => <button key={option} type="button" role="menuitemradio" aria-checked={option === speed}

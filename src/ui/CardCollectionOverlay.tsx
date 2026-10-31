@@ -4,6 +4,7 @@ import { cardDef, faceOf } from '../game/cards.ts'
 import type { CardInstance } from '../game/types.ts'
 import { Card } from './Card.tsx'
 import { CardInspectionDialog } from './CardInspectionDialog.tsx'
+import { Tooltip } from './Tooltip.tsx'
 import { useButtonShortcut } from './useButtonShortcut.ts'
 
 type CardCollectionOverlayProps = {
@@ -28,10 +29,12 @@ export function CardCollectionOverlay({
   const trigger = useRef<HTMLButtonElement | null>(null)
   useButtonShortcut(trigger, shortcut, !open)
   return <>
-    <button type="button" ref={trigger} className={triggerClassName} data-pile={dataPile}
+    <Tooltip name={shortcut ? `${label} (${shortcut.toUpperCase()})` : label}>{help =>
+    <button {...help} type="button" ref={element => { trigger.current = element; help.ref?.(element) }}
+      className={triggerClassName} data-pile={dataPile}
       aria-label={`${label}, ${cards.length} card${cards.length === 1 ? '' : 's'}`}
       aria-keyshortcuts={shortcut?.toUpperCase()}
-      title={shortcut ? `${label} (${shortcut.toUpperCase()})` : label} onClick={() => setOpen(true)}>{children}</button>
+      onClick={() => setOpen(true)}>{children}</button>}</Tooltip>
     <CardCollectionDialog cards={cards} label={label} open={open} ordered={ordered} shortcut={shortcut}
       inspectable={inspectable}
       stanceChangedThisTurn={stanceChangedThisTurn}
@@ -142,8 +145,9 @@ export function CardCollectionDialog({ cards, label, onClose, open = true, order
           {open && cards.length === 0 ? <span className="muted">No cards.</span> : null}
         </div>
         <footer className="card-collection__footer">
-          <button type="button" ref={closeButton} className="ribbon-back" aria-label="Back" title="Back"
-            aria-keyshortcuts={shortcut?.toUpperCase()} onClick={onClose}><span aria-hidden="true" /></button>
+          <Tooltip name="Back">{help => <button {...help} type="button" ref={element => { closeButton.current = element; help.ref?.(element) }}
+            className="ribbon-back" aria-label="Back"
+            aria-keyshortcuts={shortcut?.toUpperCase()} onClick={onClose}><span aria-hidden="true" /></button>}</Tooltip>
           <label><input type="checkbox" aria-label={`${label} upgrade preview`} checked={viewUpgrades}
           onChange={(event) => setViewUpgrades(event.target.checked)} /> View Upgrades</label>
         </footer>

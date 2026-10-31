@@ -22,7 +22,7 @@ const titled = (scope: string, defId: string) => {
 /** Screen spots the scripts point at. */
 export const at = {
   hp: spot('.pip--hp'),
-  gold: spot('.run-status .pip[title="Gold"]'),
+  gold: spot('.run-status .pip[data-resource="gold"]'),
   deck: spot('.deck-peek__open'),
   relics: spot('.run-status .relic-bar'),
   potions: spot('.outside-potions'),

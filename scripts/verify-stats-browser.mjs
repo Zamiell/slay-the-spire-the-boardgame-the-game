@@ -160,6 +160,8 @@ try {
   await page.getByRole('option').filter({ hasText: 'Dual Cast' }).filter({ hasNotText: 'Dual Cast+' }).filter({ hasText: 'Defect' }).first().click()
   await page.getByRole('searchbox', { name: 'Find a card for None of these' }).fill('Strike')
   await page.getByRole('option').filter({ hasText: /^Strike\s*Defect/ }).first().click()
+  await page.getByRole('button', { name: 'Remove Dual Cast+ from Any of these', exact: true }).waitFor()
+  await page.getByRole('button', { name: 'Remove Strike from None of these', exact: true }).waitFor()
   await page.locator('.stats__metric').first().locator('strong').getByText('3', { exact: true }).waitFor()
   await page.locator('.stats__metric').nth(1).locator('strong').getByText('24.0', { exact: true }).waitFor()
   await page.getByRole('button', { name: /Defect Lightning Orb Focus/ }).waitFor()

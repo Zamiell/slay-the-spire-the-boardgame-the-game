@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Tooltip } from './Tooltip.tsx'
 import { assetPath } from '../game/assets.ts'
 import {
   fetchMailDesk,
@@ -227,11 +228,11 @@ export function MailBox() {
   const badge = totalUnread > 99 ? '99+' : String(totalUnread)
   return (
     <>
-      <button type="button" className="mailbox__open start-menu__icon" onClick={openMailbox}
-        aria-label={totalUnread ? `Mail, ${totalUnread} unread` : 'Mail'} title="Mail">
+      <Tooltip name="Mail">{help => <button {...help} type="button" className="mailbox__open start-menu__icon" onClick={openMailbox}
+        aria-label={totalUnread ? `Mail, ${totalUnread} unread` : 'Mail'}>
         <img src={assetPath('menu/mail-letter.png')} alt="" />
         {totalUnread ? <span className="mailbox__badge" aria-hidden="true">{badge}</span> : null}
-      </button>
+      </button>}</Tooltip>
       <dialog ref={dialog} className="mailbox" aria-labelledby="mailbox-title"
         onCancel={(event) => { if (status === 'sending') event.preventDefault() }}
         onClose={() => { requestVersion.current += 1; setOpen(false); setSelected(null); setPersonalOpen(false) }}>

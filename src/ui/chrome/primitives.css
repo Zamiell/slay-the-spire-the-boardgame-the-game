@@ -37,6 +37,10 @@ summary {
 }
 
 .relic-actions > section,
+.relic-tip,
+.room-tip,
+.card-keyword-tip,
+.merchant-tooltip,
 .event-loot,
 .map-peek__panel,
 .portal-map,
@@ -50,6 +54,10 @@ summary {
    background too, so the frame stays fixed even when its contents scroll. */
 button,
 summary,
+.relic-tip,
+.room-tip,
+.card-keyword-tip,
+.merchant-tooltip,
 .relic-actions > section,
 .event-loot,
 .map-peek__panel,

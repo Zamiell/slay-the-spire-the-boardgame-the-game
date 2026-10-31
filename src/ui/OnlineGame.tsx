@@ -3,6 +3,7 @@ import { MapDrawingProvider } from './MapDrawing.tsx'
 import { savedProfile } from '../profile.ts'
 import { PlayerTitle } from './PlayerTitle.tsx'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Tooltip } from './Tooltip.tsx'
 import { cardDef, faceOf } from '../game/cards.ts'
 import { assetPath, preloadImages, releasePreloadedImages } from '../game/assets.ts'
 import type { CombatState } from '../game/combat.ts'
@@ -106,9 +107,10 @@ function LobbyPacks({ packs, seats, you }: { packs: readonly CardPackId[]; seats
         // Every chip carries the same compact marker, never a truncated name: "you",
         // one owner's initials, or a count. Full names are in the label and tooltip.
         const marker = owners.length > 1 ? `×${owners.length}` : owners[0] === 'you' ? 'you' : ownerInitials(owners[0] ?? '')
-        return <li key={id} data-pack={id} title={label} aria-label={label}>
+        return <li key={id} data-pack={id} aria-label={label}>
           <strong aria-hidden="true">{CARD_PACKS[id].name.replace(' Slayer Pack', '')}</strong>
-          <small aria-hidden="true">{marker}</small>
+          <Tooltip name={CARD_PACKS[id].name} text={`From ${owners.join(', ')}`}>{help =>
+            <small {...help} tabIndex={0} aria-label={label}>{marker}</small>}</Tooltip>
         </li>
       })}
     </ul>
@@ -215,7 +217,7 @@ function Seat({ seat, you }: { seat?: PublicSeat; you?: boolean }) {
             <img src={assetPath(`combat/characters/${visualId(seat.character, seat.skin)}.webp`)} alt=""
               onError={(event) => { event.currentTarget.style.display = 'none' }} />
           </span>
-          <span className="online-seat__name" aria-hidden="true" title={seat.name}>{seat.name}</span>
+          <Tooltip name={seat.name}>{help => <span {...help} className="online-seat__name" aria-hidden="true">{seat.name}</span>}</Tooltip>
           {seat.connected ? null : <span className="online-seat__class" aria-hidden="true"><em>away</em></span>}
         </>
       ) : <span className="online-seat__open" aria-hidden="true">+</span>}
@@ -646,7 +648,7 @@ export function OnlineGame({ onLocal, settings, onSettings }: Props) {
           <span className={`connection connection--${room.connection}`}>{room.connection}</span>
           <VoiceControls voice={voice} seats={snapshot.seats} connected={connected} volume={settings.voiceVolume} showError={false} />
           <details ref={runSettings} className="online-lobby__settings">
-            <summary title="Run settings"><span className="visually-hidden">Run settings</span></summary>
+            <Tooltip name="Run settings">{help => <summary {...help}><span className="visually-hidden">Run settings</span></summary>}</Tooltip>
             <div className="online-lobby__settings-panel menu-board">
               {isPartyLeader ? null : <p className="online-lobby__settings-note">{partyLeader?.name ?? 'The party leader'} sets Last Stand and the run mode</p>}
               {snapshot.seats.length > 1 ? <label>Choose Your Relic<input type="checkbox" disabled={!connected} checked={snapshot.chooseYourRelic} onChange={(event) => room.chooseRelicRule(event.target.checked)} /></label> : null}
@@ -667,18 +669,18 @@ export function OnlineGame({ onLocal, settings, onSettings }: Props) {
               </fieldset>
             </div>
           </details>
-          <button type="button" className="game-settings game-settings__summary" aria-label="Settings" title="Settings"
+          <Tooltip name="Settings">{help => <button {...help} type="button" className="game-settings game-settings__summary" aria-label="Settings"
             onClick={() => setSettingsOpen(true)}>
             <img src={assetPath('menu/settings-cog.png')} alt="" />
-          </button>
+          </button>}</Tooltip>
         </header>
         <section className="online-lobby__table menu-board menu-board--slate">
           <div className="online-lobby__code">
             <h1>{snapshot.code}</h1>
-            <button className="online-lobby__copy" type="button" aria-label="Copy code" title="Copy code"
+            <Tooltip name="Copy code">{help => <button {...help} className="online-lobby__copy" type="button" aria-label="Copy code"
               onClick={() => void navigator.clipboard.writeText(snapshot.code).catch(() => {})}>
               <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" /><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3" /></svg>
-            </button>
+            </button>}</Tooltip>
           </div>
           <div className="online-lobby__seats">
             {Array.from({ length: 4 }, (_, index) => (
@@ -716,21 +718,21 @@ export function OnlineGame({ onLocal, settings, onSettings }: Props) {
           <CharacterRoster character={snapshot.you.character} taken={taken} disabled={!connected} onChoose={room.chooseCharacter} />
         </div>
 
-        <button type="button" className="online-lobby__leave start-menu__character-back ribbon-back" aria-label="Leave room" title="Leave room"
+        <Tooltip name="Leave room">{help => <button {...help} type="button" className="online-lobby__leave start-menu__character-back ribbon-back" aria-label="Leave room"
           onClick={async () => {
             setLeaving(true)
             voice.stop()
             if (await room.leave()) onLocal()
             else setLeaving(false)
-          }}><span aria-hidden="true"></span></button>
+          }}><span aria-hidden="true"></span></button>}</Tooltip>
         {connected && ready && isPartyLeader ? null : <p className="online-lobby__status" aria-hidden="true">
           {connected && ready ? <><span className="online-lobby__status-name">{partyLeader?.name ?? 'The party leader'}</span> starts the run</> : startLabel}
         </p>}
-        <button className="online-lobby__start start-menu__character-embark" type="button" title={startLabel}
+        <Tooltip name={startLabel}>{help => <button {...help} className="online-lobby__start start-menu__character-embark" type="button"
           disabled={!startable} aria-busy={connected && ready && isPartyLeader && room.mutationPending || undefined}
           onClick={() => room.selectCampaign(true)}>
           <span className="visually-hidden">{startLabel}</span>
-        </button>
+        </button>}</Tooltip>
 
         <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} settings={settings} onChange={onSettings} />
       </main>

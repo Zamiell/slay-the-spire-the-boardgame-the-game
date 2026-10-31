@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Tooltip } from './Tooltip.tsx'
 import type { EventEffect } from '../game/events.ts'
 import { Icon, dieIcon } from './Icon.tsx'
 import { useReducedEffects } from './combat-screen/hooks.ts'
@@ -70,10 +71,10 @@ export function EventDie({ face, rollKey, results }: EventDieProps) {
               <li key={pip} data-tone={outcome.tone} data-hit={landed && pip === face ? true : undefined}
                 aria-label={`${pip}: ${outcome.label}`}>
                 <Icon name={dieIcon(pip)} size={22} />
-                <span className="event-die__outcome" title={outcome.label}>
+                <Tooltip name={`Die ${pip}`} text={outcome.label}>{help => <span {...help} tabIndex={0} className="event-die__outcome">
                   {outcome.icon ? <Icon name={outcome.icon} size={20} /> : null}
                   {outcome.text ? <span>{outcome.text}</span> : null}
-                </span>
+                </span>}</Tooltip>
               </li>
             )
           })}

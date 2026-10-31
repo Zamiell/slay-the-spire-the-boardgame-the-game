@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Tooltip } from '../Tooltip.tsx'
 import { cardDef, faceOf } from '../../game/cards.ts'
 import type { StartTurnAbility } from '../../game/combat/types.ts'
 import { dieRelicEffectsForParty, triggerSourceById } from '../../game/combat/effects.ts'
@@ -111,8 +112,8 @@ export function StartTurnOrder({ title, hint, steps, players, canMove, onMove, f
                       const className = `start-turn-order__badge${badge.done === undefined ? ' start-turn-order__badge--info'
                         : badge.done ? ' start-turn-order__badge--done' : ''}`
                       return badge.onEdit
-                        ? <button key={badge.text} type="button" className={className}
-                          title={`Change choice for ${step.label}`} onClick={badge.onEdit}>{badge.text}</button>
+                        ? <Tooltip key={badge.text} name={`Change choice for ${step.label}`}>{help =>
+                          <button {...help} type="button" className={className} onClick={badge.onEdit}>{badge.text}</button>}</Tooltip>
                         : <span key={badge.text} className={className}>{badge.text}</span>
                     })}
                   </span>

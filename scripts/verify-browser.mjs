@@ -14309,7 +14309,7 @@ await page.evaluate((enemyId) => {
   Object.assign(enemy, { hp: Math.max(4, enemy.maxHp), dead: false, block: 2 })
   debug.setRun(run)
 }, firstEnemyId)
-await firstEnemyCard.locator('.token--block[title="Block 2"]').waitFor()
+await firstEnemyCard.locator('.token--block').filter({ hasText: /^Block 2$/ }).waitFor()
 const fullyBlockedHpBefore = await firstEnemyCard.locator('.bar__label').textContent()
 const fullyBlockedSeq = await publishDamagingPresentationEvent({
   kind: 'card', actorId: firstPlayerId, sourceId: 'strike_ironclad', enemyIds: [firstEnemyId],
@@ -14320,7 +14320,7 @@ const earlyFullyBlocked = await firstEnemyCard.evaluate((enemy) => ({
   block: enemy.querySelector('.token--block')?.getAttribute('title') ?? '',
   hp: enemy.querySelector('.bar__label')?.textContent ?? '',
 }))
-await firstEnemyCard.locator('.token--block[title="Block 1"]').waitFor()
+await firstEnemyCard.locator('.token--block').filter({ hasText: /^Block 1$/ }).waitFor()
 check('fully blocked attacks spend Block only at weapon contact', () => {
   assertDeepEqual(earlyFullyBlocked, { block: 'Block 2', hp: fullyBlockedHpBefore })
 })
@@ -14334,7 +14334,7 @@ await page.evaluate((enemyId) => {
   Object.assign(enemy, { hp: Math.max(4, enemy.maxHp), dead: false, block: 1 })
   debug.setRun(run)
 }, firstEnemyId)
-await firstEnemyCard.locator('.token--block[title="Block 1"]').waitFor()
+await firstEnemyCard.locator('.token--block').filter({ hasText: /^Block 1$/ }).waitFor()
 const partialBlockHpBefore = await firstEnemyCard.locator('.bar__label').textContent()
 const partialBlockSeq = await publishDamagingPresentationEvent({
   kind: 'card', actorId: firstPlayerId, sourceId: 'strike_ironclad', enemyIds: [firstEnemyId],

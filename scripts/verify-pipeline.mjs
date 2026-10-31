@@ -21,6 +21,12 @@ const includesEvery = (actual, expected, context) => {
 }
 
 suite('verification pipeline')
+check('shared tooltip changes select the focused browser suite and native-title audit', () => {
+  for (const file of ['src/ui/Tooltip.tsx', 'src/ui/Card.tsx', 'src/ui/App.tsx', 'src/ui/chrome/tooltip-panels.css'])
+    assert(affected(file).includes('verify-tooltips-browser.mjs'), `${file}: missing custom tooltip coverage`)
+  for (const file of ['src/ui/StartMenu.tsx', 'src/ui/DailyLeaderboard.tsx', 'src/ui/CombatScreen.tsx'])
+    assert(affected(file).includes('verify-tooltips.mjs'), `${file}: missing native-title audit`)
+})
 check('card interaction modules select focused input and choice coverage instead of the legacy umbrella', () => {
   for (const file of ['card-interaction.ts', 'card-input-state.ts', 'useCardInteraction.ts', 'CardInteractionLayer.tsx',
     'card-play.ts', 'card-play-requirements.ts']) {

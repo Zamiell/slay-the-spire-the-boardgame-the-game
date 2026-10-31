@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Tooltip } from './Tooltip.tsx'
 import { assetPath } from '../game/assets.ts'
 import { CHARACTER_IDS, type CharacterId } from '../game/types.ts'
 import { loadLeaderboard, type LeaderboardSnapshot } from '../leaderboard.ts'
@@ -45,11 +46,11 @@ export function LeaderboardScreen({ onBack }: { onBack: () => void }) {
           <button type="button" aria-label="All heroes" aria-pressed={filters.length === 0} onClick={() => setFilters([])}>
             <span aria-hidden="true">◆</span>
           </button>
-          {HEROES.map((character) => <button type="button" key={character} title={CHARACTER_LABEL[character]}
+          {HEROES.map((character) => <Tooltip key={character} name={CHARACTER_LABEL[character] ?? character}>{help => <button {...help} type="button"
             aria-label={CHARACTER_LABEL[character]} aria-pressed={filters.includes(character)} onClick={() => setFilters((current) =>
               current.includes(character) ? current.filter((filter) => filter !== character) : [...current, character])}>
             <img src={assetPath(`menu/compendium-icons/${character}.webp`)} alt="" />
-          </button>)}
+          </button>}</Tooltip>)}
         </div>
         {tab !== 'daily' ? <label className="leaderboard__ascension"><span className="visually-hidden">Ascension</span><select value={ascension}
           onChange={(event) => setAscension(event.target.value === 'all' ? 'all' : Number(event.target.value))}>
@@ -93,8 +94,9 @@ export function LeaderboardScreen({ onBack }: { onBack: () => void }) {
 }
 
 function ShortHeader({ label, caption, icon }: { label: string; caption?: string; icon?: string }) {
-  return <th scope="col" title={label}>
-    <span className="leaderboard__header-face" aria-hidden="true">{icon ? <img src={assetPath(icon)} alt="" /> : null}{caption}</span>
-    <span className="visually-hidden">{label}</span>
+  return <th scope="col" aria-label={label}>
+    <Tooltip name={label}>{help => <span {...help} tabIndex={0} className="leaderboard__header-face" aria-label={label}>
+      {icon ? <img src={assetPath(icon)} alt="" /> : null}{caption}
+    </span>}</Tooltip>
   </th>
 }

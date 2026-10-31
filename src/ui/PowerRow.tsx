@@ -283,8 +283,7 @@ export function PowerRow({ powers, drawLocked = false, sharedDrawLocked = drawLo
               </span>
               <CardFace def={zoom.def} rules={cardRulesText(zoom.def)} className="power__zoom-card" drawLocked={Boolean(blockedRules)} />
               {zoom.attachedGem && !zoom.loaded ? <img className="card__gem"
-                src={cardThumbPath(zoom.attachedGem, false)} alt="" draggable={false}
-                title={`${zoom.attachedGem.name}: ${cardRuleDescription(zoom.attachedGem)}`} /> : null}
+                src={cardThumbPath(zoom.attachedGem, false)} alt="" draggable={false} /> : null}
               <img
                 key={zoom.src}
                 className="power__zoom-image"

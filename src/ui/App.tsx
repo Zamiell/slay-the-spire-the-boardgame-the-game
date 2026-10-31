@@ -5,6 +5,7 @@ import { DeveloperConsole } from './DeveloperConsole.tsx'
 import { ConsoleCommandError, executeConsoleCommand } from './developer-commands.ts'
 import { PlayerTitle } from './PlayerTitle.tsx'
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Tooltip } from './Tooltip.tsx'
 import { flushSync } from 'react-dom'
 import { orderStartTurnScries, resolveHermitSetupLoad, resolveStartTurnScry, type CombatState } from '../game/combat.ts'
 import { assetPath, preloadImages, releasePreloadedImages } from '../game/assets.ts'
@@ -385,7 +386,7 @@ export function App() {
     // first-tap card/tooltips previews, and form fields keep native editing.
     const pointerDown = (event: PointerEvent) => {
       if (event.pointerType !== 'mouse' || event.button !== 0 || !(event.target instanceof Element)) return
-      if (event.target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"], [role="slider"]')) return
+      if (event.target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"], [role="slider"], [role="option"]')) return
       const control = event.target.closest('button, a[href], summary, [tabindex], [role="button"]')
       if (!control) return
       event.preventDefault()
@@ -408,6 +409,7 @@ export function App() {
     let pinned: HTMLElement | null = null
     let dismissed: HTMLElement | null = null
     let repositionFrame = 0
+    let closeTimer: ReturnType<typeof setTimeout> | undefined
     const cardOf = (target: EventTarget | null) => target instanceof Element
       ? target.closest<HTMLElement>('[data-keyword-help-id]') : null
     const tooltipOf = (card: HTMLElement) => document.getElementById(card.dataset.keywordHelpId ?? '')
@@ -422,6 +424,10 @@ export function App() {
       return tooltip?.id
         ? document.querySelector<HTMLElement>(`[data-keyword-help-id="${CSS.escape(tooltip.id)}"]`)
         : null
+    }
+    const hoverableTooltipOwner = (target: EventTarget | null) => {
+      const card = cardForTooltip(target)
+      return card && !card.classList.contains('card') ? card : null
     }
     const place = (card: HTMLElement, tooltip: HTMLElement) => {
       tooltip.setAttribute('data-open', '')
@@ -454,12 +460,14 @@ export function App() {
         .map((element) => (element.querySelector('.enemy__hit-area') ?? element).getBoundingClientRect())
         .filter((box) => box.right > 0 && box.bottom > 0 && box.left < window.innerWidth && box.top < window.innerHeight)
       const powerZoom = document.querySelector<HTMLElement>('.power__zoom')?.getBoundingClientRect()
+      const enemyTargets = tooltip.classList.contains('card-keyword-tips--image')
+        ? [...document.querySelectorAll<HTMLElement>('.enemy:not(.enemy--dead)')]
+          .map(enemy => ({ row: enemy.dataset.row, box: (enemy.querySelector('.enemy__hit-area') ?? enemy).getBoundingClientRect() }))
+        : []
+      const enemies = enemyTargets.filter(enemy => enemy.row === card.dataset.row).map(enemy => enemy.box)
+      const groupLeft = Math.min(cardBox.left, ...enemies.map(box => box.left))
+      const groupRight = Math.max(cardBox.right, ...enemies.map(box => box.right))
       if (tooltip.classList.contains('card-keyword-tips--image')) {
-        const enemies = [...document.querySelectorAll<HTMLElement>('.enemy:not(.enemy--dead)')]
-          .filter(enemy => enemy.dataset.row === card.dataset.row)
-          .map(enemy => (enemy.querySelector('.enemy__hit-area') ?? enemy).getBoundingClientRect())
-        const groupLeft = Math.min(cardBox.left, ...enemies.map(box => box.left))
-        const groupRight = Math.max(cardBox.right, ...enemies.map(box => box.right))
         for (const x of [groupRight + gap, groupLeft - width - gap]) {
           for (const y of [(window.innerHeight - height) / 2, cardBox.bottom - height, margin]) {
             candidates.unshift([x, y])
@@ -469,16 +477,16 @@ export function App() {
       const positioned = candidates.map(([candidateLeft, candidateTop]) => {
         const x = Math.max(margin, Math.min(candidateLeft, window.innerWidth - width - margin))
         const y = Math.max(margin, Math.min(candidateTop, window.innerHeight - height - margin))
-        const overlap = anchors.reduce((total, box) => total +
+        const area = (box: DOMRect) =>
           Math.max(0, Math.min(x + width, box.right) - Math.max(x, box.left)) *
-          Math.max(0, Math.min(y + height, box.bottom) - Math.max(y, box.top)), 0)
-        const powerOverlap = powerZoom
-          ? Math.max(0, Math.min(x + width, powerZoom.right) - Math.max(x, powerZoom.left)) *
-            Math.max(0, Math.min(y + height, powerZoom.bottom) - Math.max(y, powerZoom.top))
-          : 0
-        return { x, y, overlap, powerOverlap }
-      }).sort((a, b) => Number(a.powerOverlap > 0) - Number(b.powerOverlap > 0) ||
-        a.powerOverlap - b.powerOverlap || a.overlap - b.overlap)[0]!
+          Math.max(0, Math.min(y + height, box.bottom) - Math.max(y, box.top))
+        const overlap = anchors.reduce((total, box) => total + area(box), 0)
+        const powerOverlap = powerZoom ? area(powerZoom) : 0
+        const enemyOverlap = enemyTargets.reduce((total, enemy) => total + area(enemy.box), 0)
+        const groupGap = enemyTargets.length ? Math.max(0, groupLeft - (x + width), x - groupRight) : 0
+        return { x, y, overlap, powerOverlap, enemyOverlap, groupGap }
+      }).sort((a, b) => a.enemyOverlap - b.enemyOverlap || a.powerOverlap - b.powerOverlap ||
+        a.groupGap - b.groupGap || a.overlap - b.overlap)[0]!
       tooltip.style.left = `${positioned.x}px`
       tooltip.style.top = `${positioned.y}px`
       tooltip.toggleAttribute('data-overlaps-card', positioned.overlap > 0)
@@ -487,6 +495,7 @@ export function App() {
           animation.transitionProperty === 'transform' && animation.playState === 'running'))) reposition()
     }
     const hide = () => {
+      clearTimeout(closeTimer)
       if (active) tooltipOf(active)?.removeAttribute('data-open')
       active = null
     }
@@ -511,7 +520,8 @@ export function App() {
     }
     const current = () => {
       const focusCandidate = document.querySelector<HTMLElement>(':focus-visible[data-keyword-help-id]')
-      const hoverCandidate = document.querySelector<HTMLElement>(':hover[data-keyword-help-id]')
+      const hoverCandidate = hoverableTooltipOwner(document.querySelector('.card-keyword-tips[data-open]:hover')) ??
+        [...document.querySelectorAll<HTMLElement>(':hover[data-keyword-help-id]')].at(-1)
       const focus = focusCandidate && helpAvailable(focusCandidate) ? focusCandidate : null
       const hover = hoverCandidate && helpAvailable(hoverCandidate) ? hoverCandidate : null
       return preferFocus ? focus ?? hover : hover
@@ -524,6 +534,7 @@ export function App() {
     const pin = (target: EventTarget | null) => {
       const card = cardOf(target)
       if (!card) return
+      clearTimeout(closeTimer)
       if (card === pinned) return show(card)
       unpin()
       pinned = card
@@ -568,10 +579,12 @@ export function App() {
       show(current())
     }
     const pointerover = (event: PointerEvent) => {
-      const card = cardOf(event.target)
+      const card = cardOf(event.target) ?? hoverableTooltipOwner(event.target)
       if (event.pointerType !== 'touch' && card !== dismissed) dismissed = null
       preferFocus = false
-      if (!card || (card === active && tooltipOf(card)?.hasAttribute('data-open'))) return
+      if (!card) return
+      clearTimeout(closeTimer)
+      if (card === active && tooltipOf(card)?.hasAttribute('data-open')) return
       if (shiftHeld) pin(card)
       else show(card)
     }
@@ -599,8 +612,14 @@ export function App() {
     }
     const pointerout = (event: PointerEvent) => {
       if (event.pointerType === 'touch') return
-      const card = cardOf(event.target)
-      if (card && active === card && cardOf(event.relatedTarget) !== card && pinned !== card) hide()
+      const card = cardOf(event.target) ?? hoverableTooltipOwner(event.target)
+      const next = cardOf(event.relatedTarget) ?? hoverableTooltipOwner(event.relatedTarget)
+      if (card && active === card && next !== card && pinned !== card) {
+        if (card.classList.contains('card')) return hide()
+        clearTimeout(closeTimer)
+        // Let the pointer cross the gap between a control and its help panel.
+        closeTimer = setTimeout(() => show(current()), 150)
+      }
     }
     const ready = (event: Event) => {
       const card = cardOf(event.target)
@@ -610,6 +629,7 @@ export function App() {
       if (active && !helpAvailable(active)) hide()
       const card = cardOf(event.target)
       if (!card) return
+      clearTimeout(closeTimer)
       if (shiftHeld) pin(card)
       else show(card)
     }
@@ -1394,9 +1414,9 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
       <header className="app-shell__header">
         <PlayerTitle character={headerViewer?.character} />
         <div className="run-status">
-          {tutorial ? <button type="button" className="pip pip--tutorial" aria-pressed={!tutorialTipsHidden}
-            title={tutorialTipsHidden ? 'Show tutorial tips' : 'Hide tutorial tips'}
-            onClick={() => setTutorialTipsHidden((current) => !current)}>Tutorial</button> : null}
+          {tutorial ? <Tooltip name={tutorialTipsHidden ? 'Show tutorial tips' : 'Hide tutorial tips'}>{help =>
+            <button {...help} type="button" className="pip pip--tutorial" aria-pressed={!tutorialTipsHidden}
+            onClick={() => setTutorialTipsHidden((current) => !current)}>Tutorial</button>}</Tooltip> : null}
           <span className="pip">Act {run.act}</span>
           {run.ascension > 0 ? <span className="pip">Ascension {run.ascension}</span> : null}
           {headerViewer ? (
@@ -1408,7 +1428,7 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
               <span className="pip pip--hp" role="img" aria-label={`Health ${headerViewer.hp} of ${headerViewer.maxHp}`}>
                 {headerViewer.hp}/{headerViewer.maxHp}
               </span>
-              <span className="pip" title="Gold">
+              <span className="pip" data-resource="gold">
                 <IconValue name="gold" value={headerViewer.gold} size={20} />
               </span>
               {!allocatingCampaignMarks && run.phase !== 'combat' && run.phase !== 'defeat' && run.phase !== 'neow' &&

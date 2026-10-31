@@ -96,34 +96,66 @@ try {
     loadedRun.players[0].relics = structuredClone(loadedRun.combat.players[0].relics)
     loadedRun.players[0].gold = 1
     loadedRun.combat.players[0].gold = 1
-    for (const [die, result] of [[1, 6], [2, 1], [3, 2], [4, 3], [5, 4], [6, 5]]) {
-      await page.mouse.move(2, 2)
-      await page.locator('.potion-tip').filter({ hasText: 'Toolbox' }).waitFor({ state: 'hidden' })
-      await page.evaluate(run => window.__STS_DEBUG__.setRun(run), {
-        ...loadedRun, combat: { ...loadedRun.combat, die },
+    const audit = await page.evaluate(async state => {
+      const { RELICS } = await import('/src/game/relics.ts')
+      const { activateRelic } = await import('/src/game/combat.ts')
+      const { relicTooltipText } = await import('/src/ui/RelicChip.tsx')
+      return Object.values(RELICS).filter(def => /die result.*becomes/.test(def.text)).flatMap(def => {
+        const checks = [undefined, 0, 7, 2.5].map(die => ({
+          id: def.id, die, correct: relicTooltipText(def.id, die) === def.text,
+        }))
+        for (const ruleset of ['base', 'downfall']) for (let die = 1; die <= 6; die++) {
+          const before = structuredClone(state)
+          before.die = die
+          before.ruleset = ruleset
+          before.players[0].relics = [{ defId: def.id, spent: false }]
+          const after = activateRelic(before, before.players[0].id, 0)
+          const text = relicTooltipText(def.id, die)
+          checks.push({ id: def.id, die, correct: after !== before &&
+            text.includes(`(${die} --> ${after.die}).`) && !text.includes('becomes') })
+        }
+        return checks
       })
-      const expected = `-1 to the die result (${die} --> ${result})`
-      const toolbox = page.locator('.relic-bar [data-relic="toolbox"]')
-      await toolbox.hover()
-      const help = toolbox.locator('.relic-tip')
+    }, loadedRun.combat)
+    assert(audit.length > 0)
+    assert.deepEqual(audit.filter(check => !check.correct), [],
+      'every die-adjusting relic must preview the engine result and preserve its printed rule without a valid roll')
+    for (const [defId, itemName, adjustment, die] of [
+      ['toolbox', 'Toolbox', -1, [1, 2, 3, 4, 5, 6]],
+      ['the_abacus', 'The Abacus', 1, [1, 2, 3, 4, 5, 6]],
+    ].flatMap(([id, label, delta, dice]) => dice.map(die => [id, label, delta, die]))) {
+      const previewRun = structuredClone(loadedRun)
+      const slot = previewRun.combat.players[0].relics.findIndex(relic => relic.defId === 'toolbox')
+      previewRun.combat.players[0].relics[slot] = { defId, spent: false }
+      previewRun.players[0].relics = structuredClone(previewRun.combat.players[0].relics)
+      const result = ((die - 1 + adjustment + 6) % 6) + 1
+      await page.mouse.move(2, 2)
+      await page.locator('.potion-tip').filter({ hasText: itemName }).waitFor({ state: 'hidden' })
+      await page.evaluate(run => window.__STS_DEBUG__.setRun(run), {
+        ...previewRun, combat: { ...previewRun.combat, die },
+      })
+      const expected = `${adjustment > 0 ? '+' : ''}${adjustment} to the die result (${die} --> ${result})`
+      const relic = page.locator(`.relic-bar [data-relic="${defId}"]`)
+      await relic.hover()
+      const help = relic.locator('.relic-tip')
       await help.waitFor()
-      assert((await help.innerText()).includes(expected), `${name}: header must preview ${die} to ${result}`)
-      assert((await toolbox.getAttribute('aria-label')).includes(expected))
+      assert((await help.innerText()).includes(expected), `${name}/${defId}: header must preview ${die} to ${result}`)
+      assert((await relic.getAttribute('aria-label')).includes(expected))
       await page.keyboard.press('Escape')
       await page.mouse.move(2, 2)
-      const action = page.getByRole('button', { name: /^Use Toolbox:/ })
+      const action = page.getByRole('button', { name: new RegExp(`^Use ${itemName}:`) })
       await action.hover()
-      const actionHelp = page.locator('.potion-tip').filter({ hasText: 'Toolbox' })
+      const actionHelp = page.locator('.potion-tip').filter({ hasText: itemName })
       await actionHelp.waitFor()
-      assert((await actionHelp.innerText()).includes(expected), `${name}: action tooltip must match the header`)
+      assert((await actionHelp.innerText()).includes(expected), `${name}/${defId}: action tooltip must match the header`)
       assert((await action.getAttribute('aria-label')).includes(expected))
-      if (die === 5) await page.screenshot({ path: `${out}/${name}-toolbox-preview.png` })
+      if (die === 6) await page.screenshot({ path: `${out}/${name}-${defId}-preview.png` })
       if (die === 1 || die === 6) {
         await action.click()
         await page.waitForFunction(result => window.__STS_DEBUG__.getRun().combat.die === result, result)
-        await toolbox.hover()
+        await relic.hover()
         await help.waitFor()
-        assert((await help.innerText()).includes(`(${result} --> ${result === 1 ? 6 : result - 1})`),
+        assert((await help.innerText()).includes(`(${result} --> ${((result - 1 + adjustment + 6) % 6) + 1})`),
           'a changed roll must immediately update the held-relic tooltip')
         assert((await help.innerText()).includes('Face down'))
       }

@@ -64,8 +64,11 @@ function distinctRule(def: RelicDef): string | undefined {
 /** Keep the printed rule outside combat; preview the actual roll when available. */
 export function relicTooltipText(id: string, die?: number): string {
   const text = relicDef(id).text
-  if (id.replace(/^downfall_/, '') !== 'toolbox' || die === undefined || die < 1 || die > 6) return text
-  return text.replace('(1 becomes 6)', `(${die} --> ${die === 1 ? 6 : die - 1})`)
+  const baseId = id.replace(/^downfall_/, '')
+  const adjustment = baseId === 'the_abacus' ? 1 : baseId === 'toolbox' ? -1 : 0
+  if (!adjustment || die === undefined || !Number.isInteger(die) || die < 1 || die > 6) return text
+  const result = ((die - 1 + adjustment + 6) % 6) + 1
+  return text.replace(/\(\d becomes \d\)/, `(${die} --> ${result})`)
 }
 
 function RelicTooltip({ id, note, die }: { id: string; note?: string; die?: number }) {

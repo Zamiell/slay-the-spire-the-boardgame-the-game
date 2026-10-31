@@ -14,7 +14,7 @@ export type StartTurnOrderStep = {
   label: string
   visual?: StartTurnAbility['visual']
   /** Choices this step still needs (`done: false`) or has made (`true`); no `done` is plain information. */
-  badges?: { text: string; done?: boolean }[]
+  badges?: { text: string; done?: boolean; onEdit?: () => void }[]
 }
 
 export function pendingSneckoEyeCost(player: Pick<Player, 'nextCardCost' | 'relics'>): 0 | 2 | null {
@@ -107,12 +107,14 @@ export function StartTurnOrder({ title, hint, steps, players, canMove, onMove, f
                   <span className="start-turn-order__meta">
                     {party && owner && !step.id.startsWith('enemy:')
                       ? <span className="start-turn-order__owner">{owner.name}</span> : null}
-                    {step.badges?.map((badge) => (
-                      <span key={badge.text} className={`start-turn-order__badge${badge.done === undefined ? ' start-turn-order__badge--info'
-                        : badge.done ? ' start-turn-order__badge--done' : ''}`}>
-                        {badge.text}
-                      </span>
-                    ))}
+                    {step.badges?.map((badge) => {
+                      const className = `start-turn-order__badge${badge.done === undefined ? ' start-turn-order__badge--info'
+                        : badge.done ? ' start-turn-order__badge--done' : ''}`
+                      return badge.onEdit
+                        ? <button key={badge.text} type="button" className={className}
+                          title={`Change choice for ${step.label}`} onClick={badge.onEdit}>{badge.text}</button>
+                        : <span key={badge.text} className={className}>{badge.text}</span>
+                    })}
                   </span>
                 ) : null}
               </span>

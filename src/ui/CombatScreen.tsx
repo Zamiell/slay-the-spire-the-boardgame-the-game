@@ -5500,6 +5500,10 @@ function CombatScreenView({
                   const evoked = startTurnEvokeSlots[ability.id]?.length ?? 0
                   const chosenTarget = ability.targets?.find(target => target.uid === startTurnEnemyTargets[ability.id])
                   const targetChosen = chosenTarget !== undefined
+                  const canRetarget = targetChosen && (ability.targets?.length ?? 0) > 1 &&
+                    canResolveStartTurn && !sendingStartTurn && mutationsEnabled && authoritativeConnected !== false &&
+                    startChoiceAbilities.some(choice => choice.id === ability.id) &&
+                    (!pendingStartChoice || startIds.indexOf(ability.id) < startIds.indexOf(pendingStartChoice.ability.id))
                   const exhaustChosen = startTurnExhaustUids[ability.id] !== undefined
                   return {
                     ...ability,
@@ -5507,6 +5511,10 @@ function CombatScreenView({
                       ...ability.targets?.length ? [{
                         text: chosenTarget ? ability.targetDescription ?? `Targeting ${chosenTarget.label}` : 'Choose target',
                         done: targetChosen,
+                        onEdit: canRetarget ? () => {
+                          setStartTurnEnemyTargets(current => ({ ...current, [ability.id]: undefined }))
+                          setArmedEndTurnAbilityId(ability.id)
+                        } : undefined,
                       }]
                         : ability.exhaustCards ? [ability.playerId === viewer.id || exhaustChosen
                           ? { text: exhaustChosen ? 'Exhaust set' : 'Choose a card to Exhaust', done: exhaustChosen }

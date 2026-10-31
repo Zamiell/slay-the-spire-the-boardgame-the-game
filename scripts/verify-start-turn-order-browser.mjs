@@ -212,12 +212,36 @@ try {
     assert.deepEqual(solo.enemies.map((enemy) => enemy.poison), [0, 1], `${name}: Noxious Fumes poisoned the wrong enemy`)
     assert.equal(await panel.count(), 0, `${name}: the order panel outlived the start of turn`)
 
+    await load({ die: 6, player: {
+      relics: [{ defId: 'red_mask', spent: false }],
+      powers: [c('retarget-fumes', 'noxious_fumes')],
+    } })
+    const beforeRetarget = await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun().combat))
+    await page.locator('.start-turn-effects .end-turn-effect--poison').click()
+    await page.locator('[data-enemy-id="e0"] .enemy__hit-area').click()
+    await page.locator('.start-turn-effects .end-turn-effect--relic').click()
+    await page.locator('[data-enemy-id="e1"] .enemy__hit-area').click()
+    const poisonBadge = panel.getByRole('button', { name: 'Applying 1 Poison to Jaw Worm #1', exact: true })
+    await poisonBadge.waitFor()
+    if (phone) await poisonBadge.tap()
+    else { await poisonBadge.focus(); await page.keyboard.press('Enter') }
+    assert.equal(await list.isVisible(), false, `${name}: editing the target must reveal the battlefield`)
+    await page.locator('[data-enemy-id="e1"] .enemy__hit-area').click()
+    await panel.getByRole('button', { name: 'Applying 1 Poison to Jaw Worm #2', exact: true }).waitFor()
+    await panel.getByRole('button', { name: 'Applying 1 Weak to Jaw Worm #2', exact: true }).waitFor()
+    assert.equal(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun().combat)), beforeRetarget,
+      'retargeting a badge must only edit the draft, without applying effects or resetting other choices')
+    await page.getByRole('button', { name: 'Resolve start of turn 2', exact: true }).click()
+    await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.phase === 'player')
+    assert.deepEqual(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.enemies
+      .map(enemy => [enemy.poison, enemy.weak])), [[0, 0], [1, 1]])
+
     await load({ die: 4, player: { relics: [{ defId: 'loaded_die', spent: false }, { defId: 'duality', spent: false }] } })
     assert.deepEqual(await names(), ['Loaded Die (gain 1 Block)', 'Duality (deal 2 damage)'])
     const beforeTarget = await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun().combat))
     for (const [uid, label] of [['e1', 'Jaw Worm #2'], ['e0', 'Jaw Worm #1']]) {
-      if (uid === 'e0') await page.getByRole('button', { name: 'Reset start choices', exact: true }).click()
-      await page.locator('.start-turn-effects .end-turn-effect--relic').click()
+      if (uid === 'e0') await panel.getByRole('button', { name: 'Dealing 2 damage to Jaw Worm #2', exact: true }).click()
+      else await page.locator('.start-turn-effects .end-turn-effect--relic').click()
       await page.locator(`[data-enemy-id="${uid}"] .enemy__hit-area`).click()
       const badge = panel.locator('.start-turn-order__badge--done')
       assert.equal(await badge.innerText(), `Dealing 2 damage to ${label}`)

@@ -37,6 +37,17 @@ const checkLoot = async (page) => {
   await entry.click()
   await picker(page).waitFor()
   assert.equal(await picker(page).locator('.relic-reward__choice').count(), 3)
+  await page.waitForFunction(() => {
+    const picker = document.querySelector('.relic-reward')
+    const header = picker?.closest('.app-shell')?.querySelector('.app-shell__header')
+    if (!picker || !header) return false
+    const box = header.getBoundingClientRect()
+    const deck = header.querySelector('.deck-peek__open')
+    const target = deck?.getBoundingClientRect()
+    return getComputedStyle(header).visibility === 'visible' && box.top >= 0 && box.bottom < innerHeight &&
+      picker.getBoundingClientRect().top >= box.bottom - 1 && target &&
+      deck.contains(document.elementFromPoint(target.x + target.width / 2, target.y + target.height / 2))
+  })
 }
 const checkDeckShortcut = async (page) => {
   const offered = await picker(page).locator('.relic-reward__choice').evaluateAll(buttons =>
@@ -46,7 +57,7 @@ const checkDeckShortcut = async (page) => {
     await page.keyboard.press('d')
     await deck.waitFor()
     assert(await deck.locator('.card').count() > 0, 'D must show the current deck above relic choices')
-    assert.equal(await page.locator('dialog.relic-reward[open]').count(), 1,
+    assert.equal(await page.locator('section.relic-reward[role="dialog"]').count(), 1,
       'opening the deck must not dismiss the relic picker')
     await page.keyboard.press('1')
     await page.keyboard.press(close)
@@ -58,6 +69,14 @@ const checkDeckShortcut = async (page) => {
     assert(await picker(page).evaluate(dialog => dialog.contains(document.activeElement)),
       'closing the deck must restore focus to the relic picker')
   }
+  await page.getByRole('button', { name: /^Current deck,/ }).click()
+  await deck.waitFor()
+  await page.keyboard.press('Escape')
+  await deck.waitFor({ state: 'hidden' })
+  await picker(page).waitFor()
+  assert.deepEqual(await picker(page).locator('.relic-reward__choice').evaluateAll(buttons =>
+    buttons.map(button => button.getAttribute('aria-label'))), offered,
+  'using the visible deck button must preserve the relic offer')
 }
 
 try {

@@ -66,6 +66,8 @@ const focusedUiOwners = ownerMap([
     'verify-soulburn-time-warp-browser.mjs']],
   ['src/ui/styles/hand-layout.css', ['verify-card-interaction-browser.mjs', 'verify-start-turn-order-browser.mjs']],
   ['src/ui/chrome/rewards.css', ['verify-loot-browser.mjs', 'verify-boss-relic-picker-browser.mjs']],
+  ['src/ui/RewardChoiceScreen.tsx', ['verify-loot-browser.mjs', 'verify-boss-relic-picker-browser.mjs',
+    'verify-neow-viewport-browser.mjs', 'verify-boon-socket-browser.mjs']],
   ['src/ui/combat-screen/StartTurnOrder.tsx', ['verify-start-turn-order-browser.mjs']],
   ['src/ui/combat-screen/HandCardSelection.tsx', [
     'verify-sever-soul-browser.mjs', 'verify-start-turn-order-browser.mjs',

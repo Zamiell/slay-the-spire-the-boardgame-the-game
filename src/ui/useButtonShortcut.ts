@@ -24,7 +24,7 @@ export function useButtonShortcut(ref: RefObject<HTMLButtonElement | null>, key:
       const inspectingRun = inspectingDeck || button.matches('.map-peek__open, .map-peek__close')
       if ([...dialogs].some((dialog) => !dialog.contains(button) &&
         !(inspectingRun && dialog.matches('section.reward-screen--card-choice')) &&
-        !(inspectingDeck && dialog.matches('dialog.relic-reward, section.card-picker')))) return
+        !(inspectingDeck && dialog.matches('section.card-picker')))) return
       event.preventDefault()
       button.click()
     }

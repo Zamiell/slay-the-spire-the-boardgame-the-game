@@ -1,7 +1,8 @@
-import { useId, useLayoutEffect, useRef } from 'react'
+import { useId } from 'react'
 import type { CSSProperties } from 'react'
 import { relicDef } from '../game/relics.ts'
 import { ItemImage } from './ItemImage.tsx'
+import { RewardChoiceScreen } from './RewardChoiceScreen.tsx'
 import './styles/relic-reward-picker.css'
 
 export function RelicRewardPicker({ choices, style, disabled = false, skipDisabled = false, onChoose, onSkip, onBack }: {
@@ -13,15 +14,9 @@ export function RelicRewardPicker({ choices, style, disabled = false, skipDisabl
   onSkip: () => void
   onBack: () => void
 }) {
-  const dialog = useRef<HTMLDialogElement>(null)
   const titleId = useId()
-  useLayoutEffect(() => {
-    if (dialog.current && !dialog.current.open) dialog.current.showModal()
-  }, [])
-  return <dialog ref={dialog} className="reward-screen reward-screen--card-choice relic-reward" style={style}
-    aria-labelledby={titleId} aria-busy={disabled || undefined}
-    onCancel={(event) => { event.preventDefault(); if (!disabled) onBack() }}>
-    <h2 className="reward-screen__title" id={titleId}>Choose a Relic</h2>
+  return <RewardChoiceScreen title="Choose a Relic" className="relic-reward" style={style}
+    choiceKey={choices.join(',')} disabled={disabled} onBack={onBack}>
     <div className="reward-screen__cards">
       {choices.map((id, index) => {
         const def = relicDef(id)
@@ -36,5 +31,5 @@ export function RelicRewardPicker({ choices, style, disabled = false, skipDisabl
     <button className="reward-screen__skip" type="button" disabled={disabled || skipDisabled} onClick={onSkip}>Skip</button>
     <button className="relic-reward__back ribbon-back" type="button" aria-label="Back to loot"
       disabled={disabled} onClick={onBack}><span aria-hidden="true" /></button>
-  </dialog>
+  </RewardChoiceScreen>
 }

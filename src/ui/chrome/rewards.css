@@ -137,7 +137,7 @@
 
 /* Post-combat rewards use the game's small hanging sheet, not a normal app
    panel. The shell stays barely visible as the combat HUD behind the dimmer. */
-.app-shell:has(> .reward-screen) > .app-shell__header {
+.app-shell:has(> .reward-screen):not(:has(.reward-screen--card-choice)) > .app-shell__header {
   position: fixed;
   inset: 0 0 auto;
   z-index: 31;
@@ -150,9 +150,9 @@
   opacity: 0.72;
 }
 
-.app-shell:has(> .reward-screen) > .app-shell__header h1 { display: none; }
-.app-shell:has(> .reward-screen) > .app-shell__header .run-status { gap: 0.3rem; font-size: 0.72rem; }
-.app-shell:has(> .reward-screen) > .app-shell__header .run-status > .pip:not(.pip--energy) {
+.app-shell:has(> .reward-screen):not(:has(.reward-screen--card-choice)) > .app-shell__header h1 { display: none; }
+.app-shell:has(> .reward-screen):not(:has(.reward-screen--card-choice)) > .app-shell__header .run-status { gap: 0.3rem; font-size: 0.72rem; }
+.app-shell:has(> .reward-screen):not(:has(.reward-screen--card-choice)) > .app-shell__header .run-status > .pip:not(.pip--energy) {
   padding: 0.08rem 0.28rem;
   background: transparent;
   box-shadow: none;
@@ -346,7 +346,7 @@
 
 .sts-scope .reward-screen--card-choice {
   position: fixed;
-  inset: 0;
+  inset: var(--reward-header-bottom, 0px) 0 0;
   z-index: 30;
   display: grid;
   align-content: center;
@@ -400,7 +400,7 @@
 }
 
 @media (max-height: 700px) {
-  .app-shell:has(> .reward-screen) > .app-shell__header { visibility: hidden; }
+  .app-shell:has(> .reward-screen):not(:has(.reward-screen--card-choice)) > .app-shell__header { visibility: hidden; }
   .sts-scope .reward-screen--loot { align-content: start; padding-top: 0.15rem; }
   .sts-scope .reward-screen--loot > .reward-screen__skip { right: 0.55rem; bottom: 0.25rem; min-width: 8.2rem; font-size: 1.12rem; }
   .sts-scope .reward-screen--loot .reward-screen__title,

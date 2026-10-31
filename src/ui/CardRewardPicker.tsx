@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { assetPath } from '../game/assets.ts'
 import { cardDef } from '../game/cards.ts'
 import { Card } from './Card.tsx'
+import { RewardChoiceScreen } from './RewardChoiceScreen.tsx'
 
 type Props = {
   choices: readonly string[]
@@ -22,31 +23,11 @@ export function CardRewardPicker({
   choices, upgraded = false, disabled = false, uidPrefix = 'card-reward',
   title = 'Choose a Card', description, skipDisabled = false, skipLabel = 'Skip', style, onChoose, onSkip,
 }: Props) {
-  const picker = useRef<HTMLElement>(null)
   const [viewUpgrades, setViewUpgrades] = useState(false)
   const rewardKey = `${uidPrefix}:${upgraded}:${choices.join(',')}`
   const pickerStyle = { ...style, '--reward-card-count': Math.max(choices.length, 1) } as CSSProperties
-  useEffect(() => {
-    const root = picker.current
-    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null
-    root?.focus()
-    const trap = (event: KeyboardEvent) => {
-      if (event.key !== 'Tab' || !root) return
-      const controls = [...root.querySelectorAll<HTMLElement>('button:not(:disabled):not([aria-disabled="true"]), input:not(:disabled), [tabindex="0"]:not([aria-disabled="true"])')]
-      const first = controls[0]
-      const last = controls.at(-1)
-      if (!first || !last) return event.preventDefault()
-      if (event.shiftKey && (document.activeElement === root || document.activeElement === first)) { event.preventDefault(); last.focus() }
-      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
-    }
-    root?.addEventListener('keydown', trap)
-    return () => { root?.removeEventListener('keydown', trap); if (previous?.isConnected) previous.focus() }
-  }, [rewardKey])
-  return <section ref={picker} className="reward-screen reward-screen--card-choice" style={pickerStyle}
-    role="dialog" aria-modal="true" tabIndex={-1} aria-labelledby={`${uidPrefix}-title`}
-    aria-describedby={description ? `${uidPrefix}-description` : undefined}>
-    <h2 className="reward-screen__title" id={`${uidPrefix}-title`}>{title}</h2>
-    {description ? <p className="muted" id={`${uidPrefix}-description`}>{description}</p> : null}
+  return <RewardChoiceScreen title={title} description={description} choiceKey={rewardKey} style={pickerStyle}
+    disabled={disabled}>
     <div className="reward-screen__cards" onTransitionEnd={(event) => {
       if (event.propertyName === 'transform' && event.target instanceof HTMLElement && event.target.classList.contains('card')) {
         event.target.dispatchEvent(new Event('card-keyword-help-ready', { bubbles: true }))
@@ -63,7 +44,7 @@ export function CardRewardPicker({
       <input type="checkbox" checked={viewUpgrades} disabled={disabled}
         onChange={(event) => setViewUpgrades(event.target.checked)} /> View Upgrades
     </label> : null}
-  </section>
+  </RewardChoiceScreen>
 }
 
 export function CardRewardIcon({ rare = false }: { rare?: boolean }) {

@@ -50,7 +50,7 @@ try {
     await pickUpCard(page, handCard('Headbutt'))
     await confirmCardPlay(page, page.locator('[data-enemy-def="jaw_worm"] .enemy__hit-area'))
     // The first Headbutt recovers the only card in the discard pile: Double Tap.
-    await page.locator('dialog[open] .card').click()
+    await page.locator('dialog[open] .hand-discard__hand .card').click()
     await page.getByRole('button', { name: 'Put selected card on top', exact: true }).click()
     await page.waitForFunction(() => document.querySelectorAll('.hand .card').length === 1)
     // The copy has an empty discard pile and one enemy, so no further choice is needed.

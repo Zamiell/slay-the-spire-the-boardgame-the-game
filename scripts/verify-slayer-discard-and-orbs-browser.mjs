@@ -109,7 +109,17 @@ try {
     await page.getByRole('button', { name: 'Start standard campaign', exact: true }).click()
     await page.waitForFunction(() => window.__STS_DEBUG__?.getRun()?.phase === 'neow', undefined, { timeout: 90_000 })
     const viewerId = await page.evaluate(() => window.__STS_DEBUG__.getRun().players[0].id)
-    const press = async (locator) => touch ? locator.tap() : locator.click()
+    const press = async locator => {
+      if (await locator.evaluate(element => element.matches('button.seat'))) {
+        const position = await locator.evaluate(element => ({ x: element.clientWidth / 2, y: element.clientHeight / 4 }))
+        return touch ? locator.tap({ position }) : locator.click({ position })
+      }
+      if (await locator.evaluate(element => Boolean(element.closest('.hand-discard__hand')))) {
+        await locator.focus()
+        await page.waitForFunction(() => !document.querySelector('.hand-discard__hand[data-hand-moving]'))
+      }
+      return touch ? locator.tap() : locator.click()
+    }
     const combatOf = () => page.evaluate(() => window.__STS_DEBUG__.getRun().combat)
     async function load(character, setup, enemies = [enemy('e0', 0)], prepare = (combat) => combat) {
       const run = createRun(919, [
@@ -133,7 +143,8 @@ try {
     }
     async function playCardNamed(pattern) {
       const card = page.getByRole('button', { name: pattern })
-      if (touch) { await card.tap(); await card.tap() } else await card.click()
+      await card.focus()
+      await page.keyboard.press('Enter')
     }
 
     // Heel Hook: the caster chooses themselves, then answers privately.
@@ -154,18 +165,23 @@ try {
     assert.equal(await page.locator('button.combat__end-turn:not(:disabled)').count(), 0,
       'no End Turn can be pressed while the Heel Hook choice is open')
     await page.screenshot({ path: `${out}/${name}-heel-hook-choice.png` })
-    // With a 10-card hand the private pick is one bounded, scrollable row in a modal.
+    // The private hand uses the shared fan, including its last card.
     await press(hookPrompt.getByRole('button', { name: 'Discard a card', exact: true }))
     const picker = page.getByRole('dialog', { name: 'Heel Hook — discard a card' })
     await picker.waitFor()
     await settle(page)
-    await assertReadable(picker.locator('.choice-modal__panel'), `${name} Heel Hook discard picker`)
-    assert.equal(await picker.locator('.choice-modal__cards > .card').count(), 10, 'every card in hand is offered')
-    const rowHeight = await picker.locator('.choice-modal__cards').evaluate((row) => row.getBoundingClientRect().height)
-    const cardHeight = await picker.locator('.choice-modal__cards > .card').first().evaluate((card) => card.getBoundingClientRect().height)
-    assert(rowHeight < cardHeight * 1.5, `the row does not wrap into several rows (${rowHeight} vs card ${cardHeight})`)
+    await assertReadable(picker.locator('.hand-discard__heading'), `${name} Heel Hook discard picker`)
+    assert.equal(await picker.locator('.hand-discard__hand > .card').count(), 10, 'every card in hand is offered')
+    const fan = await picker.locator('.hand-discard__hand > .card').evaluateAll(cards => {
+      const boxes = cards.map(card => card.getBoundingClientRect())
+      return { spread: Math.max(...boxes.map(box => box.top)) - Math.min(...boxes.map(box => box.top)),
+        height: Math.min(...boxes.map(box => box.height)) }
+    })
+    assert(fan.spread < fan.height, `the hand must remain one fanned row: ${JSON.stringify(fan)}`)
     await page.screenshot({ path: `${out}/${name}-heel-hook-discard-picker.png` })
-    const last = picker.locator('.choice-modal__cards > .card').last()
+    const last = picker.locator('.hand-discard__hand > .card').last()
+    await last.focus()
+    await page.waitForFunction(() => !document.querySelector('.hand-discard__hand[data-hand-moving]'))
     await last.scrollIntoViewIfNeeded()
     await assertReadable(last, `${name} the 10th card, scrolled into reach`, true)
     await page.screenshot({ path: `${out}/${name}-heel-hook-discard-picker-scrolled.png` })
@@ -185,7 +201,6 @@ try {
       ally: { draw: strikes('a', 2) },
     }, [enemy('e0', 0, { weak: 1 })])
     await playCardNamed(/^Heel Hook\+,/)
-    await press(page.locator('.enemy--targeted .enemy__hit-area').first())
     await page.locator('button.seat--targetable:not(.seat--viewer)').waitFor()
     await press(page.locator('button.seat--targetable:not(.seat--viewer)'))
     await settle(page)
@@ -233,7 +248,8 @@ try {
       assert.equal(await page.locator('dialog:modal').count(), 0, `${name} ${label}: no modal blocks the owed choice`)
       await press(owed.getByRole('button', { name: 'Draw a card', exact: true }))
       await page.waitForFunction(() => !window.__STS_DEBUG__.getRun().combat.pendingPlayerChoices)
-      await page.waitForFunction(() => document.querySelector('dialog.distilled-choice:modal'))
+      await modal.waitFor()
+      assert(await modal.evaluate(element => element.matches(':modal')))
       assert.deepEqual((await combatOf())[pendingKey].cards?.map((card) => card.uid), pending.cards.map((card) => card.uid),
         `${name} ${label}: its cards were kept`)
     }
@@ -274,15 +290,18 @@ try {
     await press(page.getByRole('button', { name: 'Use Master Reality+', exact: true }))
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.players[0].hand.some((card) => card.uid === 'back'))
     await press(page.getByRole('button', { name: /^End Turn \d+/ }))
-    const retain = page.getByRole('button', { name: 'Retain Eruption', exact: true })
+    const retainDialog = page.locator('dialog.hand-discard[data-action="retain"]')
+    const retain = retainDialog.locator('.hand-discard__hand .card[data-card-name="Eruption"]')
     await retain.waitFor()
     await settle(page)
-    await assertReadable(retain, `${name} Master Reality+ Retain`)
+    await retain.focus()
     await press(retain)
-    await assertReadable(page.getByRole('button', { name: '✓ Retain Eruption', exact: true }), `${name} Master Reality+ Retained`)
-    await assertReadable(page.getByRole('button', { name: /^Confirm end-turn effect/ }), `${name} discard confirm`)
+    await assertReadable(retainDialog.locator('.hand-discard__selection .card'), `${name} Master Reality+ Retained`)
+    await assertReadable(retainDialog.getByRole('button', { name: 'Confirm retain', exact: true }), `${name} discard confirm`)
     await page.screenshot({ path: `${out}/${name}-master-reality-retain.png` })
-    await press(page.getByRole('button', { name: /^Confirm end-turn effect/ }))
+    await press(retainDialog.getByRole('button', { name: 'Confirm retain', exact: true }))
+    if (await page.getByRole('button', { name: 'Confirm discard order', exact: true }).isVisible())
+      await press(page.getByRole('button', { name: 'Confirm discard order', exact: true }))
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.phase !== 'discard')
     combat = await combatOf()
     assert(combat.players[0].hand.some((card) => card.uid === 'back'), 'Eruption was Retained')
@@ -424,8 +443,8 @@ try {
   room.run.neow = null
   room.version += 1
   rooms.publishRoom(code)
-  await annPage.getByRole('button', { name: /^Heel Hook,/ }).click()
-  await annPage.locator('.enemy--targeted .enemy__hit-area').first().click()
+  await annPage.getByRole('button', { name: /^Heel Hook,/ }).focus()
+  await annPage.keyboard.press('Enter')
   await annPage.locator('button.seat--targetable:not(.seat--viewer)').click()
   const boPrompt = boPage.getByRole('group', { name: 'Heel Hook choice' })
   await boPrompt.waitFor()
@@ -438,7 +457,9 @@ try {
   await boPrompt.getByRole('button', { name: 'Discard a card' }).tap()
   const boPicker = boPage.getByRole('dialog', { name: 'Heel Hook — discard a card' })
   await boPicker.waitFor()
-  await boPicker.locator('.choice-modal__cards > .card').first().tap()
+  await boPicker.locator('.hand-discard__hand > .card').first().focus()
+  await boPage.waitForFunction(() => !document.querySelector('.hand-discard__hand[data-hand-moving]'))
+  await boPicker.locator('.hand-discard__hand > .card').first().tap()
   for (let tries = 0; tries < 100 && room.run.combat.pendingPlayerChoices; tries++) await boPage.waitForTimeout(100)
   const bo = room.run.combat.players.find((player) => player.id === boId)
   assert.equal(room.run.combat.pendingPlayerChoices, undefined, "Bo's answer reached the server")

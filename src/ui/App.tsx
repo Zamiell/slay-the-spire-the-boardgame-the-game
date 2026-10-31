@@ -1502,6 +1502,7 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
           viewerId={viewerId}
           animateOpeningHand
           autoAdvance={!replayLog && !compendium && !pauseOpen && !settingsOpen && !giveUpOpen && !run.courier.offer}
+          selectionDialogsActive={!compendium && !pauseOpen && !settingsOpen && !giveUpOpen && !run.courier.offer}
           courierUsedBy={run.courier.usedBy}
           onCourierReveal={run.courier.offer ? undefined : revealLocalCourier}
           mutationsEnabled={!run.courier.offer}
@@ -1534,6 +1535,7 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
         viewerId={viewerId}
         ascension={run.ascension}
         enabled={!pendingAcquisition}
+        selectionDialogsActive={!pendingAcquisition}
         disabledMessage={pendingOwner && pendingRelic
           ? `Waiting for ${pendingOwner.name} to resolve ${relicDef(pendingRelic.defId).name}.`
           : undefined}
@@ -1624,6 +1626,7 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
 
       {!allocatingCampaignMarks && !pendingAcquisition && run.phase === 'room' && run.roomState ? (
         <RoomScreen
+          selectionDialogsActive={!compendium && !pauseOpen && !settingsOpen && !giveUpOpen}
           room={run.roomState}
           players={run.players}
           viewerId={viewerId}

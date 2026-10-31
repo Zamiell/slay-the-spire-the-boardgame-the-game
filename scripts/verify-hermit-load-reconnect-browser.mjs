@@ -183,8 +183,11 @@ try {
       await replacement.getByRole('button', { name: /^Defend,/ }).click()
       await replacement.getByRole('button', { name: /^Strike,/ }).click()
       await replacement.getByRole('button', { name: 'Load 2 cards' }).click()
-      assert.deepEqual(await page.locator('.prompt__mode').allTextContents(), ['Snapshot', 'Defend'])
-      await page.getByRole('button', { name: 'Snapshot', exact: true }).click()
+      const chamberChoice = page.locator('dialog.hand-discard[data-action="discard"]')
+      await chamberChoice.waitFor()
+      assert.deepEqual(await chamberChoice.locator('.hand-discard__hand .card')
+        .evaluateAll(cards => cards.map(card => card.dataset.cardName)), ['Snapshot', 'Defend'])
+      await chamberChoice.getByRole('button', { name: /^Snapshot,/ }).click()
       await page.locator('.hand .card--chamber-drawn[data-card-name="Strike"]').waitFor()
       assert.deepEqual(room.run.combat.players[0].chamber.map((card) => card.uid),
         ['full-chamber-strike', 'full-chamber-defend'])
@@ -214,7 +217,7 @@ try {
         .filter((card) => card.uid !== 'stale-defend')
       assert.deepEqual(room.run.combat.players[0].hand.map((card) => card.uid), ['stale-strike'])
       room.version += 1
-      await page.getByRole('button', { name: 'Snapshot', exact: true }).click()
+      await chamberChoice.getByRole('button', { name: /^Snapshot,/ }).click()
       const retry = page.getByRole('dialog', { name: 'Choose up to 1 to Load' })
       await retry.waitFor({ timeout: 10_000 })
       assert.equal(await retry.getByRole('button', { name: /^Defend,/ }).count(), 0)

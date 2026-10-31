@@ -15,7 +15,7 @@ mkdirSync(out, { recursive: true })
 
 // Inspect nested scroll containers too: document-only bounds miss the Neow bug.
 async function audit(page, selector, label) {
-  const controls = page.locator(`${selector} button:enabled`)
+  const controls = page.locator(`${selector} button:enabled:not([aria-disabled="true"])`)
   let checked = 0
   for (const control of await controls.all()) {
     if (!await control.isVisible()) continue
@@ -148,7 +148,8 @@ try {
       if (kind === 'merchant') {
         await page.getByRole('button', { name: /Card Removal Service/ }).click()
         await page.getByRole('group', { name: 'Card to remove' }).getByRole('button').first().click()
-        await audit(page, '.merchant-removal-dialog', `removal-${viewport.width}`)
+        await audit(page, '.card-picker', `removal-${viewport.width}`)
+        await page.locator('.card-picker').getByRole('button', { name: 'Back', exact: true }).click()
         await page.getByRole('button', { name: 'Cancel', exact: true }).click()
       }
     }

@@ -33,7 +33,7 @@ try {
     }
     debug.setRun(run)
   })
-  const neowPicker = page.locator('.card-picker')
+  const neowPicker = page.locator('.card-picker:has([aria-label="Confirm reward"])')
   await neowPicker.waitFor()
   assert.equal(await neowPicker.getAttribute('aria-label'), 'Choose 2 cards to upgrade')
   assert((await neowPicker.locator('.card-picker__grid > .card').allTextContents()).every((text) => text.includes('Strike')))
@@ -61,7 +61,7 @@ try {
   }))
   assert(neowForcedFocus.focusVisible && neowForcedFocus.outline !== 'none', 'desktop: forced-colors card picker Back loses its keyboard-focus cue')
   await page.emulateMedia({ forcedColors: 'none' })
-  const neowConfirm = neowPicker.getByRole('button', { name: 'Confirm reward' })
+  const neowConfirm = neowPicker.getByRole('button', { name: 'Confirm reward', includeHidden: true })
   assert(await neowConfirm.isDisabled())
   await neowPicker.locator('.card-picker__grid > .card').nth(0).click()
   assert(await neowConfirm.isDisabled())
@@ -74,9 +74,11 @@ try {
     run.players[0].relics.push({ defId: 'astrolabe', spent: false, pending: true })
     debug.setRun(run)
   })
-  await neowPicker.locator('.card-picker__confirm:disabled').waitFor()
+  await neowPicker.locator('.card-picker__confirm:disabled').waitFor({ state: 'attached' })
+  assert.equal(await neowPicker.isVisible(), false, 'the pending relic must own the screen without competing focus traps')
+  await page.getByRole('dialog', { name: 'Choose 3 cards to upgrade', exact: true }).waitFor()
   assert(await neowConfirm.isDisabled())
-  assert(await neowPicker.getByRole('button', { name: 'Skip reward' }).isDisabled())
+  assert(await neowPicker.getByRole('button', { name: 'Skip reward', includeHidden: true }).isDisabled())
   assert(await neowPicker.locator('.card-picker__grid > .card').first().getAttribute('aria-disabled') === 'true')
   assert.equal(await neowPicker.locator('.card-picker__grid > .card').first().getAttribute('tabindex'), '-1')
   await page.evaluate(() => {
@@ -113,7 +115,10 @@ try {
     run.players[0].relics.push({ defId: 'astrolabe', spent: false, pending: true })
     debug.setRun(run)
   })
-  await page.waitForFunction(() => document.activeElement?.classList.contains('card-picker'))
+  await page.waitForFunction(() => {
+    const picker = document.activeElement?.closest('.card-picker')
+    return picker && !picker.hidden && picker.querySelector('[aria-label="Confirm Astrolabe"]')
+  })
   assert.equal(await neowPicker.locator('.card-picker__preview .card').first().getAttribute('aria-disabled'), 'true')
   await page.evaluate(() => {
     const debug = window.__STS_DEBUG__

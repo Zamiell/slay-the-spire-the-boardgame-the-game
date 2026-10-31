@@ -226,40 +226,6 @@
   overflow-x: auto;
 }
 
-/* Secret Technique and Secret Weapon ask the player to make two independent
-   choices from the same reveal.  Reserve space below every card so the
-   eligible-card control does not make that column look like a broken layout. */
-.choice-modal--scry-to-hand { width: min(760px, calc(100% - 2rem)); }
-
-.choice-modal--scry-to-hand .choice-modal__panel {
-  display: grid;
-  justify-items: center;
-  gap: 0.8rem;
-  padding: clamp(1rem, 2.5vw, 1.5rem);
-}
-
-.choice-modal--scry-to-hand .choice-modal__panel h2,
-.choice-modal--scry-to-hand .choice-modal__panel p { margin: 0; }
-
-.choice-modal--scry-to-hand .choice-modal__cards {
-  --card-width: clamp(105px, 15vw, 142px);
-  align-items: start;
-  width: 100%;
-  min-height: 0;
-  margin: 0;
-  padding: 0.25rem 0.4rem;
-}
-
-.choice-modal__card-option {
-  flex: 0 0 var(--card-width);
-  display: grid;
-  grid-template-rows: calc(var(--card-width) * var(--card-ratio)) minmax(2.7rem, auto);
-  align-items: start;
-  gap: 0.55rem;
-}
-
-.choice-modal__card-option .card { width: 100%; }
-
 .choice-modal__card-action {
   width: 100%;
   min-height: 2.7rem;
@@ -278,16 +244,7 @@
   border-color: #ffe79a;
 }
 
-@media (max-width: 640px) {
-  .choice-modal--scry-to-hand .choice-modal__panel { gap: 0.6rem; }
-  .choice-modal--scry-to-hand .choice-modal__cards {
-    --card-width: clamp(94px, 27vw, 120px);
-    justify-content: flex-start;
-  }
-}
-
-.choice-modal__panel > button,
-.hand-exhaust__actions > button {
+.choice-modal__panel > button {
   padding: 0.45rem 0.8rem;
   background: var(--bg-raised);
   color: var(--gold);
@@ -295,30 +252,11 @@
   border-radius: 4px;
 }
 
-.choice-modal__panel > button:disabled,
-.hand-exhaust__actions > button:disabled {
+.choice-modal__panel > button:disabled {
   color: var(--ink-dim);
   border-color: var(--edge);
 }
 
-.choice-modal--hand-exhaust .choice-modal__panel {
-  display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
-  gap: 0.65rem;
-  max-height: calc(100dvh - 2rem);
-}
-
-.choice-modal--hand-exhaust .choice-modal__panel :is(h2, p) { margin: 0; }
-.choice-modal--hand-exhaust .choice-modal__cards { min-height: 0; margin: 0; padding: 0.3rem; }
-.hand-exhaust__actions { display: flex; justify-content: center; gap: 0.75rem; }
-
-@media (max-height: 30rem) {
-  .choice-modal--hand-exhaust .choice-modal__panel { padding: 0.6rem; gap: 0.35rem; }
-  .choice-modal--hand-exhaust h2 { font-size: 1.1rem; }
-  .choice-modal--hand-exhaust .choice-modal__cards { --card-width: 90px; }
-}
-
-/* Override the UA cap (100% - 2em - 6px) so the panel's own limit is the one that applies. */
 .hermit-trigger-choice {
   max-height: calc(100dvh - 0.5rem);
   width: fit-content;
@@ -336,8 +274,6 @@
 .hermit-trigger-choice .choice-modal__panel h2,
 .hermit-trigger-choice .choice-modal__panel p,
 .hermit-trigger-choice h3 { margin: 0; }
-
-.hermit-trigger-choice__header { display: grid; gap: 0.3rem; }
 
 .hermit-trigger-choice__drawn { color: var(--gold); }
 
@@ -408,6 +344,7 @@
   margin: 0;
   padding: 0.6rem 0.35rem 0.35rem;
 }
+.hand-discard .hand-discard__custom .hermit-trigger-choice__cards { --card-width: clamp(72px, 7vw, 100px); }
 
 .hermit-trigger-choice__option {
   position: relative;
@@ -438,48 +375,9 @@
   pointer-events: none;
 }
 
-.hermit-trigger-choice__actions {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-}
-
-.hermit-trigger-choice__actions button {
-  min-height: 44px;
-  padding: 0.45rem 1rem;
-  border-radius: 5px;
-  font: 700 0.95rem/1.1 'Kreon', Georgia, serif;
-}
-
-.hermit-trigger-choice__confirm {
-  color: #241807;
-  background: linear-gradient(#ffe79a, #c99331);
-  border: 1px solid #ffe79a;
-}
-
-.hermit-trigger-choice__confirm:disabled {
-  color: var(--ink-dim);
-  background: var(--bg-raised);
-  border-color: var(--edge);
-}
-
-.hermit-trigger-choice__secondary {
-  color: var(--ink);
-  background: var(--bg-raised);
-  border: 1px solid var(--edge);
-}
-
 @media (max-height: 30rem) {
   .hermit-trigger-choice .choice-modal__panel { gap: 0.35rem; }
   .hermit-trigger-choice .choice-modal__panel h2 { font-size: 1.05rem; }
-  .hermit-trigger-choice__header {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: baseline;
-    column-gap: 0.75rem;
-  }
   .hermit-trigger-choice__drawn { font-size: 0.85rem; }
   .hermit-trigger-choice h3 { font-size: 0.85rem; }
   .hermit-trigger-choice .hermit-trigger-choice__cards {
@@ -489,7 +387,6 @@
   /* Touch browsers hide overlay scrollbars; shrink a crowded choice so no card sits off the edge. */
   .hermit-trigger-choice .hermit-trigger-choice__cards--many { --card-width: 58px; }
   .hermit-trigger-choice__detail { min-height: 2.5em; font-size: 0.75rem; }
-  .hermit-trigger-choice__actions button { min-height: 40px; padding: 0.3rem 0.9rem; }
 }
 
 .give-up-panel { width: min(28rem, calc(100% - 2rem)); }

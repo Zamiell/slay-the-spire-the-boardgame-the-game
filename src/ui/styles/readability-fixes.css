@@ -26,13 +26,6 @@
   max-width: 9rem;
 }
 
-.retain-options {
-  display: inline-flex;
-  gap: 0.3rem;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-
 .combat__actions:has(.start-turn-order) {
   overflow: visible;
 }

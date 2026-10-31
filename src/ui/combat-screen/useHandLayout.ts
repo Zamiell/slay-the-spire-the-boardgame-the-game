@@ -7,13 +7,13 @@ type Pose = { x: number; y: number; angle: number; scale: number }
 type Holder = { pose: Pose; target: Pose; center: number }
 
 /** One motion owner for the fan, hover spreading and changes to the hand. */
-export function useHandLayout(rootRef: RefObject<HTMLDivElement | null>, reducedMotion: boolean, busy: boolean) {
+export function useHandLayout(rootRef: RefObject<HTMLDivElement | null>, reducedMotion: boolean, busy: boolean, enabled = true) {
   const options = useRef({ reducedMotion, busy })
   options.current = { reducedMotion, busy }
   const refreshRef = useRef<() => void>(() => {})
   useLayoutEffect(() => {
     const root = rootRef.current
-    if (!root) return
+    if (!root || !enabled) return
     const holders = new Map<HTMLElement, Holder>()
     let hovered: HTMLElement | null = null
     let preferFocus = false
@@ -144,8 +144,15 @@ export function useHandLayout(rootRef: RefObject<HTMLDivElement | null>, reduced
       root.removeEventListener('focusout', focus)
       root.removeEventListener('hand-layout-change', refresh)
       window.removeEventListener('resize', refresh)
+      root.removeAttribute('data-hand-layout')
+      root.removeAttribute('data-hand-moving')
+      for (const card of holders.keys()) {
+        for (const property of ['transform', '--hand-transform', 'margin-inline', 'z-index'])
+          card.style.removeProperty(property)
+        card.removeAttribute('data-hand-focused')
+      }
       refreshRef.current = () => {}
     }
-  }, [rootRef])
+  }, [rootRef, enabled])
   useLayoutEffect(() => refreshRef.current(), [reducedMotion, busy])
 }

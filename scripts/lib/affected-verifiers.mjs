@@ -61,6 +61,9 @@ const focusedEngineOwners = ownerMap([
   ['src/game/run/rewards.ts', ['verify-loot-browser.mjs', 'verify-tiny-house-browser.mjs']],
 ])
 const focusedUiOwners = ownerMap([
+  ...['src/ui/styles/painterly-combat-stage.css', 'src/ui/styles/hand-layout.css']
+    .map(file => [file, ['verify-hand-size-browser.mjs', ...(file.endsWith('/hand-layout.css')
+      ? ['verify-card-interaction-browser.mjs', 'verify-start-turn-order-browser.mjs'] : [])]]),
   ...['src/ui/RewardScreen.tsx', 'src/ui/OnlineRewardScreen.tsx']
     .map(file => [file, ['verify-gold-sfx-browser.mjs']]),
   ...['scripts/audio/generate-gold-sfx.py', 'public/assets/sfx/gold.wav']
@@ -70,22 +73,23 @@ const focusedUiOwners = ownerMap([
   ...['src/ui/chrome/keys.css', 'src/ui/chrome/stone-keys.css']
     .map(file => [file, ['verify-button-borders-browser.mjs']]),
   ['src/ui/useButtonShortcut.ts', ['verify-keyboard-browser.mjs', 'verify-card-picker-browser.mjs']],
-  ['src/ui/CardPicker.tsx', ['verify-card-picker-browser.mjs']],
+  ['src/ui/CardPicker.tsx', ['verify-card-picker-browser.mjs', 'verify-merchant-overflow-browser.mjs', 'verify-wing-focus-browser.mjs']],
+  ['src/ui/RelicResolvePanel.tsx', ['verify-card-picker-browser.mjs', 'verify-wing-focus-browser.mjs']],
   ['src/ui/styles/hand.css', ['verify-card-block-preview-browser.mjs']],
   ['src/ui/styles/combat.css', ['verify-sever-soul-browser.mjs', 'verify-row-target-browser.mjs',
     'verify-soulburn-time-warp-browser.mjs']],
-  ['src/ui/styles/hand-layout.css', ['verify-card-interaction-browser.mjs', 'verify-start-turn-order-browser.mjs']],
   ['src/ui/chrome/rewards.css', ['verify-loot-browser.mjs', 'verify-boss-relic-picker-browser.mjs']],
   ['src/ui/RewardChoiceScreen.tsx', ['verify-loot-browser.mjs', 'verify-boss-relic-picker-browser.mjs',
     'verify-neow-viewport-browser.mjs', 'verify-boon-socket-browser.mjs']],
   ['src/ui/combat-screen/StartTurnOrder.tsx', ['verify-start-turn-order-browser.mjs']],
   ['src/ui/combat-screen/HandCardSelection.tsx', [
     'verify-sever-soul-browser.mjs', 'verify-start-turn-order-browser.mjs',
-    'verify-all-out-attack-browser.mjs', 'verify-survivor-selection-browser.mjs',
+    'verify-all-out-attack-browser.mjs', 'verify-survivor-selection-browser.mjs', 'verify-retain-selection-browser.mjs',
   ]],
   ...['src/ui/combat-screen/HandSelectionScreen.tsx', 'src/ui/styles/hand-discard-selection.css']
     .map(file => [file, ['verify-sever-soul-browser.mjs', 'verify-survivor-selection-browser.mjs',
-      'verify-start-turn-order-browser.mjs']]),
+      'verify-start-turn-order-browser.mjs', 'verify-retain-selection-browser.mjs', 'verify-runic-pyramid-browser.mjs',
+      'verify-card-choices-browser.mjs']]),
   ['src/ui/CardCollectionOverlay.tsx', [
     'verify-deck-inspection-browser.mjs',
     'verify-flurry-stance-browser.mjs',
@@ -108,6 +112,7 @@ const focusedUiOwners = ownerMap([
   ['src/ui/styles/shop.css', ['verify-shop-browser.mjs']],
   ['src/ui/LeaderboardScreen.tsx', ['verify-leaderboard-browser.mjs']],
   ['src/ui/CombatScreen.tsx', [
+    'verify-retain-selection-browser.mjs', 'verify-card-choices-browser.mjs',
     'verify-card-block-preview-browser.mjs',
     'verify-single-enemy-targets-browser.mjs',
     'verify-soulburn-time-warp-browser.mjs',
@@ -152,7 +157,8 @@ const focusedUiOwners = ownerMap([
   ['src/ui/ItemImage.tsx', ['verify-courier-browser.mjs']],
   ['src/ui/MailBox.tsx', ['verify-mail-browser.mjs']],
   ['src/ui/MapScreen.tsx', ['verify-map-drawing-browser.mjs', 'verify-wing-focus-browser.mjs']],
-  ['src/ui/RoomScreen.tsx', ['verify-joust-browser.mjs', 'verify-scrap-ooze-browser.mjs', 'verify-event-panels-browser.mjs', 'verify-potion-header-browser.mjs', 'verify-relic-refresh-browser.mjs']],
+  ['src/ui/RoomScreen.tsx', ['verify-card-choices-browser.mjs', 'verify-merchant-overflow-browser.mjs',
+    'verify-joust-browser.mjs', 'verify-scrap-ooze-browser.mjs', 'verify-event-panels-browser.mjs', 'verify-potion-header-browser.mjs', 'verify-relic-refresh-browser.mjs']],
   ['src/ui/chrome/item-tiles.css', ['verify-relic-refresh-browser.mjs']],
   ['src/ui/chrome/event-phone.css', ['verify-event-panels-browser.mjs', 'verify-scrap-ooze-browser.mjs']],
   ['src/ui/chrome/event-loot.css', ['verify-event-panels-browser.mjs', 'verify-scrap-ooze-browser.mjs', 'verify-potion-header-browser.mjs']],
@@ -163,7 +169,7 @@ const focusedUiOwners = ownerMap([
   ['src/multiplayer/useRoomSession.ts', ['verify-ascension-sync-browser.mjs', 'verify-combat-layout-reload-browser.mjs', 'verify-skin-browser.mjs', 'verify-skin-cards-browser.mjs', 'verify-start-turn-resync-browser.mjs', 'verify-monogatari-online-browser.mjs']],
   ['src/ui/RelicChip.tsx', ['verify-courier-browser.mjs', 'verify-die-relic-browser.mjs']],
   ['src/ui/DieRelicChoices.tsx', ['verify-die-relic-browser.mjs']],
-  ['src/ui/OnlineGame.tsx', ['verify-courier-browser.mjs', 'verify-skin-browser.mjs', 'verify-skin-cards-browser.mjs', 'verify-start-turn-resync-browser.mjs', 'verify-monogatari-online-browser.mjs']],
+  ['src/ui/OnlineGame.tsx', ['verify-retain-selection-browser.mjs', 'verify-courier-browser.mjs', 'verify-skin-browser.mjs', 'verify-skin-cards-browser.mjs', 'verify-start-turn-resync-browser.mjs', 'verify-monogatari-online-browser.mjs']],
   ['src/ui/OnlineCampfireScreen.tsx', ['verify-art-scenes-browser.mjs', 'verify-monogatari-online-browser.mjs']],
   ['src/ui/StartMenu.tsx', ['verify-run-replay-browser.mjs', 'verify-title-menu-browser.mjs', 'verify-tutorial-browser.mjs', 'verify-skin-browser.mjs']],
   ['src/ui/ProfileScreen.tsx', ['verify-skin-profile-browser.mjs', 'verify-account-browser.mjs', 'verify-wallet-sync-browser.mjs', 'verify-restricted-browser.mjs']],

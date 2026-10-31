@@ -86,7 +86,8 @@ check('frontend surfaces select their cores and named focused browser checks', (
   assert(combat.includes('verify-soulburn-time-warp-browser.mjs'))
   assert(combat.includes('verify-single-enemy-targets-browser.mjs'))
   assert(combat.includes('verify-card-block-preview-browser.mjs'))
-  assertEqual(combat.length, 53, 'combat screen selected an unrelated browser suite')
+  includesEvery(combat, ['verify-retain-selection-browser.mjs', 'verify-card-choices-browser.mjs'], 'shared combat choices')
+  assertEqual(combat.length, 55, 'combat screen selected an unrelated browser suite')
   includesEvery(affectedBrowser('src/ui/TokenRow.tsx'), ['verify-turn-targets-browser.mjs',
     'verify-row-target-browser.mjs', 'verify-combat-target-geometry-browser.mjs'], 'Orb row')
   assert(affectedBrowser('src/ui/styles/stage-scale.css').includes('verify-combat-layout-reload-browser.mjs'))
@@ -101,10 +102,11 @@ check('frontend surfaces select their cores and named focused browser checks', (
   assert(!online.includes('verify-browser.mjs'))
   assert(!online.includes('verify-noncombat-browser.mjs'))
   assert(online.includes('verify-multiplayer-resume-browser.mjs'))
-  assertEqual(online.length, 8, 'online screen selected an unrelated browser suite')
+  assertEqual(online.length, 9, 'online screen selected an unrelated browser suite')
   assertDeepEqual(affectedBrowser('src\\ui\\OnlineGame.tsx'), online)
   assertDeepEqual(affectedBrowser('src/multiplayer/useRoomSession.ts'),
-    [...online.filter((script) => script !== 'verify-courier-browser.mjs'), 'verify-ascension-sync-browser.mjs', 'verify-combat-layout-reload-browser.mjs'].sort())
+    [...online.filter(script => !['verify-courier-browser.mjs', 'verify-retain-selection-browser.mjs'].includes(script)),
+      'verify-ascension-sync-browser.mjs', 'verify-combat-layout-reload-browser.mjs'].sort())
   assertDeepEqual(affectedBrowser('src/ui/WelcomeScreen.tsx'), ['verify-browser.mjs'])
   includesEvery(affectedBrowser('src/ui/combat-screen/vfx.tsx'), [
     'verify-browser.mjs', 'verify-online-browser.mjs', 'verify-lightning-act2-browser.mjs',

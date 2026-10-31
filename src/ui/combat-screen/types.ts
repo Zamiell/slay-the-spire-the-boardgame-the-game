@@ -25,6 +25,7 @@ export type CombatScreenProps = {
   onChange?: (next: CombatState) => void
   onAction?: (action: Record<string, unknown>) => void | Promise<ActionOutcome | void>
   autoAdvance?: boolean
+  selectionDialogsActive?: boolean
   courierUsedBy?: string[]
   onCourierReveal?: (kind: 'relic' | 'potion') => void
   mutationsEnabled?: boolean

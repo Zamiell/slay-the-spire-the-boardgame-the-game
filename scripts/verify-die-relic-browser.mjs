@@ -72,8 +72,9 @@ try {
       { ...enemy, uid: 'defeated', dead: true, hp: 0 },
     ]
     await page.evaluate(run => window.__STS_DEBUG__.setRun(run), ashesRun)
-    const ashes = page.locator('.relic-actions details').filter({ hasText: "Charon's Ashes" })
-    await ashes.locator('summary').click()
+    await page.getByRole('button', { name: /^Use Charon's Ashes:/ }).click()
+    const ashes = page.getByRole('dialog', { name: 'Exhaust 1 card', exact: true })
+    await ashes.waitFor()
     const hitButtons = ashes.getByRole('button', { name: /^Hit / })
     assert.deepEqual((await hitButtons.allTextContents()).map(text => text.trim()), ['Hit Mystic', 'Hit Centurion'])
     const stageOrder = await page.locator('.enemy:not(.enemy--dead)').evaluateAll(enemies =>

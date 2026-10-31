@@ -21,6 +21,10 @@ type CardPickerProps = {
   selectionRequired?: boolean
   backDisabled?: boolean
   disabled?: boolean
+  selectionLocked?: boolean
+  heading?: string
+  description?: string
+  active?: boolean
 }
 
 export function PickerConfirmButton({ label = 'Confirm', disabled = false, onClick, className = '' }: {
@@ -37,6 +41,7 @@ export function PickerConfirmButton({ label = 'Confirm', disabled = false, onCli
 export function CardPicker({
   cards, verb, selectedCardUids, onSelect, onClear, onBack, onConfirm, confirmLabel = 'Confirm', backLabel = 'Back',
   maxSelections = 1, selectionLabel: selectionLabelOverride, confirmDisabled, selectionRequired = true, backDisabled = false, disabled = false,
+  selectionLocked = false, heading, description, active = true,
 }: CardPickerProps) {
   const pickerRef = useRef<HTMLElement>(null)
   const gridRef = useRef<HTMLDivElement>(null)
@@ -52,7 +57,7 @@ export function CardPicker({
 
   useEffect(() => {
     const picker = pickerRef.current
-    if (!picker) return undefined
+    if (!picker || !active) return undefined
     restoreFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
     const controls = () => [...picker.querySelectorAll<HTMLElement>(
       'button:not([disabled]):not([aria-disabled="true"]), input:not([disabled])')]
@@ -82,11 +87,12 @@ export function CardPicker({
       picker.removeEventListener('keydown', trapTab)
       if (restoreFocusRef.current?.isConnected) restoreFocusRef.current.focus()
     }
-  }, [])
+  }, [active])
 
   useEffect(() => {
     const grid = gridRef.current
     const picker = pickerRef.current
+    if (!active) return
     if (disabled) {
       picker?.focus({ preventScroll: true })
     } else if (preview) {
@@ -109,7 +115,7 @@ export function CardPicker({
       }
       wasPreview.current = false
     }
-  }, [preview, disabled])
+  }, [preview, disabled, active])
 
   const selectCard = (uid: string) => {
     gridScrollTopRef.current = gridRef.current?.scrollTop ?? 0
@@ -121,24 +127,30 @@ export function CardPicker({
   const showBack = preview || onBack !== undefined && (verb === 'Upgrade' || backLabel !== 'Back')
 
   return <section ref={pickerRef} className={`card-picker${preview ? ' card-picker--previewing' : ''}`} role="dialog" aria-modal="true" tabIndex={-1}
+    hidden={!active} inert={!active}
+    data-source={Boolean(heading || description) || undefined}
     aria-label={`Choose ${selectionLabel} to ${verb.toLowerCase()}`}>
     <h2 className="visually-hidden">Choose {selectionLabel} to {verb}</h2>
+    {heading || description ? <header className="card-picker__source">
+      {heading ? <h2>{heading}</h2> : null}
+      {description ? <p>{description}</p> : null}
+    </header> : null}
     <div className="card-picker__body">
-      <div ref={gridRef} className="card-picker__grid">
+      <div ref={gridRef} className="card-picker__grid" role="group" aria-label={`Card${maxSelections > 1 ? 's' : ''} to ${verb.toLowerCase()}`}>
         {cards.map((card) => <Card key={card.uid}
           card={verb === 'Upgrade' && viewUpgrades && cardDef(card.defId).upgrade ? { ...card, upgraded: true } : card}
           selected={selectedCardUids.includes(card.uid)}
-          playable={!preview && !disabled && (selectedCardUids.includes(card.uid) || selectedCardUids.length < maxSelections)}
-          tabIndex={preview || disabled || !selectedCardUids.includes(card.uid) && selectedCardUids.length >= maxSelections ? -1 : undefined}
+          playable={!preview && !disabled && !selectionLocked && (selectedCardUids.includes(card.uid) || selectedCardUids.length < maxSelections)}
+          tabIndex={preview || disabled || selectionLocked || !selectedCardUids.includes(card.uid) && selectedCardUids.length >= maxSelections ? -1 : undefined}
           onClick={() => selectCard(card.uid)} />)}
         {cards.length === 0 ? <p className="card-picker__empty" role="status">No eligible cards.</p> : null}
       </div>
       {preview && chosen ? <div className="card-picker__preview" aria-live="polite">
         {verb === 'Upgrade' ? <>
-          <Card card={chosen} selected playable={!disabled} tabIndex={disabled ? -1 : undefined} onClick={() => selectCard(chosen.uid)} />
+          <Card card={chosen} selected playable={!disabled && !selectionLocked} tabIndex={disabled || selectionLocked ? -1 : undefined} onClick={() => selectCard(chosen.uid)} />
           <span className="card-picker__upgrade-arrow" aria-hidden="true">›</span>
           <Card card={{ ...chosen, upgraded: true }} playable={false} tabIndex={-1} />
-        </> : <Card card={chosen} selected playable={!disabled} tabIndex={disabled ? -1 : undefined} onClick={() => selectCard(chosen.uid)} />}
+        </> : <Card card={chosen} selected playable={!disabled && !selectionLocked} tabIndex={disabled || selectionLocked ? -1 : undefined} onClick={() => selectCard(chosen.uid)} />}
       </div> : null}
     </div>
     <footer className="card-picker__footer">

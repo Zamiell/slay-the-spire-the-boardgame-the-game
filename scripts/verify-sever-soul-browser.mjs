@@ -56,7 +56,10 @@ try {
       await page.locator('.hand .card').first().waitFor()
     }
     const activate = async locator => {
-      if (await locator.evaluate(element => Boolean(element.closest('.hand-discard__hand')))) await locator.focus()
+      if (await locator.evaluate(element => Boolean(element.closest('.hand-discard__hand')))) {
+        await locator.focus()
+        await page.waitForFunction(() => !document.querySelector('.hand-discard__hand[data-hand-moving]'))
+      }
       return phone ? locator.tap() : locator.click()
     }
     const play = async (name) => {
@@ -145,11 +148,12 @@ try {
             [card('strike_ironclad', 'related-draw')], 9)
           const before = await read()
           await play(face.name)
-          const choice = page.getByRole('dialog', { name: bottom ? /bottom of your draw pile/ : /in your hand to Discard/ })
+          const choice = page.locator(`dialog.hand-discard[data-action="${bottom ? 'put on bottom' : 'discard'}"]`)
           await choice.waitFor()
-          for (let index = 0; index < count; index++) await activate(choice.locator('.card').nth(index))
+          for (let index = 0; index < count; index++)
+            await activate(choice.locator(`.hand-discard__hand .card[data-card-name="${CARDS[fuel[index].defId].name}"]`))
           assert.deepEqual(await read(), before, `${face.name}: choosing cards must not play them`)
-          await activate(choice.getByRole('button', { name: bottom ? /^Put / : /^Discard / }))
+          await activate(choice.getByRole('button', { name: bottom ? 'Confirm put on bottom' : 'Confirm discard', exact: true }))
           await choice.waitFor({ state: 'detached' })
           await page.waitForFunction(() => window.__STS_DEBUG__.getState().players[0].cardsPlayedThisTurn === 1)
           assert.deepEqual((await read()).players[0][bottom ? 'draw' : 'discard']
@@ -177,8 +181,8 @@ try {
       const recovery = page.getByRole('dialog', { name: /from your Exhaust pile/ })
       await recovery.waitFor()
       assert.equal(await dialog.count(), 0)
-      assert.equal(await recovery.locator('.card').count(), 1)
-      await activate(recovery.locator('.card'))
+      assert.equal(await recovery.locator('.hand-discard__hand .card').count(), 1)
+      await activate(recovery.locator('.hand-discard__hand .card'))
       await activate(recovery.getByRole('button', { name: /Return selected|Put selected/ }))
       await recovery.waitFor({ state: 'detached' })
       await page.waitForFunction(() => !window.__STS_DEBUG__.getState().players[0].exhaust.some(card => card.uid === 'recover-me'))
@@ -194,7 +198,7 @@ try {
       await recovery.focus()
       await page.keyboard.press('Escape')
       assert(await recovery.isVisible(), `${defId}: forced Exhaust recovery cannot be abandoned`)
-      await activate(recovery.locator('.card').first())
+      await activate(recovery.locator('.hand-discard__hand .card').first())
       await activate(recovery.getByRole('button', { name: /Return selected|Put selected/ }))
       await recovery.waitFor({ state: 'detached' })
       await page.waitForFunction(() => !window.__STS_DEBUG__.getState().startTurnProgress?.forcedCard)

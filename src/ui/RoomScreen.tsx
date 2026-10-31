@@ -18,6 +18,7 @@ import { relicOptionLabel, RelicOptionText, RelicTooltipAnchor } from "./RelicCh
 import { useHoverUnavailable } from "./touch-input.ts";
 import { Card } from "./Card.tsx";
 import { CardPicker, PickerConfirmButton } from "./CardPicker.tsx";
+import { HandSelectionScreen } from "./combat-screen/HandSelectionScreen.tsx";
 import { CHARACTER_IDS } from "../game/types.ts";
 import type { Player } from "../game/types.ts";
 import type { EventEffect } from "../game/events.ts";
@@ -40,6 +41,7 @@ type Props = {
   room: MerchantState | RelicRewardState | EventRoomState;
   players: Player[];
   viewerId: string;
+  selectionDialogsActive?: boolean;
   ascension: number;
   onPurchase: (purchase: MerchantPurchase) => void;
   onRemove: (
@@ -163,7 +165,6 @@ function MerchantScreen({
   const buyer = players.find((candidate) => candidate.id === buyerId) ?? player;
   const [removeUid, setRemoveUid] = useState("");
   const [removalOpen, setRemovalOpen] = useState(false);
-  const removalDialog = useRef<HTMLDialogElement>(null);
   const [potionReplacementSlot, setPotionReplacementSlot] = useState<number | null>(null);
   const potionReplacementDialog = useRef<HTMLDialogElement>(null);
   const [discardPotionId, setDiscardPotionId] = useState("");
@@ -243,12 +244,6 @@ function MerchantScreen({
   const replacementPotionReserved = potionReplacementSlot !== null && replacementPotionFunding
     ? sharedReserved("potion", potionReplacementSlot, replacementPotionFunding.key)
     : false;
-  useEffect(() => {
-    const dialog = removalDialog.current;
-    if (!dialog) return;
-    if (removalOpen && !dialog.open) dialog.showModal();
-    else if (!removalOpen && dialog.open) dialog.close();
-  }, [removalOpen]);
   useEffect(() => {
     if (!removalUsed) return;
     setRemovalOpen(false);
@@ -538,31 +533,30 @@ function MerchantScreen({
             }}>Confirm {replacementPotionId ? potionDef(replacementPotionId).name : "purchase"}</button>
         </section>
       </dialog>
-      <dialog ref={removalDialog} className="choice-modal merchant-removal-dialog" aria-labelledby="merchant-removal-title"
-        onCancel={(event) => { event.preventDefault(); setRemovalOpen(false); }}>
-        <section className="choice-modal__panel">
-          <header><div><span>Card Removal Service</span><h2 id="merchant-removal-title">Choose a card to remove</h2></div>
-            <button type="button" onClick={() => setRemovalOpen(false)}>Cancel</button></header>
-          <div className="campfire__deck" role="group" aria-label="Card to remove">
-            {buyer.deck.filter((card) => card.defId !== "ascenders_bane").map((card) => <Card key={card.uid}
-              card={card} playable={!removalPending?.cardUid} selected={removalUid === card.uid}
-              onClick={() => setRemoveUid(card.uid)} />)}
-          </div>
-          <button type="button" className="merchant-removal-dialog__confirm"
-            disabled={
+      {removalOpen ? createPortal(<div onKeyDown={event => {
+        if (event.key === "Escape" && !event.defaultPrevented) {
+          event.preventDefault();
+          setRemovalOpen(false);
+        }
+      }}><CardPicker verb="Remove" heading="Card Removal Service"
+            description={removalPending ? `Pledge · ◉ ${additional(removalRemaining, removalKey)}` : `Remove selected card · ◉ ${removalCost}`}
+            cards={buyer.deck.filter(card => card.defId !== "ascenders_bane")}
+            selectedCardUids={removalUid ? [removalUid] : []} selectionLocked={Boolean(removalPending?.cardUid)}
+            onSelect={uid => setRemoveUid(current => current === uid ? "" : uid)}
+            onClear={() => removalPending?.cardUid ? setRemovalOpen(false) : setRemoveUid("")}
+            onBack={() => setRemovalOpen(false)} backLabel="Cancel"
+            confirmDisabled={
               (!removalPending && (!removeUid || Boolean(onWithdraw && buyer.id !== player.id) || !removalAffordable)) ||
               (additional(removalRemaining, removalKey) <= 0 && (onWithdraw ? buyer.id !== player.id || Boolean(removalPending) : true)) ||
               removalUsed
             }
-            onClick={() => {
+            onConfirm={() => {
               onRemove(buyer.id, removalUid, pay(additional(removalRemaining, removalKey), removalKey));
               pointAtTarget("removal");
               setRemovalOpen(false);
-            }}>
-            {removalPending ? `Pledge · ◉ ${additional(removalRemaining, removalKey)}` : `Remove selected card · ◉ ${removalCost}`}
-          </button>
-        </section>
-      </dialog>
+            }}
+            confirmLabel={removalPending ? `Pledge · ◉ ${additional(removalRemaining, removalKey)}` : `Remove selected card · ◉ ${removalCost}`}
+          /></div>, document.body) : null}
       {Object.entries(merchantPledges).some(
         ([, pending]) => player.id in pending.payments,
       ) ? (
@@ -738,6 +732,7 @@ function EventScreen({
   room,
   players,
   viewerId,
+  selectionDialogsActive = true,
   ascension,
   onEvent,
   onPreparedHermitSetup,
@@ -1358,6 +1353,7 @@ function EventScreen({
     const owner = players.find((candidate) => candidate.id === preparedSetup.playerId);
     const setupHand = preparedSetup.playerId === player.id ? openingHand : [];
     const targetedCurses = ["hermit_grudge", "hermit_malice", "hermit_horror"];
+    const setupEnemies = room.preparedCombat?.enemies.filter(enemy => !enemy.dead) ?? [];
     return <section className="room-stage event-stage" style={eventArt} aria-labelledby="event-title">
       <div className="event-art" aria-hidden="true" />
       <div className="event-panel event-panel--resolver">
@@ -1366,22 +1362,20 @@ function EventScreen({
             ? "Hermit start of combat — choose a card from your opening hand to Load into the Chamber."
             : `Waiting for ${owner?.name ?? "the Hermit"} to finish their private setup Load.`}</p></div>
         {encounterPreview}
-        {setupHand.length > 0 ? <fieldset className="event-cards"><legend>Load 1 card</legend>
-          {setupHand.map((card) => targetedCurses.includes(card.defId)
-            ? <div key={card.uid} className="event-cards__option">
-              <Card card={card} className="card--preview" playable={false} />
-              {room.preparedCombat?.enemies.filter((enemy) => !enemy.dead).map((enemy) =>
-                <button type="button" key={enemy.uid} onClick={() => onPreparedHermitSetup?.(card.uid, enemy.uid)}>
-                  Load {CARDS[card.defId]?.name} at {enemyLabel(preparedEnemies, enemy)}
-                </button>)}
-            </div>
-            : <div key={card.uid} className="event-cards__option">
-              <Card card={card} className="card--preview" playable={false} />
-              <button type="button" onClick={() => onPreparedHermitSetup?.(card.uid, null)}>
-                Load {CARDS[card.defId]?.name}
-              </button>
-            </div>)}
-        </fieldset> : null}
+        {setupHand.length > 0 ? <HandSelectionScreen action="Load" source="Hermit start of combat"
+          active={selectionDialogsActive}
+          cards={setupHand} selectedUids={[]} minimum={1} maximum={1} disabled={!onPreparedHermitSetup}
+          viewLabel="View encounter"
+          canSelect={card => !targetedCurses.includes(card.defId) || setupEnemies.length === 1}
+          onSelect={card => onPreparedHermitSetup?.(card.uid,
+            targetedCurses.includes(card.defId) ? setupEnemies[0]!.uid : null)}
+          renderCardAction={setupEnemies.length > 1 && setupHand.some(card => targetedCurses.includes(card.defId))
+            ? card => targetedCurses.includes(card.defId) ? <span>
+              {setupEnemies.map(enemy => <button type="button" key={enemy.uid}
+                onClick={() => onPreparedHermitSetup?.(card.uid, enemy.uid)}>
+                Load at {enemyLabel(preparedEnemies, enemy)}
+              </button>)}
+            </span> : null : undefined} /> : null}
       </div>
     </section>;
   }
@@ -1414,15 +1408,17 @@ function EventScreen({
           })}
           <button type="button" onClick={() => onPreparedStartTurnScryOrder?.(preparedScryIds)}>Confirm Scry order</button>
         </fieldset> : null}
-        {preparedScry?.playerId === player.id && preparedScry.cards ? <fieldset className="event-cards"><legend>{preparedScry.label} · Scry {preparedScry.amount}</legend>
-          {preparedScry.cards.map((card) => <Card key={card.uid} card={card}
-            selected={effectivePreparedScryPicked.includes(card.uid)}
-            onClick={() => setPreparedScryPicked((picked) => picked.includes(card.uid)
-              ? picked.filter((uid) => uid !== card.uid) : [...picked, card.uid])} />)}
-          <button type="button" onClick={() => onPreparedStartTurnScry?.(preparedScry.id, effectivePreparedScryPicked)}>
-            {effectivePreparedScryPicked.length > 0 ? `Discard ${effectivePreparedScryPicked.length} and draw` : "Keep all and draw"}
-          </button>
-        </fieldset> : null}
+        {preparedScry?.playerId === player.id && preparedScry.cards ? <HandSelectionScreen
+          active={selectionDialogsActive}
+          action="Discard" source={preparedScry.label} title={`${preparedScry.label} · Scry ${preparedScry.amount}`}
+          cards={preparedScry.cards} cardSource="revealed" selectedUids={effectivePreparedScryPicked}
+          minimum={0} maximum={preparedScry.cards.length} disabled={!onPreparedStartTurnScry}
+          viewLabel="View encounter"
+          onSelect={card => setPreparedScryPicked(picked => picked.includes(card.uid)
+            ? picked.filter(uid => uid !== card.uid) : [...picked, card.uid])}
+          onConfirm={() => onPreparedStartTurnScry?.(preparedScry.id, effectivePreparedScryPicked)}
+          confirmLabel={effectivePreparedScryPicked.length > 0
+            ? `Discard ${effectivePreparedScryPicked.length} and draw` : "Keep all and draw"} /> : null}
       </div>
     </section>;
   }

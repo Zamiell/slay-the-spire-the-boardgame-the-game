@@ -208,15 +208,21 @@ async function chooseSeat(playerId) {
 }
 
 async function confirmDiscard(player) {
-  await chooseSeat(player.id)
-  await page.getByRole('button', { name: /^Confirm end-turn effect/ }).click()
+  if (await page.locator('.seat--viewer').first().getAttribute('data-player-id') !== player.id) await chooseSeat(player.id)
+  let answered = false
+  for (const name of ['Confirm retain', 'Confirm discard order']) {
+    const confirm = page.getByRole('button', { name, exact: true })
+    if (await confirm.isVisible()) { await confirm.click(); answered = true }
+  }
+  if (!answered) await page.getByRole('button', { name: /^Confirm end-turn effect/ }).click()
 }
 
 async function confirmAllDiscards() {
   const state = await readState()
   const participants = state.players.filter(discardNeedsChoice)
   const selectedSeat = participants[0]?.id ?? state.players.find((player) => !player.dead)?.id ?? 'p1'
-  for (const player of participants) {
+  const viewerId = await page.locator('.seat--viewer').first().getAttribute('data-player-id')
+  for (const player of participants.sort((a, b) => Number(b.id === viewerId) - Number(a.id === viewerId))) {
     await confirmDiscard(player)
   }
   await chooseSeat(selectedSeat)
@@ -9715,8 +9721,10 @@ await equilibriumCard.click()
 await plantDiscardOrderCards()
 await page.getByRole('button', { name: /^End Turn \d+/ }).click()
 await page.waitForFunction(() => window.__STS_DEBUG__.getState().phase === 'discard')
-await page.getByRole('button', { name: 'Retain Defend' }).click()
-await page.getByRole('button', { name: 'Retain Zap' }).click()
+await page.locator('.hand-discard__hand .card[data-card-name="Defend"]').focus()
+await page.keyboard.press('Enter')
+await page.locator('.hand-discard__hand .card[data-card-name="Zap"]').focus()
+await page.keyboard.press('Enter')
 await shot('06zphgib-equilibrium-retain-choice')
 await confirmAllDiscards()
 await page.waitForFunction(() => window.__STS_DEBUG__.getState().phase === 'enemy')
@@ -9759,8 +9767,10 @@ await plansCard.click()
 await plantDiscardOrderCards()
 await page.getByRole('button', { name: /^End Turn \d+/ }).click()
 await page.waitForFunction(() => window.__STS_DEBUG__.getState().phase === 'discard')
-await page.getByRole('button', { name: 'Retain Strike' }).click()
-await page.getByRole('button', { name: 'Retain Defend' }).click()
+await page.locator('.hand-discard__hand .card[data-card-name="Strike"]').focus()
+await page.keyboard.press('Enter')
+await page.locator('.hand-discard__hand .card[data-card-name="Defend"]').focus()
+await page.keyboard.press('Enter')
 await shot('06zphgie-well-laid-plans-choice')
 await confirmAllDiscards()
 await page.waitForFunction(() => window.__STS_DEBUG__.getState().phase === 'enemy')
@@ -16116,11 +16126,16 @@ check('multiplayer discard controls fit a minimum desktop screen', () => {
   assert(compactDiscardControls.right <= compactDiscardControls.width, 'discard controls spill off the right edge')
 })
 await shot('15a-compact-desktop-discard-order')
-const discardOptions = await page.getByLabel('Top discard for Ironclad').locator('option').allTextContents()
+const topDiscardDialog = page.getByRole('dialog', { name: 'Choose top discard', exact: true })
+const discardOptions = await topDiscardDialog.locator('.card').evaluateAll(cards => cards.map(card => card.dataset.cardName))
 check('Retain cards are excluded from the top-discard choice', () => {
   assert(!discardOptions.some((option) => option.includes('Protect')), `Retain leaked into: ${discardOptions.join(' | ')}`)
 })
-await page.getByLabel('Top discard for Ironclad').selectOption('end-deflect')
+const topDeflect = topDiscardDialog.locator('.card[data-card-name="Deflect"]')
+if (await topDeflect.getAttribute('aria-pressed') !== 'true') {
+  await topDeflect.focus()
+  await page.keyboard.press('Enter')
+}
 await confirmAllDiscards()
 await page.waitForFunction(() => window.__STS_DEBUG__.getState().phase === 'enemy')
 const compactDiscardPile = await page.locator('[data-pile="discard"]').evaluate((element) => {
@@ -16156,10 +16171,10 @@ await page.evaluate(() => {
 })
 await page.getByRole('button', { name: /^End Turn \d+/ }).click()
 await page.waitForFunction(() => window.__STS_DEBUG__.getState().phase === 'discard')
-await page.waitForFunction(() => document.querySelector('[aria-label="Top discard for Ironclad"]')?.value === 'end-bash')
-const freshDiscardTop = await page.getByLabel('Top discard for Ironclad').inputValue()
+await topDiscardDialog.locator('.hand-discard__selection .card[data-card-name="Bash"]').waitFor()
+const freshDiscardTop = await topDiscardDialog.locator('.hand-discard__selection .card').getAttribute('data-card-name')
 check('a prior turn\'s top-card choice is cleared when that card returns', () => {
-  assertEqual(freshDiscardTop, 'end-bash', 'the new hand defaults to its current top')
+  assertEqual(freshDiscardTop, 'Bash', 'the new hand defaults to its current top')
 })
 await page.setViewportSize({ width: 1440, height: 900 })
 
@@ -16446,7 +16461,7 @@ check('a mandatory local Relic hides and blocks map progression for owner and te
   assert(localTeammateMapBlocked)
 })
 await chooseSeat(localRelicSeats[0])
-const localAstrolabeChoices = page.locator('.campfire__deck button')
+const localAstrolabeChoices = page.locator('.card-picker__grid > .card')
 for (let index = 0; index < 3; index++) await localAstrolabeChoices.nth(index).click()
 await page.getByRole('button', { name: 'Confirm Astrolabe' }).click()
 await page.locator('.map:not([inert]) .room--reachable').first().waitFor()

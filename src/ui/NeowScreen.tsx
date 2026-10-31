@@ -31,6 +31,7 @@ type Props = {
   progress: Record<string, NeowUiProgress | null>
   viewerId: string
   enabled?: boolean
+  selectionDialogsActive?: boolean
   disabledMessage?: string
   ascension: number
   onViewer?: (playerId: string) => void
@@ -116,7 +117,7 @@ function OfferChoice({ offer, player, players, ascension, enabled, status, title
     uidPrefix="neow-offer" onChoose={onResolve} onSkip={() => onResolve(null)} />
 }
 
-export function NeowScreen({ players, progress, viewerId, ascension, enabled = true, disabledMessage, onViewer, onReveal, onReward, onEffect, onChoose, onArmCardGain }: Props) {
+export function NeowScreen({ players, progress, viewerId, ascension, enabled = true, selectionDialogsActive = true, disabledMessage, onViewer, onReveal, onReward, onEffect, onChoose, onArmCardGain }: Props) {
   const participants = players.filter((player) => progress[player.id])
   const viewerParticipates = participants.some((player) => player.id === viewerId)
   const viewer = participants.find((player) => player.id === viewerId) ?? participants[0]
@@ -238,6 +239,7 @@ export function NeowScreen({ players, progress, viewerId, ascension, enabled = t
         <button type="button" disabled={!canAct} onClick={() => submit(() => onEffect(viewer.id, false, {}))}>Skip reward</button>
       </fieldset> : null}
       {effect && selection.cards.length > 0 ? createPortal(<CardPicker
+        active={selectionDialogsActive}
         cards={selection.cards}
         verb={effect.kind === 'upgrade' ? 'Upgrade' : effect.kind === 'transform' ? 'Transform' : 'Remove'}
         selectedCardUids={selectedCards}

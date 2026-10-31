@@ -4556,11 +4556,11 @@ await page.evaluate(() => {
 })
 await page.getByRole('heading', { name: 'Resolve Whetstone' }).waitFor()
 const compactPendingRelic = await page.evaluate(() => {
-  const panel = document.querySelector('.relic-resolve')?.getBoundingClientRect()
-  const heading = document.querySelector('.relic-resolve h2')?.getBoundingClientRect()
-  const rules = document.querySelector('.relic-resolve .room-item-text')?.getBoundingClientRect()
-  const action = document.querySelector('.relic-resolve__footer .card-picker__confirm')?.getBoundingClientRect()
-  const cards = [...document.querySelectorAll('.relic-resolve .card')]
+  const panel = document.querySelector('.card-picker')?.getBoundingClientRect()
+  const heading = document.querySelector('.card-picker__source h2')?.getBoundingClientRect()
+  const rules = document.querySelector('.card-picker__source p')?.getBoundingClientRect()
+  const action = document.querySelector('.card-picker__footer .card-picker__confirm')?.getBoundingClientRect()
+  const cards = [...document.querySelectorAll('.card-picker .card')]
   const map = document.querySelector('.map')
   const visible = (box) => Boolean(box && panel && box.top >= panel.top - 1 && box.bottom <= panel.bottom + 1)
   const hit = action ? document.elementFromPoint(action.left + action.width / 2, action.top + action.height / 2) : null
@@ -4572,8 +4572,8 @@ const compactPendingRelic = await page.evaluate(() => {
     headingVisible: visible(heading),
     rulesVisible: visible(rules),
     actionVisible: visible(action),
-    actionHittable: Boolean(hit?.closest('.relic-resolve__footer .card-picker__confirm')),
-    actionTick: Boolean(document.querySelector('.relic-resolve__footer .card-picker__confirm svg')),
+    actionHittable: Boolean(hit?.closest('.card-picker__footer .card-picker__confirm')),
+    actionTick: Boolean(document.querySelector('.card-picker__footer .card-picker__confirm svg')),
   }
 })
 await page.screenshot({ path: join(outDir, 'relic-resolve-whetstone-compact.png'), fullPage: true })
@@ -4669,10 +4669,10 @@ await page.evaluate(() => {
   }
   debug.setRun(run)
 })
-await page.getByRole('heading', { name: 'Mysterious Sphere' }).waitFor()
+await page.getByRole('dialog', { name: /^Foresight.*Scry 3$/ }).waitFor()
 const spherePreview = await page.evaluate(() => ({
   encounter: document.querySelector('.event-encounter-preview')?.textContent ?? '',
-  scryCards: document.querySelectorAll('.event-cards .card').length,
+  scryCards: document.querySelectorAll('.hand-discard__hand .card').length,
   options: document.querySelectorAll('.event-options button').length,
   overflow: document.documentElement.scrollWidth > innerWidth,
 }))

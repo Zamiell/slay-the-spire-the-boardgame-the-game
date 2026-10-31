@@ -70,7 +70,7 @@ import {
 import type { StagedAttackSpec } from './combat-screen/staged-attacks.ts'
 import { assetPath, potionIconPath, relicIconPath } from '../game/assets.ts'
 import { CombatAnimation, combatVideoPath, preloadCombatVideo, useSafariCombatVideo } from './CombatAnimation.tsx'
-import { cardCost, cardDef, cardIsCurse, faceOf } from '../game/cards.ts'
+import { cardDef, cardIsCurse, faceOf } from '../game/cards.ts'
 import {
   activeCardPlayWindow,
   activatePotion,
@@ -483,6 +483,7 @@ function CombatScreenView({
   onChange,
   onAction,
   autoAdvance = true,
+  selectionDialogsActive = true,
   courierUsedBy,
   onCourierReveal,
   mutationsEnabled = true,
@@ -541,7 +542,6 @@ function CombatScreenView({
   const [usingPlayerChoice, setUsingPlayerChoice] = useState(false)
   const [usingSlayerChoice, setUsingSlayerChoice] = useState(false)
   const [playerChoiceDiscarding, setPlayerChoiceDiscarding] = useState(false)
-  const playerChoiceDialogRef = useRef<HTMLDialogElement | null>(null)
   const [powerGemContext, setPowerGemContext] = useState<PowerContext | null>(null)
   const [powerScryConfirmed, setPowerScryConfirmed] = useState(false)
   const [autoAdvanceRetry, setAutoAdvanceRetry] = useState(0)
@@ -549,6 +549,8 @@ function CombatScreenView({
   const [potionOverflowRequired, setPotionOverflowRequired] = useState(0)
   const [potionCardUids, setPotionCardUids] = useState<string[]>([])
   const [relicCardUids, setRelicCardUids] = useState<string[]>([])
+  const [relicCardChoiceIndex, setRelicCardChoiceIndex] = useState<number | null>(null)
+  const relicCardChoiceTrigger = useRef<HTMLButtonElement | null>(null)
   const [dieRelicCardUids, setDieRelicCardUids] = useState<string[]>([])
   const [dieRelicEnemyUid, setDieRelicEnemyUid] = useState<string | null>(null)
   const [relicShivEnemyUids, setRelicShivEnemyUids] = useState<string[]>([])
@@ -560,6 +562,8 @@ function CombatScreenView({
   const [usingCard, setUsingCard] = useState(false)
   const [discardTops, setDiscardTops] = useState<Record<string, string>>({})
   const [retainedCards, setRetainedCards] = useState<Record<string, string[]>>({})
+  const [retainChoiceOpen, setRetainChoiceOpen] = useState<boolean | 'auto'>('auto')
+  const [discardChoiceOpen, setDiscardChoiceOpen] = useState<boolean | 'auto'>('auto')
   const [discardOrders, setDiscardOrders] = useState<DiscardOrders>({})
   const [endTurnEffectDrag, setEndTurnEffectDrag] = useState<EndTurnEffectDrag | null>(null)
   const [armedEndTurnAbilityId, setArmedEndTurnAbilityId] = useState<string | null>(null)
@@ -613,10 +617,7 @@ function CombatScreenView({
   const prefersReducedMotion = reducedMotion
   const boardRef = useRef<HTMLDivElement | null>(null)
   const combatBarRef = useRef<HTMLElement | null>(null)
-  const choiceDialogRef = useRef<HTMLDialogElement | null>(null)
   const itemDialogRef = useRef<HTMLDialogElement | null>(null)
-  const startTurnScryDialogRef = useRef<HTMLDialogElement | null>(null)
-  const startTurnDiscardDialogRef = useRef<HTMLDialogElement | null>(null)
   const viewerRowRef = useRef<HTMLDivElement | null>(null)
   const followViewerRow = useRef(true)
   const programmaticScroll = useRef<{ left: number; top: number } | null>(null)
@@ -911,10 +912,6 @@ function CombatScreenView({
   }
 
   useEffect(() => { setPlayerChoiceDiscarding(false) }, [viewerPlayerChoice?.id])
-  useEffect(() => {
-    const dialog = playerChoiceDialogRef.current
-    if (playerChoiceDiscarding && dialog && !dialog.open) dialog.showModal()
-  }, [playerChoiceDiscarding, viewerPlayerChoice?.id])
 
   function submitPlayerChoice(answer: Omit<PlayerChoiceAnswer, 'choiceId'>) {
     if (!viewerPlayerChoice || usingPlayerChoice) return
@@ -1907,25 +1904,19 @@ function CombatScreenView({
   const handSelectionAction = pending?.choice?.kind === 'exhaust' || pending?.choice?.kind === 'exhaustAny'
     ? 'Exhaust'
     : pending?.choice?.kind === 'discard' || pending?.choice?.kind === 'discardAny'
-      ? 'Discard' : pending?.choice?.kind === 'bottomdeck' ? 'Put on bottom' : undefined
+      ? 'Discard' : pending?.choice?.kind === 'bottomdeck' ? 'Put on bottom'
+        : pending?.choice?.kind === 'load' || pending?.choice?.kind === 'loadAny' ? 'Load' : undefined
   const handSelectionCards = pending && !pending.choiceCards && handSelectionAction && !survivorDiscard
     ? viewer?.hand.filter((card) => !pending.cardInHand || card.uid !== pending.card.uid) ?? []
     : []
   const handSelectionMaximum = Math.min(pending?.choice?.amount ?? 0, handSelectionCards.length)
   const handSelectionMinimum = Math.min(pending?.choice?.kind === 'exhaustAny' ||
-    pending?.choice?.kind === 'discardAny' || pending?.choice?.kind === 'bottomdeck'
+    pending?.choice?.kind === 'discardAny' || pending?.choice?.kind === 'bottomdeck' || pending?.choice?.kind === 'loadAny'
     ? pending.choice.minimum ?? 0 : pending?.choice?.amount ?? 0, handSelectionCards.length)
   const handSelectionOpen = !onlyHandCard && handSelectionCards.length > 0 &&
     (!pending?.choiceConfirmed || pending.picked.length < handSelectionMinimum)
   const handSelectionCanCancel = Boolean(pending && (pending.cardInHand || pending.chamberPlay) &&
     pending.card.uid !== forcedCardUid)
-  useEffect(() => {
-    const dialog = choiceDialogRef.current
-    if (!dialog) return
-    if (pending?.choiceCards && !pending.choiceConfirmed && !owesChoice) {
-      if (!dialog.open) dialog.showModal()
-    } else if (dialog.open) dialog.close()
-  }, [pending?.choiceCards, pending?.choiceConfirmed, owesChoice])
 
   // A chosen Distilled Chaos card can still need a board target. Keeping the
   // reveal modal open makes the whole board inert and strands that card.
@@ -1933,14 +1924,13 @@ function CombatScreenView({
   const gemFinderScryOpen = viewer?.powers.some((power) =>
     power.uid === pendingPowerUid && power.defId === 'guardian_gem_finder') === true &&
     Boolean(powerChoiceCards) && !powerScryConfirmed
-  const itemModalOpen = ['liquid_memories', 'liquid_void', 'transforming_brew', 'purity_potion', 'entropic_brew'].includes(pendingPotion ?? '') ||
-    gemFinderScryOpen || Boolean(relicScry) || Boolean(visibleDistilled)
+  const itemModalOpen = pendingPotion === 'entropic_brew'
   useEffect(() => {
     const dialog = itemDialogRef.current
     if (itemModalOpen && !owesChoice) {
       if (dialog && !dialog.open) dialog.showModal()
     } else if (dialog?.open) dialog.close()
-  }, [itemModalOpen, owesChoice, pendingPotion, pendingPowerUid, relicScry?.playerId, visibleDistilled?.playerId])
+  }, [itemModalOpen, owesChoice])
 
   useEffect(() => {
     setStartTurnScryPicked([])
@@ -1948,20 +1938,7 @@ function CombatScreenView({
   }, [startTurnScryKey])
 
   useEffect(() => {
-    const dialog = startTurnScryDialogRef.current
-    const owned = activeStartTurnScry?.playerId === viewerId && activeStartTurnScry.cards !== null
-    if (owned) {
-      if (dialog && !dialog.open) dialog.showModal()
-    } else if (dialog?.open) dialog.close()
-  }, [startTurnScryKey, activeStartTurnScry?.playerId, activeStartTurnScry?.cards, viewerId])
-
-  useEffect(() => {
     setResolvingStartTurnDiscard(false)
-    const dialog = startTurnDiscardDialogRef.current
-    const owned = activeStartTurnDiscard?.playerId === viewerId && activeStartTurnDiscard.cards !== null
-    if (owned) {
-      if (dialog && !dialog.open) dialog.showModal()
-    } else if (dialog?.open) dialog.close()
   }, [activeStartTurnDiscard?.playerId, activeStartTurnDiscard?.sourceId,
     activeStartTurnDiscard?.cards, viewerId])
 
@@ -2163,6 +2140,8 @@ function CombatScreenView({
     if (state.phase !== 'discard') {
       setDiscardTops({})
       setRetainedCards({})
+      setRetainChoiceOpen('auto')
+      setDiscardChoiceOpen('auto')
       setDiscardOrders({})
     }
     if (state.phase !== 'player') setArmedEndTurnAbilityId(null)
@@ -2177,6 +2156,10 @@ function CombatScreenView({
       setStartTurnEvokeTargets({})
     }
   }, [state.phase])
+  useEffect(() => {
+    setRetainChoiceOpen('auto')
+    setDiscardChoiceOpen('auto')
+  }, [viewerId, state.turn])
 
   useEffect(() => {
     if (state.phase !== 'start') return
@@ -2530,10 +2513,25 @@ function CombatScreenView({
   const allowanceRetains = selectedRetains.filter((uid) => !optionalRetainUids.has(uid)).slice(0, retainAllowance)
   const viewerRetainedCards = [...selectedRetains.filter((uid) => optionalRetainUids.has(uid)), ...allowanceRetains]
   const retainedSet = new Set(viewerRetainedCards)
+  const retainChoices = discardableHand.filter(card => retainAllowance > 0 || optionalRetainUids.has(card.uid))
+  const retainSource = [...viewer.powers, ...viewer.discard].find(card =>
+    faceOf(cardDef(card.defId), card.upgraded).effects.some(effect =>
+      effect.kind === 'retainAtEndOfTurn' || effect.kind === 'retainForBlock')) ??
+    viewer.powers.find(card => optionalRetainUids.size > 0 && card.defId === 'slayer_master_reality')
+  const cardSelectionContext = {
+    blockPreviews: cardBlock, active: selectionDialogsActive && !owesChoice, drawLocked: viewer.drawLocked,
+    sharedDrawLocked, stanceChangedThisTurn,
+  }
   const discardCandidates = discardableHand.filter((card) => !retainedSet.has(card.uid))
-  const viewerDiscardTop = discardTops[viewer.id] && discardCandidates.some((card) => card.uid === discardTops[viewer.id])
-    ? discardTops[viewer.id]
+  const savedDiscardTop = discardTops[viewer.id]
+  const viewerDiscardTop = savedDiscardTop && discardCandidates.some(card => card.uid === savedDiscardTop)
+    ? savedDiscardTop
     : discardCandidates.at(-1)?.uid ?? ''
+  const choosingRetains = state.phase === 'discard' && viewerNeedsEndTurnChoice && retainChoices.length > 0 &&
+    (retainChoiceOpen === true || retainChoiceOpen === 'auto' && !discardOrders[viewer.id])
+  const choosingDiscardTop = state.phase === 'discard' && viewerNeedsEndTurnChoice && viewerNeedsDiscardTop &&
+    discardCandidates.length > 1 && !choosingRetains &&
+    (discardChoiceOpen === true || discardChoiceOpen === 'auto' && !discardOrders[viewer.id])
   const canResolveEndTurn = endTurnEffect?.playerId === viewer.id
   const endTurnChoiceTargets = canResolveEndTurn
     ? endTurnEffect?.targets?.filter((target) => target.uid === 'use' || target.uid === 'skip' ||
@@ -3089,7 +3087,7 @@ function CombatScreenView({
     finishTurnNow()
   }
 
-  function finishTurnNow() {
+  function finishTurnNow(discardTop?: string) {
     if (!viewer) return
     if (pending?.choiceCards) return
     // Slayer Pack: a card-given choice still owed (by anyone at this table) is answered first.
@@ -3103,7 +3101,7 @@ function CombatScreenView({
       }
       return
     }
-    const selected = discardTops[viewer.id]
+    const selected = discardTop ?? discardTops[viewer.id]
     const top = selected && discardCandidates.some((card) => card.uid === selected)
       ? selected
       : discardCandidates.at(-1)?.uid
@@ -3243,6 +3241,7 @@ function CombatScreenView({
       })).then((outcome) => {
         relicActionPending.current = false
         if (outcome?.status === 'accepted') {
+          setRelicCardChoiceIndex(null)
           setRelicCardUids([])
           setRelicShivEnemyUids([])
           return
@@ -3256,6 +3255,7 @@ function CombatScreenView({
       }, () => { relicActionPending.current = false })
       return
     }
+    setRelicCardChoiceIndex(null)
     setRelicCardUids([])
     setRelicShivEnemyUids([])
     onChange?.(result)
@@ -5310,43 +5310,14 @@ function CombatScreenView({
                   </button>
                 </PotionTooltipAnchor>
               }) : null}
-              {state.phase === 'discard' && (retainAllowance > 0 && discardableHand.length > 0 || optionalRetainUids.size > 0) ? (
-                <span className="retain-options" role="group"
-                  aria-label={`Retain up to ${retainAllowance + optionalRetainUids.size} cards for ${viewer.name}`}>
-                  {discardableHand.filter((card) => retainAllowance > 0 || optionalRetainUids.has(card.uid)).map((card) => {
-                    const retained = retainedSet.has(card.uid)
-                    const name = faceOf(cardDef(card.defId), card.upgraded).name
-                    return <button key={card.uid} type="button" aria-pressed={retained}
-                      disabled={!retained && !optionalRetainUids.has(card.uid) && allowanceRetains.length >= retainAllowance}
-                      onClick={() => setRetainedCards((current) => ({
-                        ...current,
-                        [viewer.id]: retained
-                          ? viewerRetainedCards.filter((uid) => uid !== card.uid)
-                          : [...viewerRetainedCards, card.uid],
-                      }))}>
-                      {retained ? '✓ ' : ''}Retain {name}
-                    </button>
-                  })}
-                </span>
-              ) : null}
+              {state.phase === 'discard' && viewerNeedsEndTurnChoice && retainChoices.length > 0
+                ? <button type="button" onClick={() => setRetainChoiceOpen(true)}>Choose retained cards</button> : null}
               {state.phase === 'discard' && viewerNeedsEndTurnChoice && viewerNeedsDiscardTop &&
               discardCandidates.length > 1 ? (
-                <label className="discard-order">
-                  Top discard
-                  <select
-                    aria-label={`Top discard for ${viewer.name}`}
-                    value={viewerDiscardTop}
-                    onChange={(event) => setDiscardTops((current) => ({
-                      ...current,
-                      [viewer.id]: event.target.value,
-                    }))}
-                  >
-                    {discardCandidates.map((card) => {
-                      const def = faceOf(cardDef(card.defId), card.upgraded)
-                      return <option key={card.uid} value={card.uid}>{`${def.unplayable ? '—' : cardCost(def, viewer.powers, viewer.lostHpThisCombat)} · ${def.name}`}</option>
-                    })}
-                  </select>
-                </label>
+                <button type="button" onClick={() => {
+                  setRetainChoiceOpen(false)
+                  setDiscardChoiceOpen(true)
+                }}>Choose top discard</button>
               ) : null}
               {/* The count lives on the End turn button itself. A co-op turn
                   ends when everyone says so, and being told who the table is
@@ -5617,6 +5588,7 @@ function CombatScreenView({
       ) : null}
 
       {survivorDiscard && pending ? <HandSelectionScreen action="Discard" source="Survivor"
+        active={selectionDialogsActive && !owesChoice}
         sourceCard={pending.card} blockPreviews={cardBlock}
         cards={viewer.hand.filter((card) => !pending.cardInHand || card.uid !== pending.card.uid)}
         selectedUids={pending.picked} minimum={Math.min(1, choicePoolSize)} maximum={Math.min(1, choicePoolSize)}
@@ -5679,32 +5651,39 @@ function CombatScreenView({
               ) : null}
             </span>
           ) : null}
-          {pendingHermitPower && pendingPowerDef?.id === 'hermit_shadow_cloak' ? [...viewer.hand, ...viewer.chamber]
-            .filter((card) => faceOf(cardDef(card.defId), card.upgraded).type === 'curse').map((card) => (
-              <button type="button" className="prompt__mode" key={card.uid}
-                onClick={() => usePower(pendingPowerUid!, { chamberUids: [card.uid] })}>
-                Discard {cardDef(card.defId).name}
-              </button>
-            )) : null}
+          {pendingHermitPower && pendingPowerDef?.id === 'hermit_shadow_cloak' ? (
+            <HandSelectionScreen {...cardSelectionContext} action="Discard" source={pendingPowerDef.name} sourceCard={pendingPower}
+              cards={[...viewer.hand, ...viewer.chamber].filter(card => faceOf(cardDef(card.defId), card.upgraded).type === 'curse')}
+              cardSource="chamber" selectedUids={[]} minimum={1} maximum={1} disabled={usingPower}
+              description="Choose a Curse from your hand or Chamber."
+              onSelect={card => usePower(pendingPowerUid!, { chamberUids: [card.uid] })}
+              cancelLabel="Cancel" onCancel={() => setPendingPowerUid(null)} />
+          ) : null}
           {pendingPower?.attachedGemId === 'guardian_amethyst' ? [false, true].map((shift) => (
             <button type="button" className="prompt__mode" key={String(shift)}
               onClick={() => choosePowerContext({ guardianModeShift: shift })}>
               {shift ? 'Mode Shift' : 'Stay in Mode'}
             </button>
           )) : null}
-          {pendingPowerDef?.id === 'guardian_revenge_protocol' ? viewer.hand.filter((card) =>
-            effectiveCombatCardDef(faceOf(cardDef(card.defId), card.upgraded), viewer.guardianMode).type === 'attack').map((card) => (
-              <button type="button" className="prompt__mode" key={card.uid}
-                onClick={() => usePower(pendingPowerUid!, { cardUid: card.uid })}>{cardDef(card.defId).name}</button>
-            )) : null}
+          {pendingPowerDef?.id === 'guardian_revenge_protocol' ? (
+            <HandSelectionScreen {...cardSelectionContext} action="Choose" source={pendingPowerDef.name} sourceCard={pendingPower}
+              cards={viewer.hand.filter(card =>
+                effectiveCombatCardDef(faceOf(cardDef(card.defId), card.upgraded), viewer.guardianMode).type === 'attack')}
+              selectedUids={[]} minimum={1} maximum={1} disabled={usingPower}
+              onSelect={card => usePower(pendingPowerUid!, { cardUid: card.uid })}
+              cancelLabel="Cancel" onCancel={() => setPendingPowerUid(null)} />
+          ) : null}
           {pendingHermitPower && pendingPowerDef?.id === 'hermit_black_wind' && powerChamberUids.length === 0
-            ? viewer.chamber.map((card) => (
-              <button type="button" className="prompt__mode" key={card.uid}
-                onClick={() => setPowerChamberUids([card.uid])}>Discard {cardDef(card.defId).name}</button>
-            )) : null}
+            ? <HandSelectionScreen {...cardSelectionContext} action="Discard" source={pendingPowerDef.name} sourceCard={pendingPower}
+              cards={viewer.chamber} cardSource="chamber" selectedUids={[]} minimum={1} maximum={1}
+              disabled={usingPower} onSelect={card => setPowerChamberUids([card.uid])}
+              cancelLabel="Cancel" onCancel={() => setPendingPowerUid(null)} /> : null}
           {pendingHermitPower && pendingPowerDef?.id === 'hermit_black_wind' && powerChamberUids.length === 1 &&
-          powerLoadUids.length === 0 ? viewer.hand.map((card) => (
-              <button type="button" className="prompt__mode" key={card.uid} onClick={() => {
+          powerLoadUids.length === 0 ? (
+            <HandSelectionScreen {...cardSelectionContext} action="Load" source={pendingPowerDef.name} sourceCard={pendingPower}
+              cards={viewer.hand} selectedUids={[]} minimum={1} maximum={1} disabled={usingPower}
+              cancelLabel="Cancel" onCancel={() => setPendingPowerUid(null)}
+              onSelect={card => {
                 if (['hermit_grudge', 'hermit_malice', 'hermit_horror'].includes(card.defId)) {
                   if (onlyEnemy) usePower(pendingPowerUid!, {
                     chamberUids: powerChamberUids, loadUids: [card.uid], hermitEnemyUids: [onlyEnemy.uid],
@@ -5714,8 +5693,8 @@ function CombatScreenView({
                   usePower(pendingPowerUid!, { chamberUids: powerChamberUids, loadUids: [card.uid] })
                   setPowerChamberUids([])
                 }
-              }}>Load {cardDef(card.defId).name}</button>
-            )) : null}
+              }} />
+          ) : null}
           {pendingTrigger?.playerId === viewerId && pendingTrigger.hermitChoices && triggerHermitStep !== 'cards' ? (
             <button type="button" className="prompt__mode" ref={triggerHermitReopenRef} disabled={usingTrigger}
               onClick={() => setTriggerHermitStep('cards')}>
@@ -5890,9 +5869,10 @@ function CombatScreenView({
               ) : null}
             </>
           ) : null}
-          {pending?.chamberChoice && chamberChoiceRequired(pending) > 0 && !pending.chamberChoiceConfirmed ? (
-            <>
-              {(() => {
+          {pending?.chamberChoice && !pending.chamberChoiceConfirmed && !handSelectionOpen &&
+            !(pending.choiceCards && !pending.choiceConfirmed) && pending.chooseLoadSelf !== null &&
+            (pending.chamberChoice.baseAmount === undefined ? pending.chamberChoice.amount > 0
+              : chamberChoiceRequired(pending) > 0) ? (() => {
                 const choice = pending.chamberChoice!
                 const required = chamberChoiceRequired(pending)
                 const baseAmount = Math.min(choice.baseAmount ?? required, required)
@@ -5900,41 +5880,50 @@ function CombatScreenView({
                 const candidateUids = choice.baseAmount === undefined || choosingBase
                   ? choice.eligibleUids
                   : chamberReplacementOptions(pending)
-                return candidateUids.map((uid) => {
-                const card = [...viewer.chamber, ...(pending.choiceCards ?? []), pending.card]
-                  .find((candidate) => candidate.uid === uid)
-                const selected = choosingBase && pending.chamberUids.includes(uid)
-                return <button type="button" className="prompt__mode" key={uid} aria-pressed={selected}
-                  onClick={() => {
+                const candidates = [...viewer.chamber, ...viewer.hand, ...(pending.choiceCards ?? []), pending.card]
+                return <HandSelectionScreen {...cardSelectionContext} source={pendingDef!.name} sourceCard={pending.card}
+                  action={choice.kind === 'play' ? 'Play' : choice.kind === 'discount' ? 'Discount' : 'Discard'}
+                  description={choice.kind === 'replace' ? 'Choose a Chamber card to discard and make room.' : undefined}
+                  cardSource="chamber" cards={candidateUids.map(uid => {
+                    const card = candidates.find(card => card.uid === uid)
+                    if (!card) throw new Error(`Missing Chamber choice card: ${uid}`)
+                    return card
+                  })}
+                  selectedUids={pending.chamberUids} minimum={0} maximum={choice.amount} disabled={usingCard}
+                  onSelect={card => {
+                    const uid = card.uid
+                    const selected = (choice.baseAmount === undefined || choosingBase) && pending.chamberUids.includes(uid)
                     const chamberUids = choice.baseAmount === undefined || choosingBase
                       ? selected ? pending.chamberUids.filter((heldUid) => heldUid !== uid)
-                        : pending.chamberUids.length < required ? [...pending.chamberUids, uid] : pending.chamberUids
+                        : pending.chamberUids.length < (choice.baseAmount === undefined ? choice.amount : required)
+                          ? [...pending.chamberUids, uid] : pending.chamberUids
                       : [...pending.chamberUids, uid]
-                    const exact = chamberUids.length === chamberChoiceRequired(pending)
+                    const exact = (choice.baseAmount !== undefined || choice.minimum === choice.amount) &&
+                      chamberUids.length === chamberChoiceRequired(pending)
                     const next = { ...pending, chamberUids, chamberChoiceConfirmed: exact }
                     if (exact) stageOrCommit(next)
                     else setPending(next)
-                  }}>{card ? cardDef(card.defId).name : 'Loaded card'}</button>
-                })
-              })()}
-              {pending.chamberChoice.baseAmount !== undefined &&
-              pending.chamberUids.length > pending.chamberChoice.baseAmount ? (
+                  }}
+                  onCancel={handSelectionCanCancel ? cancelCardPlay : undefined}
+                  confirmControls={<>
+              {choice.baseAmount !== undefined &&
+              pending.chamberUids.length > choice.baseAmount ? (
                 <button type="button" className="prompt__cancel" onClick={() => setPending({
                   ...pending,
                   chamberUids: pending.chamberUids.slice(0, -1),
                   chamberChoiceConfirmed: false,
                 })}>Undo replacement</button>
               ) : null}
-              {pending.chamberChoice.baseAmount === undefined &&
-              pending.chamberChoice.minimum !== pending.chamberChoice.amount ? (
+              {choice.baseAmount === undefined &&
+              choice.minimum !== choice.amount ? (
                 <button type="button" className="prompt__mode"
                   disabled={pending.chamberUids.length < pending.chamberChoice.minimum}
                   onClick={() => stageOrCommit({ ...pending, chamberChoiceConfirmed: true })}>
                   Confirm {pending.chamberUids.length}
                 </button>
               ) : null}
-            </>
-          ) : null}
+                  </>} />
+          })() : null}
           {(pending?.choice?.kind === 'discardAny' || pending?.choice?.kind === 'exhaustAny' ||
             pending?.choice?.kind === 'loadAny' || pending?.choice?.kind === 'bottomdeck') && !pending.choiceConfirmed &&
             !pending.choiceCards ? (
@@ -5965,12 +5954,10 @@ function CombatScreenView({
             </button>
           )) : null}
           {pendingPowerBeamChoiceNeeded && pending?.guardianPowerCardUid === null
-            ? pendingPowerBeamCards.map((card) => (
-              <button type="button" className="prompt__mode" key={card.uid}
-                onClick={() => stageOrCommit({ ...pending, guardianPowerCardUid: card.uid })}>
-                Play {cardDef(card.defId).name} for 0
-              </button>
-            ))
+            ? <HandSelectionScreen {...cardSelectionContext} action="Play" source={pendingDef!.name} sourceCard={pending.card}
+              cards={pendingPowerBeamCards} selectedUids={[]} minimum={1} maximum={1} cost={0}
+              disabled={usingCard} onSelect={card => stageOrCommit({ ...pending, guardianPowerCardUid: card.uid })}
+              onCancel={handSelectionCanCancel ? cancelCardPlay : undefined} />
             : null}
           {pendingPotion && pendingPotionOverflow > 0 ? (
             <button
@@ -6001,26 +5988,26 @@ function CombatScreenView({
       ) : null}
 
       {pendingPotionNeedsCards ? (
-        <dialog ref={itemDialogRef} className="distilled-choice" aria-labelledby="potion-card-choice-title"
-          onCancel={(event) => {
-            event.preventDefault()
-            cancelPotionChoice()
-          }}>
-          <h2 id="potion-card-choice-title">{pendingPotionDef!.name}</h2>
-          <p>{pendingPotion === 'liquid_memories'
+        <HandSelectionScreen action={pendingPotion === 'purity_potion' ? 'Exhaust'
+          : pendingPotion === 'transforming_brew' ? 'Transform' : 'Return to hand'}
+          source={pendingPotionDef!.name} title={pendingPotionDef!.name}
+          cardSource={pendingPotion === 'liquid_memories' ? 'discard' : pendingPotion === 'liquid_void' ? 'exhaust' : 'hand'}
+          description={pendingPotion === 'liquid_memories'
             ? 'Choose one discarded card to return to your hand for 0 Energy this turn.'
             : pendingPotion === 'liquid_void'
               ? 'Choose one Exhausted card to return to your hand for 0 Energy this turn.'
               : pendingPotion === 'transforming_brew'
                 ? 'Choose one non-Curse card in your hand to Transform.'
-                : 'Choose up to three cards in your hand, then confirm.'}</p>
-          <div className="distilled-choice__cards">
-            {(pendingPotion === 'liquid_memories' ? viewer.discard
+                : 'Choose up to three cards in your hand, then confirm.'}
+          cards={(pendingPotion === 'liquid_memories' ? viewer.discard
               : pendingPotion === 'liquid_void' ? viewer.exhaust : viewer.hand)
-              .filter((card) => pendingPotion !== 'transforming_brew' || !cardIsCurse(card.defId)).map((card) => (
-              <Card key={card.uid} card={card} selected={potionCardUids.includes(card.uid)}
-                drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
-                onClick={() => pendingPotion === 'liquid_memories'
+              .filter(card => pendingPotion !== 'transforming_brew' || !cardIsCurse(card.defId))}
+          selectedUids={potionCardUids} minimum={pendingPotion === 'purity_potion' ? 0 : 1}
+          maximum={pendingPotion === 'purity_potion' ? 3 : 1} disabled={usingPotion} active={selectionDialogsActive && !owesChoice}
+          canSelect={() => pendingPotion !== 'purity_potion' || potionCardUids.length < 3}
+          blockPreviews={cardBlock} drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked}
+          stanceChangedThisTurn={stanceChangedThisTurn}
+          onSelect={card => pendingPotion === 'liquid_memories'
                   ? consumePotion(pendingPotion, { recoverDiscardUid: card.uid })
                   : pendingPotion === 'liquid_void'
                     ? consumePotion(pendingPotion, { recoverExhaustUid: card.uid })
@@ -6028,17 +6015,11 @@ function CombatScreenView({
                     ? consumePotion(pendingPotion, { transformHandUid: card.uid })
                   : setPotionCardUids((current) => current.includes(card.uid)
                     ? current.filter((uid) => uid !== card.uid)
-                    : current.length < 3 ? [...current, card.uid] : current)} />
-            ))}
-          </div>
-          {pendingPotion === 'purity_potion' ? (
-            <button type="button" className="prompt__mode"
-              onClick={() => consumePotion(pendingPotion, { exhaustUids: potionCardUids })}>
-              Exhaust {potionCardUids.length || 'none'}
-            </button>
-          ) : null}
-          <button type="button" className="prompt__cancel" onClick={cancelPotionChoice}>Cancel</button>
-        </dialog>
+                    : current.length < 3 ? [...current, card.uid] : current)}
+          onConfirm={pendingPotion === 'purity_potion'
+            ? () => consumePotion(pendingPotion, { exhaustUids: potionCardUids }) : undefined}
+          confirmLabel={`Exhaust ${potionCardUids.length || 'none'}`}
+          cancelLabel="Cancel" onCancel={cancelPotionChoice} />
       ) : null}
 
       {pendingPotion === 'destiny_draught' ? (
@@ -6113,52 +6094,23 @@ function CombatScreenView({
               </PotionTooltipAnchor>
             if (held.defId === 'golden_eye') return [simpleAction]
             if (held.defId === 'gambling_chip') return [simpleAction]
-            if (held.defId === 'fuel_canister') return [<details key={relicIndex}>
-              {choiceSummary()}<p className="room-item-text">{def.text}</p>
-              <div className="campfire__deck">{viewer.hand.map((card) => <Card key={card.uid} card={card}
-                drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
-                selected={relicCardUids[0] === card.uid} onClick={() => setRelicCardUids([card.uid])} />)}</div>
-              <button type="button" disabled={relicCardUids.length !== 1}
-                onClick={() => useRelic(relicIndex, { cardUids: relicCardUids })}>Exhaust and gain Energy</button>
-            </details>]
+            if (['fuel_canister', 'blue_candle', 'runic_pyramid', 'charons_ashes'].includes(held.defId))
+              return [<PotionTooltipAnchor id={held.defId} key={relicIndex}
+                name={def.name} text={description} kindLabel="Relic">
+                <button type="button" aria-label={`Use ${def.name}: ${description}`}
+                  onClick={event => {
+                    relicCardChoiceTrigger.current = event.currentTarget
+                    setRelicCardUids([])
+                    setRelicCardChoiceIndex(relicIndex)
+                  }}>
+                  <img className="item-icon-image" src={relicIconPath(held.defId)} alt="" />
+                </button>
+              </PotionTooltipAnchor>]
             if (held.defId === 'shot_glass') return [<details key={relicIndex}>
               {choiceSummary()}<p className="room-item-text">{def.text}</p>
               {viewer.potions.map((potionId, index) => <button type="button" key={`${potionId}-${index}`}
                 onClick={() => useRelic(relicIndex, { discardPotionId: potionId })}>
                 Discard {potionDef(potionId).name}
-              </button>)}
-            </details>]
-            if (held.defId === 'blue_candle' || held.defId === 'runic_pyramid') return [<details key={relicIndex}>
-              {choiceSummary()}<p className="room-item-text">{def.text}</p>
-              {held.defId === 'runic_pyramid' ? <p className="room-item-text">Choose the cards to keep for your next turn.</p> : null}
-              <div className="campfire__deck">{viewer.hand.map((card) => <Card key={card.uid} card={card}
-                drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
-                selected={relicCardUids.includes(card.uid)} onClick={() => setRelicCardUids((current) =>
-                  current.includes(card.uid) ? current.filter((uid) => uid !== card.uid) :
-                    held.defId === 'blue_candle' && current.length >= 2 ? current : [...current, card.uid])} />)}</div>
-              <button type="button" disabled={held.defId === 'runic_pyramid' && relicCardUids.length === 0}
-                onClick={() => useRelic(relicIndex, { cardUids: relicCardUids })}>
-                {held.defId === 'runic_pyramid' ? `Retain ${relicCardUids.length} card${relicCardUids.length === 1 ? '' : 's'}` : 'Activate'}
-              </button>
-              <button type="button" onClick={(event) => {
-                setRelicCardUids([])
-                const details = event.currentTarget.closest('details')
-                if (details) {
-                  details.open = false
-                  details.querySelector('summary')?.focus()
-                }
-              }}>Cancel</button>
-            </details>]
-            if (held.defId === 'charons_ashes') return [<details key={relicIndex}>
-              {choiceSummary(onlyEnemy ? 'choose a card' : 'choose a card and target')}
-              <p className="room-item-text">{def.text}</p>
-              <div className="campfire__deck">{viewer.hand.map((card) => <Card key={card.uid} card={card}
-                drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
-                selected={relicCardUids[0] === card.uid} onClick={() => setRelicCardUids([card.uid])} />)}</div>
-              {enemyButtonOrder.map((enemy) => <button type="button" key={enemy.uid}
-                disabled={relicCardUids.length !== 1}
-                onClick={() => useRelic(relicIndex, { cardUids: relicCardUids, enemyUid: enemy.uid })}>
-                {onlyEnemy ? 'Activate' : `Hit ${enemyLabel(state.enemies, enemy)}`}
               </button>)}
             </details>]
             if (heldId === 'ninja_scroll') {
@@ -6203,102 +6155,130 @@ function CombatScreenView({
         </div>
       ) : null}
 
+      {relicCardChoiceIndex !== null && viewer.relics[relicCardChoiceIndex] && canUseRelicNow(relicCardChoiceIndex) ? (() => {
+        const index = relicCardChoiceIndex
+        const def = relicDef(viewer.relics[index]!.defId)
+        const retain = def.id === 'runic_pyramid'
+        const maximum = retain ? viewer.hand.length : def.id === 'blue_candle' ? 2 : 1
+        return <HandSelectionScreen action={retain ? 'Retain' : 'Exhaust'} source={def.name}
+          description={def.text} cards={viewer.hand} selectedUids={relicCardUids}
+          minimum={def.id === 'blue_candle' ? 0 : 1} maximum={maximum}
+          disabled={!mutationsEnabled || authoritativeConnected === false} active={selectionDialogsActive && !owesChoice}
+          blockPreviews={cardBlock} drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked}
+          stanceChangedThisTurn={stanceChangedThisTurn}
+          canSelect={() => maximum === 1 || relicCardUids.length < maximum}
+          onSelect={card => setRelicCardUids(current => current.includes(card.uid)
+            ? current.filter(uid => uid !== card.uid) : [...current, card.uid].slice(-maximum))}
+          onConfirm={() => useRelic(index, { cardUids: relicCardUids })}
+          confirmLabel={retain ? `Retain ${relicCardUids.length} card${relicCardUids.length === 1 ? '' : 's'}`
+            : def.id === 'fuel_canister' ? 'Exhaust and gain Energy' : 'Activate'}
+          confirmControls={def.id === 'charons_ashes' ? enemyButtonOrder.map(enemy =>
+            <button type="button" key={enemy.uid} disabled={relicCardUids.length !== 1}
+              onClick={() => useRelic(index, { cardUids: relicCardUids, enemyUid: enemy.uid })}>
+              {onlyEnemy ? 'Activate' : `Hit ${enemyLabel(state.enemies, enemy)}`}
+            </button>) : undefined}
+          cancelLabel="Cancel" onCancel={() => {
+            setRelicCardChoiceIndex(null)
+            setRelicCardUids([])
+            requestAnimationFrame(() => relicCardChoiceTrigger.current?.focus({ preventScroll: true }))
+          }} />
+      })() : null}
+
       {gemFinderScryOpen && powerChoiceCards ? (
-        <dialog ref={itemDialogRef} className="distilled-choice" aria-labelledby="gem-finder-title"
-          onCancel={(event) => event.preventDefault()}>
-          <h2 id="gem-finder-title">Gem Finder — Scry {pendingPower?.upgraded ? 4 : 3}</h2>
-          <p>Select any revealed non-Gem cards to discard.</p>
-          <div className="distilled-choice__cards">{powerChoiceCards.map((card) => <Card key={card.uid} card={card}
-            drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
-            playable={cardDef(card.defId).guardian?.printedType.startsWith('Gem') !== true}
-            selected={powerScryDiscardUids.includes(card.uid)} onClick={() => setPowerScryDiscardUids((current) =>
-              current.includes(card.uid) ? current.filter((uid) => uid !== card.uid) : [...current, card.uid])} />)}</div>
-          <button type="button" className="prompt__mode" onClick={confirmPowerScry}>
-            {powerScryDiscardUids.length === 0 ? 'Keep all and continue' : `Discard ${powerScryDiscardUids.length} and continue`}
-          </button>
-        </dialog>
+        <HandSelectionScreen action="Discard" source="Gem Finder" sourceCard={pendingPower}
+          title={`Gem Finder — Scry ${pendingPower?.upgraded ? 4 : 3}`} cardSource="revealed"
+          description="Select any revealed non-Gem cards to discard."
+          cards={powerChoiceCards} selectedUids={powerScryDiscardUids} minimum={0} maximum={powerChoiceCards.length}
+          disabled={usingPower} active={selectionDialogsActive && !owesChoice}
+          drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
+          canSelect={card => cardDef(card.defId).guardian?.printedType.startsWith('Gem') !== true}
+          onSelect={card => setPowerScryDiscardUids(current => current.includes(card.uid)
+            ? current.filter(uid => uid !== card.uid) : [...current, card.uid])}
+          onConfirm={confirmPowerScry} confirmLabel={powerScryDiscardUids.length === 0 ? 'Keep all and continue'
+            : `Discard ${powerScryDiscardUids.length} and continue`} />
       ) : null}
 
       {relicScry ? (
-        <dialog ref={itemDialogRef} className="distilled-choice" aria-labelledby="golden-eye-title"
-          onCancel={(event) => event.preventDefault()}>
-          <h2 id="golden-eye-title">Golden Eye — Scry 3</h2>
-          {relicScry.playerId === viewerId ? <>
-            <p>Select any revealed cards to discard.</p>
-            <div className="distilled-choice__cards">{relicScry.cards.map((card) => <Card key={card.uid} card={card}
-              drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
-              selected={relicCardUids.includes(card.uid)} onClick={() => setRelicCardUids((current) =>
-                current.includes(card.uid) ? current.filter((uid) => uid !== card.uid) : [...current, card.uid])} />)}</div>
-            <button type="button" className="prompt__mode"
-              onClick={() => useRelic(relicScry.relicIndex, { scryDiscardUids: relicCardUids })}>
-              Discard {relicCardUids.length || 'none'}
-            </button>
-          </> : <p>Waiting for {state.players.find((player) => player.id === relicScry.playerId)?.name}.</p>}
-        </dialog>
+        <HandSelectionScreen action="Discard" source="Golden Eye" title="Golden Eye — Scry 3" cardSource="revealed"
+          description={relicScry.playerId === viewerId ? 'Select any revealed cards to discard.'
+            : `Waiting for ${state.players.find(player => player.id === relicScry.playerId)?.name}.`}
+          cards={relicScry.playerId === viewerId ? relicScry.cards : []} selectedUids={relicCardUids}
+          minimum={0} maximum={relicScry.cards.length} disabled={relicScry.playerId !== viewerId} active={selectionDialogsActive && !owesChoice}
+          drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
+          onSelect={card => setRelicCardUids(current => current.includes(card.uid)
+            ? current.filter(uid => uid !== card.uid) : [...current, card.uid])}
+          onConfirm={relicScry.playerId === viewerId
+            ? () => useRelic(relicScry.relicIndex, { scryDiscardUids: relicCardUids }) : undefined}
+          confirmLabel={`Discard ${relicCardUids.length || 'none'}`} />
       ) : null}
 
       {visibleDistilled ? (
-        <dialog ref={itemDialogRef} className="distilled-choice" aria-labelledby="distilled-choice-title"
-          onCancel={(event) => event.preventDefault()}>
-          <h2 id="distilled-choice-title">Distilled Chaos</h2>
-          {visibleDistilled.playerId === viewerId ? (
-            <>
-              <p>Choose the next revealed card to play for 0 Energy.</p>
-              <div className="distilled-choice__cards">
-                {visibleDistilled.cards.map((card) => (
-                  <Card key={card.uid} card={card} cost={0} playable
-                    drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
-                    onClick={() => onAction
-                      ? void onAction({ kind: 'chooseDistilledCard', cardUid: card.uid })
-                      : onChange?.(chooseDistilledCard(state, viewerId, card.uid))} />
-                ))}
-              </div>
-            </>
-          ) : (
-            <p>Waiting for {state.players.find((player) => player.id === visibleDistilled.playerId)?.name ?? 'another player'} to choose the next card.</p>
-          )}
-        </dialog>
+        <HandSelectionScreen action="Play" source="Distilled Chaos" title="Distilled Chaos" cardSource="revealed"
+          description={visibleDistilled.playerId === viewerId ? 'Choose the next revealed card to play for 0 Energy.'
+            : `Waiting for ${state.players.find(player => player.id === visibleDistilled.playerId)?.name ?? 'another player'} to choose the next card.`}
+          cards={visibleDistilled.playerId === viewerId ? visibleDistilled.cards : []} selectedUids={[]}
+          minimum={1} maximum={1} cost={0} disabled={visibleDistilled.playerId !== viewerId} active={selectionDialogsActive && !owesChoice}
+          drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
+          onSelect={card => onAction ? void onAction({ kind: 'chooseDistilledCard', cardUid: card.uid })
+            : onChange?.(chooseDistilledCard(state, viewerId, card.uid))} />
       ) : null}
 
+      {choosingRetains ? (
+        <HandSelectionScreen action="Retain" source={retainSource ? cardDef(retainSource.defId).name : 'End of turn'}
+          sourceCard={retainSource} cards={retainChoices} selectedUids={viewerRetainedCards}
+          minimum={0} maximum={Math.min(retainChoices.length, retainAllowance + optionalRetainUids.size)}
+          description={optionalRetainUids.size > 0
+            ? retainAllowance > 0
+              ? `Retain up to ${retainAllowance} ordinary cards. Cards returned by Master Reality+ may also be retained without using this allowance.`
+              : 'You may Retain cards returned by Master Reality+.'
+            : undefined}
+          canSelect={card => optionalRetainUids.has(card.uid) || allowanceRetains.length < retainAllowance}
+          blockPreviews={cardBlock} disabled={!mutationsEnabled || authoritativeConnected === false}
+          active={selectionDialogsActive && !owesChoice} drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked}
+          stanceChangedThisTurn={stanceChangedThisTurn}
+          onSelect={card => setRetainedCards(current => ({ ...current, [viewer.id]: retainedSet.has(card.uid)
+            ? viewerRetainedCards.filter(uid => uid !== card.uid) : [...viewerRetainedCards, card.uid] }))}
+          onConfirm={() => {
+            setRetainChoiceOpen(false)
+            if (viewerNeedsDiscardTop && discardCandidates.length > 1) setDiscardChoiceOpen(true)
+            else finishTurnNow()
+          }} />
+      ) : null}
+      {choosingDiscardTop ? <HandCardSelection {...cardSelectionContext} action="Put on top"
+        title="Choose top discard" source="End of turn"
+        description="Choose the card that will be on top of your discard pile."
+        cards={discardCandidates} initialSelected={[viewerDiscardTop]} minimum={1} maximum={1}
+        disabled={!mutationsEnabled || authoritativeConnected === false} confirmLabel="Confirm discard order"
+        cancelLabel="Back to Retain" onCancel={retainChoices.length ? () => {
+          setDiscardChoiceOpen(false)
+          setRetainChoiceOpen(true)
+        } : undefined}
+        onConfirm={uids => {
+          setDiscardTops(current => ({ ...current, [viewer.id]: uids[0]! }))
+          setDiscardChoiceOpen(false)
+          finishTurnNow(uids[0]!)
+        }} /> : null}
+
       {activeStartTurnScry?.playerId === viewerId && activeStartTurnScry.cards ? (
-        <dialog ref={startTurnScryDialogRef} className="choice-modal" aria-labelledby="start-turn-scry-title"
-          onCancel={(event) => event.preventDefault()}>
-          <div className="choice-modal__panel">
-            <h2 id="start-turn-scry-title">Foresight — Scry {activeStartTurnScry.amount}</h2>
-            <p>Select any revealed cards to discard; unselected cards stay on top in order.</p>
-            <div className="choice-modal__cards">
-              {activeStartTurnScry.cards.map((card) => (
-                <Card key={card.uid} card={card} selected={startTurnScryPicked.includes(card.uid)}
-                  drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
-                  onClick={chooseStartTurnScryCard} />
-              ))}
-              {activeStartTurnScry.cards.length === 0 ? <span className="muted">No cards were revealed.</span> : null}
-            </div>
-            <button type="button" disabled={resolvingStartTurnScry} onClick={() => void finishStartTurnScry()}>
-              {startTurnScryPicked.length === 0
-                ? 'Keep all and continue'
-                : `Discard ${startTurnScryPicked.length} and continue`}
-            </button>
-          </div>
-        </dialog>
+        <HandSelectionScreen action="Discard" source="Foresight" cardSource="revealed"
+          title={`Foresight — Scry ${activeStartTurnScry.amount}`}
+          description="Select any revealed cards to discard; unselected cards stay on top in order."
+          cards={activeStartTurnScry.cards} selectedUids={startTurnScryPicked}
+          minimum={0} maximum={activeStartTurnScry.cards.length} disabled={resolvingStartTurnScry} active={selectionDialogsActive}
+          drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
+          onSelect={chooseStartTurnScryCard} onConfirm={() => void finishStartTurnScry()}
+          confirmLabel={startTurnScryPicked.length === 0 ? 'Keep all and continue'
+            : `Discard ${startTurnScryPicked.length} and continue`} />
       ) : null}
 
       {activeStartTurnDiscard?.playerId === viewerId && activeStartTurnDiscard.cards ? (
-        <dialog ref={startTurnDiscardDialogRef} className="choice-modal" aria-labelledby="start-turn-discard-title"
-          onCancel={(event) => event.preventDefault()}>
-          <div className="choice-modal__panel">
-            <h2 id="start-turn-discard-title">
-              {activeStartTurnDiscard.label} — discard {activeStartTurnDiscard.remaining} card{activeStartTurnDiscard.remaining === 1 ? '' : 's'}
-            </h2>
-            <p>Choose a card from your hand. This choice is private.</p>
-            <div className="choice-modal__cards">
-              {activeStartTurnDiscard.cards.map((card) => (
-                <Card key={card.uid} card={card} drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
-                  onClick={() => void finishStartTurnDiscard(card)} />
-              ))}
-            </div>
-          </div>
-        </dialog>
+        <HandSelectionScreen action="Discard" source={activeStartTurnDiscard.label}
+          title={`${activeStartTurnDiscard.label} — discard ${activeStartTurnDiscard.remaining} card${activeStartTurnDiscard.remaining === 1 ? '' : 's'}`}
+          description="Choose a card from your hand. This choice is private."
+          cards={activeStartTurnDiscard.cards} selectedUids={[]} minimum={1} maximum={1}
+          disabled={resolvingStartTurnDiscard} active={selectionDialogsActive}
+          drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
+          onSelect={card => void finishStartTurnDiscard(card)} />
       ) : null}
 
       {pendingTrigger?.playerId === viewerId && pendingTrigger.hermitChoices && triggerHermitStep === 'cards' &&
@@ -6312,6 +6292,7 @@ function CombatScreenView({
           chamberUids={triggerHermitChamberUids}
           needsTarget={triggerHermitNeedsBoard}
           busy={usingTrigger}
+          active={selectionDialogsActive}
           onLoadUids={setTriggerHermitLoadUids}
           onChamberUids={setTriggerHermitChamberUids}
           onConfirm={confirmTriggerHermitChoices}
@@ -6324,7 +6305,7 @@ function CombatScreenView({
           blockPreviews={cardBlock}
           cards={pendingStartExhaust.exhaustCards} minimum={1} maximum={1}
           source={pendingStartExhaust.label} disabled={!mutationsEnabled || sendingStartTurn ||
-            authoritativeConnected === false} active={!owesChoice}
+            authoritativeConnected === false} active={selectionDialogsActive && !owesChoice}
           drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked}
           stanceChangedThisTurn={stanceChangedThisTurn}
           onConfirm={uids => chooseStartTurnExhaust(uids[0]!)}
@@ -6334,7 +6315,7 @@ function CombatScreenView({
           blockPreviews={cardBlock}
           cards={viewer.hand} minimum={0} maximum={Math.min(3, viewer.hand.length)}
           source={`${pendingPowerDef!.name} — Jasper`} sourceCard={pendingPower} initialSelected={powerExhaustUids}
-          disabled={usingPower || !mutationsEnabled || authoritativeConnected === false} active={!owesChoice}
+          disabled={usingPower || !mutationsEnabled || authoritativeConnected === false} active={selectionDialogsActive && !owesChoice}
           drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked}
           stanceChangedThisTurn={stanceChangedThisTurn}
           onConfirm={exhaustUids => {
@@ -6348,7 +6329,7 @@ function CombatScreenView({
         cards={handSelectionCards} minimum={handSelectionMinimum} maximum={handSelectionMaximum}
         action={handSelectionAction}
         source={pendingDef!.name} sourceCard={pending.card} initialSelected={pending.picked}
-        disabled={usingCard || !mutationsEnabled || authoritativeConnected === false} active={!owesChoice}
+        disabled={usingCard || !mutationsEnabled || authoritativeConnected === false} active={selectionDialogsActive && !owesChoice}
         drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked}
         stanceChangedThisTurn={stanceChangedThisTurn}
         onConfirm={picked => stageOrCommit({ ...pending, picked, choiceConfirmed: true })}
@@ -6356,17 +6337,21 @@ function CombatScreenView({
       /> : null}
 
       {pending?.choiceCards && pending.choice && !pending.choiceConfirmed && !onlyHandCard ? (
-        <dialog ref={choiceDialogRef}
-          className={`choice-modal${pending.choice.kind === 'scryToHand' ? ' choice-modal--scry-to-hand' : ''}`}
-          aria-labelledby="choice-modal-title"
-          onCancel={(event) => {
-            event.preventDefault()
-            if (!usingCard && handSelectionCanCancel &&
-              (pending.choice?.kind === 'recover' || pending.choice?.kind === 'recoverExhaust')) cancelCardPlay()
-          }}>
-          <div className="choice-modal__panel">
-            <h2 id="choice-modal-title">
-              {pending.choice.kind === 'scry' || pending.choice.kind === 'scryToHand'
+        <HandSelectionScreen action={pending.choice.kind === 'scry' || pending.choice.kind === 'scryToHand'
+          ? 'Discard' : pending.choice.kind === 'load' || pending.choice.kind === 'loadAny' ? 'Load' : 'Choose'}
+          source={pendingDef!.name} sourceCard={pending.card} cards={pending.choiceCards}
+          cardSource={pending.choice.kind === 'recover' ? 'discard' : pending.choice.kind === 'recoverExhaust'
+            ? 'exhaust' : pending.choice.kind === 'search' ? 'draw' : 'revealed'}
+          selectedUids={pending.picked}
+          minimum={0} maximum={pending.choice.kind === 'scry' || pending.choice.kind === 'scryToHand'
+            ? pending.choiceCards.length : pending.choice.kind === 'loadAny' ? pending.choice.amount : choiceNeeded}
+          disabled={usingCard || !mutationsEnabled || authoritativeConnected === false} active={selectionDialogsActive && !owesChoice}
+          confirmDisabled={!handChoiceSatisfied} blockPreviews={cardBlock}
+          drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
+          onSelect={onChoiceCardClick} onConfirm={confirmChoice} cancelLabel="Cancel"
+          onCancel={handSelectionCanCancel &&
+            (pending.choice.kind === 'recover' || pending.choice.kind === 'recoverExhaust') ? cancelCardPlay : undefined}
+          title={pending.choice.kind === 'scry' || pending.choice.kind === 'scryToHand'
                 ? `Scry ${pending.choice.amount}`
                 : pending.choice.kind === 'topdeck'
                   ? `Choose ${choiceNeeded} for the top of your draw pile`
@@ -6384,9 +6369,7 @@ function CombatScreenView({
                 : pending.choice.kind === 'load' || pending.choice.kind === 'loadAny'
                   ? `Choose ${pending.choice.kind === 'loadAny' ? 'up to ' : ''}${pending.choice.amount} to Load`
                   : `Choose ${choiceNeeded} to discard`}
-            </h2>
-            <p>
-              {pending.choice.kind === 'scry' || pending.choice.kind === 'scryToHand'
+          description={pending.choice.kind === 'scry' || pending.choice.kind === 'scryToHand'
                 ? pending.choice.kind === 'scryToHand'
                   ? scryPlay
                     ? scryPlayRequired
@@ -6417,14 +6400,7 @@ function CombatScreenView({
                     return `${index + 1}. ${faceOf(cardDef(card.defId), card.upgraded).name}`
                   }).join(' → ')}.`
                   : ''} The card is committed.`}
-            </p>
-            <div className="choice-modal__cards">
-              {pending.choiceCards.map((card) => <div key={card.uid}
-                className={pending.choice?.kind === 'scryToHand' ? 'choice-modal__card-option' : undefined}>
-                <Card card={card} selected={pending.picked.includes(card.uid) || pending.scryToHandUid === card.uid}
-                  drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
-                  onClick={onChoiceCardClick} />
-                {pending.choice?.kind === 'scryToHand' && (scryPlay
+          renderCardAction={pending.choice.kind !== 'scryToHand' ? undefined : card => (scryPlay
                   ? scryPlayEligible(card) || pending.scryToHandUid === card.uid : effectiveCombatCardDef(
                   faceOf(cardDef(card.defId), card.upgraded), viewer.guardianMode,
                 ).type ===
@@ -6438,11 +6414,7 @@ function CombatScreenView({
                     })}>{scryPlay
                       ? pending.scryToHandUid === card.uid ? 'Will play for 0' : 'Play for 0'
                       : pending.scryToHandUid === card.uid ? 'Will put in hand' : 'Put in hand'}</button> : null}
-              </div>)}
-              {pending.choiceCards.length === 0 ? <span className="muted">No cards were revealed.</span> : null}
-            </div>
-            <button type="button" disabled={!handChoiceSatisfied} onClick={confirmChoice}>
-              {pending.choice.kind === 'scry' || pending.choice.kind === 'scryToHand'
+          confirmLabel={pending.choice.kind === 'scry' || pending.choice.kind === 'scryToHand'
                 ? pending.choice.kind === 'scryToHand' && pending.scryToHandUid
                   ? pending.picked.length === 0
                     ? scryPlay ? 'Play selected card, keep the rest' : 'Put selected card in hand and keep the rest'
@@ -6476,15 +6448,7 @@ function CombatScreenView({
                     : `Put selected card${choiceNeeded === 1 ? '' : 's'} in hand and shuffle`
                 : pending.choice.kind === 'load' || pending.choice.kind === 'loadAny'
                   ? pending.picked.length === 0 ? 'Load none' : `Load ${pending.picked.length} card${pending.picked.length === 1 ? '' : 's'}`
-                : choiceNeeded === 0 ? 'Continue' : `Discard selected card${choiceNeeded === 1 ? '' : 's'}`}
-            </button>
-          {handSelectionCanCancel &&
-            (pending.choice.kind === 'recover' || pending.choice.kind === 'recoverExhaust') ? (
-              <button type="button" className="prompt__cancel" disabled={usingCard}
-                onClick={cancelCardPlay}>Cancel</button>
-            ) : null}
-          </div>
-        </dialog>
+                : choiceNeeded === 0 ? 'Continue' : `Discard selected card${choiceNeeded === 1 ? '' : 's'}`} />
       ) : null}
 
       {startTurnEffectSource ? (
@@ -6660,7 +6624,16 @@ function CombatScreenView({
               </button>
             </div>
           ) : null}
-          {endTurnChoiceTargets.length > 0 ? (
+          {endTurnChoiceTargets.some(target => viewer.hand.some(card => card.uid === target.uid)) ? (
+            <HandSelectionScreen action="Retain" source={endTurnEffect.label} sourceCard={endTurnEffectCard}
+              cards={viewer.hand.filter(card => endTurnChoiceTargets.some(target => target.uid === card.uid))}
+              selectedUids={[]} minimum={0} maximum={1} disabled={!canResolveEndTurn} active={selectionDialogsActive}
+              drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
+              onSelect={card => resolveTurnEffectTarget(endTurnEffect.id, card.uid)}
+              onConfirm={endTurnChoiceTargets.some(target => target.uid === 'skip')
+                ? () => resolveTurnEffectTarget(endTurnEffect.id, 'skip') : undefined}
+              confirmLabel={endTurnChoiceTargets.find(target => target.uid === 'skip')?.label} />
+          ) : endTurnChoiceTargets.length > 0 ? (
             <div className="end-turn-effects__choices" role="group" aria-label={`Resolve ${endTurnEffect.label}`}>
               {endTurnChoiceTargets.map((target) => (
                 <button key={target.uid} type="button" onClick={() => resolveTurnEffectTarget(endTurnEffect.id, target.uid)}>
@@ -7341,16 +7314,7 @@ function CombatScreenView({
         const needsRetarget = accepting && dieRelicNeedsEnemy &&
           !livingEnemies(state).some((enemy) => enemy.uid === dieRelicPending.enemyUid)
         if (!effect && !needsRetarget) return null
-        return <section className="hermit-prompt hermit-prompt--cards" aria-label="Die Relic card choice">
-          <strong>{relicDef(dieRelicPending.relicDefId).name}{effect ? <>: {optional ? 'you may ' : ''}
-            {discard ? 'discard' : 'Exhaust'} {required}</> : null}</strong>
-          {effect ? viewer.hand.map((card) => {
-            const selected = dieRelicCardUids.includes(card.uid)
-            return <Card key={card.uid} card={card} selected={selected}
-              drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn} onClick={() => setDieRelicCardUids((current) =>
-              selected ? current.filter((uid) => uid !== card.uid) : current.length < required
-                ? [...current, card.uid] : current)} />
-          }) : null}
+        const controls = <>
           {needsRetarget ? <div>
             <strong>Choose a new enemy target</strong>
             {enemyButtonOrder.map((enemy) => <button key={enemy.uid} type="button"
@@ -7363,43 +7327,41 @@ function CombatScreenView({
             onClick={() => submitDieRelicChoice(discard)}>
             {optional && dieRelicCardUids.length === 0 ? 'Skip' : `Resolve ${relicDef(dieRelicPending.relicDefId).name}`}
           </button>
-        </section>
+        </>
+        return effect ? <HandSelectionScreen {...cardSelectionContext} action={discard ? 'Discard' : 'Exhaust'}
+          source={relicDef(dieRelicPending.relicDefId).name} title="Die Relic card choice"
+          description={relicDef(dieRelicPending.relicDefId).name}
+          cards={viewer.hand} selectedUids={dieRelicCardUids} minimum={optional ? 0 : required} maximum={required}
+          disabled={usingDieRelic} canSelect={() => dieRelicCardUids.length < required}
+          onSelect={card => setDieRelicCardUids(current => current.includes(card.uid)
+            ? current.filter(uid => uid !== card.uid) : current.length < required ? [...current, card.uid] : current)}
+          confirmControls={controls} />
+          : <section className="hermit-prompt" aria-label="Die Relic card choice">{controls}</section>
       })() : null}
 
-      {hermitSetupPending ? <p className="visually-hidden" role="status"
-        aria-label="Hermit start-of-combat Load">Choose a card in hand to Load</p> : null}
+      {hermitSetupPending ? <HandSelectionScreen {...cardSelectionContext} action="Load"
+        source="Hermit start of combat" title="Load a card into the Chamber"
+        cards={viewer.hand} selectedUids={[]} minimum={1} maximum={1}
+        disabled={!mutationsEnabled || authoritativeConnected === false}
+        canSelect={card => !hermitTargetedCurses.has(card.defId) || Boolean(onlyEnemy)}
+        onSelect={card => submitHermitSetup(card, hermitTargetedCurses.has(card.defId) ? onlyEnemy?.uid ?? null : null)}
+        renderCardAction={livingEnemies(state).length > 1 && viewer.hand.some(card => hermitTargetedCurses.has(card.defId))
+          ? card => hermitTargetedCurses.has(card.defId) ? <span>
+            {enemyButtonOrder.map(enemy => <button key={enemy.uid} type="button"
+              onClick={() => submitHermitSetup(card, enemy.uid)}>
+              Load at {enemyLabel(state.enemies, enemy)}
+            </button>)}
+          </span> : null : undefined} /> : null}
       {hermitSetupOwner && !hermitSetupPending ? <p className="visually-hidden" role="status">
         Waiting for {hermitSetupOwner.name} to Load a card</p> : null}
-      {hermitSetupPending && viewer.hand.some((card) => hermitTargetedCurses.has(card.defId)) &&
-      livingEnemies(state).length > 1 ? (
-        <section className="prompt" aria-label="Hermit start-of-combat Load target">
-          <span>Load a card from your hand, or Load a Curse at:</span>
-          {viewer.hand.filter((card) => hermitTargetedCurses.has(card.defId)).map((card) =>
-            enemyButtonOrder.map((enemy) => (
-              <button key={`${card.uid}-${enemy.uid}`} type="button" className="prompt__mode"
-                onClick={() => submitHermitSetup(card, enemy.uid)}>
-                {cardDef(card.defId).name} → {enemyLabel(state.enemies, enemy)}
-              </button>
-            )))}
-        </section>
-      ) : null}
       {viewer && viewerPlayerChoice?.kind === 'drawOrDiscard' && playerChoiceDiscarding ? (
-        // Slayer Pack: Heel Hook's discard is picked privately from the chooser's own hand.
-        <dialog ref={playerChoiceDialogRef} className="choice-modal" aria-labelledby="player-choice-discard-title"
-          onCancel={(event) => { event.preventDefault(); setPlayerChoiceDiscarding(false) }}>
-          <div className="choice-modal__panel">
-            <h2 id="player-choice-discard-title">{viewerPlayerChoice.sourceLabel} — discard a card</h2>
-            <p>Choose a card from your hand. This choice is private.</p>
-            <div className="choice-modal__cards">
-              {viewer.hand.map((card) => (
-                <Card key={card.uid} card={card} drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
-                  onClick={() => submitPlayerChoice({ discardUid: card.uid })} />
-              ))}
-            </div>
-            <button type="button" className="prompt__mode" disabled={usingPlayerChoice}
-              onClick={() => setPlayerChoiceDiscarding(false)}>Back</button>
-          </div>
-        </dialog>
+        <HandSelectionScreen action="Discard" source={viewerPlayerChoice.sourceLabel}
+          title={`${viewerPlayerChoice.sourceLabel} — discard a card`}
+          description="Choose a card from your hand. This choice is private."
+          cards={viewer.hand} selectedUids={[]} minimum={1} maximum={1} disabled={usingPlayerChoice} active={selectionDialogsActive}
+          drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
+          onSelect={card => submitPlayerChoice({ discardUid: card.uid })}
+          cancelLabel="Back" onCancel={() => setPlayerChoiceDiscarding(false)} />
       ) : null}
       {viewer && hermitStrengthPending ? (
         <section className="prompt" aria-label="Dead or Alive reward">

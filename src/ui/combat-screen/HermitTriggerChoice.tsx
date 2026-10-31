@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { cardDef, faceOf } from '../../game/cards.ts'
 import type { PendingTriggerAbility } from '../../game/combat/types.ts'
 import type { CardInstance } from '../../game/types.ts'
 import { Card, cardRuleDescription } from '../Card.tsx'
+import { HandSelectionScreen } from './HandSelectionScreen.tsx'
 
 type HermitChoices = NonNullable<PendingTriggerAbility['hermitChoices']>
 
@@ -45,6 +46,7 @@ export function HermitTriggerChoice({
   chamberUids,
   needsTarget,
   busy,
+  active = true,
   onLoadUids,
   onChamberUids,
   onConfirm,
@@ -57,16 +59,13 @@ export function HermitTriggerChoice({
   chamberUids: readonly string[]
   needsTarget: boolean
   busy: boolean
+  active?: boolean
   onLoadUids: (uids: string[]) => void
   onChamberUids: (uids: string[]) => void
   onConfirm: () => void
   onViewBoard: () => void
 }) {
-  const dialog = useRef<HTMLDialogElement | null>(null)
   const handUids = useMemo(() => new Set(hand.map((card) => card.uid)), [hand])
-  useEffect(() => {
-    if (dialog.current && !dialog.current.open) dialog.current.showModal()
-  }, [])
   const drawn = choices.loadCards.filter((card) => !handUids.has(card.uid))
   const loadOptions = [...drawn, ...choices.loadCards.filter((card) => handUids.has(card.uid))]
   // Faces are small on phones, so the last card touched, hovered or focused is spelled out in full.
@@ -98,19 +97,22 @@ export function HermitTriggerChoice({
       : needsTarget ? `${summary}, then choose its target` : summary
   const loadHeading = `Load ${choices.loadMinimum < choices.loadAmount ? 'up to ' : ''}${
     plural(choices.loadAmount, 'card')} into the Chamber${choices.loadDiscount ? ' — it costs 0 this turn' : ''}`
+  const select = (card: CardInstance) => {
+    setDetailUid(card.uid)
+    if (choices.loadCards.some(option => option.uid === card.uid))
+      onLoadUids(toggle(loadUids, card.uid, choices.loadAmount))
+    else onChamberUids(toggle(chamberUids, card.uid, choices.chamberAmount))
+  }
   return (
-    <dialog ref={dialog} className="choice-modal hermit-trigger-choice" aria-labelledby="hermit-trigger-choice-title"
-      onCancel={(event) => {
-        event.preventDefault()
-        onViewBoard()
-      }}
-      // Chromium closes without `cancel` on a repeated Escape with no user activation in between.
-      onClose={onViewBoard}>
+    <HandSelectionScreen action="Choose" source={label} title={label}
+      description={drawn.length > 0 ? <span className="hermit-trigger-choice__drawn">Drew {names(drawn)}.</span> : undefined}
+      cards={[...loadOptions, ...choices.chamberCards]} selectedUids={[...loadUids, ...chamberUids]}
+      minimum={0} maximum={choices.loadAmount + choices.chamberAmount} disabled={busy} active={active}
+      onSelect={select}
+      confirmDisabled={!loadReady || !chamberReady} confirmLabel={confirm} onConfirm={onConfirm}
+      cancelLabel="View board" onCancel={onViewBoard}>
+      <div className="hermit-trigger-choice">
       <div className="choice-modal__panel">
-        <header className="hermit-trigger-choice__header">
-          <h2 id="hermit-trigger-choice-title">{label}</h2>
-          {drawn.length > 0 ? <p className="hermit-trigger-choice__drawn">Drew {names(drawn)}.</p> : null}
-        </header>
         {detailDef ? <p className="hermit-trigger-choice__detail" aria-hidden="true">
           <strong>{detailDef.name}</strong> — {cardRuleDescription(detailDef) || 'No rules text.'}
         </p> : null}
@@ -127,10 +129,7 @@ export function HermitTriggerChoice({
                   <div key={card.uid} className="hermit-trigger-choice__option" {...inspect(card)}>
                     <Card card={card} immediateArt selected={loadUids.includes(card.uid)}
                       accessibleNote={handUids.has(card.uid) ? undefined : 'drawn'}
-                      onClick={() => {
-                        setDetailUid(card.uid)
-                        onLoadUids(toggle(loadUids, card.uid, choices.loadAmount))
-                      }} />
+                      onClick={select} />
                     {handUids.has(card.uid) ? null : <span className="hermit-trigger-choice__badge" aria-hidden="true">Drawn</span>}
                   </div>
                 ))}
@@ -147,22 +146,15 @@ export function HermitTriggerChoice({
                 {choices.chamberCards.map((card) => (
                   <div key={card.uid} className="hermit-trigger-choice__option" {...inspect(card)}>
                     <Card card={card} immediateArt selected={chamberUids.includes(card.uid)}
-                      onClick={() => {
-                        setDetailUid(card.uid)
-                        onChamberUids(toggle(chamberUids, card.uid, choices.chamberAmount))
-                      }} />
+                      onClick={select} />
                   </div>
                 ))}
               </div>
             </section>
           ) : null}
         </div>
-        <div className="hermit-trigger-choice__actions">
-          <button type="button" className="hermit-trigger-choice__secondary" onClick={onViewBoard}>View board</button>
-          <button type="button" className="hermit-trigger-choice__confirm"
-            disabled={busy || !loadReady || !chamberReady} onClick={onConfirm}>{confirm}</button>
-        </div>
       </div>
-    </dialog>
+      </div>
+    </HandSelectionScreen>
   )
 }

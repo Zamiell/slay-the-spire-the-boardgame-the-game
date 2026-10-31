@@ -439,15 +439,16 @@ try {
     Object.assign(run.combat, { phase: 'discard', players: [player], pendingTriggers: [] })
     debug.setRun(run)
   })
-  await page.getByRole('button', { name: /Confirm end-turn effect/ }).waitFor()
-  const retainOnlyTop = await page.getByLabel(/Top discard/).count()
+  await page.getByRole('button', { name: 'Confirm retain', exact: true }).waitFor()
+  const retainOnlyTop = await page.getByRole('button', { name: 'Choose top discard', exact: true, includeHidden: true }).count()
   await page.evaluate(() => {
     const debug = window.__STS_DEBUG__
     const run = structuredClone(debug.getRun())
     run.combat.players[0].draw = [{ uid: 'future-claw', defId: 'claw', upgraded: false }]
     debug.setRun(run)
   })
-  await page.getByLabel('Top discard for Silent').waitFor()
+  await page.getByRole('button', { name: 'Confirm retain', exact: true }).click()
+  await page.getByRole('dialog', { name: 'Choose top discard', exact: true }).waitFor()
   check('Retain-only players see discard order only when a top-discard card can read it', () => {
     assert(retainOnlyTop === 0, `Retain alone exposed an irrelevant Top discard selector: ${retainOnlyTop}`)
   })

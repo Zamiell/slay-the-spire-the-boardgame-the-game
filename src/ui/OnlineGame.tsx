@@ -961,6 +961,8 @@ export function OnlineGame({ onLocal, settings, onSettings }: Props) {
           authoritativeRestoration={room.restorationEpoch}
           authoritativeConnected={room.connection === 'connected'}
           animateOpeningHand={animateOpeningHand}
+          selectionDialogsActive={!compendiumOpen && !pauseOpen && !settingsOpen && !giveUpStartPending &&
+            !soloGiveUpOpen && !giveUpVote && !run.courier.offer}
           mutationsEnabled={!giveUpStartPending && !run.courier.offer && room.connection === 'connected' &&
             !foreignInteractionLock}
           autoAdvance={!compendiumOpen && !pauseOpen && !settingsOpen && !giveUpStartPending && !soloGiveUpOpen && !giveUpVote && !run.courier.offer && room.connection === 'connected' && snapshot.seats.find((seat) => seat.connected &&
@@ -1015,6 +1017,7 @@ export function OnlineGame({ onLocal, settings, onSettings }: Props) {
         viewerId={snapshot.you.playerId}
         ascension={run.ascension}
         enabled={room.connection === 'connected' && !pendingAcquisition && !snapshot.pendingRelicStatus}
+        selectionDialogsActive={!pendingAcquisition && !snapshot.pendingRelicStatus}
         disabledMessage={room.connection !== 'connected'
           ? `Reconnecting… your ${heartBoon ? 'Boon' : 'Blessing'} is preserved.`
           : snapshot.pendingRelicStatus
@@ -1083,6 +1086,7 @@ export function OnlineGame({ onLocal, settings, onSettings }: Props) {
       {run.phase === 'room' && run.roomState && viewer
         && !pendingAcquisition && !waitingForCatchUpMerchant ? (
         <RoomScreen
+          selectionDialogsActive={!compendiumOpen && !pauseOpen && !settingsOpen && !soloGiveUpOpen}
           room={run.roomState}
           players={run.players.map(playerForUi)}
           viewerId={snapshot.you.playerId}

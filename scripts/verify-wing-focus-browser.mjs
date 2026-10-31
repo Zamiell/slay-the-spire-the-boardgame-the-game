@@ -55,10 +55,10 @@ try {
       debug.setViewer(run.players[0].id)
       return { offPath: (run.map.rows[from.row + 1] ?? []).filter((id) => !from.exits.includes(id)).length }
     })
-    await page.getByRole('heading', { name: 'Resolve Astrolabe' }).waitFor()
+    await page.getByRole('dialog', { name: 'Choose 3 cards to upgrade', exact: true }).waitFor()
     await page.locator('.map[hidden][inert]').waitFor({ state: 'attached' })
     const wingsWhileBlocked = await page.locator('.room--wing').count()
-    const choices = page.locator('.campfire__deck button')
+    const choices = page.locator('.card-picker__grid > .card')
     for (let index = 0; index < 3; index += 1) await choices.nth(index).click()
     await page.getByRole('button', { name: 'Confirm Astrolabe' }).click()
     await page.locator('.map:not([inert]) .room--wing').first().waitFor()

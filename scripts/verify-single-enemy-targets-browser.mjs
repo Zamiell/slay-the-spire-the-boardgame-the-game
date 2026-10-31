@@ -154,9 +154,10 @@ try {
     Object.assign(ashes.combat, { phase: 'start', turn: 2, startTurnStage: 'effects' })
     await set(ashes)
     await page.getByRole('button', { name: /^Use Charon's Ashes:/ }).press('Enter')
-    await page.locator('.relic-actions .card[data-card-name="Defend"]').click()
+    await page.locator('.hand-discard__hand .card[data-card-name="Defend"]').focus()
+    await page.keyboard.press('Enter')
     assert.equal(await page.getByRole('button', { name: /^Hit Small Slime/ }).count(), 0)
-    await page.locator('.relic-actions').getByRole('button', { name: 'Activate', exact: true }).click()
+    await page.getByRole('dialog').getByRole('button', { name: 'Activate', exact: true }).click()
     await page.waitForFunction(() => window.__STS_DEBUG__.getState().players[0].relics[0].spent)
     assert.equal((await read()).enemies[0].hp, 48)
 
@@ -211,7 +212,12 @@ try {
     await page.evaluate(session => sessionStorage.setItem('sts-room-session', JSON.stringify(session)),
       { code: room.code, token: seat.token })
     await page.reload()
-    await page.getByRole('button', { name: 'Use Vulnerable Potion', exact: true }).press('Enter')
+    const [potionResponse] = await Promise.all([
+      page.waitForResponse(response => response.url().endsWith('/action') &&
+        response.request().postDataJSON()?.action?.kind === 'usePotion'),
+      page.getByRole('button', { name: 'Use Vulnerable Potion', exact: true }).press('Enter'),
+    ])
+    assert.equal(potionResponse.status(), 200, await potionResponse.text())
     await page.waitForFunction(() => !document.querySelector('[aria-label="Use Vulnerable Potion"]'))
     assert.equal(room.run.combat.enemies[0].vulnerable, 1)
     assert.equal(room.run.combat.players[0].potions.length, 0)

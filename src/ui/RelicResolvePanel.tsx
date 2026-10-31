@@ -5,7 +5,6 @@ import type { ActionOutcome } from '../multiplayer/useRoomSession.ts'
 import { cardDef } from '../game/cards.ts'
 import { relicDef } from '../game/relics.ts'
 import type { CardInstance, Player } from '../game/types.ts'
-import { Card } from './Card.tsx'
 import { LootChoice, PotionLootChoices } from './RewardScreen.tsx'
 import { CardRewardIcon, CardRewardPicker } from './CardRewardPicker.tsx'
 import { CardPicker, PickerConfirmButton } from './CardPicker.tsx'
@@ -48,7 +47,6 @@ export function RelicResolvePanel({ pending, player, potion, ascension, onPotion
   const rewardReady = (pending.rewardChoices ?? []).every((_choice, index) => rewards[index] !== undefined)
   const verb = pending.relicId === 'pandoras_box' ? 'Transform'
     : pending.relicId === 'empty_cage' ? 'Remove' : 'Upgrade'
-  const selectionLabel = count === 1 ? 'a card' : `${count} cards`
   const clearPending = () => {
     actionPendingRef.current = false
     setRewardChoicePending(false)
@@ -182,18 +180,22 @@ export function RelicResolvePanel({ pending, player, potion, ascension, onPotion
     <button className="reward-screen__skip" type="button" disabled={resolving}
       onClick={() => resolveRelic([], (pending.rewardChoices ?? []).map((_choices, index) => rewards[index] ?? -1))}>{resolving ? 'Resolving…' : 'Skip'}</button>
   </section>
+  if (count > 0 && rewardReady) return <CardPicker
+    heading={`Resolve ${relicDef(pending.relicId).name}`} description={relicDef(pending.relicId).text}
+    cards={eligible} verb={verb} selectedCardUids={cards} maxSelections={count}
+    disabled={resolving} onSelect={uid => setCards(current => current.includes(uid)
+      ? current.filter(selected => selected !== uid) : current.length < count ? [...current, uid] : current)}
+    onClear={() => setCards([])} onConfirm={() => resolveRelic(cards, rewards)}
+    confirmLabel={`Confirm ${relicDef(pending.relicId).name}`}
+  />
   return <section className="room-screen relic-resolve">
     <h2>Resolve {relicDef(pending.relicId).name}</h2>
     {/* The panel asks the player to pick cards for an effect it never stated. */}
     <p className="room-item-text">{relicDef(pending.relicId).text}</p>
-    {count > 0 ? <div className="campfire__deck">{eligible.map((card) => <Card key={card.uid} card={card}
-      selected={cards.includes(card.uid)} onClick={() => setCards((current) => current.includes(card.uid)
-        ? current.filter((uid) => uid !== card.uid)
-        : current.length < count ? [...current, card.uid] : current)} />)}</div> : null}
     {(pending.rewardChoices ?? []).map((_choices, reward) => rewards[reward] === undefined ? <LootChoice key={reward}
       icon={<CardRewardIcon rare={rewardIsRare(reward)} />} onClick={() => setActiveReward(reward)}>Add a card to your deck.</LootChoice> : null)}
     <footer className="card-picker__footer relic-resolve__footer">
-      <p>{count > 0 ? <>Choose {selectionLabel} to <strong>{verb}</strong>.</> : <>Confirm this <strong>Relic</strong>.</>}</p>
+      <p>{count > 0 ? 'Choose the rewards before selecting cards.' : <>Confirm this <strong>Relic</strong>.</>}</p>
       <PickerConfirmButton label={`Confirm ${relicDef(pending.relicId).name}`}
         disabled={resolving || cards.length !== count || !rewardReady}
         onClick={() => resolveRelic(cards, rewards)} />

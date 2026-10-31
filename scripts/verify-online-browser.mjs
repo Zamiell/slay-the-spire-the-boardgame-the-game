@@ -1998,7 +1998,7 @@ try {
     } }),
   })
   assert(predator.ok, `the concurrent Predator was refused: ${predator.status} ${await predator.text()}`)
-  const refreshedGoldenEyeCards = goldenEyeDialog.locator('.distilled-choice__cards > button')
+  const refreshedGoldenEyeCards = goldenEyeDialog.locator('.hand-discard__hand > .card')
   for (let attempt = 0; attempt < 50 && await refreshedGoldenEyeCards.count() !== 2; attempt += 1) {
     await new Promise((resolveDelay) => setTimeout(resolveDelay, 100))
   }
@@ -2042,7 +2042,7 @@ try {
     sourceLabel: 'Repeated Cheat', enemyUid: dieRetarget.uid, targetPlayerId: annLive.id,
   }))
   rooms.publishRoom(code)
-  const firstAshes = a.getByRole('region', { name: 'Die Relic card choice' })
+  const firstAshes = a.getByRole('dialog', { name: 'Die Relic card choice' })
   await firstAshes.getByRole('button', { name: /^Defend,/ }).first().click()
   const resolveAshes = firstAshes.getByRole('button', { name: "Resolve Charon's Ashes" })
   const dieRelicFailureStart = failures.length
@@ -5081,25 +5081,31 @@ try {
     assert(String(omegaArt).includes('omega'), `Omega did not render its card asset: ${omegaArt}`)
     assertEqual(obsoleteEndTurnPanel, 0, 'the obsolete end-turn order panel remained mounted')
   })
-  const aDiscardTop = a.getByLabel('Top discard for Ann')
-  const retainReinforcedBody = a.getByRole('button', { name: /Retain Reinforced Body$/ })
-  await retainReinforcedBody.click()
-  if (await aDiscardTop.count()) await aDiscardTop.selectOption({ index: 0 })
-  const selectedDiscardTop = await aDiscardTop.count() ? await aDiscardTop.inputValue() : ''
-  await a.getByRole('button', { name: /^Confirm end-turn effect/ }).click()
+  const retainDialog = a.locator('dialog.hand-discard[data-action="retain"]')
+  await retainDialog.locator('.hand-discard__hand .card[data-card-name="Reinforced Body"]').focus()
+  await a.keyboard.press('Enter')
+  await retainDialog.getByRole('button', { name: 'Confirm retain', exact: true }).click()
+  const aDiscardTop = a.getByRole('dialog', { name: 'Choose top discard', exact: true })
+  await aDiscardTop.locator('.hand-discard__hand .card[data-card-name="Strike"]').focus()
+  await a.keyboard.press('Enter')
+  const selectedDiscardTop = 'online-discard-strike'
+  await aDiscardTop.getByRole('button', { name: 'Confirm discard order', exact: true }).click()
   await a.getByRole('button', { name: /^Update end-turn effect/ }).waitFor()
   const savedDiscard = await snapshot(a)
   await a.reload({ waitUntil: 'networkidle' })
   await a.locator('.app-shell--online .combat[data-phase="discard"]').waitFor()
-  const restoredDiscardTop = await aDiscardTop.count() ? await aDiscardTop.inputValue() : ''
-  const restoredRetain = await retainReinforcedBody.getAttribute('aria-pressed')
+  await a.getByRole('button', { name: 'Choose retained cards', exact: true }).click()
+  const restoredRetain = await retainDialog.locator('.hand-discard__selection .card[data-card-name="Reinforced Body"]').getAttribute('aria-pressed')
+  await retainDialog.getByRole('button', { name: 'Confirm retain', exact: true }).click()
+  const restoredDiscardTop = await aDiscardTop.locator('.hand-discard__selection .card').getAttribute('data-card-name')
   check('refresh restores this seat\'s private discard and Retain choices', () => {
     assertEqual(savedDiscard.discardOrder?.at(-1) ?? '', selectedDiscardTop)
     assert(!savedDiscard.discardOrder?.includes('online-equilibrium-retain'),
       'the retained card was sent in the discard order')
-    assertEqual(restoredDiscardTop, selectedDiscardTop)
+    assertEqual(restoredDiscardTop, 'Strike')
     assertEqual(restoredRetain, 'true')
   })
+  await aDiscardTop.getByRole('button', { name: 'Confirm discard order', exact: true }).click()
   let automaticEnemyAttempts = 0
   const actionUrl = `**/api/rooms/${code}/action`
   const refuseFirstAutomaticEnemy = async (route) => {
@@ -5113,7 +5119,7 @@ try {
     return route.continue()
   }
   await a.route(actionUrl, refuseFirstAutomaticEnemy)
-  await b.getByRole('button', { name: /^Confirm end-turn effect/ }).click()
+  await b.getByRole('button', { name: 'Confirm retain', exact: true }).click()
   await Promise.all([
     a.locator('.combat[data-phase="enemy"]').waitFor(),
     b.locator('.combat[data-phase="enemy"]').waitFor(),
@@ -5498,9 +5504,9 @@ try {
   await ownerGame.getByRole('heading', { name: 'Resolve Empty Cage' }).waitFor()
   await teammateGame.getByRole('status').filter({ hasText: 'Waiting for Ann to resolve Empty Cage' }).waitFor()
   await Promise.all([a, b].map((page) => page.setViewportSize({ width: 1280, height: 640 })))
-  const relicDeckLayout = await ownerGame.locator('.relic-resolve').evaluate((resolver) => {
-    const deck = resolver.querySelector('.campfire__deck')
-    const button = resolver.querySelector('.relic-resolve__footer button')
+  const relicDeckLayout = await ownerGame.locator('.card-picker').evaluate((resolver) => {
+    const deck = resolver.querySelector('.card-picker__grid')
+    const button = resolver.querySelector('.card-picker__confirm')
     const buttonBox = button?.getBoundingClientRect()
     const resolverBox = resolver.getBoundingClientRect()
     return {
@@ -5537,7 +5543,7 @@ try {
   })
   const teammateHeaderControl = teammateGame.getByRole('button', { name: 'Settings' })
   await teammateHeaderControl.focus()
-  const emptyCageChoices = ownerGame.locator('.campfire__deck button')
+  const emptyCageChoices = ownerGame.locator('.card-picker__grid > .card')
   for (let index = 0; index < 2; index++) await emptyCageChoices.nth(index).click()
   const resolveEmptyCage = ownerGame.getByRole('button', { name: 'Confirm Empty Cage' })
   assert(await resolveEmptyCage.isEnabled(), 'Empty Cage did not enable confirmation after two choices')

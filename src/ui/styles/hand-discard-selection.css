@@ -1,5 +1,6 @@
 .hand-discard[open] {
   --selection-card-width: min(18.75rem, 27.8dvh, 15.625vw);
+  --selection-preview-height: max(0px, calc(62dvh - var(--selection-content-top, 24dvh)));
   position: fixed;
   inset: 0;
   width: 100%;
@@ -34,37 +35,50 @@
 }
 .hand-discard .hand-discard__heading h2 { margin: 0; color: var(--cream); font-size: clamp(1.1rem, 3dvh, 2rem); }
 .hand-discard__heading strong { color: #e8c43e; }
+.hand-discard__heading > p:not(.visually-hidden) { margin: 0.35rem 0 0; font-size: 0.85rem; }
 .hand-discard__source {
   position: absolute;
-  top: 24dvh;
+  top: var(--selection-content-top, 24dvh);
   left: 50%;
   translate: -50% 0;
   opacity: 0.35;
   pointer-events: none;
 }
 .hand-discard__source > .card {
-  width: min(17rem, calc(34dvh / var(--card-ratio)));
+  width: min(17rem, calc(min(34dvh, var(--selection-preview-height)) / var(--card-ratio)));
   filter: none;
   border-color: #1c8b96;
 }
 .hand-discard__selection {
   position: absolute;
-  top: 24dvh;
+  top: var(--selection-content-top, 24dvh);
   left: 15%;
   right: 15%;
-  height: 38dvh;
+  height: var(--selection-preview-height);
+  container-type: size;
   display: flex;
   justify-content: safe center;
   align-items: center;
   gap: 0.75rem;
   overflow: auto hidden;
-  padding: 1rem;
+  padding: 0 1rem;
 }
 .hand-discard__selection > .card {
   flex: 0 0 auto;
-  width: min(16rem, calc(32dvh / var(--card-ratio)));
+  width: min(16rem, calc(min(32dvh, 100cqh) / var(--card-ratio)));
   animation: discard-selection-lift 180ms ease-out;
 }
+.hand-discard__option { flex: 0 0 auto; width: min(16rem, calc(26dvh / var(--card-ratio))); }
+.hand-discard__selection > .hand-discard__option {
+  width: min(16rem, calc(min(26dvh, max(0px, calc(100cqh - 3rem))) / var(--card-ratio)));
+}
+.hand-discard__selection > .hand-discard__option:has(> div:empty) {
+  width: min(16rem, calc(min(32dvh, 100cqh) / var(--card-ratio)));
+}
+.hand-discard__option > .card { width: 100%; }
+.hand-discard__option > div { display: flex; justify-content: center; }
+.hand-discard__option button:not(.card) { min-height: 2rem; font-size: 0.8rem; }
+.hand-discard__confirm-controls { display: grid; gap: 0.3rem; max-width: 16vw; pointer-events: auto; }
 .hand-discard__hand-scroll {
   position: absolute;
   inset: auto 0 0;
@@ -81,17 +95,45 @@
   overflow: clip;
 }
 .hand-discard__hand > .card { width: var(--selection-card-width); pointer-events: auto; }
+.hand-discard[data-layout='grid'] .hand-discard__hand-scroll {
+  inset: auto max(8rem, 14vw) 0.5rem;
+  height: 35dvh;
+  overflow: auto;
+  pointer-events: auto;
+}
+.hand-discard[data-layout='grid'] .hand-discard__hand {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(9rem, 100%), 1fr));
+  align-items: start;
+  justify-items: center;
+  gap: 1rem;
+  padding: 1rem;
+}
+.hand-discard[data-layout='grid'] .hand-discard__hand > :is(.card, .hand-discard__option) {
+  width: min(100%, 11rem, calc(26dvh / var(--card-ratio)));
+}
+.hand-discard[data-layout='grid'] .hand-discard__footer > button { max-width: max(6rem, 12vw); }
 .hand-discard__footer {
   position: absolute;
   z-index: 6;
   inset: auto max(1rem, env(safe-area-inset-right)) 18dvh max(1rem, env(safe-area-inset-left));
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 0.75rem;
   pointer-events: none;
 }
-.hand-discard__footer > button { pointer-events: auto; }
+.hand-discard__footer > button { pointer-events: auto; max-width: 28vw; white-space: normal; }
+.hand-discard__footer > :last-child { justify-self: end; }
+.hand-discard__footer > :first-child { justify-self: start; }
+.hand-discard__custom {
+  position: absolute;
+  inset: max(27dvh, var(--selection-content-top, 24dvh)) 12vw 10dvh;
+  overflow: auto;
+  display: grid;
+  justify-items: center;
+}
+.hand-discard[data-layout='custom'] .hand-discard__footer { bottom: 2dvh; }
 .hand-discard__footer > span { color: #f3d268; text-shadow: 0 2px 3px #000; }
 .hand-discard__footer:not([data-has-selection]) > :is(span, button:last-child) { visibility: hidden; }
 .hand-discard__view {

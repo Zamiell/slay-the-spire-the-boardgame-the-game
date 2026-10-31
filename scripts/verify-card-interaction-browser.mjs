@@ -443,18 +443,19 @@ try {
     await confirmCardPlay(page)
     const topdeck = page.getByRole('dialog', { name: 'Choose 1 for the top of your draw pile', exact: true })
     await topdeck.waitFor()
+    await topdeck.getByRole('button', { name: 'View battlefield', exact: true }).click()
     assert(await topdeck.evaluate(dialog => {
       const backdrop = getComputedStyle(dialog, '::backdrop')
       const alpha = Number(backdrop.backgroundColor.match(/[\d.]+/g)?.at(3) ?? 1)
       const energy = document.querySelector('.pip--energy').getBoundingClientRect()
-      const panel = dialog.getBoundingClientRect()
       return alpha <= 0.4 && backdrop.backdropFilter === 'none' && dialog.matches(':modal') &&
-        energy.left >= 0 && energy.top >= 0 && energy.right <= innerWidth && energy.bottom <= innerHeight &&
-        (energy.right <= panel.left || energy.left >= panel.right || energy.bottom <= panel.top || energy.top >= panel.bottom)
-    }), `${screen}: choosing a card must leave the Energy HUD readable without making the board interactive`)
+        getComputedStyle(dialog, '::before').opacity === '0' &&
+        energy.left >= 0 && energy.top >= 0 && energy.right <= innerWidth && energy.bottom <= innerHeight
+    }), `${screen}: battlefield peek must leave the Energy HUD readable without making the board interactive`)
     assert.match(await page.locator('.pip--energy').innerText(), /9/)
     await page.screenshot({ path: `${output}/${screen}-choice-visible-hud.png` })
-    await topdeck.locator('.card').first().click()
+    await topdeck.getByRole('button', { name: 'Return to card selection', exact: true }).click()
+    await topdeck.locator('.hand-discard__hand .card').first().click()
     await topdeck.getByRole('button', { name: 'Put selected card on top', exact: true }).click()
     await topdeck.waitFor({ state: 'detached' })
 
@@ -463,7 +464,7 @@ try {
     await confirmCardPlay(page)
     const scry = page.getByRole('dialog', { name: 'Scry 3', exact: true })
     await scry.waitFor()
-    assert.equal(await scry.locator('.choice-modal__cards .card').count(), 1,
+    assert.equal(await scry.locator('.hand-discard__hand .card').count(), 1,
       'one revealed card must still allow a choice')
     await scry.getByRole('button', { name: 'Keep all', exact: true }).click()
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.players[0].block === 3)

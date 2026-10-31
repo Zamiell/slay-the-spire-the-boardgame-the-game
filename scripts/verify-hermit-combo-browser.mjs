@@ -49,16 +49,25 @@ try {
     const dialog = page.getByRole('dialog', { name: "Hermit's Combo" })
     const loadCard = (title) => dialog.locator(`section[aria-labelledby="hermit-trigger-choice-load"] .card[data-card-name="${title}"]`)
     const chamberCard = (title) => dialog.locator(`section[aria-labelledby="hermit-trigger-choice-chamber"] .card[data-card-name="${title}"]`)
-    const confirm = dialog.locator('.hermit-trigger-choice__confirm')
-    const allVisible = (drawnCount) => dialog.evaluate((element, drawnCount) => {
+    const confirm = dialog.locator('.hand-discard__footer > button:last-child')
+    const allVisible = async drawnCount => {
+      const drawnFirst = await dialog.evaluate((element, drawnCount) => {
       const options = [...element.querySelectorAll('section[aria-labelledby="hermit-trigger-choice-load"] .hermit-trigger-choice__option')]
-      return options.slice(0, drawnCount).every((option) => option.querySelector('.hermit-trigger-choice__badge')) &&
-        [...element.querySelectorAll('.hermit-trigger-choice__option')].every((option) => {
+      return options.slice(0, drawnCount).every(option => option.querySelector('.hermit-trigger-choice__badge'))
+      }, drawnCount)
+      for (const option of await dialog.locator('.hermit-trigger-choice__option').all()) {
+        await option.scrollIntoViewIfNeeded()
+        const bounds = await option.evaluate(option => {
           const box = option.getBoundingClientRect()
-          const row = option.parentElement.getBoundingClientRect()
-          return box.left >= row.left && box.right <= row.right && box.top >= 0 && box.bottom <= innerHeight
+          const viewport = option.closest('.hand-discard__custom').getBoundingClientRect()
+          return { card: box.toJSON(), viewport: viewport.toJSON() }
         })
-    }, drawnCount)
+        assert(bounds.card.left >= bounds.viewport.left - 1 && bounds.card.right <= bounds.viewport.right + 1 &&
+          bounds.card.top >= bounds.viewport.top - 1 && bounds.card.bottom <= bounds.viewport.bottom + 1,
+        `${name}: card cannot be scrolled fully into view: ${JSON.stringify(bounds)}`)
+      }
+      return drawnFirst
+    }
 
     await load()
     await dialog.waitFor()
@@ -69,13 +78,11 @@ try {
     assert.equal(await confirm.textContent(), 'Choose 1 card to Load')
     assert(await confirm.isDisabled())
     const fits = () => dialog.locator('.choice-modal__panel').evaluate((panel) => {
-      const shell = panel.closest('dialog')
-      if (shell.scrollHeight > shell.clientHeight + 1 || shell.getBoundingClientRect().bottom > innerHeight) return false
+      const shell = panel.closest('.hand-discard__custom')
+      if (shell.getBoundingClientRect().bottom > innerHeight) return false
       const box = panel.getBoundingClientRect()
-      const actions = panel.querySelector('.hermit-trigger-choice__actions').getBoundingClientRect()
-      const cards = [...panel.querySelectorAll('.card')].map((card) => card.getBoundingClientRect())
-      return box.top >= 0 && box.bottom <= innerHeight && actions.bottom <= innerHeight &&
-        panel.scrollHeight <= panel.clientHeight + 1 && cards.every((card) => card.bottom <= innerHeight && card.top >= 0)
+      const actions = panel.closest('dialog').querySelector('.hand-discard__footer').getBoundingClientRect()
+      return box.top >= 0 && actions.top >= 0 && actions.bottom <= innerHeight
     })
     assert(await fits(), `${name}: Combo dialog does not fit the viewport without scrolling`)
     assert.match(await loadCard('Snapshot').getAttribute('aria-label'), /, drawn$/)
@@ -158,7 +165,7 @@ try {
     await barrel.waitFor()
     assert.equal(await barrel.locator('section[aria-labelledby="hermit-trigger-choice-load"]').count(), 0)
     await barrel.getByText('You may discard 1 Chamber card to draw 3').waitFor()
-    const barrelConfirm = barrel.locator('.hermit-trigger-choice__confirm')
+    const barrelConfirm = barrel.locator('.hand-discard__footer > button:last-child')
     assert.equal(await barrelConfirm.textContent(), 'Continue without choosing')
     await barrel.locator('.card[data-card-name="Defend"]').click()
     assert.equal(await barrelConfirm.textContent(), 'Discard Defend, draw 3')

@@ -59,6 +59,7 @@ export function CardPicker({
     const focusFirst = () => (controls()[0] ?? picker).focus()
     focusFirst()
     const retainFocus = (event: FocusEvent) => {
+      if (event.target instanceof Element && event.target.closest('dialog.card-collection[open]')) return
       if (event.target instanceof Node && !picker.contains(event.target)) focusFirst()
     }
     const trapTab = (event: KeyboardEvent) => {

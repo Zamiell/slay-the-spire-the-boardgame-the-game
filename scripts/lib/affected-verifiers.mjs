@@ -60,6 +60,8 @@ const focusedEngineOwners = ownerMap([
   ['src/game/run/rewards.ts', ['verify-loot-browser.mjs', 'verify-tiny-house-browser.mjs']],
 ])
 const focusedUiOwners = ownerMap([
+  ['src/ui/useButtonShortcut.ts', ['verify-keyboard-browser.mjs', 'verify-card-picker-browser.mjs']],
+  ['src/ui/CardPicker.tsx', ['verify-card-picker-browser.mjs']],
   ['src/ui/styles/combat.css', ['verify-sever-soul-browser.mjs', 'verify-row-target-browser.mjs']],
   ['src/ui/styles/hand-layout.css', ['verify-card-interaction-browser.mjs', 'verify-start-turn-order-browser.mjs']],
   ['src/ui/chrome/rewards.css', ['verify-loot-browser.mjs', 'verify-boss-relic-picker-browser.mjs']],

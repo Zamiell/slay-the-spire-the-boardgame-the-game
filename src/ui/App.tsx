@@ -190,6 +190,7 @@ type SoloRunSave = {
   /** Whole-run opening snapshot, including RNG and shared supplies. */
   combatStart?: RunState | null
   lootStart?: RunState | null
+  roomStart?: RunState | null
   terminalRun?: RunState | null
   recordRunId?: string | null
   runLogExtractedRunId?: string | null
@@ -209,6 +210,16 @@ const sameLoot = (checkpoint: RunState | null | undefined, run: RunState): boole
   checkpoint?.phase === 'reward' && run.phase === 'reward' && checkpoint.seed === run.seed &&
   checkpoint.campaign.runId === run.campaign.runId && checkpoint.act === run.act &&
   checkpoint.map.position === run.map.position && checkpoint.combatsFinished === run.combatsFinished
+
+const restartableRoom = (run: RunState | null | undefined): boolean =>
+  run?.phase === 'room' && (run.roomState?.kind === 'merchant' || run.roomState?.kind === 'event')
+
+const sameRoom = (checkpoint: RunState | null | undefined, run: RunState): boolean =>
+  checkpoint != null && restartableRoom(checkpoint) && checkpoint.seed === run.seed &&
+  checkpoint.campaign.runId === run.campaign.runId && checkpoint.act === run.act &&
+  checkpoint.map.position === run.map.position && JSON.stringify(checkpoint.setup) === JSON.stringify(run.setup) &&
+  (run.phase === 'room' || run.phase === 'combat' && run.combat?.phase !== 'lost' || run.phase === 'reward' ||
+    run.phase === 'map' && hasPendingRelicAcquisition(run))
 
 function resumablePhase(run: Partial<RunState>): boolean {
   if (run.phase === 'combat') return run.combat !== null && typeof run.combat === 'object' &&
@@ -249,6 +260,7 @@ function savedSoloRun(): SoloRunSave | null {
     return saved?.version === 1 && (run?.campaign?.finalized === false || completed) && validSoloRun(run) &&
       (saved.combatStart == null || validSoloRun(saved.combatStart) && sameCombat(saved.combatStart, run)) &&
       (saved.lootStart == null || validSoloRun(saved.lootStart) && sameLoot(saved.lootStart, run)) &&
+      (saved.roomStart == null || validSoloRun(saved.roomStart) && sameRoom(saved.roomStart, run)) &&
       built?.count === 1 && typeof built.seed === 'string' && typeof built.ascension === 'number' &&
       typeof built.chooseYourRelic === 'boolean' && typeof built.lastStand === 'boolean' &&
       Array.isArray(built.characters) && built.characters.every((character) => DEFAULT_CHARACTERS.includes(character)) &&
@@ -695,6 +707,7 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
   const resuming = useRef(false)
   const combatStart = useRef<RunState | null>(null)
   const lootStart = useRef<RunState | null>(null)
+  const roomStart = useRef<RunState | null>(null)
   const [runLogRestoration, setRunLogRestoration] = useState(0)
   const [consoleRewindEpoch, setConsoleRewindEpoch] = useState(0)
   // Play in progress belongs to the account that started it: profile.ts clears the
@@ -792,6 +805,7 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
     try { localStorage.removeItem(SOLO_RUN_KEY) } catch { /* Storage is unavailable. */ }
     combatStart.current = null
     lootStart.current = null
+    roomStart.current = null
     setResume(null)
     setResumeError(null)
   }
@@ -805,9 +819,10 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
     try {
       let restored = resume.run
       const combat = unfinishedCombat(restored)
-      if (combat || restored.phase === 'reward') {
-        const matches = combat ? sameCombat : sameLoot
-        let checkpoint = combat ? resume.combatStart : resume.lootStart
+      const room = restartableRoom(restored) || Boolean(resume.roomStart)
+      if (room || combat || restored.phase === 'reward') {
+        const matches = room ? sameRoom : combat ? sameCombat : sameLoot
+        let checkpoint = room ? resume.roomStart : combat ? resume.combatStart : resume.lootStart
         if (!checkpoint) {
           const log = await readRunLog(restored.campaign.runId)
           if (log) {
@@ -821,7 +836,7 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
           }
         }
         if (!checkpoint || !validSoloRun(checkpoint) || !matches(checkpoint, restored)) {
-          throw new Error(`The beginning of this ${combat ? 'combat' : 'loot screen'} could not be recovered. Your saved run has not been changed.`)
+          throw new Error(`The beginning of this ${room ? 'shop or event' : combat ? 'combat' : 'loot screen'} could not be recovered. Your saved run has not been changed.`)
         }
         restored = structuredClone(checkpoint)
       }
@@ -834,6 +849,7 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
       }
       combatStart.current = unfinishedCombat(restored) ? structuredClone(restored) : null
       lootStart.current = restored.phase === 'reward' ? structuredClone(restored) : null
+      roomStart.current = restartableRoom(restored) ? structuredClone(restored) : null
       // A Daily Climb's seed, Ascension and setup are fixed, not the player's menu choices.
       if (resume.built.meta.dailyDate === undefined) {
         setSeedText(resume.built.seed)
@@ -1219,8 +1235,11 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
     if (run.phase === 'reward') {
       if (!sameLoot(lootStart.current, run)) lootStart.current = structuredClone(run)
     } else lootStart.current = null
+    // Keep an Event's arrival through its shop, fight, or pending rewards.
+    // Returning to the map without an outstanding acquisition commits the visit.
+    if (!sameRoom(roomStart.current, run)) roomStart.current = restartableRoom(run) ? structuredClone(run) : null
     const saved: SoloRunSave = {
-      version: 1, run, built, combatStart: combatStart.current, lootStart: lootStart.current,
+      version: 1, run, built, combatStart: combatStart.current, lootStart: lootStart.current, roomStart: roomStart.current,
       terminalRun: terminalRun.current?.campaign.runId === run.campaign.runId ? terminalRun.current : null,
       recordRunId,
       runLogExtractedRunId,
@@ -1468,7 +1487,7 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
             // A recorded run resumes from its save (the campaign journal), never from the
             // victory it was recorded from.
             else setResume(run.campaign.finalized ? savedSoloRun() : {
-              version: 1, run, built, combatStart: combatStart.current, lootStart: lootStart.current,
+              version: 1, run, built, combatStart: combatStart.current, lootStart: lootStart.current, roomStart: roomStart.current,
             })
             onClose()
           }}>{tutorial ? 'Leave tutorial' : 'Return to main menu'}</button>
@@ -1759,6 +1778,7 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
           setCoinGain(null)
           combatStart.current = unfinishedCombat(result.run) ? structuredClone(result.run) : null
           lootStart.current = result.run.phase === 'reward' ? structuredClone(result.run) : null
+          roomStart.current = restartableRoom(result.run) ? structuredClone(result.run) : null
           flushSync(() => {
             if (rewind) setConsoleRewindEpoch(value => value + 1)
             setRunLogRestoration(value => value + 1)

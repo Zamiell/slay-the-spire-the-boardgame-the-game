@@ -88,7 +88,7 @@ const focusedUiOwners = ownerMap([
     'verify-card-tooltip-browser.mjs', 'verify-card-picker-browser.mjs', 'verify-keyboard-browser.mjs', 'verify-pile-controls-browser.mjs',
   ]],
   ['src/ui/styles/card-picker.css', ['verify-card-picker-browser.mjs', 'verify-deck-inspection-browser.mjs']],
-  ['src/ui/App.tsx', ['verify-ascension-sync-browser.mjs', 'verify-restricted-browser.mjs', 'verify-run-replay-browser.mjs', 'verify-replay-controls-browser.mjs', 'verify-courier-browser.mjs',
+  ['src/ui/App.tsx', ['verify-room-resume-browser.mjs', 'verify-ascension-sync-browser.mjs', 'verify-restricted-browser.mjs', 'verify-run-replay-browser.mjs', 'verify-replay-controls-browser.mjs', 'verify-courier-browser.mjs',
     'verify-combat-vfx-preload-browser.mjs', 'verify-tutorial-browser.mjs', 'verify-enemy-hover-browser.mjs', 'verify-skin-browser.mjs']],
   ['src/ui/CampfireScene.tsx', ['verify-art-scenes-browser.mjs', 'verify-skin-browser.mjs']],
   ['src/ui/campfire-seats.ts', ['verify-art-scenes-browser.mjs', 'verify-skin-browser.mjs']],

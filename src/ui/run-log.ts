@@ -1465,7 +1465,7 @@ function installReplayGuard(doc: Document, pause?: () => void) {
   const block = (event: Event) => {
     if (!event.isTrusted) return
     if (event instanceof KeyboardEvent && event.key === 'Escape') {
-      if (doc.querySelector(OPEN_INSPECTION)) return
+      if (doc.querySelector(OPEN_INSPECTION) || doc.querySelector('[data-run-log-control] [role="menu"]')) return
       if (doc.querySelector('.pause-menu[open]') || !pause) return
       event.preventDefault()
       event.stopImmediatePropagation()

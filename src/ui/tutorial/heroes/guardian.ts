@@ -1,5 +1,5 @@
 import {
-  eventChapter, merchantChapter, moveChapter, neowBlueChosen, neowDone, neowRedRevealed, neowRedTaken,
+  eventChapter, merchantChapter, moveChapter, neowBlueChosen, neowDone, neowRedTaken,
   pickerSteps, potionText, rewardChapter, say, shown, task, treasureChapter,
 } from '../common.ts'
 import {
@@ -89,8 +89,8 @@ export const GUARDIAN: HeroTutorial = {
         say('Your health', 'The Guardian has 9 HP. Attacks here deal 1 to 4 damage, so every point matters. At 0 HP the run is over.', at.hp),
         say('Deck and relics', 'Your deck holds 4 Strikes, 4 Defends, Twin Slam and Curl Up; open it here any time. The Guardian\'s own relic puts you in Attack Mode at the start of every fight, and Loaded Die gives 1 Block on a 4 or 5; on a 6, it can give that Block or trigger another die relic ability. Hover over or long-press a relic to read it.', at.deck, at.relics),
         say("The Heart's Boon", "Downfall heroes are the Spire's villains, so the Heart offers its Boon instead of Neow's Blessing. The red reward is always 3 Gold and a Card Reward. Then you choose one of three blue options.", at.neowCard),
-        task('Reveal the Card Reward', 'The rest of the red reward is a Card Reward: 3 cards from the Guardian\'s reward deck. Reveal them.',
-          neowRedRevealed, at.neowButton('Reveal Card Reward')),
+        say('Your Card Reward', 'Your opening Card Reward is already revealed: 3 cards from the Guardian\'s reward deck. Choose one, or skip.',
+          spot('.reward-screen--card-choice')),
         say('Fortify', 'Costs 1: gain 2 Block, and in Attack Mode also draw 2 cards.', at.offeredCard('guardian_fortify')),
         say('Speed Boost', 'Costs 0: deal 1 damage, then you may Mode Shift. It has Retain: it stays in your hand when your turn ends instead of being discarded.', at.offeredCard('guardian_speed_boost')),
         say('Orb Slam', 'Costs 1: deal 2 damage, and in Defense Mode also gain 1 Block.', at.offeredCard('guardian_orb_slam')),

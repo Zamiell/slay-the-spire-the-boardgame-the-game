@@ -4,7 +4,7 @@
 // `beginCatchUp` is the same job for a seat that joined late — it has to arrive
 // with everything a seat that started at the door would already have.
 import { createEnemyDecks, rollActBoss } from './encounters.ts'
-import { grantNeowGold } from './neow.ts'
+import { grantNeowGold, resumeNeow } from './neow.ts'
 import { grantHeirlooms } from './rewards.ts'
 import { MAX_HP, hasModifier, hasPendingRelicAcquisition, nextRunUid } from './rules.ts'
 import { colorlessCardsAvailable, mirrorItemSupplies } from './supplies.ts'
@@ -336,7 +336,7 @@ export function createRun(
   }
   run = queueNewGuardianSockets({ ...run, players: playersBeforeModifiers }, run)
   if (modifier('heirloom')) run = grantHeirlooms(run, players.map((player) => player.id))
-  return grantNeowGold(run, players.map((player) => player.id))
+  return resumeNeow(grantNeowGold(run, players.map((player) => player.id)))
 }
 
 /** Add physical characters only before the party enters an Act II–IV map (Quick Start p.22). */
@@ -419,7 +419,7 @@ export function beginCatchUp(state: RunState, members: readonly PartyMember[]): 
     }, itemDecks)
     next = queueNewGuardianSockets({ ...next, players: playersBeforeModifiers }, next)
     if (hasModifier(state, 'heirloom')) next = grantHeirlooms(next, newPlayers.map((player) => player.id))
-    return grantNeowGold(next, newPlayers.map((player) => player.id))
+    return resumeNeow(grantNeowGold(next, newPlayers.map((player) => player.id)))
   }
   const dealt = dealBlessings(rng, newPlayers, colorlessCardsAvailable(state))
   let next = mirrorItemSupplies({
@@ -447,5 +447,5 @@ export function beginCatchUp(state: RunState, members: readonly PartyMember[]): 
   }, itemDecks)
   next = queueNewGuardianSockets({ ...next, players: playersBeforeModifiers }, next)
   if (hasModifier(state, 'heirloom')) next = grantHeirlooms(next, newPlayers.map((player) => player.id))
-  return grantNeowGold(next, newPlayers.map((player) => player.id))
+  return resumeNeow(grantNeowGold(next, newPlayers.map((player) => player.id)))
 }

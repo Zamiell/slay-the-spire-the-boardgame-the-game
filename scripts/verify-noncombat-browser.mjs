@@ -5,7 +5,7 @@ import { createServer } from 'vite'
 import { chromium } from './lib/profile-browser.mjs'
 import { createRoomServer } from './room-server.mjs'
 import { enterRoom, roomChoices } from '../src/game/run.ts'
-import { createRun } from '../src/game/run.ts'
+import { createRun, resumeNeow } from '../src/game/run.ts'
 import { postNeowRun } from './lib/post-neow-run.mjs'
 import { DAILY_MODIFIERS } from '../src/game/meta.ts'
 import { suite, check, assert, assertEqual, assertDeepEqual, report } from './lib/harness.mjs'
@@ -470,13 +470,14 @@ const readNeowFaceActionOverlap = () => page.evaluate(() => {
 })
 const neowFaceActionOverlap = await readNeowFaceActionOverlap()
 await page.screenshot({ path: join(outDir, 'neow-4p-desktop.png'), fullPage: true })
-assertEqual(await page.getByRole('button', { name: 'Reveal Card Reward' }).count(), 1, 'red Card Reward Reveal did not appear at once')
-assertEqual(await page.getByRole('button', { name: 'Skip unseen' }).count(), 1, 'red Card Reward skip did not appear at once')
+assertEqual(await page.getByRole('button', { name: 'Reveal Card Reward' }).count(), 0, 'opening reward still requires Reveal')
+assertEqual(await page.getByRole('button', { name: 'Skip unseen' }).count(), 0, 'opening reward still offers unseen skipping')
 assertEqual(await page.getByText(/Reveal it to the party/).count(), 0, 'private Neow reward copy still promises to reveal cards to teammates')
 await page.evaluate(() => {
   const debug = window.__STS_DEBUG__
   const run = structuredClone(debug.getRun())
   window.__neowCardRewards = run.players.map((player) => [...player.cardRewards])
+  run.neow.players.p1.redReward = null
   run.players = run.players.map((player, index) => ({
     ...player,
     cardRewards: [],
@@ -488,7 +489,8 @@ await page.evaluate(() => {
 await page.getByText('Fewer than 3 reward decks remain. Skip this reward unseen.').waitFor()
 const exhaustedPrismaticRevealDisabled = await page.getByRole('button', { name: 'Reveal Card Reward' }).isDisabled()
 const exhaustedPrismaticSkipEnabled = await page.getByRole('button', { name: 'Skip unseen' }).isEnabled()
-await page.evaluate(() => {
+await page.evaluate(async () => {
+  const { resumeNeow } = await import('/src/game/run.ts')
   const debug = window.__STS_DEBUG__
   const run = structuredClone(debug.getRun())
   run.players = run.players.map((player, index) => ({
@@ -496,10 +498,8 @@ await page.evaluate(() => {
     cardRewards: window.__neowCardRewards[index],
     relics: index === 0 ? player.relics.filter((relic) => relic.defId !== 'prismatic_shard') : player.relics,
   }))
-  debug.setRun(run)
+  debug.setRun(resumeNeow(run))
 })
-await page.waitForFunction(() => [...document.querySelectorAll('button')].some((button) => button.textContent?.trim() === 'Reveal Card Reward' && !button.disabled))
-await page.getByRole('button', { name: 'Reveal Card Reward' }).click()
 await page.waitForFunction(() => window.__STS_DEBUG__.getRun().neow.players.p1.redReward !== null)
 assertEqual(await page.getByRole('button', { name: 'Reveal Card Reward' }).count(), 0, 'revealed reward still offered Reveal')
 assertEqual(await page.getByRole('button', { name: 'Skip unseen' }).count(), 0, 'revealed reward still offered unseen skip')
@@ -583,8 +583,8 @@ check('local Neow exposes every dealt face while Card Rewards use the private sh
   assertEqual(localNeowFaces, 4)
   assertEqual(localNeowOptions, 12)
   assertEqual(hiddenRedOrder.pending, true)
-  assertEqual(hiddenRedOrder.offer, null)
-  assertEqual(hiddenRedOrder.publicOffers, 0, 'face-down Neow rewards leaked before Reveal')
+  assertEqual(hiddenRedOrder.offer.choices.length, 3)
+  assertEqual(hiddenRedOrder.publicOffers, 0, 'private Neow choices leaked into the public faces')
   assertEqual(neowFaceActionOverlap, false, 'Neow actions cover a dealt public card')
   assertEqual(neowCardChoices, 3, 'Neow did not use the shared three-card reward picker')
   assert(exhaustedPrismaticRevealDisabled && exhaustedPrismaticSkipEnabled,
@@ -3372,6 +3372,7 @@ liveRoom.phase = 'run'
 liveRoom.run = createRun(8801, onlineSeats.map(({ playerId: id, name, character }) => ({ id, name, character })), 0, liveRoom.campaignProgress, liveRoom.chooseYourRelic)
 const onlinePrismaticCards = [...liveRoom.run.players[0].cardRewards]
 liveRoom.run.players[0].relics.push({ defId: 'prismatic_shard', spent: false })
+liveRoom.run.neow.players[onlineSeats[0].playerId].redReward = null
 liveRoom.run.setup = { kind: 'catch-up', targetAct: 2, playerIds: [onlineSeats[3].playerId], rowIndex: 0, repeatIndex: 0, playerIndex: 0, die: null }
 liveRoom.run.neow.players = { [onlineSeats[3].playerId]: liveRoom.run.neow.players[onlineSeats[3].playerId] }
 liveRoom.version += 1
@@ -3414,11 +3415,12 @@ const reconciledPrismaticSources = await sourceChoices.evaluateAll((inputs) => (
 }))
 liveRoom.run.players[0].cardRewards = onlinePrismaticCards
 liveRoom.run.players[0].relics = liveRoom.run.players[0].relics.filter((relic) => relic.defId !== 'prismatic_shard')
+liveRoom.run = resumeNeow(liveRoom.run)
 liveRoom.version += 1
 rooms.publishRoom(create.snapshot.code)
 await neowPage.locator('.neow-source-choice').waitFor({ state: 'detached' })
 const onlineFaceDown = await neowPage.getByRole('button', { name: 'Reveal Card Reward' }).count()
-await neowPage.getByRole('button', { name: 'Skip unseen' }).click()
+await neowPage.getByRole('button', { name: 'Skip', exact: true }).click()
 await neowPage.locator('.neow-options').waitFor()
 await neowPage.getByRole('button', { name: /Transform 1 card/ }).click()
 const onlineNeowCardChoice = neowPage.locator('.card-picker')
@@ -3479,7 +3481,7 @@ check('online Neow is public, authoritative, and inert during reconnect', () => 
   assertEqual(reconciledPrismaticSources.checked, 0, 'an exhausted Prismatic source remained selected')
   assert(reconciledPrismaticSources.enabled >= 3, 'remaining Prismatic sources stayed disabled after reconciliation')
   assertEqual(onlineNeowFaces, 4)
-  assertEqual(onlineFaceDown, 1)
+  assertEqual(onlineFaceDown, 0)
   assertEqual(foreignNeowRewardNames, 0, 'another player\'s revealed Card Reward leaked onto their Neow face')
   assertEqual(liveRoom.run.neow.players[onlineSeats[0].playerId].redRewardPending, false)
   assertEqual(liveRoom.run.neow.players[onlineSeats[0].playerId].redReward, null)

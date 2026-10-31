@@ -25,7 +25,6 @@ export const relicText = (id: string) => `${relicDef(id).name}: ${relicDef(id).t
 // Neow.
 
 const neow = (run: RunState) => neowProgress(run)
-export const neowRedRevealed = (run: RunState) => run.phase !== 'neow' || !neow(run)?.redRewardPending || Boolean(neow(run)?.redReward)
 export const neowRedTaken = (run: RunState) => run.phase !== 'neow' || !neow(run)?.redRewardPending
 export const neowBlueChosen = (run: RunState) => run.phase !== 'neow' || neow(run)?.blueOption !== null
 export const neowDone = (run: RunState) => run.phase !== 'neow'
@@ -41,8 +40,8 @@ export const neowRewardsLeft = (left: number) => (run: RunState) => {
     progress.rewardQueue.length + (progress.rewardKind || progress.reward ? 1 : 0) <= left
 }
 
-export const NEOW_REVEAL = task('Reveal the Card Reward', 'The rest of the red reward is a Card Reward: 3 cards from your hero\'s reward deck. Reveal them.',
-  neowRedRevealed, at.neowButton('Reveal Card Reward'))
+export const NEOW_REVEAL = say('Your Card Reward', 'Your opening Card Reward is already revealed: 3 cards from your hero\'s reward deck. Choose one to add, or skip all three.',
+  spot('.reward-screen--card-choice'))
 
 /** Selects one card in an open card picker, then confirms it. */
 export function pickerSteps(verb: string, defId: string, why: string, done: (run: RunState) => boolean): TutorialStep[] {

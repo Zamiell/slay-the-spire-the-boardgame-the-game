@@ -28,7 +28,7 @@ for (const label of ['Single Player', 'Standard', 'Embark', 'Start standard camp
   await recording.getByRole('button', { name: label, exact: true }).click()
 }
 await recording.waitForFunction(() => window.__STS_DEBUG__?.getRun().phase === 'neow')
-await recording.getByRole('button', { name: 'Skip unseen', exact: true }).click()
+await recording.getByRole('button', { name: 'Skip', exact: true }).click()
 await recording.waitForFunction(() => window.__STS_DEBUG__.getRun().neow.players.p1.redRewardPending === false)
 for (let floor = 1; floor < MOVES; floor += 1) {
   await recording.evaluate((value) => {
@@ -77,7 +77,7 @@ for (const label of ['Single Player', 'Standard', 'Embark', 'Start standard camp
   await clicking.getByRole('button', { name: label, exact: true }).click()
 }
 await clicking.waitForFunction(() => window.__STS_DEBUG__?.getRun().phase === 'neow')
-await clicking.getByRole('button', { name: 'Skip unseen', exact: true }).click()
+await clicking.getByRole('button', { name: 'Skip', exact: true }).click()
 await clicking.waitForFunction(() => window.__STS_DEBUG__.getRun().neow.players.p1.redRewardPending === false)
 await clicking.evaluate(async () => {
   const { createCombat } = await import('/src/game/combat.ts')
@@ -273,6 +273,7 @@ try {
   await page.getByRole('button', { name: 'Resume', exact: true }).click()
 
   // Speeds change how fast moves play, and the menu offers exactly the promised set.
+  await page.getByRole('button', { name: 'Pause', exact: true }).click()
   await page.getByRole('button', { name: /^Playback speed/ }).click()
   assert.deepEqual(await page.getByRole('menuitemradio').allInnerTexts(), ['0.25×', '0.5×', '1×', '1.25×', '1.5×', '2×'])
   await page.waitForTimeout(350)
@@ -280,6 +281,7 @@ try {
   await page.keyboard.press('Escape')
   assert.equal(await page.getByRole('menu').count(), 0, 'Escape did not close the speed menu')
   assert.equal(await page.locator('.pause-menu[open]').count(), 0, 'Escape in the speed menu opened the game menu')
+  await page.getByRole('button', { name: 'Resume', exact: true }).click()
   const slow = await secondsPerMove(desktop, '0.25×')
   const fast = await secondsPerMove(desktop, '2×')
   await until(async () => (await probeRate()) === 2, 'Playing at 2× did not speed up the page animations')

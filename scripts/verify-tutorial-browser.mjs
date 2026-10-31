@@ -85,11 +85,12 @@ try {
     await page.screenshot({ path: join(output, `${label}-welcome.png`) })
 
     // While the coach explains, the run underneath takes no input.
-    const neowButton = page.locator('.neow-action button').first()
+    const neowButton = page.locator('.reward-screen__cards .card').first()
     await neowButton.waitFor()
     const buttonBox = await neowButton.boundingBox()
+    const beforeShield = await getRun(page)
     await page.mouse.click(buttonBox.x + buttonBox.width / 2, buttonBox.y + buttonBox.height / 2)
-    assert.equal((await getRun(page)).neow.players.p1.redReward, null, `${label}: a shielded Neow button still acted`)
+    assert.deepEqual(await getRun(page), beforeShield, `${label}: a shielded Neow card still acted`)
 
     // Walk the scripted run through the first fight and its rewards.
     const shots = new Set()

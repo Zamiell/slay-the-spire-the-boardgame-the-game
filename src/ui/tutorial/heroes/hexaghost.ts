@@ -1,6 +1,6 @@
 import type { RunState } from '../../../game/run.ts'
 import {
-  eventChapter, merchantChapter, moveChapter, neowBlueChosen, neowDone, neowRedRevealed, neowRedTaken,
+  eventChapter, merchantChapter, moveChapter, neowBlueChosen, neowDone, neowRedTaken,
   pickerSteps, potionText, rewardChapter, say, shown, task, treasureChapter,
 } from '../common.ts'
 import {
@@ -59,8 +59,8 @@ export const HEXAGHOST: HeroTutorial = {
         say('Your health', 'Hexaghost has 9 HP. Attacks here deal 1 to 4 damage, so every point matters. At 0 HP the run is over.', at.hp),
         say('Deck and relic', 'Your deck holds 4 Strikes, 4 Defends, Kindle and Sear; open it here any time. Your relic gives you 1 Soulburn at the start of every fight. Soulburn is Hexaghost\'s fire: the coach shows it in your first fight.', at.deck, at.relics),
         say("The Heart's Boon", 'Downfall heroes start with the Heart\'s Boon instead of Neow\'s Blessing. The red reward is always 3 Gold and a Card Reward. Then you choose one of three blue options.', at.neowCard),
-        task('Reveal the Card Reward', 'The rest of the red reward is a Card Reward: 3 cards from Hexaghost\'s reward deck. Reveal them.',
-          neowRedRevealed, at.neowButton('Reveal Card Reward')),
+        say('Your Card Reward', 'Your opening Card Reward is already revealed: 3 cards from Hexaghost\'s reward deck. Choose one, or skip.',
+          spot('.reward-screen--card-choice')),
         say('Nightmare Vision', 'Costs 1: draw 2 cards. If it is ever Exhausted, you gain 2 Energy. You have no way to Exhaust it yet.', at.offeredCard('nightmare_vision')),
         say('Burning Touch', 'Costs 2: deal 2 damage and gain 1 Soulburn. Each Soulburn is extra damage you can spend later.', at.offeredCard('burning_touch')),
         say('Haunted Hand', 'Costs 1: if you have at least 2 Heat, gain 1 Strength, then Retract. It Exhausts: once per fight.', at.offeredCard('haunted_hand')),

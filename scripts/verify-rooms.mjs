@@ -622,6 +622,7 @@ check('only the host selects duplicate prevention and the server applies it to r
   startRun(room, host.token, { seed: 442, preventDuplicateCardRewards: true })
   assertEqual(snapshotFor(room, guest.token).run.meta.preventDuplicateCardRewards, true)
   room.run.players[0].cardRewards = ['anger', 'anger', 'cleave', 'shrug_it_off']
+  room.run.neow.players[host.playerId].redReward = null
   apply(room, host.token, { kind: 'neow', stage: 'reveal' })
   assertDeepEqual(snapshotFor(room, host.token).run.neow.players[host.playerId].redReward.choices,
     ['anger', 'cleave', 'shrug_it_off'])
@@ -673,7 +674,7 @@ check('Neow binds every stage to the authenticated seat and rejects stale or for
   }
 })
 
-check('Neow reveal is authenticated, private, and skip-unseen preserves exact deck order', () => {
+check('automatic Neow offers remain private and skipping bottoms the revealed cards', () => {
   const room = createRoom(createStore(), { code: 'NEOWAR' })
   const a = joinRoom(room, { name: 'Ann', character: 'ironclad' })
   const b = joinRoom(room, { name: 'Bo', character: 'silent' })
@@ -687,7 +688,6 @@ check('Neow reveal is authenticated, private, and skip-unseen preserves exact de
   try { apply(room, a.token, { kind: 'neow', stage: 'reveal', choice: null }) } catch (error) { refused = error }
   assertEqual(refused?.name, 'RoomError')
 
-  apply(room, a.token, { kind: 'neow', stage: 'reveal' })
   const owner = snapshotFor(room, a.token).run.neow.players[a.playerId]
   const observer = snapshotFor(room, b.token).run.neow.players[a.playerId]
   assert(owner.redReward?.choices.length > 0, 'revealed red offer was absent')
@@ -699,9 +699,9 @@ check('Neow reveal is authenticated, private, and skip-unseen preserves exact de
   apply(room, a.token, { kind: 'neow', stage: 'red', choice: null })
   assertDeepEqual(room.run.players[0].cardRewards.slice(-owner.redReward.cardsDrawn.length), owner.redReward.cardsDrawn)
 
-  const beforeB = [...room.run.players[1].cardRewards]
+  const offerB = snapshotFor(room, b.token).run.neow.players[b.playerId].redReward
   apply(room, b.token, { kind: 'neow', stage: 'red', choice: null })
-  assertDeepEqual(room.run.players[1].cardRewards, beforeB, 'unseen red skip drew or bottomed cards')
+  assertDeepEqual(room.run.players[1].cardRewards.slice(-offerB.cardsDrawn.length), offerB.cardsDrawn)
 })
 
 check('revealed Neow Potions and Relics remain public', () => {
@@ -711,7 +711,7 @@ check('revealed Neow Potions and Relics remain public', () => {
     const b = joinRoom(room, { name: 'Bo', character: 'silent' })
     startRun(room, a.token, { seed: kind === 'potion' ? 414 : 415 })
     const progress = room.run.neow.players[a.playerId]
-    Object.assign(progress, { redRewardPending: false, blueOption: 0, rewardKind: kind })
+    Object.assign(progress, { redRewardPending: false, redReward: null, blueOption: 0, rewardKind: kind })
     apply(room, a.token, { kind: 'neow', stage: 'reveal' })
     const owner = snapshotFor(room, a.token).run.neow.players[a.playerId].reward
     const observer = snapshotFor(room, b.token).run.neow.players[a.playerId].reward

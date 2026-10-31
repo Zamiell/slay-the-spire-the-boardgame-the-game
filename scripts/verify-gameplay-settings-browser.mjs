@@ -3,6 +3,7 @@ import { mkdirSync } from 'node:fs'
 import { createServer } from 'vite'
 import { chromium } from './lib/profile-browser.mjs'
 import { createRoomServer } from './room-server.mjs'
+import { resumeNeow } from '../src/game/run.ts'
 
 const output = 'artifacts/gameplay-settings'
 mkdirSync(output, { recursive: true })
@@ -51,13 +52,13 @@ try {
     }
     await page.waitForFunction(() => window.__STS_DEBUG__?.getRun().phase === 'neow')
     assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().meta.preventDuplicateCardRewards), true)
-    await page.evaluate(() => {
+    await page.evaluate(async () => {
+      const { resumeNeow } = await import('/src/game/run.ts')
       const run = structuredClone(window.__STS_DEBUG__.getRun())
       run.players[0].cardRewards = ['anger', 'anger', 'cleave', 'shrug_it_off']
-      window.__STS_DEBUG__.setRun(run)
+      run.neow.players[run.players[0].id].redReward = null
+      window.__STS_DEBUG__.setRun(resumeNeow(run))
     })
-    await page.getByRole('button', { name: 'Gain 3 Gold', exact: true }).click()
-    await page.getByRole('button', { name: 'Reveal Card Reward', exact: true }).click()
     await page.locator('.reward-screen--card-choice').waitFor()
     assert.deepEqual(await page.evaluate(() => {
       const run = window.__STS_DEBUG__.getRun()
@@ -83,15 +84,15 @@ try {
     await online.locator('.online-lobby').waitFor()
     await online.locator('.online-lobby__start').click()
     await online.getByRole('button', { name: 'Start standard campaign', exact: true }).click()
-    await online.getByRole('button', { name: 'Gain 3 Gold', exact: true }).waitFor()
+    await online.locator('.reward-screen--card-choice').waitFor()
     const session = await online.evaluate(() => JSON.parse(sessionStorage.getItem('sts-room-session')))
     const room = rooms.store.rooms.get(session.code)
     assert.equal(room.run.meta.preventDuplicateCardRewards, true, 'the host preference did not reach the server')
     room.run.players[0].cardRewards = ['anger', 'anger', 'cleave', 'shrug_it_off']
+    room.run.neow.players[room.seats[0].playerId].redReward = null
+    room.run = resumeNeow(room.run)
     room.version++
     rooms.publishRoom(session.code)
-    await online.getByRole('button', { name: 'Gain 3 Gold', exact: true }).click()
-    await online.getByRole('button', { name: 'Reveal Card Reward', exact: true }).click()
     await online.locator('.reward-screen--card-choice').waitFor()
     assert.deepEqual(room.run.neow.players[room.seats[0].playerId].redReward.choices, ['anger', 'cleave', 'shrug_it_off'])
     await online.close()

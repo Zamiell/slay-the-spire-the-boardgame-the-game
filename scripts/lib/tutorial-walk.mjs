@@ -1,5 +1,5 @@
 // Walks a hero's guided tutorial in a real browser the way a player would:
-// Next through explanations, and for every task a click on each ringed control
+// Next through explanations, and for every task activation of each ringed control
 // in turn. Fights the coach leaves to the player are declared won through the
 // debug bridge, and free choices take the plainest option.
 
@@ -11,7 +11,7 @@ async function coach(page) {
     if (!panel) return null
     // Aim at a point inside each ring that something interactive actually
     // covers: an enemy's box is larger than the art that takes the tap.
-    const interactive = '[data-enemy-id] .enemy__portrait, .card, button, [data-room], .orbs__target, .prompt__mode'
+    const interactive = '[data-enemy-id] .enemy__hit-area, .card, button, [data-room], .orbs__target, .prompt__mode'
     const ringElements = [...document.querySelectorAll('.tutorial-coach__ring')]
     const signature = ringElements.map((ring) => {
       const box = ring.getBoundingClientRect()
@@ -20,6 +20,12 @@ async function coach(page) {
     const rings = ringElements.map((ring) => {
       const box = ring.getBoundingClientRect()
       const centre = { x: box.left + box.width / 2, y: box.top + box.height / 2 }
+      const card = [...document.querySelectorAll('.hand .card')].find(card => {
+        const bounds = card.getBoundingClientRect()
+        return Math.abs(bounds.x + bounds.width / 2 - centre.x) < 3 &&
+          Math.abs(bounds.y + bounds.height / 2 - centre.y) < 3
+      })
+      if (card) return { ...centre, cardName: card.getAttribute('data-card-name') }
       for (const [fx, fy] of [[0.5, 0.5], [0.5, 0.65], [0.5, 0.35], [0.5, 0.8], [0.35, 0.5], [0.65, 0.5], [0.5, 0.2]]) {
         const point = { x: box.left + box.width * fx, y: box.top + box.height * fy }
         if (document.elementFromPoint(point.x, point.y)?.closest(interactive)) return point
@@ -136,7 +142,8 @@ export async function walkTutorial(page, { onStep, until, maxActions = 600 } = {
       // reread them after every tap and press the next one.
       const pressed = []
       const seen = [...rings]
-      const near = (a, b) => Math.abs(a.x - b.x) < 40 && Math.abs(a.y - b.y) < 40
+      const near = (a, b) => a.cardName && b.cardName ? a.cardName === b.cardName
+        : Math.abs(a.x - b.x) < 40 && Math.abs(a.y - b.y) < 40
       for (let index = 0; index < 8; index += 1) {
         // Once every ring has been pressed, a move may still want another tap
         // on its target (each Evoke picks its own enemy): press the last again.
@@ -151,7 +158,12 @@ export async function walkTutorial(page, { onStep, until, maxActions = 600 } = {
         const ring = fresh ?? { ...rings.at(-1), again: true }
         pressed.push(ring)
         if (repeats > 0) log.push(`  tap ${Math.round(ring.x)},${Math.round(ring.y)} of ${rings.map((r) => `${Math.round(r.x)},${Math.round(r.y)}`).join(' ')}`)
-        await page.mouse.click(ring.x, ring.y)
+        if (ring.cardName) {
+          const card = page.locator(`.hand .card[data-card-name=${JSON.stringify(ring.cardName)}]`).first()
+          await card.focus()
+          await page.waitForFunction(() => !document.querySelector('.hand[data-hand-moving]'))
+          await card.press('Enter')
+        } else await page.mouse.click(ring.x, ring.y)
         await page.waitForFunction(([chapter, step, positions]) => {
           const panel = document.querySelector('.tutorial-coach__panel')
           if (!panel || panel.getAttribute('data-chapter') !== chapter || panel.getAttribute('data-step') !== step) return true

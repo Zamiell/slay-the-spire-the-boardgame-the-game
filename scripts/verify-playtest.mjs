@@ -294,8 +294,8 @@ try {
   const shardRevealed = act(rewardBatch, 0, shardReward, [['revealCardReward', sources]])
   assert(!shardRevealed.error, shardRevealed.error)
   assert.equal(shardRevealed.prompts.rewards[0].choices.length, 3)
-  const shardNeow = createRun(1, [{ id: 'p1', name: 'Playtest', character: 'ironclad' }])
-  shardNeow.players[0].relics.push({ defId: 'prismatic_shard', spent: false })
+  const shardNeow = createRun(1, [{ id: 'p1', name: 'Playtest', character: 'ironclad' }],
+    0, undefined, false, false, { mode: 'custom', modifiers: ['prismatic_shard'] })
   view = fixture(rewardBatch, shardNeow)
   assert.equal(view.prompts.neow.redReward, null)
   const neowRevealed = act(rewardBatch, 0, view, [['revealNeowReward', view.prompts.neow.availableSources.slice(0, 3)]])

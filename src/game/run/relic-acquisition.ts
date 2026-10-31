@@ -4,7 +4,7 @@
 // reward before they can be, which makes acquiring one a two-step action that
 // parks its own progress on the run and resumes whatever handed it out —
 // including Neow, mid-blessing.
-import { finishNeowStep, nextNeowReward } from './neow.ts'
+import { resumeNeow } from './neow.ts'
 import {
   drawTransformReward,
   expandCommonReward,
@@ -298,9 +298,6 @@ export function resolvePendingRelic(
   let next = draftReward
     ? settleRelicRewardGems(before, mutated, playerId, pending.guardianGemGroups, rewardChoices, rewardIndices)
     : queueNewGuardianSockets(before, mutated)
-  if (state.phase === 'neow' && state.neow?.players[playerId]?.blueOption !== null) {
-    next = nextNeowReward(next, playerId)
-    return finishNeowStep(next, playerId)
-  }
+  if (state.phase === 'neow') return resumeNeow(next)
   return state.phase === 'reward' ? resolveCardRewards(next, {}) : next
 }

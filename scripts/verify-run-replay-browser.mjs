@@ -666,7 +666,7 @@ try {
     await page.getByRole('button', { name: label, exact: true }).click()
   }
   await page.waitForFunction(() => window.__STS_DEBUG__?.getRun().phase === 'neow')
-  await page.getByRole('button', { name: 'Skip unseen', exact: true }).click()
+  await page.getByRole('button', { name: 'Skip', exact: true }).click()
   await page.waitForFunction(() => window.__STS_DEBUG__.getRun().neow.players.p1.redRewardPending === false)
   await page.evaluate(() => {
     const run = structuredClone(window.__STS_DEBUG__.getRun())
@@ -716,7 +716,7 @@ try {
   assert.equal(downloaded.version, 2)
   assert.equal(downloaded.runId, downloaded.initial.campaign.runId)
   assert(downloaded.events.length > 0)
-  assert(downloaded.events.some((event) => event.choice?.source?.name === 'Skip unseen'), 'Downloaded log omitted the recorded game decision')
+  assert(downloaded.events.some((event) => event.choice?.source?.name === 'Skip'), 'Downloaded log omitted the recorded game decision')
   assert(downloaded.events.some((event) => event.choice?.source?.name?.startsWith('Strike,') && event.choice.target),
     'Downloaded log omitted the recorded card target')
   assert(downloaded.events.some((event) => event.patch.some((change) => change.remove && change.path[0] === 'nextPendingRelicId')),

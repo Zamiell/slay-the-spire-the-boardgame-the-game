@@ -40,7 +40,8 @@ check('duplicate prevention is fixed at setup, applies to Neow, and cannot chang
   for (const preventDuplicateCardRewards of [false, true]) {
     let run = createRun(442, party(1), 0, createCampaignProgress(), false, false, { preventDuplicateCardRewards })
     run.players[0].cardRewards = ['anger', 'anger', 'cleave', 'shrug_it_off']
-    run = revealNeowReward(run, 'p1')
+    run.neow.players.p1.redReward = null
+    run = resumeNeow(run)
     assertDeepEqual(run.neow.players.p1.redReward.choices,
       preventDuplicateCardRewards ? ['anger', 'cleave', 'shrug_it_off'] : ['anger', 'anger', 'cleave'])
     run = resolveNeowReward(run, 'p1', null)
@@ -176,6 +177,7 @@ check('all 20 Heart faces grant 3 Gold and exactly one independently skippable C
   for (const id of ['p2', 'p3']) {
     assertEqual(run.players.find((player) => player.id === id).gold, 3)
     assertEqual(run.neow.players[id].redRewardsRemaining, 1)
+    assertEqual(run.neow.players[id].redReward?.choices.length, 3)
   }
 })
 
@@ -261,7 +263,8 @@ check('createRun deals one deterministic unique base face per player and red rew
   assertDeepEqual(faces, Object.values(same.neow.players).map((progress) => progress.cardId))
   assert(faces.every((id) => !NEOW_CARDS.find((card) => card.id === id).unlocked))
   assert(first.players.every((player) => player.gold === 3))
-  assert(first.players.every((player) => first.neow.players[player.id].redRewardPending && first.neow.players[player.id].redReward === null))
+  assert(first.players.every((player) => first.neow.players[player.id].redRewardPending &&
+    first.neow.players[player.id].redReward?.choices.length === 3))
   assertEqual(chooseNeow(first, 'p1', 0), first, 'blue resolved before the red reward')
   const skipped = resolveNeowReward(first, 'p1', null)
   assertEqual(skipped.neow.players.p1.redReward, null)
@@ -393,11 +396,11 @@ check('red and blue Card Rewards reveal three, may be skipped, and bottom unused
   assert(run.players[0].cardRewards.slice(-blue.cardsDrawn.length).every((id, index) => id === blue.cardsDrawn[index]))
 })
 
-check('unseen rewards skip without drawing while revealed rewards advance and bottom exact cards', () => {
+check('opening rewards are revealed automatically; later unseen rewards still skip without drawing', () => {
   let red = createRun(4251, party(2))
   const redDeck = [...red.players[0].cardRewards]
   red = resolveNeowReward(red, 'p1', null)
-  assertDeepEqual(red.players[0].cardRewards, redDeck)
+  assertDeepEqual(red.players[0].cardRewards, [...redDeck.slice(3), ...redDeck.slice(0, 3)])
   assertEqual(red.neow.players.p1.redRewardPending, false)
 
   let card = forceCard(beginBlue(4252), 'neow_05')
@@ -437,6 +440,36 @@ check('unseen rewards skip without drawing while revealed rewards advance and bo
   assertEqual(revealed.relicDeck.includes(top), false)
   revealed = resolveNeowReward(revealed, 'p1', null)
   assertEqual(revealed.relicDeck.at(-1), top)
+})
+
+check('resuming old opening rewards is automatic, private, and idempotent', () => {
+  for (const character of ['ironclad', 'guardian']) {
+    let run = JSON.parse(JSON.stringify(createRun(4257, [{ id: 'p1', name: character, character }])))
+    const revealed = structuredClone(run)
+    assert(run.neow.players.p1.redReward)
+    assertDeepEqual(resumeNeow(JSON.parse(JSON.stringify(run))), revealed)
+    assertDeepEqual(neowPreview(run, 'p1', 'other').redReward.choices, [])
+    const gems = run.neow.players.p1.redReward.guardianGems ?? []
+    run.guardianGemDeck = [...gems, ...run.guardianGemDeck]
+    run.neow.players.p1.redReward = null
+    const deck = structuredClone(run.players[0].deck)
+    run = resumeNeow(JSON.parse(JSON.stringify(run)))
+    assertDeepEqual(run, revealed)
+    assertDeepEqual(run.players[0].deck, deck, 'opening the choices must not take a card')
+    assertDeepEqual(resumeNeow(run), run, 'resume must not redraw cards or Socket Gems')
+  }
+})
+
+check('opening rewards wait for a starting Relic choice and open immediately after it resolves', () => {
+  let run = createRun(4258, party(1))
+  run.neow.players.p1.redReward = null
+  run.players[0].relics.push({ defId: 'war_paint', spent: false, pending: true })
+  run = resumeNeow(run)
+  assertEqual(run.neow.players.p1.redReward, null)
+  const eligible = pendingRelicEligibleCards(run.players[0], 'war_paint')
+  run = resolvePendingRelic(run, 'p1', eligible.slice(0, 1).map(card => card.uid))
+  assertEqual(run.neow.players.p1.redReward?.choices.length, 3)
+  assertEqual(run.neow.players.p1.blueOption, null)
 })
 
 check('every immediate positive reward may be skipped independently while ordered penalties still resolve', () => {

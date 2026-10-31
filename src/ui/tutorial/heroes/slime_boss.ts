@@ -1,5 +1,5 @@
 import {
-  eventChapter, merchantChapter, moveChapter, neowBlueChosen, neowDone, neowRedRevealed, neowRedTaken,
+  eventChapter, merchantChapter, moveChapter, neowBlueChosen, neowDone, neowRedTaken,
   pickerSteps, potionText, rewardChapter, say, shown, task, treasureChapter,
 } from '../common.ts'
 import {
@@ -67,8 +67,8 @@ export const SLIME_BOSS: HeroTutorial = {
         say('Your health', 'Slime Boss has 9 HP. Attacks here deal 1 to 4 damage, so every point matters. At 0 HP the run is over.', at.hp),
         say('Deck and relics', 'Your deck holds 4 Strikes, 4 Defends, Slime Slap and Lick; open it here any time. Your first relic summons Bruiser Slime at the start of every fight. Hover over or long-press a relic to read it.', at.deck, at.relics),
         say("The Heart's Boon", "Downfall heroes are the Spire's villains, so the Heart offers its Boon instead of Neow's Blessing. The red reward is always 3 Gold and a Card Reward. Then you choose one of three blue options.", at.neowCard),
-        task('Reveal the Card Reward', "The rest of the red reward is a Card Reward: 3 cards from Slime Boss's reward deck. Reveal them.",
-          neowRedRevealed, at.neowButton('Reveal Card Reward')),
+        say('Your Card Reward', "Your opening Card Reward is already revealed: 3 cards from Slime Boss's reward deck. Choose one, or skip.",
+          spot('.reward-screen--card-choice')),
         say('Flame Tackle', 'Costs 2: deal 2 damage to ALL enemies, then Command one of your Slimes. Great against packs.', at.offeredCard('slime_boss_flame_tackle')),
         say('Nibble and Lick', 'Costs 2: Grow a Slime, then Command it. No damage of its own.', at.offeredCard('slime_boss_nibble_and_lick')),
         say('Recollect', 'Costs 1: draw 2 cards. It has Retain: it stays in your hand at the end of your turn instead of being discarded.', at.offeredCard('slime_boss_recollect')),

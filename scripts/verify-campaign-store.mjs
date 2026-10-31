@@ -201,7 +201,6 @@ try {
   const legacyRed = createRoom(store, { code: 'OLDRED' })
   const redSeat = joinRoom(legacyRed, { name: 'Red', character: 'defect' })
   startRun(legacyRed, redSeat.token, { seed: 7334 })
-  apply(legacyRed, redSeat.token, { kind: 'neow', stage: 'reveal' })
   const redOrder = [...legacyRed.run.players[0].cardRewards]
   const blessingOrder = [...legacyRed.run.neow.deck]
   delete legacyRed.run.neow.players[redSeat.playerId].redRewardPending

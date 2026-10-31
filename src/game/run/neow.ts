@@ -172,7 +172,13 @@ export function resumeNeow(state: RunState): RunState {
   if (state.phase !== 'neow' || !state.neow) return state
   let next = grantLegacyNeowGold(state)
   for (const [playerId, progress] of Object.entries(state.neow.players)) {
-    if (progress.blueOption === null || progress.redRewardPending) continue
+    if (progress.redRewardPending) {
+      if (!progress.pendingEffect && !neowPreview(next, playerId)?.prismatic) {
+        next = revealNeowReward(next, playerId)
+      }
+      continue
+    }
+    if (progress.blueOption === null) continue
     next = finishNeowStep(nextNeowReward(next, playerId), playerId)
   }
   return next

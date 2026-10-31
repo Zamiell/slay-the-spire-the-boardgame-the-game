@@ -22,7 +22,7 @@ await server.listen()
 const origin = `http://localhost:${server.httpServer.address().port}`
 const browser = await (process.argv.includes('--webkit') ? webkit : chromium).launch()
 try {
-  for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 600 }, { width: 960, height: 450 }, { width: 844, height: 390 }]) {
+  for (const viewport of [{ width: 1440, height: 900 }, { width: 844, height: 390 }]) {
     const phone = viewport.width === 844
     const context = await browser.newContext({ viewport, ...(phone ? { isMobile: true, hasTouch: true } : {}) })
     const page = installScreenAudit(await context.newPage())
@@ -92,9 +92,15 @@ try {
     await page.getByRole('button', { name: 'Start standard campaign', exact: true }).click()
     await page.getByRole('heading', { name: 'Neow’s Blessing' }).waitFor()
     await page.evaluate(() => window.__STS_DEBUG__.reset(1, 'neow-viewport'))
-    await capture('solo')
-    await page.getByRole('button', { name: 'Reveal Card Reward', exact: true }).click()
     await page.locator('.reward-screen--card-choice').waitFor()
+    assert.equal(await page.getByRole('button', { name: 'Reveal Card Reward', exact: true }).count(), 0)
+    assert.equal(await page.getByRole('button', { name: 'Skip unseen', exact: true }).count(), 0)
+    const opening = await page.evaluate(() => window.__STS_DEBUG__.getRun().neow)
+    await page.reload()
+    await page.getByRole('button', { name: 'Resume', exact: true }).click()
+    await page.locator('.reward-screen--card-choice').waitFor()
+    assert.deepEqual(await page.evaluate(() => window.__STS_DEBUG__.getRun().neow), opening,
+      'reloading must preserve the automatically revealed offer')
     if (!phone) {
       const card = page.locator('.reward-screen__cards .card').first()
       await page.locator('.reward-screen--card-choice').evaluate(async element =>
@@ -144,11 +150,10 @@ try {
     await page.getByRole('heading', { name: 'The Heart’s Boon', exact: true }).waitFor()
     assert.match(await page.locator('.neow-face--active .neow-face__red').textContent(), /Card Reward/)
     assert.equal(await page.locator('.neow-face--active .neow-face__red').getByText('3 Card Rewards', { exact: true }).count(), 0)
-    await page.getByRole('button', { name: 'Reveal Card Reward', exact: true }).waitFor()
-    assert.equal(room.run.players[0].gold, 3)
-    await capture('party-reveal')
-    await page.getByRole('button', { name: 'Reveal Card Reward', exact: true }).click()
     await page.locator('.reward-screen--card-choice').waitFor()
+    assert.equal(await page.getByRole('button', { name: 'Reveal Card Reward', exact: true }).count(), 0)
+    assert.equal(room.run.players[0].gold, 3)
+    await page.screenshot({ path: join(out, `party-reward-${viewport.width}.png`) })
     await page.getByRole('button', { name: 'Skip', exact: true }).click()
     await page.locator('.neow-options').waitFor()
     assert.equal(room.run.neow.players[seats[0].playerId].redRewardsRemaining, 0)

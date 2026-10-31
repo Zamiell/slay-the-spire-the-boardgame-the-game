@@ -1,6 +1,6 @@
 import type { RunState } from '../../../game/run.ts'
 import {
-  eventChapter, merchantChapter, moveChapter, neowBlueChosen, neowDone, neowRedRevealed, neowRedTaken,
+  eventChapter, merchantChapter, moveChapter, neowBlueChosen, neowDone, neowRedTaken,
   pickerSteps, potionText, rewardChapter, say, shown, task, treasureChapter,
 } from '../common.ts'
 import {
@@ -80,8 +80,8 @@ export const HERMIT: HeroTutorial = {
         say('Your health', 'The Hermit has 9 HP. Enemy attacks here deal 1 to 4 damage, so Block and killing enemies before they act matter a lot. At 0 HP the run is over.', at.hp),
         say('Deck and relics', 'Your deck holds Covet, Snapshot, 5 Strikes and 4 Defends; open it here any time. Hermit Strikes deal 1 and Defends give 1 Block. Loaded Die gives 1 Block on a 4 or 5; on a 6, it can give that Block or trigger another die relic ability.', at.deck, at.relics),
         say("The Heart's Boon", "Downfall heroes start with the Heart's Boon instead of Neow's Blessing. The red reward is always 3 Gold and a Card Reward. Then you choose one of three blue options.", at.neowCard),
-        task('Reveal the Card Reward', 'The rest of the red reward is a Card Reward: 3 cards from the Hermit\'s reward deck. Reveal them.',
-          neowRedRevealed, at.neowButton('Reveal Card Reward')),
+        say('Your Card Reward', 'Your opening Card Reward is already revealed: 3 cards from the Hermit\'s reward deck. Choose one, or skip.',
+          spot('.reward-screen--card-choice')),
         say('Dive', 'Costs 1: gain 2 Block, or 3 while a Curse sits in your Chamber. A plain Defend for now.', at.offeredCard('hermit_dive')),
         say('Feint', 'Costs 1: draw 2 cards, then Load 1 card from your hand into the Chamber. You will learn Loading in the first fight.', at.offeredCard('hermit_feint')),
         say('High-Caliber', 'Costs 2: deal 1 damage and gain 1 Block. Rapid Fire: the card is played one extra time, so it really deals 2 and gives 2 Block.', at.offeredCard('hermit_high_caliber')),

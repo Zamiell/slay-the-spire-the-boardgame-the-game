@@ -229,6 +229,7 @@ export {
   resolvePendingRelic,
   resolveGuardianSocket,
   grantLegacyNeowGold,
+  resumeNeow,
   resolveNeowEffect,
   resolveNeowReward,
   resolveRelicReward,

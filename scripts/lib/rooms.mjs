@@ -99,7 +99,7 @@ import {
   revealCardReward,
   resolveGoldReward,
   resolveRelicReward,
-  grantLegacyNeowGold,
+  resumeNeow,
   resolveNeowEffect,
   resolveNeowReward,
   revealNeowReward,
@@ -561,7 +561,6 @@ export function createStore({ file, restartRecovery = false, restartReconnectMs 
           }
           room.run.campaignProgress = parseCampaignProgress(room.run.campaignProgress, fallback)
           if (room.run.phase === 'neow' && room.run.neow?.players) {
-            room.run = grantLegacyNeowGold(room.run)
             for (const progress of Object.values(room.run.neow.players)) {
               if (!progress || typeof progress !== 'object') continue
               if (typeof progress.redRewardPending !== 'boolean') progress.redRewardPending = Boolean(progress.redReward)
@@ -571,6 +570,7 @@ export function createStore({ file, restartRecovery = false, restartReconnectMs 
                 progress.rewardQueue = progress.rewardQueue.map((entry) => entry === 'curse' ? { kind: 'curse' } : entry)
               }
             }
+            room.run = resumeNeow(room.run)
           }
         }
         store.rooms.set(room.code, room)

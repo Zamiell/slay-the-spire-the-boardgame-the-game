@@ -4311,8 +4311,37 @@ function CombatScreenView({
     setPendingPotion(null)
     setPotionShivEnemyUids([])
     setPotionOverflowRequired(0)
-    setSpendingShiv((current) => current === mode ? false : mode)
     setSpendingSoulburn(false)
+    const enemies = livingEnemies(state)
+    if (enemies.length === 1) {
+      setSpendingShiv(false)
+      useShivs(mode, enemies[0]!)
+    } else setSpendingShiv((current) => current === mode ? false : mode)
+  }
+
+  function useShivs(mode: 'one' | 'all', enemy: Enemy) {
+    if (shivActionPending.current) return
+    if (onAction) {
+      const shivsBefore = viewer!.shivs
+      shivActionPending.current = true
+      setSpendingShiv(false)
+      const finish = (outcome: ActionOutcome | void) => {
+        shivActionPending.current = false
+        const current = stateRef.current.players.find((player) => player.id === viewerId)
+        if ((outcome?.status === 'refused' || outcome?.status === 'reconciled') &&
+          stateRef.current.combatId === state.combatId && current && current.shivs >= shivsBefore) setSpendingShiv(mode)
+      }
+      Promise.resolve(onAction({ kind: 'spendShiv', enemyUid: enemy.uid, ...(mode === 'all' ? { all: true } : {}) })).then(finish, (error: unknown) => {
+        console.error('Could not spend Shivs.', error)
+        finish({ status: 'refused' })
+      })
+      return
+    }
+    const result = (mode === 'all' ? spendAllShivs : spendShiv)(state, viewer!.id, enemy.uid)
+    if (result !== state) {
+      setSpendingShiv(false)
+      onChange?.(result)
+    }
   }
 
   function onEnemyClick(enemy: Enemy) {
@@ -4403,29 +4432,7 @@ function CombatScreenView({
       return
     }
     if (spendingShiv) {
-      if (shivActionPending.current) return
-      if (onAction) {
-        const shivsBefore = viewer!.shivs
-        const mode = spendingShiv
-        shivActionPending.current = true
-        setSpendingShiv(false)
-        const finish = (outcome: ActionOutcome | void) => {
-          shivActionPending.current = false
-          const current = stateRef.current.players.find((player) => player.id === viewerId)
-          if ((outcome?.status === 'refused' || outcome?.status === 'reconciled') &&
-            stateRef.current.combatId === state.combatId && current && current.shivs >= shivsBefore) setSpendingShiv(mode)
-        }
-        Promise.resolve(onAction({ kind: 'spendShiv', enemyUid: enemy.uid, ...(mode === 'all' ? { all: true } : {}) })).then(finish, (error: unknown) => {
-          console.error('Could not spend Shivs.', error)
-          finish({ status: 'refused' })
-        })
-        return
-      }
-      const result = (spendingShiv === 'all' ? spendAllShivs : spendShiv)(state, viewer!.id, enemy.uid)
-      if (result !== state) {
-        setSpendingShiv(false)
-        onChange?.(result)
-      }
+      useShivs(spendingShiv, enemy)
       return
     }
     if (spendingSoulburn) {

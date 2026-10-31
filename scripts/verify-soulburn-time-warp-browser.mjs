@@ -7,6 +7,68 @@ import { createRun } from '../src/game/run.ts'
 import { createCombat, startPlayerTurnWithChoices } from '../src/game/combat.ts'
 import { createRng } from '../src/game/rng.ts'
 
+async function verifySoloShivTargets(browser, origin) {
+  for (const [viewport, phone] of [
+    [{ width: 1440, height: 900 }, false], [{ width: 844, height: 390 }, true],
+  ]) {
+    const page = await browser.newPage({ viewport, hasTouch: phone, isMobile: phone, reducedMotion: 'reduce' })
+    const errors = []
+    page.on('pageerror', error => errors.push(String(error)))
+    await page.goto(origin)
+    for (const name of ['Single Player', 'Standard', 'Embark', 'Start standard campaign']) {
+      await page.getByRole('button', { name, exact: true }).click()
+    }
+    const base = createRun(58, [{ id: 'p1', name: 'Silent', character: 'silent' }])
+    base.phase = 'combat'
+    base.neow = null
+    const enemy = { uid: 'first', defId: 'small_slime', row: 0, isBoss: false, hp: 5, maxHp: 5,
+      block: 0, strength: 0, weak: 0, vulnerable: 0, poison: 0, actionIndex: 0,
+      abilityUsed: true, dead: false, goldReward: 0, cardReward: null }
+    base.combat = createCombat(createRng(58), base.players, [enemy], 'solo-shivs')
+    base.combat.phase = 'player'
+    Object.assign(base.combat.players[0], { shivs: 3, strength: 0, weak: 0, relics: [], powers: [], energy: 3,
+      hand: [{ uid: 'held', defId: 'defend_silent', upgraded: false }] })
+    const one = page.getByRole('button', { name: 'Use Shiv', exact: true })
+    const activate = button => phone ? button.tap() : button.click()
+    const load = async (count, deadFirst = false) => {
+      const run = structuredClone(base)
+      run.combat.combatId = `solo-shivs-${count}-${deadFirst}`
+      run.combat.enemies = Array.from({ length: count }, (_, index) => ({
+        ...enemy, uid: index ? 'second' : 'first', dead: index === 0 && deadFirst,
+        hp: index === 0 && deadFirst ? 0 : 5,
+      }))
+      await page.evaluate(run => window.__STS_DEBUG__.setRun(run), run)
+      await page.waitForFunction(id => window.__STS_DEBUG__.getState()?.combatId === id, run.combat.combatId)
+      await one.waitFor()
+    }
+    await load(1)
+    await activate(one)
+    await page.waitForFunction(() => window.__STS_DEBUG__.getState().players[0].shivs === 2)
+    assert.equal(await page.locator('.combat__target-instruction').count(), 0)
+    assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getState().enemies[0].hp), 4)
+    await activate(page.getByRole('button', { name: 'Use all Shivs', exact: true }))
+    await page.waitForFunction(() => window.__STS_DEBUG__.getState().players[0].shivs === 0)
+    assert.deepEqual(await page.evaluate(() => {
+      const state = window.__STS_DEBUG__.getState()
+      return [state.enemies[0].hp, state.players[0].energy, state.players[0].cardsPlayedThisTurn]
+    }), [2, 3, 0])
+    await load(2)
+    await activate(one)
+    await page.locator('.combat__target-instruction').waitFor()
+    assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getState().players[0].shivs), 3)
+    await activate(page.locator('[data-enemy-id="second"] .enemy__hit-area'))
+    await page.waitForFunction(() => window.__STS_DEBUG__.getState().players[0].shivs === 2)
+    assert.deepEqual(await page.evaluate(() => window.__STS_DEBUG__.getState().enemies.map(enemy => enemy.hp)), [5, 4])
+    await load(2, true)
+    await activate(one)
+    await page.waitForFunction(() => window.__STS_DEBUG__.getState().players[0].shivs === 2)
+    assert.equal(await page.locator('.combat__target-instruction').count(), 0)
+    assert.deepEqual(await page.evaluate(() => window.__STS_DEBUG__.getState().enemies.map(enemy => enemy.hp)), [0, 4])
+    assert.deepEqual(errors, [])
+    await page.close()
+  }
+}
+
 // Failure cases: capped cards also hide/refuse non-card tokens; tokens increment
 // the card count; reconnect loses tokens; invalid/off-turn spending works.
 for (const resource of ['shivs', 'soulburn']) {
@@ -27,6 +89,7 @@ for (const resource of ['shivs', 'soulburn']) {
   try {
     await vite.listen()
     const origin = `http://127.0.0.1:${vite.httpServer.address().port}`
+    if (shiv) await verifySoloShivTargets(browser, origin)
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
     const guest = await browser.newPage({ viewport: { width: 844, height: 390 } })
     const errors = []
@@ -141,10 +204,11 @@ for (const resource of ['shivs', 'soulburn']) {
     if (shiv) await refuse({ kind: 'spendShiv', enemyUid: 'time', all: 'yes' })
     await page.screenshot({ path: new URL('desktop-token-at-cap.png', out).pathname, fullPage: true })
     await token().click()
-    await page.getByRole('button', { name: /^Time Eater,/ }).locator('.enemy__hit-area').click()
-    await page.locator(shiv ? '[aria-label="Use Shiv"][aria-pressed="false"]'
+    if (!shiv) await page.getByRole('button', { name: /^Time Eater,/ }).locator('.enemy__hit-area').click()
+    await page.locator(shiv ? '[aria-label="Use Shiv"][aria-description="1 Shiv available"]'
       : '[aria-label="Spend Soulburn, 1 available"]').waitFor()
     if (shiv) {
+      assert.equal(await page.locator('.combat__target-instruction').count(), 0, 'a sole enemy needs no targeting step')
       assert.equal((await token().innerText()).trim(), 'x1', 'spending a Shiv must update the visible count')
       assert.equal(await token().getAttribute('aria-description'), '1 Shiv available')
     }
@@ -169,7 +233,7 @@ for (const resource of ['shivs', 'soulburn']) {
     await assertAboveHead(page)
     await page.screenshot({ path: new URL('phone-token-after-reconnect.png', out).pathname, fullPage: true })
     await token().click()
-    await page.getByRole('button', { name: /^Time Eater,/ }).locator('.enemy__hit-area').click()
+    if (!shiv) await page.getByRole('button', { name: /^Time Eater,/ }).locator('.enemy__hit-area').click()
     await page.waitForFunction(shiv => document.querySelector(shiv
       ? '[aria-label="Use Shiv"]' : '[aria-label^="Spend Soulburn,"]')?.disabled, shiv)
     assert.equal(room.run.combat.enemies[0].hp, 100 - 2 * damage)
@@ -201,8 +265,8 @@ for (const resource of ['shivs', 'soulburn']) {
       }), 'All Shivs must fit directly below the single-Shiv icon')
       await page.screenshot({ path: new URL('phone-all-shivs.png', out).pathname, fullPage: true })
       await all.click()
-      assert.equal(await all.getAttribute('aria-pressed'), 'true')
-      await page.getByRole('button', { name: /^Time Eater,/ }).locator('.enemy__hit-area').click()
+      assert.equal(await all.getAttribute('aria-pressed'), 'false')
+      assert.equal(await page.locator('.combat__target-instruction').count(), 0)
       await page.waitForFunction(() => document.querySelector('[aria-label="Use all Shivs"]')?.disabled)
       assert.equal(room.run.combat.players[0].shivs, 0)
       assert.equal(room.run.combat.players[0].attacksPlayedThisTurn, 3)
@@ -215,6 +279,7 @@ for (const resource of ['shivs', 'soulburn']) {
       rooms.publishRoom(saved.code)
       await all.waitFor()
       await all.click()
+      assert.equal(await all.getAttribute('aria-pressed'), 'true', 'multiple enemies still require an explicit target')
       await page.locator('[data-enemy-id="time"] .enemy__hit-area').click()
       await page.waitForFunction(() => document.querySelector('[aria-label="Use Shiv"]')?.textContent.trim() === 'x2')
       assert.equal(room.run.combat.players[0].shivs, 2, 'the batch wasted Shivs after the target died')

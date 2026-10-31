@@ -11,6 +11,7 @@ mkdirSync(output, { recursive: true })
 const server = await createServer({ logLevel: 'silent', server: { host: '127.0.0.1', port: 0 } })
 await server.listen()
 const browser = await chromium.launch()
+const reusableIds = ['golden_eye', 'blue_candle', 'runic_pyramid', 'gambling_chip', 'the_abacus', 'toolbox']
 try {
   for (const [screen, viewport, phone] of [
     ['desktop', { width: 1440, height: 900 }, false],
@@ -30,9 +31,8 @@ try {
     const fight = enterRoom(run, room)
     Object.assign(fight.combat, { phase: 'player', pendingTriggers: [], startTurnProgress: undefined })
     fight.combat.players[0].relics = [
-      ...['golden_eye', 'blue_candle', 'runic_pyramid'].map(defId => ({ defId, spent: true })),
+      ...reusableIds.map(defId => ({ defId, spent: true })),
       { defId: 'holy_water', spent: false, cubes: 0 },
-      { defId: 'gambling_chip', spent: true },
       { defId: 'wing_boots', spent: false, uses: 1 },
     ]
     await page.evaluate(run => window.__STS_DEBUG__.setRun(run), fight)
@@ -42,7 +42,7 @@ try {
     await page.reload()
     await page.getByRole('button', { name: 'Resume', exact: true }).click()
     await chip('golden_eye').waitFor()
-    assert.match(await chip('golden_eye').getAttribute('aria-label'), /Face down/,
+    for (const id of reusableIds) assert.match(await chip(id).getAttribute('aria-label'), /Face down/,
       'resuming an active combat must not refresh its spent relics')
     assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.players[0].relics
       .find(relic => relic.defId === 'holy_water').cubes), 0)
@@ -53,14 +53,25 @@ try {
       window.__STS_DEBUG__.setRun(run)
     })
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat === null)
-    for (const id of ['golden_eye', 'blue_candle', 'runic_pyramid']) {
+    await page.locator('.reward-screen--loot .reward-screen__skip').click()
+    await page.waitForFunction(() => window.__STS_DEBUG__.getRun().phase === 'map')
+    for (const id of reusableIds) {
       assert.doesNotMatch(await chip(id).getAttribute('aria-label'), /Face down/)
       assert(!(await chip(id).getAttribute('class')).includes('relic-chip--spent'))
     }
-    assert.match(await chip('gambling_chip').getAttribute('aria-label'), /Face down/)
     assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().players[0].relics
       .find(relic => relic.defId === 'holy_water').cubes), 2)
-    await page.evaluate(async () => {
+    await page.evaluate(ids => {
+      const run = structuredClone(window.__STS_DEBUG__.getRun())
+      for (const relic of run.players[0].relics) if (ids.includes(relic.defId)) relic.spent = true
+      window.__STS_DEBUG__.setRun(run)
+    }, reusableIds)
+    await page.reload()
+    await page.getByRole('button', { name: 'Resume', exact: true }).click()
+    await page.locator('.map .room--reachable').first().waitFor()
+    for (const id of reusableIds) assert.doesNotMatch(await chip(id).getAttribute('aria-label'), /Face down/,
+      'resuming an older map save must clear stale relic cooldowns')
+    await page.evaluate(async ids => {
       const { EVENT_DEFINITIONS } = await import('/src/game/events.ts')
       const { createEventRoom } = await import('/src/game/event-room.ts')
       const run = structuredClone(window.__STS_DEBUG__.getRun())
@@ -72,16 +83,16 @@ try {
       run.roomState = createEventRoom({ ...EVENT_DEFINITIONS.we_meet_again,
         instanceId: 'refresh-event', act: 2, minAscension: 0, requiresColorlessUnlock: false })
       // Reproduce an event saved by the old end-of-combat cleanup.
-      run.players[0].relics.find(relic => relic.defId === 'golden_eye').spent = true
+      for (const relic of run.players[0].relics) if (ids.includes(relic.defId)) relic.spent = true
       run.players[0].relics.find(relic => relic.defId === 'holy_water').cubes = 0
       window.__STS_DEBUG__.setRun(run)
-    })
+    }, reusableIds)
     await page.waitForFunction(() => JSON.parse(localStorage.getItem('sts-solo-run')).run.roomState?.card.instanceId === 'refresh-event')
     await page.reload()
     await page.getByRole('button', { name: 'Resume', exact: true }).click()
     await page.getByRole('heading', { name: 'We Meet Again!', exact: true }).waitFor()
     assert.doesNotMatch(await chip('golden_eye').getAttribute('aria-label'), /Face down/)
-    assert.match(await chip('gambling_chip').getAttribute('aria-label'), /Face down/)
+    for (const id of reusableIds) assert.doesNotMatch(await chip(id).getAttribute('aria-label'), /Face down/)
     assert.match(await chip('wing_boots').getAttribute('aria-label'), /1 use remaining/)
     const state = await page.evaluate(() => window.__STS_DEBUG__.getRun())
     assert.equal(state.players[0].relics.find(relic => relic.defId === 'holy_water').cubes, 2)

@@ -569,11 +569,11 @@ export const TURN_REFRESH_RELICS: ReadonlySet<string> = new Set([
   'charons_ashes', 'dollys_mirror', 'nilrys_codex', 'downfall_nilrys_codex', 'loaded_die', 'fuel_canister',
 ])
 
-/** Combat and turn cooldowns expire when a fight ends; room and finite-use limits do not. */
+/** Reusable relic cooldowns expire when a fight ends; run-limited uses do not replenish. */
 export function refreshCombatRelic(relic: RelicInstance): RelicInstance {
   const def = relicDef(relic.defId)
   let ready = relic
-  if (relic.spent && (def.activation === 'oncePerCombat' || def.oncePerCombat || TURN_REFRESH_RELICS.has(relic.defId))) {
+  if (relic.spent && (def.activation || def.oncePerCombat || TURN_REFRESH_RELICS.has(relic.defId))) {
     ready = { ...ready, spent: false }
   }
   if (def.cubes !== undefined && relic.cubes !== def.cubes) ready = { ...ready, cubes: def.cubes }

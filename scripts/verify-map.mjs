@@ -371,9 +371,9 @@ import { leaderboardSnapshot, normalizeLeaderboardRun, roomLeaderboardRun, winni
 
 suite('run')
 
-check('combat completion refreshes combat relics without replenishing room or finite-use limits', () => {
+check('combat completion refreshes all reusable relics without replenishing finite-use charges', () => {
   const refreshing = [...new Set([
-    ...Object.values(RELICS).filter(relic => relic.activation === 'oncePerCombat' || relic.oncePerCombat).map(relic => relic.id),
+    ...Object.values(RELICS).filter(relic => relic.activation || relic.oncePerCombat).map(relic => relic.id),
     ...TURN_REFRESH_RELICS,
   ])]
   for (const phase of ['won', 'lost']) {
@@ -382,7 +382,6 @@ check('combat completion refreshes combat relics without replenishing room or fi
     entered.combat.players[0].relics = [
       ...refreshing.map(defId => ({ ...createRelicInstance(defId), spent: true })),
       { defId: 'holy_water', spent: false, cubes: 0 },
-      ...['gambling_chip', 'toolbox', 'the_abacus'].map(defId => ({ defId, spent: true })),
       { defId: 'wing_boots', spent: false, uses: 1 },
       { defId: 'molten_egg', spent: false, uses: 0 },
       { defId: 'war_paint', spent: false, pending: true, pendingId: 7 },
@@ -396,9 +395,6 @@ check('combat completion refreshes combat relics without replenishing room or fi
       assertEqual(resolved.players[0].relics.find(relic => relic.defId === id).spent, false, `${phase}: ${id}`)
     }
     assertEqual(resolved.players[0].relics.find(relic => relic.defId === 'holy_water').cubes, 2)
-    for (const id of ['gambling_chip', 'toolbox', 'the_abacus']) {
-      assertEqual(resolved.players[0].relics.find(relic => relic.defId === id).spent, true, `${id} is once per room`)
-    }
     assertEqual(resolved.players[0].relics.find(relic => relic.defId === 'wing_boots').uses, 1)
     assertEqual(resolved.players[0].relics.find(relic => relic.defId === 'molten_egg').uses, 0)
     assertDeepEqual(resolved.players[0].relics.find(relic => relic.defId === 'war_paint'),

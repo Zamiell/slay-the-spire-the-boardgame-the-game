@@ -2300,7 +2300,8 @@ function CombatScreenView({
     const statuses = boardRef.current?.querySelectorAll<HTMLElement>('.seat__meta') ?? []
     // Keep Orbs above wrapped statuses without moving the hero.
     const measure = (element: HTMLElement) => {
-      element.parentElement?.style.setProperty('--temporary-status-height', `${element.offsetHeight}px`)
+      element.closest<HTMLElement>('.seat__interactive')?.style
+        .setProperty('--temporary-status-height', `${element.offsetHeight}px`)
     }
     statuses.forEach(measure)
     if (typeof ResizeObserver === 'undefined') return
@@ -5005,7 +5006,6 @@ function CombatScreenView({
     Math.max(0, count - cardFlights.filter((flight) => flight.destination === kind && !flight.landed).length)
   const drawPileCount = drawCount ?? viewer.draw.length
   const timeWarpCardLimit = timeWarpLimit(state)
-  const timeWarpCardsPlayed = viewer.cardsPlayedThisTurn ?? 0
   const enemyInspectionEnabled = !Boolean(pending || cardTarget || cardInteraction.session ||
     pendingPotion || pendingPowerUid || spendingShiv || spendingSoulburn ||
     endTurnEffectAimed || endTurnEffectDrag || pendingStartChoice ||
@@ -5069,15 +5069,6 @@ function CombatScreenView({
           : PHASE_LABEL[state.phase]}</span>
         {showEnemyTargetPrompt ? <span className="combat__target-instruction" role="status">
           Select an enemy
-        </span> : null}
-        {Number.isFinite(timeWarpCardLimit) ? <span className="combat__time-warp"
-          data-warning={timeWarpCardsPlayed >= timeWarpCardLimit - 1 || undefined}
-          data-limit-reached={timeWarpCardsPlayed >= timeWarpCardLimit || undefined}
-          aria-live="polite" aria-atomic="true"
-          title={`Time Eater's Time Warp: ${viewer.name} has played ${timeWarpCardsPlayed} of ${timeWarpCardLimit} cards this turn. Each player has a separate limit.`}>
-          <span>Time Warp</span>
-          <strong>{timeWarpCardsPlayed}/{timeWarpCardLimit}</strong>
-          <span>{timeWarpCardsPlayed >= timeWarpCardLimit ? 'Limit reached' : 'cards'}</span>
         </span> : null}
         {onCourierReveal && courierPeekPhase(state)
           ? <CourierPeek placement="bar" players={state.players} viewerId={viewerId} usedBy={courierUsedBy ?? []} onReveal={onCourierReveal} /> : null}
@@ -6682,6 +6673,7 @@ function CombatScreenView({
           // A skin may paint its own summon drawing (`<skin>-spawn.webp`) and calibrate its head; otherwise the idle drawing shows.
           const heroHead = ((slimeSpawnEvent && heroHeads[`${occupantVisual}-spawn`]) || (rigId ? heroHeads[rigId] : undefined))?.[animatedPortrait ? 0 : 1]
           const guardianShiftHead = occupantVisual === 'guardian' ? heroHeads['guardian-transition']?.[0] : undefined
+          const timeWarpCardsPlayed = occupant?.cardsPlayedThisTurn ?? 0
           return (
             <div
               className={['row', occupant?.id === viewerId ? 'row--viewer' : ''].filter(Boolean).join(' ')}
@@ -6948,6 +6940,15 @@ function CombatScreenView({
                         </span>
                       </span>
                       <span className="seat__meta">
+                       {!occupant.dead && Number.isFinite(timeWarpCardLimit) ? <span className="combat__time-warp"
+                         data-warning={timeWarpCardsPlayed >= timeWarpCardLimit - 1 || undefined}
+                         data-limit-reached={timeWarpCardsPlayed >= timeWarpCardLimit || undefined}
+                         aria-live="polite" aria-atomic="true"
+                         title={`Time Eater's Time Warp: ${occupant.name} has played ${timeWarpCardsPlayed} of ${timeWarpCardLimit} cards this turn. Each player has a separate limit.`}>
+                         <span>Time Warp</span>
+                         <strong>{timeWarpCardsPlayed}/{timeWarpCardLimit}</strong>
+                         <span>{timeWarpCardsPlayed >= timeWarpCardLimit ? 'Limit reached' : 'cards'}</span>
+                       </span> : null}
                       {occupant.strengthLossAtEndOfTurn > 0 ? (
                         <span className="seat__pending">
                           −{occupant.strengthLossAtEndOfTurn} Strength at end of turn

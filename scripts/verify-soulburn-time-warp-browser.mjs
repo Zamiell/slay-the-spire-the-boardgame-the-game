@@ -72,12 +72,36 @@ for (const resource of ['shivs', 'soulburn']) {
     room.endTurnReady = {}
     room.version++
     rooms.publishRoom(saved.code)
-    const counter = page.locator('.combat__time-warp')
+    const counter = page.locator('.seat--viewer .combat__time-warp')
     const expectCount = (tab, count, limit) => tab.waitForFunction(({ count, limit }) =>
-      document.querySelector('.combat__time-warp strong')?.textContent === `${count}/${limit}`, { count, limit })
+      document.querySelector('.seat--viewer .combat__time-warp strong')?.textContent === `${count}/${limit}`, { count, limit })
+    const assertAboveHead = async tab => {
+      await tab.waitForFunction(() => !document.querySelector('.combat').getAnimations({ subtree: true })
+        .some(animation => animation instanceof CSSTransition && animation.transitionProperty.startsWith('--stage-') &&
+          animation.playState === 'running'))
+      assert.equal(await tab.locator('.combat__bar .combat__time-warp').count(), 0)
+      assert.equal(await tab.locator('.seat__meta .combat__time-warp').count(), 2)
+      const geometry = await tab.locator('.seat--viewer .combat__time-warp').evaluate(element => {
+        const seat = element.closest('.seat')
+        const box = element.getBoundingClientRect()
+        const meta = element.closest('.seat__meta').getBoundingClientRect()
+        const board = element.closest('.board').getBoundingClientRect()
+        const measure = document.createElement('span')
+        measure.style.cssText = 'position:absolute;pointer-events:none;height:calc(3rem * var(--stage-scale) + var(--portrait-floor-extra, 0rem) + var(--hero-head-height))'
+        seat.append(measure)
+        const head = seat.getBoundingClientRect().bottom - measure.getBoundingClientRect().height
+        measure.remove()
+        return { box: box.toJSON(), board: board.toJSON(), head,
+          visible: box.top >= Math.max(0, board.top) && box.bottom <= innerHeight &&
+          box.left >= 0 && box.right <= innerWidth && box.bottom <= meta.bottom + 1 &&
+          meta.bottom <= head + 1 }
+      })
+      assert(geometry.visible, `Time Warp must fit above its player’s head: ${JSON.stringify(geometry)}`)
+    }
     await expectCount(page, 0, 5)
+    await assertAboveHead(page)
     for (let count = 1; count <= 5; count++) {
-      await page.locator('.hand .card').first().click()
+      await page.locator('.hand .card').first().press('Enter')
       await expectCount(page, count, 5)
       if (count === 4) {
         assert.equal(await counter.getAttribute('data-warning'), 'true')
@@ -88,6 +112,7 @@ for (const resource of ['shivs', 'soulburn']) {
     assert.equal(await counter.getAttribute('data-limit-reached'), 'true')
     assert((await counter.innerText()).includes('Limit reached'))
     await expectCount(guest, 0, 5)
+    assert.equal(await guest.locator(`.seat[data-player-id="${actor.id}"] .combat__time-warp strong`).innerText(), '5/5')
     assert(await page.locator('.hand .card').first().isDisabled(), 'the sixth card was not blocked')
     room.run.combat = { ...cappedCombat, combatId: `${cappedCombat.combatId}:tokens` }
     room.endTurnReady = { [actor.id]: true, [room.seats[1].playerId]: false }
@@ -96,10 +121,11 @@ for (const resource of ['shivs', 'soulburn']) {
     const token = () => page.getByRole('button', { name: shiv ? 'Use Shiv' : /^Spend Soulburn,/ })
     await token().waitFor()
     if (shiv) {
-      assert.equal((await token().innerText()).trim(), '2', 'Shiv button must show the available count')
+      assert.equal((await token().innerText()).trim(), 'x2', 'Shiv button must show the available count')
       assert.equal(await token().getAttribute('aria-description'), '2 Shivs available')
     }
     await expectCount(page, 3, 3)
+    await assertAboveHead(page)
     assert(await page.locator('.hand .card').first().isDisabled(), 'Time Warp no longer caps ordinary cards')
     async function refuse(action) {
       const before = structuredClone(room.run)
@@ -119,8 +145,8 @@ for (const resource of ['shivs', 'soulburn']) {
     await page.locator(shiv ? '[aria-label="Use Shiv"][aria-pressed="false"]'
       : '[aria-label="Spend Soulburn, 1 available"]').waitFor()
     if (shiv) {
-      assert.equal((await token().innerText()).trim(), '1', 'spending a Shiv must update the visible count')
-      assert.equal(await token().getAttribute('aria-description'), '1 Shivs available')
+      assert.equal((await token().innerText()).trim(), 'x1', 'spending a Shiv must update the visible count')
+      assert.equal(await token().getAttribute('aria-description'), '1 Shiv available')
     }
     await guest.getByRole('button', { name: new RegExp(`^Time Eater, ${100 - damage} of`) }).waitFor()
     assert.equal(room.run.combat.players[0][resource], 1)
@@ -129,7 +155,7 @@ for (const resource of ['shivs', 'soulburn']) {
     await token().waitFor()
     await page.setViewportSize({ width: 844, height: 390 })
     if (shiv) {
-      assert.equal((await token().innerText()).trim(), '1', 'reconnect must preserve the remaining Shiv count')
+      assert.equal((await token().innerText()).trim(), 'x1', 'reconnect must preserve the remaining Shiv count')
       assert(await token().evaluate((button) => {
         const box = button.getBoundingClientRect()
         return box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight
@@ -140,10 +166,12 @@ for (const resource of ['shivs', 'soulburn']) {
       const box = element.getBoundingClientRect()
       return box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight
     }), 'Time Warp counter is clipped on a horizontal phone')
+    await assertAboveHead(page)
     await page.screenshot({ path: new URL('phone-token-after-reconnect.png', out).pathname, fullPage: true })
     await token().click()
     await page.getByRole('button', { name: /^Time Eater,/ }).locator('.enemy__hit-area').click()
-    await token().waitFor({ state: 'detached' })
+    await page.waitForFunction(shiv => document.querySelector(shiv
+      ? '[aria-label="Use Shiv"]' : '[aria-label^="Spend Soulburn,"]')?.disabled, shiv)
     assert.equal(room.run.combat.enemies[0].hp, 100 - 2 * damage)
     assert.equal(room.run.combat.players[0].cardsPlayedThisTurn, 3)
     await expectCount(page, 3, 3)
@@ -167,7 +195,7 @@ for (const resource of ['shivs', 'soulburn']) {
       const all = page.getByRole('button', { name: 'Use all Shivs', exact: true })
       await all.waitFor()
       assert(await all.evaluate((button) => {
-        const one = button.parentElement.querySelector('[aria-label="Use Shiv"]').getBoundingClientRect()
+        const one = button.closest('.shiv-actions').querySelector('[aria-label="Use Shiv"]').getBoundingClientRect()
         const box = button.getBoundingClientRect()
         return box.top >= one.bottom && box.left >= 0 && box.right <= innerWidth && box.bottom <= innerHeight
       }), 'All Shivs must fit directly below the single-Shiv icon')
@@ -175,7 +203,7 @@ for (const resource of ['shivs', 'soulburn']) {
       await all.click()
       assert.equal(await all.getAttribute('aria-pressed'), 'true')
       await page.getByRole('button', { name: /^Time Eater,/ }).locator('.enemy__hit-area').click()
-      await all.waitFor({ state: 'detached' })
+      await page.waitForFunction(() => document.querySelector('[aria-label="Use all Shivs"]')?.disabled)
       assert.equal(room.run.combat.players[0].shivs, 0)
       assert.equal(room.run.combat.players[0].attacksPlayedThisTurn, 3)
       assert.equal(room.run.combat.players[0].cardsPlayedThisTurn, 3)
@@ -188,7 +216,7 @@ for (const resource of ['shivs', 'soulburn']) {
       await all.waitFor()
       await all.click()
       await page.locator('[data-enemy-id="time"] .enemy__hit-area').click()
-      await page.waitForFunction(() => document.querySelector('[aria-label="Use Shiv"]')?.textContent.trim() === '2')
+      await page.waitForFunction(() => document.querySelector('[aria-label="Use Shiv"]')?.textContent.trim() === 'x2')
       assert.equal(room.run.combat.players[0].shivs, 2, 'the batch wasted Shivs after the target died')
       assert.equal(room.run.combat.enemies[1].hp, 20, 'the batch switched to another target')
       room.run.combat.enemies.pop()

@@ -24,12 +24,14 @@ try {
     }
     await page.waitForFunction(() => window.__STS_DEBUG__?.getRun().phase === 'neow')
     await page.mouse.move(2, 2)
-    for (const character of ['watcher', 'defect']) {
+    for (const character of ['watcher', 'defect']) for (const withTimeWarp of [false, true]) {
       const run = postNeowRun(47, [{ id: 'p1', name: character, character }])
       const room = run.map.rows[0][0]
       run.map.rooms[room].kind = 'encounter'
       const next = enterRoom(run, room)
-      next.combat.combatId = `statuses-${character}`
+      if (withTimeWarp) next.combat.enemies = [{ ...next.combat.enemies[0], defId: 'time_eater', isBoss: true,
+        hp: 100, maxHp: 120, actionIndex: 0 }]
+      next.combat.combatId = `statuses-${character}-${withTimeWarp}`
       next.combat.phase = 'player'
       Object.assign(next.combat.players[0], {
         skin: character === 'watcher' ? 'monogatari_watcher' : undefined,
@@ -52,11 +54,12 @@ try {
         window.__STS_DEBUG__.setRun(run)
       })
       const statuses = seat.locator('.seat__meta')
+      if (withTimeWarp) assert.equal(await statuses.locator('.combat__time-warp strong').innerText(), '0/5')
       await statuses.getByText('Cannot draw more cards this turn', { exact: true }).waitFor()
       await statuses.getByText('Snecko Eye · next card costs 2 Energy', { exact: true }).waitFor()
       await page.waitForFunction(() => {
         const meta = document.querySelector('.seat__meta')
-        return Number.parseFloat(meta.parentElement.style.getPropertyValue('--temporary-status-height')) === meta.offsetHeight
+        return Number.parseFloat(meta.closest('.seat__interactive').style.getPropertyValue('--temporary-status-height')) === meta.offsetHeight
       })
       const geometry = await statuses.evaluate(meta => {
         const box = meta.getBoundingClientRect()
@@ -74,13 +77,13 @@ try {
               rect.top >= box.top - 1 && rect.bottom <= box.bottom + 1 &&
               chip.scrollWidth <= chip.clientWidth + 1 && chip.scrollHeight <= chip.clientHeight + 1
           }),
-          orbsClear: [...meta.parentElement.querySelectorAll('.orbs .token--orb')].every(orb => {
+          orbsClear: [...meta.closest('.seat__interactive').querySelectorAll('.orbs .token--orb')].every(orb => {
             const rect = orb.getBoundingClientRect()
             return rect.bottom + rect.height * 0.16 + 4 <= box.top && rect.top >= board.top
           }),
         }
       })
-      await page.screenshot({ path: `${output}/${screen}-${character}.png` })
+      await page.screenshot({ path: `${output}/${screen}-${character}${withTimeWarp ? '-time-warp' : ''}.png` })
       assert(!['auto', 'scroll'].includes(geometry.overflow), 'temporary statuses must not create a scroll container')
       assert(geometry.scrollWidth <= geometry.width + 1 && geometry.scrollHeight <= geometry.height + 1 &&
         geometry.chipsFit && geometry.visible && geometry.orbsClear,
@@ -92,10 +95,11 @@ try {
       await page.evaluate(() => {
         const run = structuredClone(window.__STS_DEBUG__.getRun())
         Object.assign(run.combat.players[0], { strengthLossAtEndOfTurn: 0, drawLocked: false, nextCardCost: null })
+        run.combat.enemies[0].defId = 'jaw_worm'
         window.__STS_DEBUG__.setRun(run)
       })
       await statuses.waitFor({ state: 'hidden' })
-      await page.waitForFunction(() => document.querySelector('.seat__meta').parentElement.style
+      await page.waitForFunction(() => document.querySelector('.seat__meta').closest('.seat__interactive').style
         .getPropertyValue('--temporary-status-height') === '0px')
     }
     assert.deepEqual(errors, [])

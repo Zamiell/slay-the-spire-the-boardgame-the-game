@@ -62,7 +62,8 @@ const focusedEngineOwners = ownerMap([
 const focusedUiOwners = ownerMap([
   ['src/ui/useButtonShortcut.ts', ['verify-keyboard-browser.mjs', 'verify-card-picker-browser.mjs']],
   ['src/ui/CardPicker.tsx', ['verify-card-picker-browser.mjs']],
-  ['src/ui/styles/combat.css', ['verify-sever-soul-browser.mjs', 'verify-row-target-browser.mjs']],
+  ['src/ui/styles/combat.css', ['verify-sever-soul-browser.mjs', 'verify-row-target-browser.mjs',
+    'verify-soulburn-time-warp-browser.mjs']],
   ['src/ui/styles/hand-layout.css', ['verify-card-interaction-browser.mjs', 'verify-start-turn-order-browser.mjs']],
   ['src/ui/chrome/rewards.css', ['verify-loot-browser.mjs', 'verify-boss-relic-picker-browser.mjs']],
   ['src/ui/combat-screen/StartTurnOrder.tsx', ['verify-start-turn-order-browser.mjs']],
@@ -92,6 +93,7 @@ const focusedUiOwners = ownerMap([
   ['src/ui/styles/shop.css', ['verify-shop-browser.mjs']],
   ['src/ui/LeaderboardScreen.tsx', ['verify-leaderboard-browser.mjs']],
   ['src/ui/CombatScreen.tsx', [
+    'verify-soulburn-time-warp-browser.mjs',
     'verify-manual-end-turn-browser.mjs',
     'verify-sever-soul-browser.mjs',
     'verify-die-breakdown-browser.mjs',

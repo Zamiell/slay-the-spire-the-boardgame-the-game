@@ -57,6 +57,8 @@
 .combat__time-warp {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
   gap: 0.4rem;
   flex-shrink: 0;
   padding: 0.2rem 0.55rem;
@@ -66,12 +68,30 @@
   color: #e9ddfa;
   font-size: 0.8rem;
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .combat__time-warp strong { font-size: 1rem; }
 .combat__time-warp[data-warning] { color: #ffdc60; border-color: #ffdc60; }
 .combat__time-warp[data-limit-reached] { color: #ffd2c5; border-color: #ed957b; background: rgb(63 21 21 / 0.92); }
+
+@media (orientation: landscape) and (max-height: 26.25rem) {
+  .seat__meta > .combat__time-warp {
+    gap: 0.1rem 0.25rem;
+    padding: 0.1rem 0.2rem;
+    font-size: 0.65rem;
+  }
+  .combat__time-warp strong { font-size: 0.8rem; }
+  .combat__time-warp > span:last-child {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .seat__interactive:has(.seat__meta:not(:empty)) > .orbs { --orb-size: 1.75rem; }
+}
 
 .combat__actions {
   margin-left: auto;

@@ -4825,14 +4825,16 @@ function CombatScreenView({
     orderedStartTurnScries.length === 0
   useEffect(() => {
     if (!startTurnChoicesOpen || !canResolveStartTurn || !mutationsEnabled || authoritativeConnected === false) return
-    if (pendingStartEvoke?.evokeChoice?.options.length === 1) {
+    if (pendingStartShiv?.ability.shivTargets?.length === 1) {
+      chooseStartTurnShiv(pendingStartShiv.ability.shivTargets[0]!.uid)
+    } else if (pendingStartEvoke?.evokeChoice?.options.length === 1) {
       chooseStartTurnEvoke(pendingStartEvoke.evokeChoice.options[0]!.slot)
     } else if (pendingStartEvokeTarget?.ability.evokeTargets) {
       const target = automaticEnemyOption(state, pendingStartEvokeTarget.ability.evokeTargets)
       if (target) chooseStartTurnEvokeEnemy(target)
     }
   }, [startTurnChoicesOpen, canResolveStartTurn, mutationsEnabled, authoritativeConnected,
-    pendingStartEvoke, pendingStartEvokeTarget])
+    pendingStartShiv, pendingStartEvoke, pendingStartEvokeTarget])
   const visibleStartModeShift = startTurnChoicesOpen ? pendingStartModeShift : undefined
   // A required seat whose Resolve button is disabled or missing, with
   // no private prompt to answer, has no way forward. Another seat may just be

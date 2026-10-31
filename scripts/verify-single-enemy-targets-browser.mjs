@@ -41,6 +41,14 @@ function fixture({ enemies = 1, potions = [], power, character = 'ironclad', han
   return run
 }
 
+function bladesStart(upgraded = false, enemies = 1) {
+  const run = fixture({ character: 'silent', power: 'infinite_blades', enemies })
+  Object.assign(run.combat, { phase: 'start', turn: 2, startTurnStage: 'effects' })
+  run.combat.players[0].shivs = 5
+  run.combat.players[0].powers[0].upgraded = upgraded
+  return run
+}
+
 try {
   for (const [screen, viewport, phone] of [
     ['desktop', { width: 1440, height: 900 }, false],
@@ -169,6 +177,36 @@ try {
     assert.equal((await read()).enemies[0].hp, 49)
     assert.equal((await read()).players[0].shivs, 5)
 
+    for (const upgraded of [false, true]) {
+      await set(bladesStart(upgraded))
+      await page.getByRole('button', { name: /^Resolve start of turn 2/ }).click()
+      await page.waitForFunction(() => window.__STS_DEBUG__.getState().phase === 'player')
+      assert.equal((await read()).enemies[0].hp, upgraded ? 48 : 49,
+        'Infinite Blades overflow must target the sole enemy without an enemy click')
+      assert.equal((await read()).players[0].shivs, 5)
+    }
+
+    await set(bladesStart(false, 2))
+    await page.getByRole('button', { name: 'Skip this Shiv', exact: true }).waitFor()
+    assert(await page.getByRole('button', { name: /^Resolve start of turn 2/ }).isDisabled(),
+      'multiple surviving enemies must still require a choice')
+    await page.getByRole('button', { name: 'Skip this Shiv', exact: true }).click()
+    await page.getByRole('button', { name: /^Resolve start of turn 2/ }).click()
+    await page.waitForFunction(() => window.__STS_DEBUG__.getState().phase === 'player')
+    assert.deepEqual((await read()).enemies.map(enemy => enemy.hp), [50, 50])
+
+    const projectedShivs = bladesStart(true, 2)
+    projectedShivs.combat.enemies[0].hp = 1
+    await set(projectedShivs)
+    await page.getByRole('button', { name: 'Skip this Shiv', exact: true }).waitFor()
+    await page.locator('[data-enemy-id="enemy-0"] .enemy__hit-area').click()
+    assert.equal((await read()).enemies[0].hp, 1, 'drafting overflow targets must not resolve the ability')
+    await page.getByRole('button', { name: /^Resolve start of turn 2/ }).click()
+    await page.waitForFunction(() => window.__STS_DEBUG__.getState().phase === 'player')
+    assert((await read()).enemies[0].dead)
+    assert.equal((await read()).enemies[1].hp, 49,
+      'later overflow Shivs must automatically target the sole projected survivor')
+
     await set(fixture({ potions: ['destiny_draught'], relics: [{ defId: 'red_mask', spent: false }] }))
     await page.getByRole('button', { name: 'Use Destiny Draught', exact: true }).press('Enter')
     const dieAbility = page.locator('.die-relic--single').filter({ hasText: 'Red Mask' })
@@ -222,6 +260,17 @@ try {
     assert.equal(room.run.combat.enemies[0].vulnerable, 1)
     assert.equal(room.run.combat.players[0].potions.length, 0)
     await noTargetPrompt()
+
+    const onlineBlades = bladesStart(true)
+    onlineBlades.players[0].id = seat.playerId
+    onlineBlades.combat.players[0].id = seat.playerId
+    room.run = onlineBlades
+    room.version++
+    rooms.publishRoom(room.code)
+    await page.getByRole('button', { name: /^Resolve start of turn 2/ }).click()
+    await page.locator('.combat[data-phase="player"]').waitFor()
+    assert.equal(room.run.combat.enemies[0].hp, 48, 'online overflow must submit the automatic Shiv targets')
+    assert.equal(room.run.combat.players[0].shivs, 5)
 
     const copied = fixture({ hand: [card('cut_through_fate')] })
     copied.players[0].id = seat.playerId

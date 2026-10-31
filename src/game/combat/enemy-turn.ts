@@ -105,8 +105,11 @@ function resolveEnemyTurn(state: CombatState, receiveAttack: typeof damagePlayer
  * don't stop at lethal damage or consume Buffer/Fairy effects.
  */
 export function previewIncomingDamage(state: CombatState): ReadonlyMap<string, IncomingDamagePreview> | null {
-  if (state.phase !== 'player' || state.pendingCardPlayWindows?.length ||
+  if ((state.phase !== 'player' && state.phase !== 'start') || state.pendingCardPlayWindows?.length ||
     state.pendingTriggers?.length || mandatoryChoicePending(state)) return null
+  const progress = state.startTurnProgress
+  if (state.phase === 'start' && (progress?.beforeDraw || progress?.rollPending || progress?.pauseAfterDraw ||
+    !Number.isInteger(state.die) || state.die < 1 || state.die > 6)) return null
   const incoming = new Map(state.players.filter(player => !player.dead).map(player => [player.id, 0]))
   const probe = clone({ ...state, log: [], presentationEvents: [] })
   const receiveDamage: typeof damagePlayer = (_state, player, amount) => {

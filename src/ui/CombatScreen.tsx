@@ -7253,7 +7253,7 @@ function CombatScreenView({
                       aria-label={`${occupant.name} combat effects`}>
                       {!occupant.dead && ['start', 'player', 'copy', 'discard'].includes(state.phase) ?
                         <IncomingDamage name={occupant.name} preview={incomingDamage?.get(occupant.id)}
-                          block={occupant.block} wrath={occupant.stance === 'wrath'} /> : null}
+                          block={occupant.block} wrath={occupant.stance === 'wrath'} startOfTurn={state.phase === 'start'} /> : null}
                       <TokenRow
                         showHelp
                         block={occupant.block}

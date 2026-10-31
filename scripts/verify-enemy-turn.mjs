@@ -121,9 +121,28 @@ check('incoming means after Block, not final HP loss, and does not consume Buffe
   ], { die: 3 })
   assertEqual(previewIncomingDamage(state).get('p1').damage, 3, 'Buffer and nonlethal Poison do not prevent unblocked attacks')
   assertEqual(enemyTurn({ ...state, phase: 'enemy' }).players[0].hp, 10, 'the real Enemy Turn still applies Buffer')
-  assertEqual(previewIncomingDamage({ ...state, phase: 'start' }), null)
+  assertDeepEqual(previewIncomingDamage({ ...state, phase: 'start' }), previewIncomingDamage(state))
   assertEqual(previewIncomingDamage({ ...state, phase: 'enemy' }), null)
   assertEqual(previewIncomingDamage({ ...state, pendingTriggers: [{ playerId: 'p1' }] }), null)
+})
+
+check('start-turn incoming uses the current roll and updates with Block and Poison without spending choices', () => {
+  const state = incoming([player()], [enemy({ defId: 'jaw_worm', hp: 3 })],
+    { phase: 'start', startTurnStage: 'effects', die: 3 })
+  const before = structuredClone(state)
+  assertEqual(previewIncomingDamage(state).get('p1').damage, 4)
+  assertDeepEqual(state, before)
+  state.players[0].block = 1
+  assertEqual(previewIncomingDamage(state).get('p1').damage, 3)
+  state.die = 6
+  assertEqual(previewIncomingDamage(state).get('p1').damage, 0)
+  state.die = 3
+  state.enemies[0].poison = 3
+  assertEqual(previewIncomingDamage(state).get('p1').damage, 0)
+  for (const step of ['beforeDraw', 'rollPending', 'pauseAfterDraw']) {
+    assertEqual(previewIncomingDamage({ ...before, startTurnProgress: { choices: [], [step]: { drewFrom: 0 } } }), null,
+      `${step}: the previous turn's die must not be presented as this turn's result`)
+  }
 })
 
 check('incoming excludes enemies killed by Poison, which bypasses enemy Block', () => {

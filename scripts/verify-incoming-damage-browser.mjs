@@ -184,10 +184,26 @@ try {
     await page.evaluate(() => {
       const run = structuredClone(window.__STS_DEBUG__.getRun())
       Object.assign(run.combat, { phase: 'start', startTurnStage: 'effects', startTurnProgress: undefined, die: 4 })
-      run.combat.players[0].relics = [{ defId: 'gambling_chip', spent: false }, { defId: 'loaded_die', spent: false }]
+      run.combat.players[0].block = 0
+      run.combat.players[0].relics = [{ defId: 'gambling_chip', spent: false }, { defId: 'the_abacus', spent: false }]
+      run.combat.enemies[0].defId = 'jaw_worm'
       window.__STS_DEBUG__.setRun(run)
     })
-    await page.waitForFunction(() => document.querySelector('.seat__incoming-damage')?.textContent === 'Incoming: ?')
+    await page.waitForFunction(() => document.querySelector('.row--viewer .seat__incoming-damage')?.textContent === 'Incoming: 4')
+    await counter.evaluate(element => element.blur())
+    await page.mouse.move(2, 2)
+    await page.waitForTimeout(180)
+    if (phone) await counter.tap()
+    else await counter.hover()
+    const startTip = page.locator('.potion-tip').filter({ hasText: 'Remaining start-of-turn choices' })
+    await startTip.waitFor()
+    assert.match(await startTip.innerText(), /Based on the current die and board/)
+    await page.screenshot({ path: `${output}/${screen}-start-turn.png` })
+    await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: /^Use The Abacus:/ }).press('Enter')
+    await page.waitForFunction(() => document.querySelector('.row--viewer .seat__incoming-damage')?.textContent === 'Incoming: 0')
+    assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.phase), 'start',
+      'the preview must update before the remaining start-turn choices resolve')
     assert.deepEqual(errors, [])
     await page.close()
     console.log(`PASS ${screen}: incoming damage, live Block/debuff updates, tooltip and party targets`)

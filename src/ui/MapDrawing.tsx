@@ -1,29 +1,41 @@
-import { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { createContext, useContext, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import type { ReactNode, RefObject } from 'react'
 import './styles/map-drawing.css'
 
 type Point = readonly [number, number]
 type Stroke = readonly Point[]
-type Notes = Record<string, readonly Stroke[]>
+type Erasure = { erase: true; points: Stroke }
+type Mark = Stroke | Erasure
+type Mode = 'draw' | 'erase' | null
+type Notes = Record<string, readonly Mark[]>
 const MAX_STROKES = 128
 const MAX_POINTS = 4096
-const EMPTY: readonly Stroke[] = []
+const EMPTY: readonly Mark[] = []
 const DrawingContext = createContext<{
   notes: Notes
-  drawMode: boolean
-  setDrawMode: (enabled: boolean) => void
-  change: (act: number, strokes: readonly Stroke[]) => void
+  mode: Mode
+  setMode: (mode: Mode) => void
+  reset: number
+  clear: (act: number) => void
+  change: (act: number, strokes: readonly Mark[]) => void
   message: string
   setMessage: (message: string) => void
 } | null>(null)
 
+function validStroke(value: unknown): value is Stroke {
+  return Array.isArray(value) && value.length > 0 && value.length <= MAX_POINTS && value.every(point =>
+    Array.isArray(point) && point.length === 2 &&
+    point.every(coordinate => typeof coordinate === 'number' && Number.isFinite(coordinate) && Math.abs(coordinate) <= 1000))
+}
+
+function isErasure(mark: Mark): mark is Erasure { return !Array.isArray(mark) }
+
 function validNotes(value: unknown): value is Notes {
   return typeof value === 'object' && value !== null && !Array.isArray(value) &&
     Object.entries(value).every(([act, strokes]) => /^[1-4]$/.test(act) &&
-      Array.isArray(strokes) && strokes.length <= MAX_STROKES && strokes.every(stroke =>
-        Array.isArray(stroke) && stroke.length > 0 && stroke.length <= MAX_POINTS && stroke.every(point =>
-          Array.isArray(point) && point.length === 2 &&
-          point.every(coordinate => typeof coordinate === 'number' && Number.isFinite(coordinate) && Math.abs(coordinate) <= 1000))))
+      Array.isArray(strokes) && strokes.length <= MAX_STROKES && strokes.every(mark =>
+        validStroke(mark) || typeof mark === 'object' && mark !== null &&
+          'erase' in mark && mark.erase === true && 'points' in mark && validStroke(mark.points)))
 }
 
 function loadNotes(key: string): { notes: Notes; message: string } {
@@ -45,7 +57,8 @@ export function MapDrawingProvider({ runId, children }: { runId: string; childre
   const [notes, setNotes] = useState(loaded.notes)
   const [message, setMessage] = useState('')
   const [storageMessage, setStorageMessage] = useState(loaded.message)
-  const [drawMode, setDrawMode] = useState(false)
+  const [mode, setMode] = useState<Mode>(null)
+  const [reset, setReset] = useState(0)
   const dirty = useRef(false)
   useEffect(() => {
     if (!dirty.current) return
@@ -58,7 +71,14 @@ export function MapDrawingProvider({ runId, children }: { runId: string; childre
     }
   }, [key, notes])
   return <DrawingContext.Provider value={{
-    notes, drawMode, setDrawMode, message: storageMessage || message, setMessage,
+    notes, mode, setMode, reset, message: storageMessage || message, setMessage,
+    clear: act => {
+      dirty.current = true
+      setNotes(current => ({ ...current, [act]: EMPTY }))
+      setMode(null)
+      setReset(current => current + 1)
+      setMessage('')
+    },
     change: (act, strokes) => {
       dirty.current = true
       setNotes(current => ({ ...current, [act]: strokes }))
@@ -73,22 +93,82 @@ function useDrawing() {
 }
 
 export function MapDrawingTools({ act }: { act: number }) {
-  const { notes, change, drawMode, setDrawMode, message, setMessage } = useDrawing()
-  const strokes = notes[act] ?? EMPTY
-  return <div className="map-drawing__tools" data-run-log-control>
-    <span>Right-drag to draw. Personal notes.</span>
-    <button type="button" className="map-drawing__button" aria-pressed={drawMode}
-      title="Draw with the left mouse button or touch instead of selecting rooms"
-      onClick={() => setDrawMode(!drawMode)}>Draw</button>
-    <button type="button" className="map-drawing__button" disabled={!strokes.length}
-      onClick={() => { change(act, strokes.slice(0, -1)); setMessage('') }}>Undo drawing</button>
-    <button type="button" className="map-drawing__button" disabled={!strokes.length}
-      onClick={() => { change(act, EMPTY); setMessage('') }}>Clear drawings</button>
-    {message ? <span role="status">{message}</span> : null}
+  const { mode, setMode, clear, message } = useDrawing()
+  const tools = useRef<HTMLDivElement>(null)
+  const tooltipId = useId()
+  const [tip, setTip] = useState<keyof typeof TOOLS | null>(null)
+  useLayoutEffect(() => {
+    const element = tools.current
+    const map = element?.closest('.map')
+    if (!element || !map) return
+    const measure = () => {
+      const box = map.getBoundingClientRect()
+      if (!box.width || !box.height) { setMode(null); return }
+      // Keep the reference proportions without shrinking phone targets below 45px.
+      const unit = Math.max(0.75, Math.min(innerWidth / 1920, innerHeight / 1080, 1))
+      element.style.setProperty('--map-tool-unit', `${unit}px`)
+      element.style.left = `${Math.max(0, box.left) + 56 * unit}px`
+      element.style.top = `${Math.min(innerHeight, box.bottom) - 108 * unit}px`
+    }
+    const observer = new ResizeObserver(measure)
+    observer.observe(map)
+    window.addEventListener('resize', measure)
+    window.addEventListener('scroll', measure, true)
+    measure()
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', measure)
+      window.removeEventListener('scroll', measure, true)
+    }
+  }, [setMode])
+  return <div ref={tools} className="map-drawing__tools" role="group" aria-label="Map drawing tools" data-run-log-control>
+    {(['draw', 'erase', 'clear'] as const).map(tool => <button key={tool} type="button"
+      className="map-drawing__button" data-tool={tool} aria-label={TOOLS[tool].label}
+      aria-pressed={tool === 'clear' ? undefined : mode === tool}
+      aria-describedby={tip === tool ? tooltipId : undefined}
+      onMouseEnter={() => setTip(tool)} onMouseLeave={() => setTip(null)}
+      onFocus={() => setTip(tool)} onBlur={() => setTip(null)}
+      onClick={() => {
+        setTip(null)
+        if (tool === 'clear') clear(act)
+        else setMode(mode === tool ? null : tool)
+      }}>
+      <svg viewBox="0 0 64 64" aria-hidden="true"><path d={TOOLS[tool].path} /></svg>
+    </button>)}
+    {tip ? <div id={tooltipId} className="map-drawing__tip relic-tip" role="tooltip">
+      <strong className="relic-tip__name">{TOOLS[tip].title}</strong>
+      <span className="relic-tip__text">{TOOLS[tip].description}</span>
+    </div> : null}
+    {message ? <span className="map-drawing__message" role="status">{message}</span> : null}
   </div>
 }
 
-type Drawing = { pointerId: number; buttons: number; points: Point[] }
+const TOOLS = {
+  draw: {
+    label: 'Draw', title: 'Map Drawing (Right-Click)', description: 'Draw on the map. Select the quill to draw with left-drag or touch.',
+    path: 'M10 56C19 36 27 16 54 8C54 31 42 43 23 43M10 56L40 25M20 39V30M27 32H38',
+  },
+  erase: {
+    label: 'Erase', title: 'Map Erasing (Middle-Click)', description: 'Erase your drawings. Select the eraser to erase with left-drag or touch.',
+    path: 'M11 39L35 13Q38 10 41 13L55 26Q58 29 55 32L30 57H24ZM22 27L44 46M40 57H56',
+  },
+  clear: {
+    label: 'Clear drawings', title: 'Clear Drawings', description: 'Remove all your drawings from this act.',
+    path: 'M38 27L52 9Q54 7 57 10L59 12Q61 14 59 16L44 33M15 30L34 23L47 36L31 55Q19 50 10 38ZM15 35L29 32M20 42L35 37M26 48L41 42M13 9L15 14L20 16L15 18L13 23L11 18L6 16L11 14Z',
+  },
+}
+
+function toolCursor(mode: Exclude<Mode, null>, pressed = false): string {
+  const tilt = pressed ? `rotate(-10 ${mode === 'draw' ? 10 : 24} 56)` : ''
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 64 64"><g transform="${tilt}"><path d="${TOOLS[mode].path}" fill="none" stroke="#151515" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="${TOOLS[mode].path}" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></g></svg>`
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") ${mode === 'draw' ? '5 28' : '12 28'}, crosshair`
+}
+
+type Drawing = { pointerId: number; buttons: number; erase: boolean; points: Point[] }
+function asMark(points: Stroke, erase: boolean): Mark { return erase ? { erase: true, points } : points }
+function pathData(points: Stroke) {
+  return `M${points.map(([x, y]) => `${x},${y}`).join(' L')}${points.length === 1 ? ' l0,0' : ''}`
+}
 
 export function MapDrawing({ act, surfaceRef, frameRef }: {
   act: number
@@ -99,12 +179,18 @@ export function MapDrawing({ act, surfaceRef, frameRef }: {
   const latest = useRef({ ...context, act })
   latest.current = { ...context, act }
   const draft = useRef<Drawing | null>(null)
-  const [live, setLive] = useState<Stroke | null>(null)
+  const [live, setLive] = useState<Mark | null>(null)
+  const maskId = useId()
   const [geometry, setGeometry] = useState<{ width: number; step: number } | null>(null)
   useEffect(() => {
     const surface = surfaceRef.current
     const frame = frameRef.current
     if (!surface || !frame) return
+    setLive(null)
+    for (const mode of ['draw', 'erase'] as const) {
+      surface.style.setProperty(`--map-${mode}-cursor`, toolCursor(mode))
+      surface.style.setProperty(`--map-${mode}-cursor-active`, toolCursor(mode, true))
+    }
     let paint = 0
     const layout = () => {
       const row = frame.querySelector<HTMLElement>('.map__row:not(:first-child)')
@@ -139,25 +225,34 @@ export function MapDrawing({ act, surfaceRef, frameRef }: {
       if (surface.hasPointerCapture(drawing.pointerId)) surface.releasePointerCapture(drawing.pointerId)
       if (save) {
         const { notes, change, act } = latest.current
-        change(act, [...(notes[act] ?? EMPTY), drawing.points])
+        change(act, [...(notes[act] ?? EMPTY), asMark(drawing.points, drawing.erase)])
       }
     }
     const down = (event: PointerEvent) => {
-      if (draft.current || event.button !== 2 && !(latest.current.drawMode && event.button === 0)) return
+      if (latest.current.mode && (event.button === 1 || event.button === 2)) {
+        event.preventDefault()
+        event.stopPropagation()
+        finish(true)
+        latest.current.setMode(null)
+        return
+      }
+      if (draft.current || event.button !== 2 && event.button !== 1 && !(latest.current.mode && event.button === 0)) return
       if (surface.closest('.map--entering')) return
       const start = point(event)
       if (!start) return
       event.preventDefault()
       event.stopPropagation()
       if ((latest.current.notes[latest.current.act]?.length ?? 0) >= MAX_STROKES) {
-        latest.current.setMessage('Undo or clear a drawing before adding more.')
+        latest.current.setMessage('Clear drawings before adding more marks.')
         return
       }
       latest.current.setMessage('')
-      draft.current = { pointerId: event.pointerId, buttons: event.button === 2 ? 2 : 1, points: [start] }
+      const erase = event.button === 1 || event.button === 0 && latest.current.mode === 'erase'
+      draft.current = { pointerId: event.pointerId, buttons: event.button === 2 ? 2 : event.button === 1 ? 4 : 1,
+        erase, points: [start] }
       surface.setPointerCapture(event.pointerId)
-      surface.dataset.drawing = ''
-      setLive([start])
+      surface.dataset.drawing = erase ? 'erase' : 'draw'
+      setLive(asMark([start], erase))
     }
     const move = (event: PointerEvent) => {
       const drawing = draft.current
@@ -175,10 +270,14 @@ export function MapDrawing({ act, surfaceRef, frameRef }: {
         return finish(true)
       }
       drawing.points.push(next)
-      if (!paint) paint = requestAnimationFrame(() => { paint = 0; setLive(draft.current ? [...draft.current.points] : null) })
+      if (!paint) paint = requestAnimationFrame(() => {
+        paint = 0
+        setLive(draft.current ? asMark([...draft.current.points], draft.current.erase) : null)
+      })
     }
     const up = (event: PointerEvent) => {
       if (draft.current?.pointerId !== event.pointerId) return
+      if (event.buttons & draft.current.buttons) return
       move(event)
       event.preventDefault()
       event.stopPropagation()
@@ -187,13 +286,14 @@ export function MapDrawing({ act, surfaceRef, frameRef }: {
     const cancel = () => finish(false)
     const lost = () => finish(true)
     const escape = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape' || !draft.current) return
+      if (event.key !== 'Escape' || !draft.current && !latest.current.mode) return
       event.preventDefault()
       event.stopPropagation()
       cancel()
+      latest.current.setMode(null)
     }
     const click = (event: MouseEvent) => {
-      if (event.button !== 0 || latest.current.drawMode && event.detail > 0) {
+      if (event.type === 'contextmenu' || event.button !== 0 || latest.current.mode && event.detail > 0) {
         event.preventDefault()
         event.stopPropagation()
       }
@@ -231,15 +331,30 @@ export function MapDrawing({ act, surfaceRef, frameRef }: {
       window.removeEventListener('blur', lost)
       window.removeEventListener('resize', measure)
     }
-  }, [frameRef, surfaceRef])
+  }, [frameRef, surfaceRef, context.mode, context.reset])
+  useEffect(() => () => latest.current.setMode(null), [])
   const width = geometry ? geometry.width / geometry.step : 1
+  const masks: ReactNode[] = []
+  let ink: ReactNode[] = []
+  if (geometry) for (const [index, mark] of [...(context.notes[act] ?? EMPTY), ...(live ? [live] : [])].entries()) {
+    const drawing = index === (context.notes[act]?.length ?? 0) && live ? '' : undefined
+    if (isErasure(mark)) {
+      const id = `${maskId}-${index}`
+      masks.push(<mask key={id} id={id} maskUnits="userSpaceOnUse" x={-width / 2} y={0} width={width} height={1}>
+        <rect x={-width / 2} y={0} width={width} height={1} fill="white" />
+        <path className="map-drawing__eraser" d={pathData(mark.points)} vectorEffect="non-scaling-stroke" />
+      </mask>)
+      // Erasures affect earlier ink only; later strokes can draw over them.
+      ink = [<g key={id} mask={`url(#${id})`} data-erasure={drawing === undefined ? '' : undefined}
+        data-draft={drawing}>{ink}</g>]
+    } else ink.push(<path key={index} className="map-drawing__ink" data-draft={drawing}
+      d={pathData(mark)} vectorEffect="non-scaling-stroke" />)
+  }
   return <svg className="map-drawing" viewBox={`${-width / 2} 0 ${width} 1`}
     preserveAspectRatio="none" aria-hidden="true">
-    {geometry && [...(context.notes[act] ?? EMPTY), ...(live ? [live] : [])].map((stroke, index) =>
-      <path key={index} data-draft={index === (context.notes[act]?.length ?? 0) && live ? '' : undefined}
-        d={`M${stroke.map(([x, y]) => `${x},${y}`).join(' L')}${stroke.length === 1 ? ' l0,0' : ''}`}
-        vectorEffect="non-scaling-stroke" />)}
+    <defs>{masks}</defs>
+    {ink}
   </svg>
 }
 
-export function useMapDrawMode() { return useDrawing().drawMode }
+export function useMapDrawMode() { return useDrawing().mode }

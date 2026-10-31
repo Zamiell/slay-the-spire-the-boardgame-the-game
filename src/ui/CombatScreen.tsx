@@ -223,7 +223,7 @@ import { enemyAttackTargetPlayerIds, enemyAttackArrivalMsFor, cardVfxRecipe, orb
 import { combatBodyPoint } from './combat-geometry.ts'
 import { playSoundEffect } from './sfx.ts'
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { CourierPeek, courierPeekPhase, courierReady } from './CourierPanel.tsx'
+import { CourierPeek, courierPeekPhase } from './CourierPanel.tsx'
 import { createPortal } from 'react-dom'
 
 function targetPresentationTiming(
@@ -480,7 +480,6 @@ function CombatScreenView({
   onChange,
   onAction,
   autoAdvance = true,
-  autoEndTurn = true,
   courierUsedBy,
   onCourierReveal,
   mutationsEnabled = true,
@@ -741,7 +740,6 @@ function CombatScreenView({
     }
     return previews
   }, [cardHints, state, viewer, previewEnemyUid, onAction])
-  const courierAvailable = Boolean(onCourierReveal) && courierReady(viewer, courierUsedBy ?? [])
   const canUsePotionNow = (potionId: string) => Boolean(viewer &&
     canActivatePotion(state, viewer, potionId) && !(partyStartTurnPostRollLocked &&
       isPostRollStartTurnPotionChoice(state, viewer, potionId)))
@@ -3097,34 +3095,6 @@ function CombatScreenView({
       setDiscardOrders(orders)
     }
   }
-
-  // In local solo all information is present, so a turn with literally no
-  // card, token, potion, Power, or relic action can safely collapse. Online
-  // hands are private and shared turn order is meaningful, so clients never
-  // guess on behalf of the party.
-  const viewerHasLegalAction = !voluntaryActionsBlocked && (viewer.hand.some((card) => canAfford(state, viewer, card, false, drawCount)) ||
-    viewer.chamber.some(chamberCardCanStartDrag) ||
-    viewer.shivs > 0 || viewer.soulburn > 0 ||
-    viewer.guardianMode && viewer.vigor > 0 && !viewer.cardPlayLocked && !reachedTimeWarpLimit(state, viewer) ||
-    viewer.miracles > 0 && viewer.energy < CAPS.energy && (
-      viewer.relics.some((relic) => relic.defId === 'ice_cream') ||
-      viewer.hand.some((card) => canAfford(state, viewer, card, true, drawCount))) ||
-    viewer.potions.some((potionId) => canUsePotionNow(potionId)) ||
-    viewer.powers.some((power) => {
-      const def = faceOf(cardDef(power.defId), power.upgraded)
-      return Boolean(def.activeAbility) && (!def.oncePerTurn || !powerAbilityUsed(state, viewer.id, power.uid)) &&
-        powerActivationAllowed(def, state, viewer)
-    }) ||
-    viewer.relics.some((_, relicIndex) => canUseRelicNow(relicIndex)) || courierAvailable)
-  useEffect(() => {
-    if (onAction || !autoAdvance || !autoEndTurn || state.players.length !== 1 || state.phase !== 'player' ||
-      viewer.dead || viewerHasLegalAction || voluntaryActionsBlocked || forcedCard || distilled || pending || pendingTrigger ||
-      endTurnResolving || playWindow) return undefined
-    const timer = window.setTimeout(finishTurn, 450)
-    return () => window.clearTimeout(timer)
-    // Slayer Pack: an open card-play window is still being resolved; the engine closes it once nothing is left.
-  }, [autoAdvance, autoEndTurn, state.phase, state.turn, state.players.length, viewer.dead, viewerHasLegalAction,
-    forcedCard, distilled, pending, pendingTrigger, endTurnResolving, voluntaryActionsBlocked, playWindow])
 
   function reconciliation(outcome: ActionOutcome | void) {
     const snapshot = outcome?.snapshot

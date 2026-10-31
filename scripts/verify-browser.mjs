@@ -4204,7 +4204,7 @@ if (args.includes('--downfall-ui-only')) {
   }, oneLoadedHermitRun)
   await page.waitForTimeout(650)
   const chamberAutoEndPhase = (await readRun()).combat.phase
-  check('a playable Chamber card prevents local solo auto-end', () => {
+  check('an empty hand leaves the Chamber available until the player ends the turn', () => {
     assertEqual(chamberAutoEndPhase, 'player')
   })
   await page.setViewportSize({ width: 844, height: 390 })
@@ -5178,8 +5178,8 @@ await page.evaluate((run) => {
 await page.waitForTimeout(650)
 const orderedAutoEndPhase = await page.evaluate(() => window.__STS_DEBUG__.getState().phase)
 const orderedAutoEndChoices = await page.locator('.end-turn-order').count()
-check('targetless end-turn effects resolve without the obsolete order panel', () => {
-  assert(orderedAutoEndPhase !== 'player', `targetless effects left combat in ${orderedAutoEndPhase}`)
+check('targetless end-turn effects wait for End Turn without the obsolete order panel', () => {
+  assertEqual(orderedAutoEndPhase, 'player', 'end-turn powers must wait for an explicit End Turn')
   assertEqual(orderedAutoEndChoices, 0)
 })
 await page.evaluate((baseline) => {
@@ -5200,8 +5200,9 @@ await page.evaluate((baseline) => {
   debug.setRun(run)
 }, combatAppearanceRun)
 await page.waitForFunction(() => window.__STS_DEBUG__.getState().players[0].powers.length === 0)
+await page.getByRole('button', { name: /^End Turn / }).click()
 await page.waitForFunction(() => window.__STS_DEBUG__.getState().phase !== 'player')
-check('local solo automatically ends a turn with no legal action', () => assert(true))
+check('local solo can manually end a turn with no legal action', () => assert(true))
 await page.evaluate((baseline) => {
   const run = structuredClone(baseline)
   const player = run.combat.players[0]
@@ -5213,8 +5214,9 @@ await page.evaluate((baseline) => {
   run.combat.enemies = run.combat.enemies.slice(0, 1)
   window.__STS_DEBUG__.setRun(run)
 }, combatAppearanceRun)
+await page.getByRole('button', { name: /^End Turn / }).click()
 await page.waitForFunction(() => window.__STS_DEBUG__.getState().phase !== 'player')
-check('an unusable max-Energy Miracle does not block local solo auto-end', () => assert(true))
+check('an unusable max-Energy Miracle does not block an explicit End Turn', () => assert(true))
 await page.evaluate((baseline) => {
   const run = structuredClone(baseline)
   const player = run.combat.players[0]
@@ -5231,7 +5233,7 @@ await page.waitForTimeout(650)
 const iceCreamMiraclePhase = await page.evaluate(() => window.__STS_DEBUG__.getState().phase)
 await page.getByRole('button', { name: 'Use Miracle (+1 Energy)' }).click()
 await page.waitForFunction(() => window.__STS_DEBUG__.getState().players[0].energy === 1)
-check('Ice Cream keeps a bankable Miracle action open before local auto-end', () => {
+check('Ice Cream permits banking a Miracle before ending the turn', () => {
   assertEqual(iceCreamMiraclePhase, 'player')
 })
 await page.evaluate((baseline) => {
@@ -5246,8 +5248,9 @@ await page.evaluate((baseline) => {
   run.combat.enemies = run.combat.enemies.slice(0, 1)
   window.__STS_DEBUG__.setRun(run)
 }, combatAppearanceRun)
+await page.getByRole('button', { name: /^End Turn / }).click()
 await page.waitForFunction(() => window.__STS_DEBUG__.getState().phase !== 'player')
-check('an empty-discard Liquid Memories does not block local solo auto-end', () => assert(true))
+check('an empty-discard Liquid Memories does not block an explicit End Turn', () => assert(true))
 await page.evaluate((baseline) => {
   const run = structuredClone(baseline)
   const player = run.combat.players[0]
@@ -5260,8 +5263,9 @@ await page.evaluate((baseline) => {
   run.combat.enemies = run.combat.enemies.slice(0, 1)
   window.__STS_DEBUG__.setRun(run)
 }, combatAppearanceRun)
+await page.getByRole('button', { name: /^End Turn / }).click()
 await page.waitForFunction(() => window.__STS_DEBUG__.getState().phase !== 'player')
-check('a skipped post-roll Relic does not block local solo auto-end', () => assert(true))
+check('a skipped post-roll Relic does not block an explicit End Turn', () => assert(true))
 const retargetRun = structuredClone(combatAppearanceRun)
 if (retargetRun.combat.players[0].hand.filter((card) => card.defId.startsWith('strike')).length < 2) {
   const replacement = retargetRun.combat.players[0].hand.findIndex((card) => !card.defId.startsWith('strike'))

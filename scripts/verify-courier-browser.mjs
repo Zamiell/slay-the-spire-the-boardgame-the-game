@@ -423,7 +423,7 @@ async function localFlow(page, name, pause = 0) {
   })
 }
 
-async function autoAdvanceLock(page) {
+async function manualTurnBoundary(page) {
   const phase = () => page.evaluate(() => window.__STS_DEBUG__.getRun().combat?.phase)
   await startLocal(page)
   await page.evaluate((run) => window.__STS_DEBUG__.setRun(run), courierCombat(8804, [{ id: 'p1', name: 'Ironclad', character: 'ironclad' }], [1]))
@@ -438,18 +438,25 @@ async function autoAdvanceLock(page) {
   await page.waitForTimeout(900)
   const offerPhase = await phase()
   await page.getByRole('button', { name: 'Discard', exact: true }).click()
-  const advanced = await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat?.phase !== 'player', null, { timeout: 5000 }).then(() => true, () => false)
-  check('solo: an unused Courier holds an idle turn until it is resolved', () => {
+  await page.waitForTimeout(900)
+  const resolvedPhase = await phase()
+  check('solo: resolving the Courier still waits for an explicit End Turn', () => {
     assertEqual(availablePhase, 'player', 'an available Courier let an idle turn auto-advance')
     assertEqual(offerPhase, 'player', 'an open Courier offer let an idle turn auto-advance')
-    assert(advanced, 'the idle turn never auto-advanced after the Courier was resolved')
+    assertEqual(resolvedPhase, 'player', 'resolving the last available action ended the turn')
   })
+  await page.getByRole('button', { name: /^End Turn / }).click()
+  await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat?.phase !== 'player')
   const broke = courierCombat(8805, [{ id: 'p1', name: 'Ironclad', character: 'ironclad' }], [0])
   await page.evaluate((run) => window.__STS_DEBUG__.setRun(run), broke)
   await page.waitForFunction(id => window.__STS_DEBUG__.getRun().combat?.combatId === id, broke.combat.combatId)
   await page.getByRole('group', { name: 'The Courier', exact: true }).waitFor({ state: 'detached' })
   const turn = await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.turn)
   await setRun(page, idleTurn)
+  await page.waitForTimeout(900)
+  assertEqual(await phase(), 'player', 'a zero-Gold Courier must not cause the turn to end')
+  assertEqual(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.turn), turn)
+  await page.getByRole('button', { name: /^End Turn / }).click()
   await page.waitForFunction(turn => {
     const combat = window.__STS_DEBUG__.getRun().combat
     return combat.phase !== 'player' || combat.turn > turn
@@ -460,7 +467,7 @@ try {
   suite('courier browser')
   if (!process.argv.includes('--online-only')) {
     const solo = watch(await browser.newPage({ viewport: { width: 1440, height: 900 } }))
-    await autoAdvanceLock(solo)
+    await manualTurnBoundary(solo)
     await solo.close()
     const record = process.argv.includes('--record')
     const video = await browser.newContext({ viewport: { width: 1440, height: 900 },

@@ -64,6 +64,10 @@ try {
     }
     // The window's instruction is a real, readable banner: sized, on screen, and not covered.
     const assertBanner = async (text) => {
+      // The preceding target click can leave its enemy inspection open over the banner.
+      await page.mouse.move(2, 2)
+      await page.locator('.board').focus()
+      await page.locator('.card-keyword-tips[data-open]').waitFor({ state: 'hidden' })
       const banner = page.locator('.prompt--play-window')
       await banner.getByText(text).waitFor()
       const box = await banner.boundingBox()
@@ -77,7 +81,11 @@ try {
           return hit !== null && element.contains(hit)
         })
       })
-      assert(uncovered, `${screen}: nothing covers the window prompt`)
+      const covering = uncovered ? null : await banner.evaluate(element => {
+        const rect = element.getBoundingClientRect()
+        return document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2)?.outerHTML.slice(0, 300)
+      })
+      assert(uncovered, `${screen}: nothing covers the window prompt: ${covering}`)
       // Every play needs the enemies' intents in view, so the banner never sits over one.
       const intents = await page.locator('.enemy__intent, .intent').evaluateAll((elements) => elements
         .map((element) => element.getBoundingClientRect())
@@ -114,8 +122,8 @@ try {
     assert.equal(await page.locator('.combat__end-turn').count(), 0, `${screen}: a play that must happen hides End Turn`)
     await page.screenshot({ path: `${out}/${screen}-discovery-window.png` })
     await activate('Strike')
-    await page.locator('.enemy--targeted[data-enemy-id="e0"]').first().waitFor()
-    await pressButton(page.locator('.enemy--targeted[data-enemy-id="e0"]').first())
+    await page.locator('.enemy--targeted[data-enemy-id="e0"] .enemy__hit-area').first().waitFor()
+    await pressButton(page.locator('.enemy--targeted[data-enemy-id="e0"] .enemy__hit-area').first())
     await page.waitForFunction(() => !window.__STS_DEBUG__.getRun().combat.pendingCardPlayWindows)
     let state = await combat()
     assert.equal(state.enemies[0].hp, 99)
@@ -139,10 +147,10 @@ try {
     assert.equal(await page.locator('.combat__end-turn').count(), 0)
     await page.screenshot({ path: `${out}/${screen}-violence-window.png` })
     await activate('Bash')
-    await pressButton(page.locator('.enemy--targeted[data-enemy-id="e1"]').first())
+    await pressButton(page.locator('.enemy--targeted[data-enemy-id="e1"] .enemy__hit-area').first())
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.enemies[1].hp === 98)
     await activate('Strike')
-    await pressButton(page.locator('.enemy--targeted[data-enemy-id="e0"]').first())
+    await pressButton(page.locator('.enemy--targeted[data-enemy-id="e0"] .enemy__hit-area').first())
     await page.waitForFunction(() => !window.__STS_DEBUG__.getRun().combat.pendingCardPlayWindows)
     state = await combat()
     assert.deepEqual(state.enemies.map((foe) => foe.hp), [99, 98])
@@ -159,7 +167,7 @@ try {
     assert.equal(await page.locator('.hand .card--play-window').count(), 3)
     await page.screenshot({ path: `${out}/${screen}-enlightenment-window.png` })
     await activate('Bludgeon')
-    await pressButton(page.locator('.enemy--targeted[data-enemy-id="e1"]').first())
+    await pressButton(page.locator('.enemy--targeted[data-enemy-id="e1"] .enemy__hit-area').first())
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.enemies[1].hp === 93)
     assert.equal((await hero()).energy, 2, `${screen}: Bludgeon cost 1`)
     await pressButton(page.getByRole('button', { name: 'Done with Enlightenment' }))
@@ -187,7 +195,7 @@ try {
     state = await combat()
     assert.deepEqual(state.pendingCardPlayWindows.map((entry) => entry.cardUids), [['top-strike']])
     await activate('Strike')
-    await pressButton(page.locator('.enemy--targeted[data-enemy-id="e0"]').first())
+    await pressButton(page.locator('.enemy--targeted[data-enemy-id="e0"] .enemy__hit-area').first())
     await page.waitForFunction(() => !window.__STS_DEBUG__.getRun().combat.pendingCardPlayWindows)
     state = await combat()
     assert.equal(state.enemies[0].hp, 99)
@@ -214,9 +222,8 @@ try {
     assert.deepEqual(state.players[0].draw.map((held) => held.uid), ['cleave', 'bash'])
     assert.equal(state.players[0].energy, 4, `${screen}: 1 + Cleave 1 + Bash 2`)
     assert.deepEqual(state.players[0].hand.map((held) => held.uid).sort(), ['drawn', 'strike'])
-    // Solo auto End Turn: Enlightenment at 0 Energy has nothing to offer, so its window closes at once
-    // and Anger (printed 0) is still played before the turn ends on its own once nothing is left.
-    await load('auto-end', 'ironclad', {
+    // An unaffordable play window closes, but ending the turn still requires the player.
+    await load('manual-end', 'ironclad', {
       energy: 0,
       hand: [card('auto-enlightenment', 'slayer_enlightenment'), card('auto-anger', 'anger'), card('auto-bash', 'bash')],
       draw: [card('auto-drawn', 'cleave'), ...Array.from({ length: 6 }, (_, index) => card(`auto-${index}`, 'defend_ironclad'))],
@@ -225,10 +232,14 @@ try {
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.players[0].exhaust.length === 1)
     assert.equal((await combat()).pendingCardPlayWindows, undefined, `${screen}: a window with nothing affordable closes`)
     await page.waitForTimeout(900)
-    assert.equal((await combat()).phase, 'player', `${screen}: Anger is still playable, so the turn does not auto-end`)
+    assert.equal((await combat()).phase, 'player', `${screen}: closing a play window must not end the turn`)
     await activate('Anger')
-    await pressButton(page.locator('.enemy--targeted[data-enemy-id="e0"]').first())
+    await pressButton(page.locator('.enemy--targeted[data-enemy-id="e0"] .enemy__hit-area').first())
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.enemies[0].hp === 99)
+    await page.waitForTimeout(900)
+    assert.equal((await combat()).phase, 'player', `${screen}: playing the last affordable card must not end the turn`)
+    assert.equal((await combat()).turn, 1)
+    await pressButton(page.getByRole('button', { name: /^End Turn / }))
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.turn === 2 ||
       window.__STS_DEBUG__.getRun().combat.phase !== 'player', null, { timeout: 15000 })
     await page.close()

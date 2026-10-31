@@ -1223,7 +1223,7 @@ const sequences = await page.evaluate(async () => {
   const onlineRoot = (ReactDOM.createRoot ?? ReactDOM.default.createRoot)(host)
   let onlineActions = 0
   onlineRoot.render((React.createElement ?? React.default.createElement)(CombatScreen, { state: fresh().combat, act: saved.act, viewerId: 'p1',
-    autoAdvance: false, autoEndTurn: false, onAction: async () => { onlineActions++ } }))
+    autoAdvance: false, onAction: async () => { onlineActions++ } }))
   await new Promise((resolve) => setTimeout(resolve, 250))
   state = await inspect.execute({})
   let onlineRejected = false

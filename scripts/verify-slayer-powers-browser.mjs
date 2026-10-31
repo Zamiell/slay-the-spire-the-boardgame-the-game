@@ -36,7 +36,6 @@ async function fixture(page, combatTemplate, id, { hand = [], powers = [], energ
       combatId: `slayer-powers:${id}`, phase: 'player', pendingTriggers: [], startTurnProgress: undefined,
       endTurnProgress: undefined, powerTriggersUsedThisTurn: [], presentationEvents: [],
     })
-    // A spare affordable Defend keeps solo auto-end-turn from racing the next fixture.
     run.combat.players = [{
       ...player, character: 'ironclad', name: 'Ironclad', powers, energy: energy + 1,
       hand: [...hand, { uid: `g2b-spare-${id}`, defId: 'defend_ironclad', upgraded: false }],

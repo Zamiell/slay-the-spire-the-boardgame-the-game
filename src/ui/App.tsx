@@ -1463,9 +1463,6 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
           viewerId={viewerId}
           animateOpeningHand
           autoAdvance={!replayLog && !compendium && !pauseOpen && !settingsOpen && !giveUpOpen && !run.courier.offer}
-          // The tutorial teaches ending the turn, and a turn that ends by
-          // itself would cut the coach off mid-sentence.
-          autoEndTurn={!tutorial}
           courierUsedBy={run.courier.usedBy}
           onCourierReveal={run.courier.offer ? undefined : revealLocalCourier}
           mutationsEnabled={!run.courier.offer}

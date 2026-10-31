@@ -195,6 +195,11 @@
   filter: drop-shadow(0 0 0.35rem #65e8ff) drop-shadow(0 0 0.8rem rgb(55 203 234 / 0.7));
 }
 
+.board :is(.enemy, .seat):focus-visible {
+  outline: none;
+  filter: drop-shadow(0 0 0.35rem #65e8ff);
+}
+
 .seat__interactive {
   position: relative;
   display: inline-block;

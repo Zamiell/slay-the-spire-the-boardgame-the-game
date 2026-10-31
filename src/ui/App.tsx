@@ -367,6 +367,20 @@ export function App() {
     return () => { active = false }
   }, [online])
   const [settings, setSettings] = useGameSettings()
+  useEffect(() => {
+    // Mouse activation is not keyboard selection. Touch keeps focus for its
+    // first-tap card/tooltips previews, and form fields keep native editing.
+    const pointerDown = (event: PointerEvent) => {
+      if (event.pointerType !== 'mouse' || event.button !== 0 || !(event.target instanceof Element)) return
+      if (event.target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"], [role="slider"]')) return
+      const control = event.target.closest('button, a[href], summary, [tabindex], [role="button"]')
+      if (!control) return
+      event.preventDefault()
+      if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+    }
+    document.addEventListener('pointerdown', pointerDown, true)
+    return () => document.removeEventListener('pointerdown', pointerDown, true)
+  }, [])
   useEffect(() => settings.sfxVolume > 0 ? installSoundEffects(true) : undefined, [settings.sfxVolume])
   useEffect(() => {
     if (document.querySelector('link[data-combat-vfx]')) return

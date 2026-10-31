@@ -14,8 +14,11 @@ export function useButtonShortcut(ref: RefObject<HTMLButtonElement | null>, key:
       const field = target?.closest('input, textarea, select, [role="textbox"]')
       if (field && !(inspectingDeck && field.matches('input[type="checkbox"]')) ||
         target instanceof HTMLElement && target.isContentEditable) return
-      // Space keeps its native activation behavior when a control has focus.
-      if (key === ' ' && target?.closest('button, input, a[href], summary, [role="button"], [role="slider"]')) return
+      const control = target?.closest('button, input, a[href], summary, [role="button"], [role="slider"]')
+      const inspectionOnly = control?.matches('.board .enemy:not(.enemy--targeted), .board .seat:not(.seat--targetable):not(.seat--targeted)')
+      // Passive battlefield inspection must not swallow End turn. Real actions,
+      // including a pending enemy/ally target, retain native Space activation.
+      if (key === ' ' && control && !inspectionOnly) return
       if (!button || button.matches(':disabled, [aria-disabled="true"]') ||
         button.closest('[inert], [hidden], [aria-hidden="true"]') || !button.getClientRects().length ||
         getComputedStyle(button).visibility === 'hidden') return
@@ -26,6 +29,7 @@ export function useButtonShortcut(ref: RefObject<HTMLButtonElement | null>, key:
         !(inspectingRun && dialog.matches('section.reward-screen--card-choice')) &&
         !(inspectingDeck && dialog.matches('section.card-picker')))) return
       event.preventDefault()
+      if (key === ' ' && inspectionOnly && control instanceof HTMLElement) control.blur()
       button.click()
     }
     document.addEventListener('keydown', press)

@@ -22,11 +22,14 @@ try {
     await page.goto(`http://127.0.0.1:${server.httpServer.address().port}`, { waitUntil: 'networkidle' })
     await page.evaluate(() => {
       window.contextMenus = []
-      document.addEventListener('contextmenu', (event) => window.contextMenus.push(event.defaultPrevented))
+      document.addEventListener('contextmenu', (event) => {
+        setTimeout(() => window.contextMenus.push(event.defaultPrevented), 0)
+      }, true)
     })
     const rightClick = async (control) => {
       const before = await page.evaluate(() => window.contextMenus.length)
       await control.click({ button: 'right', force: true })
+      await page.waitForFunction(count => window.contextMenus.length === count + 1, before)
       assert.equal(await page.evaluate(() => window.contextMenus.length), before + 1)
       assert.equal(await page.evaluate(() => window.contextMenus.at(-1)), true, 'the browser context menu was not suppressed')
     }
@@ -40,6 +43,9 @@ try {
     await page.keyboard.press('d')
     await deck.waitFor()
     await rightClick(deck.locator('.card').first())
+    await page.locator('.card-inspection[open]').waitFor()
+    await page.keyboard.press('Escape')
+    await page.locator('.card-inspection[open]').waitFor({ state: 'detached' })
     assert.equal(await deck.locator('.card').count(),
       await page.evaluate(() => window.__STS_DEBUG__.getRun().players[0].deck.length))
     await page.keyboard.press('d')
@@ -85,6 +91,11 @@ try {
     const blur = () => page.evaluate(() => document.activeElement?.blur())
 
     const board = page.locator('.board')
+    for (const selector of ['.enemy__hit-area', '.seat__portrait']) {
+      await board.locator(selector).first().click()
+      assert.equal(await board.locator(':is(.enemy, .seat):focus').count(), 0,
+        'mouse inspection must not leave a battlefield actor selected for keyboard input')
+    }
     await board.focus()
     await page.keyboard.press('d')
     await deck.waitFor()
@@ -132,6 +143,11 @@ try {
         document.querySelector('.app-shell__header').append(field)
         field.focus()
       }, editable)
+      if (!editable) {
+        await page.locator('#keyboard-field').click()
+        assert(await page.locator('#keyboard-field').evaluate(field => document.activeElement === field),
+          'mouse focus management must preserve native text editing')
+      }
       await page.keyboard.press('d')
       await page.keyboard.press('m')
       await page.keyboard.press('Space')
@@ -171,14 +187,29 @@ try {
     assert.equal(await clicks(), 0, 'Space activated an inert End turn button')
     await page.locator('.app-shell').evaluate((shell) => { shell.inert = false })
 
-    const turn = await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.turn)
-    await blur()
-    await page.keyboard.press('Space')
-    assert.equal(await clicks(), 1, 'Space did not activate End turn exactly once')
-    await page.waitForFunction((turn) => {
-      const combat = window.__STS_DEBUG__.getRun().combat
-      return combat.turn > turn && combat.phase === 'player'
-    }, turn)
+    const beforeTurn = await page.evaluate(() => structuredClone(window.__STS_DEBUG__.getRun()))
+    const turn = beforeTurn.combat.turn
+    let turnsEnded = 0
+    for (const mode of ['mouse enemy', 'keyboard enemy', 'keyboard hero', ...(phone ? ['touch enemy'] : [])]) {
+      if (turnsEnded) {
+        await page.evaluate(run => window.__STS_DEBUG__.setRun(run), beforeTurn)
+        await page.waitForFunction(turn => window.__STS_DEBUG__.getRun().combat.turn === turn, turn)
+      }
+      const actor = board.locator(mode.endsWith('hero') ? '.seat' : '.enemy').first()
+      if (mode === 'mouse enemy') await actor.locator('.enemy__hit-area').click()
+      else if (mode === 'touch enemy') await actor.locator('.enemy__hit-area').tap()
+      else {
+        await actor.focus()
+        assert.equal(await actor.evaluate(element => getComputedStyle(element).outlineStyle), 'none',
+          'keyboard actor inspection should use its silhouette cue, not a yellow rectangle')
+      }
+      await page.keyboard.press('Space')
+      assert.equal(await clicks(), ++turnsEnded, `${mode}: Space must activate End turn exactly once`)
+      await page.waitForFunction(turn => {
+        const combat = window.__STS_DEBUG__.getRun().combat
+        return combat.turn > turn && combat.phase === 'player'
+      }, turn)
+    }
     assert.equal(await endTurn.textContent(), `End Turn ${await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.turn)}`,
       'the End Turn label did not advance with the turn')
 

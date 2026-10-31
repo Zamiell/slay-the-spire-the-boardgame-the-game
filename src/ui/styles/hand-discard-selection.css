@@ -15,13 +15,25 @@
   color: #fff2d3;
 }
 .hand-discard::backdrop { background: rgb(0 0 0 / 0.78); }
-.combat[data-hand-discard] .hand-scroll { opacity: 0; pointer-events: none; }
+.combat:has(.hand-discard[open]) .hand-scroll { opacity: 0; pointer-events: none; }
 .hand-discard__heading { text-align: center; text-shadow: 0 2px 3px #000; }
 .hand-discard__heading h2 { margin: 0; color: #f3d268; font-size: clamp(1.3rem, 3vh, 2rem); }
 .hand-discard__heading p { margin: 0.35rem 0 0; }
-.hand-discard__selection { display: grid; place-items: center; min-height: 0; }
+.hand-discard__selection {
+  display: flex;
+  justify-content: safe center;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 0;
+  overflow-x: auto;
+  padding: 0.5rem;
+}
 .hand-discard__selection > p { opacity: 0.7; }
-.hand-discard__selection > .card { width: min(13rem, calc(32dvh / var(--card-ratio))); animation: discard-selection-lift 180ms ease-out; }
+.hand-discard__selection > .card {
+  flex: 0 0 auto;
+  width: min(13rem, calc(32dvh / var(--card-ratio)));
+  animation: discard-selection-lift 180ms ease-out;
+}
 .hand-discard__hand {
   display: flex;
   justify-content: safe center;

@@ -71,6 +71,9 @@ const focusedUiOwners = ownerMap([
     'verify-sever-soul-browser.mjs', 'verify-start-turn-order-browser.mjs',
     'verify-all-out-attack-browser.mjs', 'verify-survivor-selection-browser.mjs',
   ]],
+  ...['src/ui/combat-screen/HandSelectionScreen.tsx', 'src/ui/styles/hand-discard-selection.css']
+    .map(file => [file, ['verify-sever-soul-browser.mjs', 'verify-survivor-selection-browser.mjs',
+      'verify-start-turn-order-browser.mjs']]),
   ['src/ui/CardCollectionOverlay.tsx', [
     'verify-deck-inspection-browser.mjs',
     'verify-flurry-stance-browser.mjs',

@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import type { CardInstance } from '../../game/types.ts'
 import { Card } from '../Card.tsx'
+import { HandSelectionScreen } from './HandSelectionScreen.tsx'
 
 export function HandCardSelection({
   cards, minimum, maximum, source, initialSelected = [], disabled, active = true,
@@ -23,12 +24,20 @@ export function HandCardSelection({
   const dialog = useRef<HTMLDialogElement>(null)
   const [picked, setPicked] = useState(initialSelected)
   const selected = picked.filter(uid => cards.some(card => card.uid === uid)).slice(0, maximum)
+  const toggle = (card: CardInstance) => setPicked(selected.includes(card.uid)
+    ? selected.filter(uid => uid !== card.uid)
+    : [...selected, card.uid].slice(-maximum))
   useLayoutEffect(() => {
     const element = dialog.current
     if (!element) return
     if (active && !element.open) element.showModal()
     else if (!active && element.open) element.close()
   }, [active])
+  if (action === 'Exhaust') return <HandSelectionScreen
+    cards={cards} selectedUids={selected} minimum={minimum} maximum={maximum} source={source} action={action}
+    disabled={disabled} active={active} drawLocked={drawLocked} sharedDrawLocked={sharedDrawLocked}
+    stanceChangedThisTurn={stanceChangedThisTurn} onSelect={toggle}
+    onConfirm={() => onConfirm(selected)} onCancel={onCancel} />
   const count = minimum === maximum ? maximum === 1 ? 'a card' : `${maximum} cards`
     : minimum === 0 ? `up to ${maximum} card${maximum === 1 ? '' : 's'}`
     : minimum + 1 === maximum ? `${minimum} or ${maximum} cards`
@@ -44,17 +53,14 @@ export function HandCardSelection({
         action === 'Put on bottom' ? 'put on the bottom of your draw pile' : action}</h2>
       <p id="hand-exhaust-description" aria-live="polite">
         {source} — {selected.length}/{maximum} selected.
-        {' '}Only the selected cards will be {action === 'Exhaust' ? 'Exhausted'
-          : action === 'Discard' ? 'discarded' : 'put on the bottom of your draw pile'}.
+        {' '}Only the selected cards will be {action === 'Discard' ? 'discarded' : 'put on the bottom of your draw pile'}.
       </p>
       <div className="choice-modal__cards">
         {cards.map(card => <Card key={card.uid} card={card}
           selected={selected.includes(card.uid)} playable={!disabled}
           drawLocked={drawLocked} sharedDrawLocked={sharedDrawLocked}
           stanceChangedThisTurn={stanceChangedThisTurn}
-          onClick={() => setPicked(selected.includes(card.uid)
-            ? selected.filter(uid => uid !== card.uid)
-            : [...selected, card.uid].slice(-maximum))} />)}
+          onClick={() => toggle(card)} />)}
       </div>
       <div className="hand-exhaust__actions">
         <button type="button" disabled={disabled || selected.length < minimum || selected.length > maximum}

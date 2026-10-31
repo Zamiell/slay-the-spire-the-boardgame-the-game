@@ -145,6 +145,37 @@ try {
     assert.equal(room.run.combat.players[0].block, 3)
     assert.equal(room.run.combat.players[0].energy, 2)
     assert.deepEqual(room.run.combat.players[0].discard.map((card) => card.uid).sort(), ['discard-daze', 'survivor-source'])
+    const exhaustRun = fixture(room.seats.map(seat => ({
+      id: seat.playerId, name: seat.name, character: seat.character,
+    })), `online-exhaust-${screen}`, true)
+    exhaustRun.combat.players[0].hand[0].defId = 'sever_soul'
+    room.run = exhaustRun
+    room.version++
+    rooms.publishRoom(session.code)
+    await tab.locator('.hand .card[data-card-name="Sever Soul+"]').focus()
+    await tab.keyboard.press('Enter')
+    const exhaustDialog = tab.getByRole('dialog', { name: 'Exhaust 1 or 2 cards', exact: true })
+    const exhaustHand = exhaustDialog.getByRole('group', { name: 'Cards available to exhaust' })
+    const exhaustSelected = exhaustDialog.getByRole('group', { name: 'Selected exhaust' })
+    const exhaustConfirm = exhaustDialog.getByRole('button', { name: 'Confirm exhaust', exact: true })
+    await exhaustHand.getByRole('button', { name: /^Daze,/ }).focus()
+    await tab.keyboard.press('Enter')
+    assert(await exhaustSelected.locator('.card').evaluate(card => document.activeElement === card),
+      'keyboard selection must follow the card into the selected area')
+    await tab.keyboard.press('Enter')
+    assert(await exhaustConfirm.isDisabled(), 'putting the card back must restore the required selection')
+    assert(await exhaustHand.getByRole('button', { name: /^Daze,/ })
+      .evaluate(card => document.activeElement === card), 'putting a card back must restore its keyboard focus')
+    await tab.keyboard.press('Enter')
+    assert.equal(room.run.combat.players[0].energy, 3)
+    assert.equal(room.run.combat.players[0].exhaust.length, 0)
+    await exhaustConfirm.click()
+    await exhaustDialog.waitFor({ state: 'detached' })
+    await tab.locator('[data-enemy-id="survivor-enemy"] .enemy__hit-area').click()
+    await tab.waitForFunction(() => !document.querySelector('.hand .card[data-card-name="Sever Soul+"]'))
+    assert.equal(room.run.combat.players[0].energy, 1)
+    assert.deepEqual(room.run.combat.players[0].exhaust.map(card => card.uid), ['discard-daze'])
+    assert.equal(room.run.combat.enemies[0].hp, 26)
     await online.close()
     console.log(`PASS ${screen}: Survivor selection, replacement, cancellation, confirmation and authoritative co-op play`)
   }

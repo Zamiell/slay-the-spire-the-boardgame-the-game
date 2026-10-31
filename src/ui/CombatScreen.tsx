@@ -8,7 +8,7 @@ import { createCardPlayCoordinator, describeCardPickup, stageHermitChamberViewer
 import { useCardInteraction } from './combat-screen/useCardInteraction.ts'
 import { trackCombatResources } from './combat-screen/resource-visibility.ts'
 import { CardInteractionLayer } from './combat-screen/CardInteractionLayer.tsx'
-import { HandDiscardSelection } from './combat-screen/HandDiscardSelection.tsx'
+import { HandSelectionScreen } from './combat-screen/HandSelectionScreen.tsx'
 import { HandCardSelection } from './combat-screen/HandCardSelection.tsx'
 import { useButtonShortcut } from './useButtonShortcut.ts'
 // Input owns pickup; the play coordinator owns choices; the engine owns mutations.
@@ -5044,7 +5044,6 @@ function CombatScreenView({
       data-act={stageAct}
       data-character={viewer.character}
       data-phase={state.phase}
-      data-hand-discard={survivorDiscard || undefined}
       data-party-size={state.players.length}
       data-stage-motion={stageMotionReady && !prefersReducedMotion || undefined}
       style={{
@@ -5528,9 +5527,10 @@ function CombatScreenView({
         </p>
       ) : null}
 
-      {survivorDiscard && pending ? <HandDiscardSelection
+      {survivorDiscard && pending ? <HandSelectionScreen action="Discard" source="Survivor"
         cards={viewer.hand.filter((card) => !pending.cardInHand || card.uid !== pending.card.uid)}
-        selectedUid={pending.picked[0]} disabled={usingCard || !mutationsEnabled || authoritativeConnected === false}
+        selectedUids={pending.picked} minimum={Math.min(1, choicePoolSize)} maximum={Math.min(1, choicePoolSize)}
+        disabled={usingCard || !mutationsEnabled || authoritativeConnected === false}
         onSelect={(card) => confirmCardPlay(card, 'hand')}
         onConfirm={() => stageOrCommit(pending)}
         onCancel={pending.cardInHand && pending.card.uid !== forcedCardUid ? cancelCardPlay : undefined}

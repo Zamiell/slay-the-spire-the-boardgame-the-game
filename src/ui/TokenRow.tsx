@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import { orbEndTurnAmount } from '../game/combat.ts'
+import { lightningTargetsRows, orbEndTurnAmount } from '../game/combat.ts'
 import type { OrbType, Player } from '../game/types.ts'
 import { StatusIcon } from './Icon.tsx'
 import type { StatusIconName } from './Icon.tsx'
@@ -79,9 +79,16 @@ export function orbDisplayValue(player: Player, orb: OrbType, evoked = false): n
 }
 
 export function orbDisplayText(player: Player, orb: OrbType): string {
-  const value = orbDisplayValue(player, orb)
-  return orb === 'frost' ? `${value} Block at end of turn`
-    : `${value} damage ${orb === 'dark' ? 'when Evoked' : 'at end of turn'}`
+  const passive = orbDisplayValue(player, orb)
+  const evoked = orbDisplayValue(player, orb, true)
+  const target = orb === 'lightning' && lightningTargetsRows(player)
+    ? 'each enemy in a chosen row and every boss' : 'a chosen enemy'
+  if (orb === 'dark') return `Passive: No passive effect. Evoke: Deal ${evoked} damage to ${target}. ` +
+    'Dark has base Evoke damage of 3 plus 1 for each Power you have in play. Evoking removes the Orb.'
+  return orb === 'frost'
+    ? `Passive: Gain ${passive} Block at the end of your turn. Evoke: Gain ${evoked} Block and remove the Orb.`
+    : `Passive: Deal ${passive} damage to ${target} at the end of your turn. ` +
+      `Evoke: Deal ${evoked} damage to ${target} and remove the Orb.`
 }
 
 /** The original game floats Orb sprites and their current value around the Defect. */
@@ -105,23 +112,30 @@ export function OrbRow({
   if (orbs.length === 0) return null
   const targetable = new Set(targetableSlots)
   return (
-    <span className={`orbs${targetable.size > 0 ? ' orbs--targetable' : ''}`} aria-hidden={targetable.size === 0}
+    <span className={`orbs${targetable.size > 0 ? ' orbs--targetable' : ''}`} role="group" aria-label={`${player.name}'s Orbs`}
       style={{ '--orb-count': orbs.length } as CSSProperties}>
       {orbs.map(({ orb, slot }, index) => {
         const value = orb ? orbDisplayValue(player, orb) : null
         const token = (
           <span
             className={`token token--orb token--orb-${orb ?? 'empty'}`}
-            title={orb ? `${orb} Orb · ${orbDisplayText(player, orb)}` : 'Empty Orb slot'}
+            title={orb ? undefined : 'Empty Orb slot'} aria-hidden="true"
             style={{ '--orb-depth': Math.abs(index - (orbs.length - 1) / 2) } as CSSProperties}
           >
             {value !== null ? <span className="orb__value">{value}</span> : null}
           </span>
         )
-        return targetable.has(slot) ? (
+        if (!orb) return <span key={slot} aria-hidden="true">{token}</span>
+        const name = `${orb.charAt(0).toUpperCase()}${orb.slice(1)} Orb`
+        const text = orbDisplayText(player, orb)
+        const selectable = targetable.has(slot)
+        return <PotionTooltipAnchor key={`${slot}:${orb}:${selectable}`} id={`orb-${player.id}-${slot}`}
+          className="orbs__help" name={name} text={text} kindLabel="Orb"
+          focusable={!selectable} aria-label={selectable ? undefined : `${name} ${slot + 1}. ${text}`}>
+          {selectable ? (
           // The glow filter isolates each Orb, so stack left over right to keep every
           // bottom-right value clear of its neighbour's sprite.
-          <span role="button" tabIndex={0} key={slot} data-orb-slot={slot}
+          <button type="button" data-orb-slot={slot}
             className={`orbs__target${selectedSlots?.includes(slot) ? ' orbs__target--selected' : ''}`}
             aria-pressed={selectedSlots ? selectedSlots.includes(slot) : undefined}
             style={{ '--orb-stack': orbs.length - index } as CSSProperties}
@@ -136,10 +150,11 @@ export function OrbRow({
                 event.currentTarget.click()
               }
             }}
-            aria-label={`${targetVerb} ${orb} Orb ${slot + 1}`}>
+            aria-label={`${targetVerb} ${orb} Orb ${slot + 1}`} aria-description={text}>
             {token}
-          </span>
-        ) : <span key={slot}>{token}</span>
+          </button>
+        ) : token}
+        </PotionTooltipAnchor>
       })}
     </span>
   )

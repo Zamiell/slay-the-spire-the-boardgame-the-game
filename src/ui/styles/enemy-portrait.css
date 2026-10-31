@@ -65,6 +65,7 @@
   content: '';
   position: absolute;
   inset: -16%;
+  pointer-events: none;
   background: center / contain no-repeat;
   filter: drop-shadow(0 0 0.24rem rgb(255 255 255 / 0.52));
 }
@@ -99,6 +100,7 @@
 }
 
 .orbs--targetable { pointer-events: auto; }
+.orbs > .orbs__help { pointer-events: auto; }
 
 /* Enemy canvases can overlap a visible Orb; their transparent hit surface is
    irrelevant while the player is choosing that Orb. Keep painted depth intact. */
@@ -115,6 +117,7 @@
   padding: 0;
   border: 0;
   background: none;
+  outline: none;
   cursor: pointer;
 }
 

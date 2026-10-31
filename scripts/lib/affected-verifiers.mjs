@@ -60,6 +60,8 @@ const focusedEngineOwners = ownerMap([
   ['src/game/run/rewards.ts', ['verify-loot-browser.mjs', 'verify-tiny-house-browser.mjs']],
 ])
 const focusedUiOwners = ownerMap([
+  ...['src/ui/chrome/keys.css', 'src/ui/chrome/stone-keys.css']
+    .map(file => [file, ['verify-button-borders-browser.mjs']]),
   ['src/ui/useButtonShortcut.ts', ['verify-keyboard-browser.mjs', 'verify-card-picker-browser.mjs']],
   ['src/ui/CardPicker.tsx', ['verify-card-picker-browser.mjs']],
   ['src/ui/styles/combat.css', ['verify-sever-soul-browser.mjs', 'verify-row-target-browser.mjs',

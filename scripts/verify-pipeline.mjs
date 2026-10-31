@@ -203,6 +203,9 @@ check('skin attack and art tooling selects the skin verifiers rather than the wh
 })
 
 check('shared frontend changes use cores plus named visual owners', () => {
+  for (const sheet of ['src/ui/chrome/keys.css', 'src/ui/chrome/stone-keys.css']) {
+    assert(affectedBrowser(sheet).includes('verify-button-borders-browser.mjs'))
+  }
   for (const file of ['src/game/assets.ts', 'src/ui/CampfireScene.tsx', 'src/ui/CampfireScreen.tsx', 'src/ui/OnlineCampfireScreen.tsx',
     'src/ui/chrome/campfire.css', 'public/assets/noncombat/campfire/sitters/kratos.webp']) {
     includesEvery(affectedBrowser(file), ['verify-art-scenes-browser.mjs'], `${file} campfire scene`)
@@ -214,7 +217,7 @@ check('shared frontend changes use cores plus named visual owners', () => {
       'verify-combat-stage-scan-browser.mjs', 'verify-wing-and-throw-browser.mjs', 'verify-elite-signatures-browser.mjs',
       'verify-unload-shivs-browser.mjs', 'verify-boss-heavy-attacks-browser.mjs', 'verify-slime-hover-browser.mjs',
     ], sheet)
-    assertEqual(affectedBrowser(sheet).length, 27, `${sheet} selected an unrelated browser suite`)
+    assertEqual(affectedBrowser(sheet).length, 28, `${sheet} selected an unrelated browser suite`)
   }
   const hand = affectedBrowser('src/ui/styles/hand.css')
   includesEvery(hand, ['verify-browser.mjs', 'verify-noncombat-browser.mjs', 'verify-online-browser.mjs',
@@ -226,7 +229,7 @@ check('shared frontend changes use cores plus named visual owners', () => {
     'verify-card-damage-preview-browser.mjs', 'verify-unload-shivs-browser.mjs',
     'verify-boss-heavy-attacks-browser.mjs', 'verify-slime-hover-browser.mjs',
     'verify-enemy-card-cube-browser.mjs'], 'hand stylesheet')
-  assertEqual(hand.length, 33, 'hand stylesheet selected an unrelated browser suite')
+  assertEqual(hand.length, 34, 'hand stylesheet selected an unrelated browser suite')
   includesEvery(affectedBrowser('src/ui/styles/presentation-overlays.css'), [
     'verify-browser.mjs', 'verify-noncombat-browser.mjs', 'verify-online-browser.mjs',
     'verify-lightning-act2-browser.mjs',

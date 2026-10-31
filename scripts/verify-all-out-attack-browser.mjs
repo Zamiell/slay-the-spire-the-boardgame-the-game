@@ -5,6 +5,7 @@ import { createServer } from 'vite'
 import { chromium, devices, webkit } from './lib/profile-browser.mjs'
 import { postNeowRun } from './lib/post-neow-run.mjs'
 import { enterRoom } from '../src/game/run.ts'
+import { dragCardTo } from './lib/card-interactions.mjs'
 
 const root = resolve(import.meta.dirname, '..')
 const out = resolve(root, 'artifacts/all-out-attack')
@@ -46,13 +47,12 @@ try {
       await page.evaluate((nextRun) => window.__STS_DEBUG__.setRun(nextRun), active)
       const card = page.getByRole('button', { name: /^All-Out Attack,/ })
       const target = page.locator('[data-enemy-id="all-out-target"] .enemy__hit-area')
-      const [cardBox, targetBox] = await Promise.all([card.boundingBox(), target.boundingBox()])
-      assert(cardBox && targetBox, `${engineName}: All-Out Attack or its target was not visible`)
-      await page.mouse.move(cardBox.x + cardBox.width / 2, cardBox.y + cardBox.height / 2)
-      await page.mouse.down()
-      await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height / 2, { steps: 8 })
-      await page.mouse.up()
-      await page.getByRole('button', { name: /^Defend,/ }).click()
+      await card.focus()
+      await page.waitForFunction(() => !document.querySelector('.hand[data-hand-moving], .hand .card--drawn'))
+      await dragCardTo(page, card, target)
+      const discard = page.getByRole('dialog', { name: 'Choose a card in your hand to Discard', exact: true })
+      await discard.getByRole('button', { name: /^Defend,/ }).click()
+      await discard.getByRole('button', { name: 'Discard 1 card', exact: true }).click()
       await page.waitForFunction(() => {
         const combat = window.__STS_DEBUG__.getRun().combat
         return combat.players[0].discard.some((card) => card.uid === 'all-out') &&

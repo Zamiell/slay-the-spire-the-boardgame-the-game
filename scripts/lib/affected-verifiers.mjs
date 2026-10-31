@@ -66,6 +66,10 @@ const focusedUiOwners = ownerMap([
   ['src/ui/styles/hand-layout.css', ['verify-card-interaction-browser.mjs', 'verify-start-turn-order-browser.mjs']],
   ['src/ui/chrome/rewards.css', ['verify-loot-browser.mjs', 'verify-boss-relic-picker-browser.mjs']],
   ['src/ui/combat-screen/StartTurnOrder.tsx', ['verify-start-turn-order-browser.mjs']],
+  ['src/ui/combat-screen/HandCardSelection.tsx', [
+    'verify-sever-soul-browser.mjs', 'verify-start-turn-order-browser.mjs',
+    'verify-all-out-attack-browser.mjs', 'verify-survivor-selection-browser.mjs',
+  ]],
   ['src/ui/CardCollectionOverlay.tsx', [
     'verify-deck-inspection-browser.mjs',
     'verify-flurry-stance-browser.mjs',

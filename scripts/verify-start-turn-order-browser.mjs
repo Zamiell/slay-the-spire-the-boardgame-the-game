@@ -257,7 +257,7 @@ try {
     assert.equal(await panel.getAttribute('open'), compact ? null : '', `${name}: wrong initial fold with nothing owed`)
     await page.screenshot({ path: `${out}/${name}-nothing-owed.png` })
 
-    // Worthy Sacrifice picks its Exhaust straight from the glowing hand.
+    // Worthy Sacrifice shares the dedicated Exhaust picker with played cards.
     await load({ character: 'hexaghost', player: {
       hand: ['strike_hexaghost', 'defend_hexaghost', 'strike_hexaghost'].map((defId, index) => c(`ws-hand-${index}`, defId)),
       powers: [c('worthy', 'worthy_sacrifice')],
@@ -273,8 +273,15 @@ try {
     `${name}: selectable start-turn Exhaust choices must remain in full color`)
     assertLayout(await layout(), 'worthy sacrifice')
     await page.screenshot({ path: `${out}/${name}-exhaust-choice.png` })
-    // A pick can be changed by tapping another card.
-    await page.locator('.hand .card').nth(0).click()
+    const exhaustDialog = page.getByRole('dialog', { name: /Choose .* in your hand to Exhaust/ })
+    await exhaustDialog.waitFor()
+    assert.equal(await exhaustDialog.getByRole('button', { name: 'Cancel', exact: true }).count(), 0)
+    await page.keyboard.press('Escape')
+    assert(await exhaustDialog.isVisible(), 'a required start-turn Exhaust cannot be cancelled')
+    await exhaustDialog.locator('.card').nth(0).click()
+    await exhaustDialog.getByRole('button', { name: 'Exhaust 1 card', exact: true }).click()
+    await exhaustDialog.waitFor({ state: 'detached' })
+    // A confirmed draft can still be changed before resolving the start of turn.
     assert.match(await page.locator('.hand .card').nth(0).getAttribute('class'), /card--picked/)
     assert.equal(await page.locator('.hand .card.card--load-choice').count(), 0, `${name}: a set Exhaust still reads as owed`)
     assert.equal(await page.locator('.hand .card.card--exhaust-repick').count(), 2, `${name}: the other cards stop offering a re-pick`)
@@ -300,10 +307,14 @@ try {
     await panel.waitFor()
     await page.locator('.card-morph').waitFor({ state: 'hidden' })
     await settle()
+    await exhaustDialog.locator('.card').first().click()
+    await exhaustDialog.getByRole('button', { name: 'Exhaust 1 card', exact: true }).click()
     await page.getByRole('button', { name: "Mate's Worthy Sacrifice earlier", exact: false }).click()
     assert.deepEqual(await panel.locator('.start-turn-order__owner').allTextContents(), ['Mate', 'Silent'])
     assert.equal(await page.locator('.hand .card.card--load-choice').count(), 2, `${name}: a teammate's Exhaust holds up this seat's pick`)
-    await page.locator('.hand .card').nth(0).click()
+    assert.equal(await exhaustDialog.locator('.card').count(), 2, 'only this seat can choose from its own hand')
+    await exhaustDialog.locator('.card').nth(0).click()
+    await exhaustDialog.getByRole('button', { name: 'Exhaust 1 card', exact: true }).click()
     assert.deepEqual(await panel.locator('.start-turn-order__badge').allTextContents(), ['Waiting for Mate', 'Exhaust set'],
       `${name}: wrong hot-seat Exhaust badges`)
     assert.equal(await page.locator('.hand .card.card--load-choice').count(), 0, `${name}: the viewer's hand offers a teammate's Exhaust`)
@@ -314,7 +325,9 @@ try {
     await page.screenshot({ path: `${out}/${name}-exhaust-teammate.png` })
     await page.evaluate(() => window.__STS_DEBUG__.setViewer('mate'))
     assert.equal(await page.locator('.hand .card.card--load-choice').count(), 3, `${name}: the teammate's own hand does not offer their Exhaust`)
-    await page.locator('.hand .card').nth(1).click()
+    assert.equal(await exhaustDialog.locator('.card').count(), 3)
+    await exhaustDialog.locator('.card').nth(1).click()
+    await exhaustDialog.getByRole('button', { name: 'Exhaust 1 card', exact: true }).click()
     await resolve.click()
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.phase === 'player')
     assert.deepEqual(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.players.map((player) =>

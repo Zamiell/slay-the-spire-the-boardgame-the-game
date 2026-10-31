@@ -9,6 +9,7 @@ import { useCardInteraction } from './combat-screen/useCardInteraction.ts'
 import { trackCombatResources } from './combat-screen/resource-visibility.ts'
 import { CardInteractionLayer } from './combat-screen/CardInteractionLayer.tsx'
 import { HandDiscardSelection } from './combat-screen/HandDiscardSelection.tsx'
+import { HandCardSelection } from './combat-screen/HandCardSelection.tsx'
 import { useButtonShortcut } from './useButtonShortcut.ts'
 // Input owns pickup; the play coordinator owns choices; the engine owns mutations.
 import rigMetadata from './rig-animation-metadata.json' with { type: 'json' }
@@ -1882,24 +1883,31 @@ function CombatScreenView({
   // (the potion is not spent) and the player reopens them afterwards.
   const owesChoice = Boolean(viewerPlayerChoice) ||
     (slayerChoice?.playerId === viewerId && state.phase !== 'lost')
-  const severSoulExhaustCards = pending?.card.defId === 'sever_soul' &&
-    (pending.choice?.kind === 'exhaust' || pending.choice?.kind === 'exhaustAny')
+  const survivorDiscard = pending?.card.defId === 'survivor' &&
+    pending.cardInHand && !pending.chamberPlay && pending.card.uid !== forcedCardUid &&
+    pending.choice?.kind === 'discard' && !pending.choiceCards && !pending.choiceConfirmed
+  const handSelectionAction = pending?.choice?.kind === 'exhaust' || pending?.choice?.kind === 'exhaustAny'
+    ? 'Exhaust'
+    : pending?.choice?.kind === 'discard' || pending?.choice?.kind === 'discardAny'
+      ? 'Discard' : pending?.choice?.kind === 'bottomdeck' ? 'Put on bottom' : undefined
+  const handSelectionCards = pending && !pending.choiceCards && handSelectionAction && !survivorDiscard
     ? viewer?.hand.filter((card) => !pending.cardInHand || card.uid !== pending.card.uid) ?? []
     : []
-  const severSoulExhaustMaximum = Math.min(pending?.choice?.amount ?? 0, severSoulExhaustCards.length)
-  const severSoulExhaustMinimum = Math.min(pending?.choice?.minimum ?? pending?.choice?.amount ?? 0,
-    severSoulExhaustCards.length)
-  const severSoulExhaustOpen = severSoulExhaustCards.length > 0 &&
-    (!pending?.choiceConfirmed || pending.picked.length < severSoulExhaustMinimum)
-  const severSoulCanCancel = Boolean(pending && (pending.cardInHand || pending.chamberPlay) &&
+  const handSelectionMaximum = Math.min(pending?.choice?.amount ?? 0, handSelectionCards.length)
+  const handSelectionMinimum = Math.min(pending?.choice?.kind === 'exhaustAny' ||
+    pending?.choice?.kind === 'discardAny' || pending?.choice?.kind === 'bottomdeck'
+    ? pending.choice.minimum ?? 0 : pending?.choice?.amount ?? 0, handSelectionCards.length)
+  const handSelectionOpen = handSelectionCards.length > 0 &&
+    (!pending?.choiceConfirmed || pending.picked.length < handSelectionMinimum)
+  const handSelectionCanCancel = Boolean(pending && (pending.cardInHand || pending.chamberPlay) &&
     pending.card.uid !== forcedCardUid)
   useEffect(() => {
     const dialog = choiceDialogRef.current
     if (!dialog) return
-    if ((pending?.choiceCards && !pending.choiceConfirmed || severSoulExhaustOpen) && !owesChoice) {
+    if (pending?.choiceCards && !pending.choiceConfirmed && !owesChoice) {
       if (!dialog.open) dialog.showModal()
     } else if (dialog.open) dialog.close()
-  }, [pending?.choiceCards, pending?.choiceConfirmed, severSoulExhaustOpen, owesChoice])
+  }, [pending?.choiceCards, pending?.choiceConfirmed, owesChoice])
 
   // A chosen Distilled Chaos card can still need a board target. Keeping the
   // reveal modal open makes the whole board inert and strands that card.
@@ -3973,9 +3981,6 @@ function CombatScreenView({
     setPending(null)
   }
 
-  const survivorDiscard = pending?.card.defId === 'survivor' &&
-    pending.cardInHand && !pending.chamberPlay && pending.card.uid !== forcedCardUid &&
-    pending.choice?.kind === 'discard' && !pending.choiceCards && !pending.choiceConfirmed
   const { withEvokeSlot, choose: stageOrCommit, requestChoicePreview, requestCopyChoicePreview,
     requestChamberChoicePreview, confirm: confirmCardPlay,
     cancel: cancelCardPlay } = createCardPlayCoordinator({
@@ -4993,7 +4998,7 @@ function CombatScreenView({
   ))
   const aimingAttack = activePickup?.mode === 'enemy' &&
     (activePickup.stage === 'dragging' || activePickup.stage === 'aiming')
-  const showEnemyTargetPrompt = !over && !usingCard && !survivorDiscard && !severSoulExhaustOpen &&
+  const showEnemyTargetPrompt = !over && !usingCard && !survivorDiscard && !handSelectionOpen &&
     !itemModalOpen && !owesChoice && !(pending?.choiceCards && !pending.choiceConfirmed) &&
     state.enemies.some(enemy => !enemy.dead && (aimingAttack || isEnemyTargeted(enemy, false)))
   const displayedPileCount = (kind: 'draw' | 'discard' | 'exhaust', count: number) =>
@@ -5600,24 +5605,6 @@ function CombatScreenView({
                 Discard {cardDef(card.defId).name}
               </button>
             )) : null}
-          {pendingPower?.attachedGemId === 'guardian_jasper' ? (
-            <span className="hermit-prompt__choice">
-              {viewer.hand.map((card) => {
-                const selected = powerExhaustUids.includes(card.uid)
-                return <label key={card.uid}>
-                  <input type="checkbox" checked={selected} disabled={!selected && powerExhaustUids.length >= 3}
-                    onChange={() => setPowerExhaustUids((current) => selected
-                      ? current.filter((uid) => uid !== card.uid)
-                      : [...current, card.uid].slice(0, 3))} />
-                  Exhaust {cardDef(card.defId).name}
-                </label>
-              })}
-              <button type="button" className="prompt__mode"
-                onClick={() => choosePowerContext({ exhaustUids: powerExhaustUids })}>
-                Confirm {powerExhaustUids.length}
-              </button>
-            </span>
-          ) : null}
           {pendingPower?.attachedGemId === 'guardian_amethyst' ? [false, true].map((shift) => (
             <button type="button" className="prompt__mode" key={String(shift)}
               onClick={() => choosePowerContext({ guardianModeShift: shift })}>
@@ -6248,44 +6235,38 @@ function CombatScreenView({
         />
       ) : null}
 
-      {severSoulExhaustOpen && pending ? (
-        <dialog ref={choiceDialogRef} className="choice-modal choice-modal--hand-exhaust"
-          aria-labelledby="hand-exhaust-title" aria-describedby="hand-exhaust-description"
-          onCancel={(event) => {
-            event.preventDefault()
-            if (!usingCard && severSoulCanCancel) cancelCardPlay()
-          }}>
-          <div className="choice-modal__panel">
-            <h2 id="hand-exhaust-title">{severSoulExhaustMaximum === 1
-              ? 'Choose a card in your hand to Exhaust'
-              : `Choose ${severSoulExhaustMinimum} or ${severSoulExhaustMaximum} cards in your hand to Exhaust`}</h2>
-            <p id="hand-exhaust-description" aria-live="polite">
-              {pendingDef?.name} — {pending.picked.length}/{severSoulExhaustMaximum} selected.
-              {' '}Only the selected cards will be Exhausted.
-            </p>
-            <div className="choice-modal__cards">
-              {severSoulExhaustCards.map((card) => <Card key={card.uid} card={card}
-                selected={pending.picked.includes(card.uid)} playable={!usingCard && mutationsEnabled}
-                drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked}
-                stanceChangedThisTurn={stanceChangedThisTurn}
-                onClick={() => setPending({ ...pending, choiceConfirmed: false,
-                  picked: pending.picked.includes(card.uid)
-                    ? pending.picked.filter((uid) => uid !== card.uid)
-                    : [...pending.picked, card.uid].slice(-severSoulExhaustMaximum),
-                })} />)}
-            </div>
-            <div className="hand-exhaust__actions">
-              <button type="button" disabled={usingCard || !mutationsEnabled ||
-                pending.picked.length < severSoulExhaustMinimum || pending.picked.length > severSoulExhaustMaximum}
-                onClick={() => stageOrCommit({ ...pending, choiceConfirmed: true })}>
-                Exhaust {pending.picked.length || 'selected'} card{pending.picked.length === 1 ? '' : 's'}
-              </button>
-              {severSoulCanCancel ? <button type="button" disabled={usingCard}
-                onClick={cancelCardPlay}>Cancel</button> : null}
-            </div>
-          </div>
-        </dialog>
-      ) : null}
+      {startTurnChoicesOpen && pendingStartExhaust?.exhaustCards && !activeStartTurnDiscard
+        ? <HandCardSelection key={pendingStartExhaust.id}
+          cards={pendingStartExhaust.exhaustCards} minimum={1} maximum={1}
+          source={pendingStartExhaust.label} disabled={!mutationsEnabled || sendingStartTurn ||
+            authoritativeConnected === false} active={!owesChoice}
+          drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked}
+          stanceChangedThisTurn={stanceChangedThisTurn}
+          onConfirm={uids => chooseStartTurnExhaust(uids[0]!)}
+        /> : null}
+      {pendingPower?.attachedGemId === 'guardian_jasper' && !powerGemContext && !gemFinderScryOpen
+        ? <HandCardSelection key={pendingPower.uid}
+          cards={viewer.hand} minimum={0} maximum={Math.min(3, viewer.hand.length)}
+          source={`${pendingPowerDef!.name} — Jasper`} initialSelected={powerExhaustUids}
+          disabled={usingPower || !mutationsEnabled || authoritativeConnected === false} active={!owesChoice}
+          drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked}
+          stanceChangedThisTurn={stanceChangedThisTurn}
+          onConfirm={exhaustUids => {
+            setPowerExhaustUids(exhaustUids)
+            choosePowerContext({ exhaustUids })
+          }}
+          onCancel={() => setPendingPowerUid(null)}
+        /> : null}
+      {handSelectionOpen && pending ? <HandCardSelection key={pending.card.uid}
+        cards={handSelectionCards} minimum={handSelectionMinimum} maximum={handSelectionMaximum}
+        action={handSelectionAction}
+        source={pendingDef!.name} initialSelected={pending.picked}
+        disabled={usingCard || !mutationsEnabled || authoritativeConnected === false} active={!owesChoice}
+        drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked}
+        stanceChangedThisTurn={stanceChangedThisTurn}
+        onConfirm={picked => stageOrCommit({ ...pending, picked, choiceConfirmed: true })}
+        onCancel={handSelectionCanCancel ? cancelCardPlay : undefined}
+      /> : null}
 
       {pending?.choiceCards && pending.choice && !pending.choiceConfirmed ? (
         <dialog ref={choiceDialogRef}
@@ -6293,8 +6274,8 @@ function CombatScreenView({
           aria-labelledby="choice-modal-title"
           onCancel={(event) => {
             event.preventDefault()
-            if ((pending.cardInHand || pending.chamberPlay) &&
-              (pending.choice?.kind === 'recover' || pending.choice?.kind === 'recoverExhaust')) setPending(null)
+            if (!usingCard && handSelectionCanCancel &&
+              (pending.choice?.kind === 'recover' || pending.choice?.kind === 'recoverExhaust')) cancelCardPlay()
           }}>
           <div className="choice-modal__panel">
             <h2 id="choice-modal-title">
@@ -6410,9 +6391,10 @@ function CombatScreenView({
                   ? pending.picked.length === 0 ? 'Load none' : `Load ${pending.picked.length} card${pending.picked.length === 1 ? '' : 's'}`
                 : choiceNeeded === 0 ? 'Continue' : `Discard selected card${choiceNeeded === 1 ? '' : 's'}`}
             </button>
-          {(pending.cardInHand || pending.chamberPlay) &&
+          {handSelectionCanCancel &&
             (pending.choice.kind === 'recover' || pending.choice.kind === 'recoverExhaust') ? (
-              <button type="button" className="prompt__cancel" onClick={() => setPending(null)}>Cancel</button>
+              <button type="button" className="prompt__cancel" disabled={usingCard}
+                onClick={cancelCardPlay}>Cancel</button>
             ) : null}
           </div>
         </dialog>

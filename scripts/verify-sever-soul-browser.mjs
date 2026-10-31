@@ -4,6 +4,7 @@ import { createServer } from 'vite'
 import { chromium } from './lib/profile-browser.mjs'
 import { postNeowRun } from './lib/post-neow-run.mjs'
 import { enterRoom } from '../src/game/run.ts'
+import { CARDS, faceOf } from '../src/game/cards.ts'
 import { pickUpCard, confirmCardPlay, dragCardTo } from './lib/card-interactions.mjs'
 
 const output = 'artifacts/sever-soul'
@@ -89,6 +90,158 @@ try {
         await touch.detach()
       }
     }
+
+    const exhaustFaces = Object.values(CARDS).flatMap(def => [false, true].flatMap(upgraded => {
+      const face = faceOf(def, upgraded)
+      const effect = face.effects.find(effect => effect.kind === 'exhaustFromHand' || effect.kind === 'exhaustAny')
+      return effect && (face.type !== 'power' || face.resolvesOnPlay)
+        ? [{ defId: def.id, upgraded, face, effect }] : []
+    }))
+    for (const { defId, upgraded, face, effect } of exhaustFaces) {
+      const source = card(defId, 'audit-source', upgraded)
+      const minimum = effect.kind === 'exhaustAny' ? effect.minimum ?? 0 : effect.amount
+      for (const count of minimum === 0 ? [0, Math.min(effect.amount, fuel.length)] : [minimum]) {
+        await setHand([source, ...fuel], [card('strike_ironclad', 'audit-draw')], 9)
+        const before = await read()
+        await play(face.name)
+        await dialog.waitFor()
+        assert.equal(await dialog.locator('.card').count(), fuel.length, `${face.name}: wrong Exhaust pool`)
+        assert.equal(await confirm().isDisabled(), minimum > 0, `${face.name}: incorrect minimum`)
+        assert.equal(await dialog.locator(`.card[data-card-name="${face.name}"]`).count(), 0)
+        for (let index = 0; index < count; index++) await activate(dialog.locator('.card').nth(index))
+        assert.deepEqual(await read(), before, `${face.name}: selection must not commit the play`)
+        if (defId === 'rampage') await page.screenshot({ path: `${output}/${screen}-rampage-upgrade.png` })
+        await activate(confirm())
+        await dialog.waitFor({ state: 'detached' })
+        await page.waitForFunction(() => window.__STS_DEBUG__.getState().players[0].cardsPlayedThisTurn === 1)
+        const exhausted = (await read()).players[0].exhaust.map(card => card.uid)
+        assert.deepEqual(exhausted.filter(uid => uid !== source.uid).sort(),
+          fuel.slice(0, count).map(card => card.uid).sort(), `${face.name}: wrong cards exhausted`)
+      }
+    }
+
+    for (const defId of ['all_out_attack', 'concentrate', 'storm_of_steel', 'slayer_forethought']) {
+      for (const upgraded of [false, true]) {
+        const face = faceOf(CARDS[defId], upgraded)
+        const effect = face.effects.find(effect =>
+          ['discard', 'discardAny', 'bottomdeck'].includes(effect.kind))
+        const bottom = effect.kind === 'bottomdeck'
+        const optional = effect.kind === 'discardAny' || effect.amount === 'any'
+        for (const count of optional ? [0, 2] : [1]) {
+          await setHand([card(defId, 'related-source', upgraded), ...fuel],
+            [card('strike_ironclad', 'related-draw')], 9)
+          const before = await read()
+          await play(face.name)
+          const choice = page.getByRole('dialog', { name: bottom ? /bottom of your draw pile/ : /in your hand to Discard/ })
+          await choice.waitFor()
+          for (let index = 0; index < count; index++) await activate(choice.locator('.card').nth(index))
+          assert.deepEqual(await read(), before, `${face.name}: choosing cards must not play them`)
+          await activate(choice.getByRole('button', { name: bottom ? /^Put / : /^Discard / }))
+          await choice.waitFor({ state: 'detached' })
+          await page.waitForFunction(() => window.__STS_DEBUG__.getState().players[0].cardsPlayedThisTurn === 1)
+          assert.deepEqual((await read()).players[0][bottom ? 'draw' : 'discard']
+            .filter(card => fuel.some(held => held.uid === card.uid)).map(card => card.uid),
+          fuel.slice(0, count).map(card => card.uid), `${face.name}: wrong selection resolved`)
+        }
+      }
+    }
+
+    // Effects that do not offer a choice must not acquire an artificial picker.
+    for (const defId of ['rampage', 'second_wind', 'fiend_fire', 'blasphemy', 'virus']) {
+      await setHand([card(defId, 'automatic'), ...fuel], [card('strike_ironclad', 'automatic-draw')], 9)
+      await play(CARDS[defId].name)
+      await page.waitForFunction(() => window.__STS_DEBUG__.getState().players[0].cardsPlayedThisTurn === 1)
+      assert.equal(await dialog.count(), 0, `${defId}: automatic effects must remain automatic`)
+    }
+
+    // Exhaust recovery already uses the pile picker, never the hand picker.
+    for (const defId of ['exhume', 'deep_breath', 'eerie_expedition']) {
+      const savedExhaust = base.combat.players[0].exhaust
+      base.combat.players[0].exhaust = [card('defend_ironclad', 'recover-me')]
+      await setHand([card(defId, 'recovery'), ...fuel], [], 9)
+      base.combat.players[0].exhaust = savedExhaust
+      await play(CARDS[defId].name)
+      const recovery = page.getByRole('dialog', { name: /from your Exhaust pile/ })
+      await recovery.waitFor()
+      assert.equal(await dialog.count(), 0)
+      assert.equal(await recovery.locator('.card').count(), 1)
+      await activate(recovery.locator('.card'))
+      await activate(recovery.getByRole('button', { name: /Return selected|Put selected/ }))
+      await recovery.waitFor({ state: 'detached' })
+      await page.waitForFunction(() => !window.__STS_DEBUG__.getState().players[0].exhaust.some(card => card.uid === 'recover-me'))
+
+      base.combat.players[0].exhaust = [
+        card('defend_ironclad', 'recover-me'), card('strike_ironclad', 'leave-exhausted'),
+      ]
+      await setHand([card('havoc', 'recovery-havoc'), ...fuel], [card(defId, 'forced-recovery')], 1)
+      base.combat.players[0].exhaust = savedExhaust
+      await play('Havoc')
+      await recovery.waitFor()
+      assert.equal(await recovery.getByRole('button', { name: 'Cancel', exact: true }).count(), 0)
+      await recovery.focus()
+      await page.keyboard.press('Escape')
+      assert(await recovery.isVisible(), `${defId}: forced Exhaust recovery cannot be abandoned`)
+      await activate(recovery.locator('.card').first())
+      await activate(recovery.getByRole('button', { name: /Return selected|Put selected/ }))
+      await recovery.waitFor({ state: 'detached' })
+      await page.waitForFunction(() => !window.__STS_DEBUG__.getState().startTurnProgress?.forcedCard)
+      assert(!(await read()).players[0].exhaust.some(card => card.uid === 'recover-me'))
+    }
+
+    // Socket effects must use the same picker even without printed Exhaust text.
+    const guardianMode = base.combat.players[0].guardianMode
+    base.combat.players[0].guardianMode = 'defense'
+    for (const [defId, maximum] of [['guardian_harden', 3], ['guardian_bauble_burst', 6]]) {
+      const source = { ...card(defId, 'jasper-source'), attachedGemId: 'guardian_jasper' }
+      const spares = Array.from({ length: 7 }, (_, index) => card('defend_ironclad', `jasper-${index}`))
+      await setHand([source, ...spares], [], 9)
+      await play(CARDS[defId].name)
+      await dialog.waitFor()
+      assert(await dialog.getByRole('button', { name: 'Exhaust none', exact: true }).isEnabled())
+      for (let index = 0; index <= maximum; index++) await activate(dialog.locator('.card').nth(index))
+      assert.equal(await dialog.locator('.card--selected').count(), maximum)
+      await activate(confirm())
+      await dialog.waitFor({ state: 'detached' })
+      await page.waitForFunction(() => window.__STS_DEBUG__.getState().players[0].cardsPlayedThisTurn === 1)
+      assert.deepEqual((await read()).players[0].exhaust.map(card => card.uid),
+        spares.slice(1, maximum + 1).map(card => card.uid))
+    }
+    const powers = base.combat.players[0].powers
+    for (const defId of ['guardian_floating_orbs', 'guardian_gem_finder']) {
+      base.combat.players[0].powers = [{
+        ...card(defId, 'jasper-power'), attachedGemId: 'guardian_jasper',
+      }]
+      await setHand(fuel, [card('defend_ironclad', 'scry-spare')], 9)
+      await page.getByRole('button', { name: `Use ${CARDS[defId].name} with Jasper`, exact: true }).click()
+      if (defId === 'guardian_gem_finder') {
+        await page.getByRole('dialog', { name: /Gem Finder/ }).getByRole('button', { name: /Keep all/ }).click()
+      }
+      await dialog.waitFor()
+      await activate(dialog.locator('.card[data-card-name="Defend"]'))
+      await activate(confirm())
+      await dialog.waitFor({ state: 'detached' })
+      await page.waitForFunction(() => window.__STS_DEBUG__.getState().players[0].exhaust.some(card => card.uid === 'defend'))
+    }
+    base.combat.players[0].powers = powers
+    base.combat.players[0].guardianMode = guardianMode
+
+    await setHand([card('double_tap', 'double'), card('rampage', 'copied-rampage', true), ...fuel], [], 9)
+    await play('Double Tap')
+    await page.waitForFunction(() => window.__STS_DEBUG__.getState().players[0].cardsPlayedThisTurn === 1)
+    await play('Rampage+')
+    await dialog.waitFor()
+    await activate(dialog.locator('.card[data-card-name="Defend"]'))
+    await activate(confirm())
+    await page.waitForFunction(() => window.__STS_DEBUG__.getState().pendingCardCopy?.card.defId === 'rampage')
+    await dialog.waitFor()
+    assert.equal(await dialog.getByRole('button', { name: 'Cancel', exact: true }).count(), 0)
+    await activate(dialog.locator('.card[data-card-name="Daze"]'))
+    await activate(confirm())
+    await dialog.waitFor({ state: 'detached' })
+    await activate(page.locator('[data-enemy-id="target"] .enemy__hit-area'))
+    await page.waitForFunction(() => !window.__STS_DEBUG__.getState().pendingCardCopy)
+    assert.deepEqual((await read()).players[0].exhaust.map(card => card.uid), ['defend', 'daze'])
+    assert.equal((await read()).enemies[0].hp, 27, 'the copied Rampage must count its own new Exhaust')
 
     const originalEnemy = base.combat.enemies[0]
     base.combat.enemies[0] = { ...originalEnemy, defId: 'book_of_stabbing', hp: 35, maxHp: 35 }
@@ -239,7 +392,7 @@ try {
     assert.equal((await read()).enemies[0].hp, 27)
     assert.deepEqual(errors, [])
     await page.close()
-    console.log(`PASS ${screen}: Sever Soul picker, cancellation, upgrade range, live hand and empty hand`)
+    console.log(`PASS ${screen}: ${exhaustFaces.length} Exhaust faces, recovery, automatic effects, forced plays and live hand`)
   }
 } finally {
   await browser.close()

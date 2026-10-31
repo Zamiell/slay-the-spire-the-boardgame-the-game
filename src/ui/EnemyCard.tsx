@@ -939,6 +939,7 @@ export function EnemyCard({
     }
   }, [art, bossArtId, bossAttackPlaying, bossProjectileArt, enemy.uid, heavy?.kind, onThrowPrepared, projectileImpact, rangedTargetKey])
   const abilities = enemyAbilities(def)
+  const flying = abilities.some(ability => ability.kind === 'flying')
   const mods = attackerModsOfEnemy(visibleEnemy)
   const intent = actions.flatMap((action) => intentParts(action, (printed) => swingDamage(
     printed + (defender ? enemyAttackBonus(enemies, visibleEnemy, action, defender) : 0),
@@ -1266,7 +1267,14 @@ export function EnemyCard({
         vulnerable={visibleEnemy.vulnerable}
         weak={visibleEnemy.weak}
         poison={visibleEnemy.poison}
-      />
+      >
+        {flying ? <span className="enemy__flying">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 19C3 10 10 4 21 3L18 10H14L16 13H11L12 16H7L3 21M3 19L15 9" />
+          </svg>
+          <span>Flying</span>
+        </span> : null}
+      </TokenRow>
       )}
     </button>
     )}</CardKeywordHelp>

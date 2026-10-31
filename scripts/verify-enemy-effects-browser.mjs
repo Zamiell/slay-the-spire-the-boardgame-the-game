@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { createServer } from 'vite'
 import { chromium } from './lib/profile-browser.mjs'
 import { assert, check, report, suite } from './lib/harness.mjs'
+import { ENEMIES, enemyAbilities } from '../src/game/enemies.ts'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const output = resolve(root, 'artifacts/enemy-effects-browser')
@@ -62,12 +63,19 @@ try {
     debug.setRun(run)
   })
   await page.locator('[data-enemy-id="spiker"]').waitFor()
+  const fixture = await page.evaluate(() => window.__STS_DEBUG__.getRun())
+  const flyingIds = Object.values(ENEMIES).filter(def => enemyAbilities(def).some(ability => ability.kind === 'flying'))
+    .map(def => def.id)
+  assert(flyingIds.length > 0, 'the Flying fixture must exercise real enemy abilities')
 
   for (const viewport of [
     { name: 'desktop', width: 1440, height: 900 },
     { name: 'horizontal-phone', width: 844, height: 390 },
   ]) {
     await page.setViewportSize(viewport)
+    await page.evaluate(run => window.__STS_DEBUG__.setRun(run), fixture)
+    await page.locator('[data-enemy-id="spiker"]').waitFor()
+    assert(await page.locator('.enemy__flying').count() === 0, 'grounded enemies must not show Flying')
     const time = await readHelp('time_eater')
     await page.screenshot({ path: join(output, `${viewport.name}-time-warp.png`) })
     const heart = await readHelp('corrupt_heart')
@@ -84,6 +92,62 @@ try {
         result.bounds.x + result.bounds.width <= viewport.width &&
         result.bounds.y + result.bounds.height <= viewport.height,
       `effect help is clipped at ${viewport.name}: ${JSON.stringify(result.bounds)}`)
+    })
+    for (const [index, id] of flyingIds.entries()) {
+      await page.mouse.move(0, 0)
+      const combatId = `flying-${viewport.name}-${id}`
+      await page.evaluate(({ fixture, id, combatId }) => {
+        const run = structuredClone(fixture)
+        const template = run.combat.enemies[0]
+        Object.assign(run.combat, { combatId, phase: 'player', startTurnProgress: undefined,
+          pendingTriggers: [], presentationEvents: [] })
+        Object.assign(run.combat.players[0], { relics: [], powers: [], energy: 3,
+          hand: [{ uid: 'flying-test', defId: 'bludgeon', upgraded: false }] })
+        run.combat.enemies = [
+          { ...template, uid: 'byrd', defId: id, isBoss: false, hp: 10, maxHp: 10,
+            block: 0, strength: 0, vulnerable: 0, weak: 0, poison: 0, dead: false, row: 0 },
+          { ...template, uid: 'grounded', defId: 'jaw_worm', isBoss: false, hp: 10, maxHp: 10, dead: false, row: 0 },
+        ]
+        window.__STS_DEBUG__.setRun(run)
+      }, { fixture, id, combatId })
+      await page.waitForFunction(id => window.__STS_DEBUG__.getState()?.combatId === id, combatId)
+      const badge = page.locator(`[data-enemy-def="${id}"] .enemy__flying`)
+      await badge.waitFor()
+      assert(await badge.innerText() === 'Flying', `${id}: Flying must be visible without inspecting the enemy`)
+      assert(await page.locator('[data-enemy-id="grounded"] .enemy__flying').count() === 0)
+      assert(await badge.evaluate(element => {
+        const badge = element.getBoundingClientRect()
+        const enemy = element.closest('.enemy').getBoundingClientRect()
+        const hp = element.closest('.enemy').querySelector('.bar').getBoundingClientRect()
+        return badge.width > 0 && badge.height > 0 && badge.left >= enemy.left - 1 &&
+          badge.right <= enemy.right + 1 && badge.top >= hp.bottom - 1 && badge.bottom <= innerHeight
+      }), `${viewport.name}/${id}: Flying must fit beside status tokens without covering HP`)
+      if (index === 0) await page.screenshot({ path: join(output, `${viewport.name}-flying.png`) })
+      const before = await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getState()))
+      await badge.hover()
+      const help = page.locator('.card-keyword-tips[data-open]')
+      await help.waitFor()
+      assert((await help.innerText()).includes('takes at most 1 damage from each Hit'))
+      assert(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getState())) === before,
+        'reading Flying must not mutate combat')
+      if (index === 0) await page.screenshot({ path: join(output, `${viewport.name}-flying-help.png`) })
+    }
+    await page.locator('.hand .card[data-card-name="Bludgeon"]').focus()
+    await page.keyboard.press('Enter')
+    await page.locator('[data-enemy-id="byrd"] .enemy__flying').click()
+    await page.waitForFunction(() => window.__STS_DEBUG__.getState().enemies[0].hp === 9)
+    assert(await page.evaluate(() => window.__STS_DEBUG__.getState().enemies[1].hp) === 10,
+      'clicking the Flying badge must still target its own enemy')
+    await page.evaluate(() => {
+      const run = structuredClone(window.__STS_DEBUG__.getRun())
+      Object.assign(run.combat.enemies[0], { hp: 0, dead: true })
+      window.__STS_DEBUG__.setRun(run)
+    })
+    await page.locator('.enemy__flying').waitFor({ state: 'detached' })
+    const defeated = await page.evaluate(() => window.__STS_DEBUG__.getState().enemies[0].dead)
+    const remainingBadges = await page.locator('.enemy__flying').count()
+    check(`${viewport.name} shows Flying for every base and Downfall variant and clears it on defeat`, () => {
+      assert(defeated && remainingBadges === 0, 'defeated enemies must not retain an active Flying badge')
     })
   }
   assert(pageErrors.length === 0, `browser errors: ${pageErrors.join('\n')}`)

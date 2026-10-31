@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { lightningTargetsRows, orbEndTurnAmount } from '../game/combat.ts'
 import type { OrbType, Player } from '../game/types.ts'
 import { StatusIcon } from './Icon.tsx'
@@ -41,9 +41,9 @@ export function RedCubeIcon({ size = 18 }: { size?: number }) {
 }
 
 /** Shows public combat tokens beside HP. */
-export function TokenRow({ showHelp = false, ...props }: TokenRowProps & { showHelp?: boolean }) {
+export function TokenRow({ showHelp = false, children, ...props }: TokenRowProps & { showHelp?: boolean; children?: ReactNode }) {
   const present = TOKENS.filter(({ key }) => (props[key] ?? 0) > 0)
-  if (present.length === 0) return null
+  if (present.length === 0 && !children) return null
 
   return (
     <span className="tokens" aria-hidden={showHelp ? undefined : true}>
@@ -63,6 +63,7 @@ export function TokenRow({ showHelp = false, ...props }: TokenRowProps & { showH
           </span>
         )
       })}
+      {children}
     </span>
   )
 }

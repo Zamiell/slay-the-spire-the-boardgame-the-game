@@ -309,7 +309,8 @@
 
 /* Actual play prices must remain visible over full-card scans. */
 .card__window-cost,
-.card__live-cost {
+.card__live-cost,
+.card__live-block {
   position: absolute;
   z-index: 3;
   top: 1%;
@@ -329,7 +330,8 @@
   pointer-events: none;
 }
 
-.card__live-cost {
+.card__live-cost,
+.card__live-block {
   top: 5%;
   left: 4%;
   min-width: 24%;
@@ -349,11 +351,17 @@
 .card__live-cost[data-trend='up'] { color: #ff9a92; }
 .card__live-cost[data-trend='down'] { color: #91ffa0; }
 .card__live-cost[data-trend='changed'] { color: #ffe294; }
-.card__live-cost strong {
+.card__live-block { left: auto; right: 4%; }
+.card__live-block[data-trend='up'] { color: #91ffa0; }
+.card__live-block[data-trend='down'] { color: #ff9a92; }
+.card__live-block strong { display: flex; align-items: center; gap: 0.15rem; }
+.card__live-cost strong,
+.card__live-block strong {
   font-size: clamp(1.4rem, calc(var(--hand-card-width, var(--card-width)) * 0.12), 2.25rem);
   line-height: 1;
 }
-.card__live-cost small {
+.card__live-cost small,
+.card__live-block small {
   color: #eef2f5;
   font-size: 0.75rem;
   font-weight: 600;

@@ -31,6 +31,7 @@ const focusedEngineOwners = ownerMap([
   ...['src/game/relics.ts', 'src/game/run/rooms.ts', 'src/game/run/encounters.ts']
     .map(file => [file, ['verify-relic-refresh-browser.mjs']]),
   ['src/game/combat/enemy-turn.ts', ['verify-incoming-damage-browser.mjs']],
+  ['src/game/combat/preview.ts', ['verify-card-block-preview-browser.mjs']],
   ['src/game/types.ts', ['verify-skins.mjs']],
   // The registry: registering a skin extends every verifier below (they iterate SKINS), so a registry change reruns them all.
   ['src/game/skins.ts', ['verify-skins.mjs', 'verify-skin-browser.mjs', 'verify-test-skins-browser.mjs', 'verify-assets.mjs',
@@ -64,6 +65,7 @@ const focusedUiOwners = ownerMap([
     .map(file => [file, ['verify-button-borders-browser.mjs']]),
   ['src/ui/useButtonShortcut.ts', ['verify-keyboard-browser.mjs', 'verify-card-picker-browser.mjs']],
   ['src/ui/CardPicker.tsx', ['verify-card-picker-browser.mjs']],
+  ['src/ui/styles/hand.css', ['verify-card-block-preview-browser.mjs']],
   ['src/ui/styles/combat.css', ['verify-sever-soul-browser.mjs', 'verify-row-target-browser.mjs',
     'verify-soulburn-time-warp-browser.mjs']],
   ['src/ui/styles/hand-layout.css', ['verify-card-interaction-browser.mjs', 'verify-start-turn-order-browser.mjs']],
@@ -92,7 +94,7 @@ const focusedUiOwners = ownerMap([
   ['src/ui/CompendiumScreen.tsx', ['verify-compendium-browser.mjs', 'verify-skin-browser.mjs', 'verify-skin-cards-browser.mjs']],
   ['src/ui/StatsScreen.tsx', ['verify-stats-browser.mjs', 'verify-skin-cards-browser.mjs']],
   ['src/ui/skin-context.tsx', ['verify-skin-cards-browser.mjs', 'verify-card-rendering-browser.mjs']],
-  ['src/ui/Card.tsx', ['verify-card-rendering-browser.mjs', 'verify-skin-cards-browser.mjs', 'verify-card-damage-preview-browser.mjs',
+  ['src/ui/Card.tsx', ['verify-card-block-preview-browser.mjs', 'verify-card-rendering-browser.mjs', 'verify-skin-cards-browser.mjs', 'verify-card-damage-preview-browser.mjs',
     'verify-flurry-stance-browser.mjs',
     'verify-enemy-card-cube-browser.mjs', 'verify-claw-cubes-browser.mjs']],
   ['src/ui/CardFace.tsx', ['verify-card-rendering-browser.mjs', 'verify-skin-cards-browser.mjs']],
@@ -100,6 +102,7 @@ const focusedUiOwners = ownerMap([
   ['src/ui/styles/shop.css', ['verify-shop-browser.mjs']],
   ['src/ui/LeaderboardScreen.tsx', ['verify-leaderboard-browser.mjs']],
   ['src/ui/CombatScreen.tsx', [
+    'verify-card-block-preview-browser.mjs',
     'verify-single-enemy-targets-browser.mjs',
     'verify-soulburn-time-warp-browser.mjs',
     'verify-manual-end-turn-browser.mjs',
@@ -206,6 +209,7 @@ const focusedOnlyUiOwners = ownerMap([
     'verify-run-replay-browser.mjs',
   ]],
   ['src/ui/combat-screen/CardInteractionLayer.tsx', [
+    'verify-card-block-preview-browser.mjs',
     'verify-flurry-stance-browser.mjs',
     'verify-card-damage-preview-browser.mjs',
     'verify-card-interaction-browser.mjs', 'verify-hand-layout-browser.mjs', 'verify-combat-hand-viewport-browser.mjs',

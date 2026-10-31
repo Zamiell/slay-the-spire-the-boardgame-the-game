@@ -1,12 +1,13 @@
 import { useId, useLayoutEffect, useRef, useState } from 'react'
 import type { CardInstance } from '../../game/types.ts'
+import type { CardBlockPreview } from '../../game/combat.ts'
 import { Card } from '../Card.tsx'
 import { useReducedEffects } from './hooks.ts'
 import { useHandLayout } from './useHandLayout.ts'
 import '../styles/hand-discard-selection.css'
 
 export function HandSelectionScreen({
-  cards, selectedUids, minimum, maximum, source, sourceCard, action, disabled, active = true,
+  cards, selectedUids, minimum, maximum, source, sourceCard, blockPreviews, action, disabled, active = true,
   drawLocked, sharedDrawLocked, stanceChangedThisTurn, onSelect, onConfirm, onCancel,
 }: {
   cards: readonly CardInstance[]
@@ -15,6 +16,7 @@ export function HandSelectionScreen({
   maximum: number
   source: string
   sourceCard?: CardInstance
+  blockPreviews?: ReadonlyMap<string, CardBlockPreview>
   action: 'Discard' | 'Exhaust'
   disabled: boolean
   active?: boolean
@@ -84,10 +86,11 @@ export function HandSelectionScreen({
       <p id={descriptionId} className="visually-hidden">{source} · Choose cards from your hand, then confirm.</p>
     </header>
     {!selected.length && sourceCard ? <div className="hand-discard__source" aria-hidden="true">
-      <Card card={sourceCard} playable={false} immediateArt fullArt tabIndex={-1} />
+      <Card card={sourceCard} liveBlock={blockPreviews?.get(sourceCard.uid)} playable={false} immediateArt fullArt tabIndex={-1} />
     </div> : null}
     <div ref={selection} className="hand-discard__selection" role="group" aria-label={`Selected ${verb}`}>
       {selected.map(card => <Card key={card.uid} card={card} selected playable={!disabled} immediateArt fullArt hoverHelp
+        liveBlock={blockPreviews?.get(card.uid)}
         drawLocked={drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
         accessibleNote={`selected for ${verb}; activate to put back`} onClick={() => onSelect(card)} />)}
     </div>
@@ -95,6 +98,7 @@ export function HandSelectionScreen({
     <div ref={hand} className="hand hand-discard__hand" role="group" aria-label={`Cards available to ${verb}`}>
       {available.map((card, index) =>
         <Card key={card.uid} card={card} playable={!disabled} immediateArt fullArt hoverHelp inspectOnTouch
+          liveBlock={blockPreviews?.get(card.uid)}
           shortcutKey={index < 9 ? String(index + 1) : undefined}
           drawLocked={drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
           accessibleNote={`choose for ${verb}`} onClick={() => onSelect(card)} />)}

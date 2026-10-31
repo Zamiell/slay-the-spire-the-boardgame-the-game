@@ -860,6 +860,20 @@ export function cardIconBonus(actor: Player, context: PlayContext, source?: stri
   return actor.powers.reduce((sum, power) => sum + (persistentEffectOf(power, 'cardIconBonus')?.amount ?? 0), 0)
 }
 
+export function cardBlockAmount(
+  state: CombatState, actor: Player, amount: Extract<Effect, { kind: 'block' }>['amount'],
+  context: PlayContext, source?: string,
+): number {
+  const printedCard = context.sourceCardType === 'attack' || context.sourceCardType === 'skill'
+  const bonusIcon = typeof amount !== 'number' && amount.bonus &&
+    conditionIsActive(amount.bonus.when, state, actor, context)
+  const icons = 1 + Number(Boolean(bonusIcon))
+  return amountOf(amount, state, actor, undefined, context) +
+    (printedCard ? icons * (actor.cardBlockBonus + cardIconBonus(actor, context, source)) : 0) +
+    (actor.guardianMode === 'defense' && printedCard ? icons * actor.vigorSpentThisTurn : 0) +
+    (context.sourceCardId && isStarterStrikeOrDefend(context.sourceCardId, 'Defend') ? (actor.starterDefendBlockBonus ?? 0) : 0)
+}
+
 /** A Metamorphosis leaves play as the physical Metamorphosis card, never as the Power it copied. */
 function metamorphosisCard(card: CardInstance): CardInstance {
   if (!card.metamorphosis) return card
@@ -1754,17 +1768,7 @@ export function applyEffect(
     case 'block': {
       // Deflect and Steam Barrier both read the CASTER's board, not the ally
       // they may be handing the Block to, so this is worked out once.
-      const printedCard = context.sourceCardType === 'attack' || context.sourceCardType === 'skill'
-      const base = amountOf(effect.amount, state, actor, undefined, context)
-      const bonusIcon = typeof effect.amount !== 'number'
-        && effect.amount.bonus
-        && conditionIsActive(effect.amount.bonus.when, state, actor, context)
-      const icons = 1 + Number(Boolean(bonusIcon))
-      const amount = base + (printedCard ? icons * (actor.cardBlockBonus + cardIconBonus(actor, context, source)) : 0) +
-        (actor.guardianMode === 'defense' &&
-          (context.sourceCardType === 'attack' || context.sourceCardType === 'skill')
-          ? icons * actor.vigorSpentThisTurn : 0) +
-        (context.sourceCardId && isStarterStrikeOrDefend(context.sourceCardId, 'Defend') ? (actor.starterDefendBlockBonus ?? 0) : 0)
+      const amount = cardBlockAmount(state, actor, effect.amount, context, source)
       for (const target of supportTargets(state, effect, supportScope, context, actor)) {
         const before = target.block
         grantBlock(state, target, amount, context.sourceCardId ? context.pendingTriggers : undefined)

@@ -42,6 +42,7 @@ type CardProps = {
   fan?: number
   /** Damage the card would deal now, against the same play with no Strength, Weak or Vulnerable. */
   liveDamage?: { damage: number, baseline: number }
+  liveBlock?: { block: number, baseline: number }
   drawLocked?: boolean
   sharedDrawLocked?: boolean
   stanceChangedThisTurn?: boolean
@@ -793,6 +794,7 @@ export function Card({
   gemPowerDamage,
   fan = 0,
   liveDamage,
+  liveBlock,
   drawLocked = false,
   sharedDrawLocked = drawLocked,
   stanceChangedThisTurn,
@@ -907,7 +909,8 @@ export function Card({
         }
         onClick?.(card)
       }}
-      aria-label={`${cardAccessibleName(def, effectiveCost)}${costChanged ? `, printed cost ${def.cost}` : ''}${attachedGem
+      aria-label={`${cardAccessibleName(def, effectiveCost)}${costChanged ? `, printed cost ${def.cost}` : ''}${
+        liveBlock && liveBlock.block !== liveBlock.baseline ? `, ${liveBlock.block} Block now, normally ${liveBlock.baseline}` : ''}${attachedGem
         ? `, socketed with ${attachedGem.name}: ${cardRuleDescription(attachedGem)}` : ''}${
         accessibleNote ? `, ${accessibleNote}` : ''}`}
       aria-pressed={selected || picked}
@@ -947,6 +950,12 @@ export function Card({
         <span className="card__live-damage" aria-hidden="true"
           data-trend={liveDamage.damage > liveDamage.baseline ? 'up' : liveDamage.damage < liveDamage.baseline ? 'down' : undefined}>
           <Icon name="attack" size={14} />{liveDamage.damage}
+        </span>
+      ) : null}
+      {liveBlock && liveBlock.block !== liveBlock.baseline ? (
+        <span className="card__live-block" aria-hidden="true"
+          data-trend={liveBlock.block > liveBlock.baseline ? 'up' : 'down'}>
+          <strong><Icon name="block" size={18} />{liveBlock.block}</strong><small>was {liveBlock.baseline}</small>
         </span>
       ) : null}
       {costChanged ? (

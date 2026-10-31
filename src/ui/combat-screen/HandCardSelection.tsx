@@ -1,10 +1,11 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import type { CardInstance } from '../../game/types.ts'
+import type { CardBlockPreview } from '../../game/combat.ts'
 import { Card } from '../Card.tsx'
 import { HandSelectionScreen } from './HandSelectionScreen.tsx'
 
 export function HandCardSelection({
-  cards, minimum, maximum, source, sourceCard, initialSelected = [], disabled, active = true,
+  cards, minimum, maximum, source, sourceCard, blockPreviews, initialSelected = [], disabled, active = true,
   action = 'Exhaust', drawLocked, sharedDrawLocked, stanceChangedThisTurn, onConfirm, onCancel,
 }: {
   cards: readonly CardInstance[]
@@ -12,6 +13,7 @@ export function HandCardSelection({
   maximum: number
   source: string
   sourceCard?: CardInstance
+  blockPreviews?: ReadonlyMap<string, CardBlockPreview>
   initialSelected?: readonly string[]
   disabled: boolean
   active?: boolean
@@ -36,6 +38,7 @@ export function HandCardSelection({
   }, [active])
   if (action === 'Exhaust') return <HandSelectionScreen
     cards={cards} selectedUids={selected} minimum={minimum} maximum={maximum} source={source} sourceCard={sourceCard} action={action}
+    blockPreviews={blockPreviews}
     disabled={disabled} active={active} drawLocked={drawLocked} sharedDrawLocked={sharedDrawLocked}
     stanceChangedThisTurn={stanceChangedThisTurn} onSelect={toggle}
     onConfirm={() => onConfirm(selected)} onCancel={onCancel} />
@@ -58,6 +61,7 @@ export function HandCardSelection({
       </p>
       <div className="choice-modal__cards">
         {cards.map(card => <Card key={card.uid} card={card}
+          liveBlock={blockPreviews?.get(card.uid)}
           selected={selected.includes(card.uid)} playable={!disabled}
           drawLocked={drawLocked} sharedDrawLocked={sharedDrawLocked}
           stanceChangedThisTurn={stanceChangedThisTurn}

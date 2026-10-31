@@ -1,4 +1,4 @@
-import { createCombat, playCard, previewCardDamage } from '../src/game/combat.ts'
+import { createCombat, playCard, previewCardBlock, previewCardDamage } from '../src/game/combat.ts'
 import { createRng } from '../src/game/rng.ts'
 import { suite, check, assert, assertDeepEqual, assertEqual, report } from './lib/harness.mjs'
 
@@ -31,6 +31,47 @@ function fight(defId, player = {}, enemy = {}, upgraded = false) {
 const preview = (setup, enemyUid = 'e1') => previewCardDamage(setup.state, 'p1', setup.card.uid, enemyUid)
 
 suite('card damage preview')
+
+check('Block previews share card icon bonuses with actual play without mutating combat', () => {
+  for (const [defId, upgraded, bonus] of [
+    ['defend_silent', false, 1], ['defend_silent', true, 2],
+    ['survivor', false, 1], ['deflect', false, 1], ['halt', false, 1],
+  ]) {
+    const setup = fight(defId, { cardBlockBonus: bonus, shivs: 1, stance: 'wrath' }, {}, upgraded)
+    setup.state.players[0].cardBlockBonus = bonus
+    const before = structuredClone(setup.state)
+    const shown = previewCardBlock(setup.state, 'p1', setup.card.uid)
+    const played = playCard(setup.state, 'p1', setup.card.uid, { enemyUid: 'e1', playerId: 'p1' })
+    assert(played !== setup.state, defId)
+    assertEqual(shown.block, played.players[0].block, defId)
+    assert(shown.block > shown.baseline)
+    assertDeepEqual(setup.state, before)
+  }
+  const deflect = fight('deflect', { shivs: 1, cardBlockBonus: 1 })
+  deflect.state.players[0].cardBlockBonus = 1
+  assertDeepEqual(previewCardBlock(deflect.state, 'p1', deflect.card.uid), { block: 4, baseline: 2 },
+    'each active printed Block icon receives the bonus')
+})
+
+check('Block previews include starter bonuses and Fasting but not Shiv bonuses', () => {
+  const setup = fight('defend_silent', { starterDefendBlockBonus: 1, shivDamageBonus: 3,
+    powers: [instance('slayer_fasting')] })
+  Object.assign(setup.state.players[0], { starterDefendBlockBonus: 1, shivDamageBonus: 3 })
+  const shown = previewCardBlock(setup.state, 'p1', setup.card.uid)
+  assertDeepEqual(shown, { block: 3, baseline: 1 })
+  const plain = fight('defend_silent', { shivDamageBonus: 3 })
+  plain.state.players[0].shivDamageBonus = 3
+  assertDeepEqual(previewCardBlock(plain.state, 'p1', plain.card.uid), { block: 1, baseline: 1 })
+})
+
+check('Block previews do not guess hidden draws, private bonuses, or an undecided X cost', () => {
+  for (const defId of ['escape_plan', 'reinforced_body', 'blur']) {
+    const setup = fight(defId, { cardBlockBonus: 1 })
+    assertEqual(previewCardBlock(setup.state, 'p1', setup.card.uid, true), null, defId)
+  }
+  const setup = fight('metallicize', { cardBlockBonus: 2 })
+  assertEqual(previewCardBlock(setup.state, 'p1', setup.card.uid), null, 'a Power trigger is not a printed card Block icon')
+})
 
 check('a plain Strike previews its printed damage', () => {
   assertDeepEqual(preview(fight('strike_ironclad')), { damage: 1, baseline: 1 })

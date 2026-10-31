@@ -133,6 +133,7 @@ import {
   powerActivationAllowed,
   previewCardShivTargets,
   previewCardDamage,
+  previewCardBlock,
   previewIncomingDamage,
   previewPowerChoice,
   reachesEnemy,
@@ -175,6 +176,7 @@ import {
 } from '../game/combat.ts'
 import type {
   CardDamagePreview,
+  CardBlockPreview,
   CombatPresentationEvent,
   CombatState,
   DiscardOrders,
@@ -743,6 +745,15 @@ function CombatScreenView({
     }
     return previews
   }, [cardHints, state, viewer, previewEnemyUid, onAction])
+  const cardBlock = useMemo(() => {
+    const previews = new Map<string, CardBlockPreview>()
+    if (!viewer || viewer.dead) return previews
+    for (const card of viewer.hand) {
+      const preview = previewCardBlock(state, viewer.id, card.uid, Boolean(onAction))
+      if (preview) previews.set(card.uid, preview)
+    }
+    return previews
+  }, [state, viewer, onAction])
   const canUsePotionNow = (potionId: string) => Boolean(viewer &&
     canActivatePotion(state, viewer, potionId) && !(partyStartTurnPostRollLocked &&
       isPostRollStartTurnPotionChoice(state, viewer, potionId)))
@@ -5605,7 +5616,7 @@ function CombatScreenView({
       ) : null}
 
       {survivorDiscard && pending ? <HandSelectionScreen action="Discard" source="Survivor"
-        sourceCard={pending.card}
+        sourceCard={pending.card} blockPreviews={cardBlock}
         cards={viewer.hand.filter((card) => !pending.cardInHand || card.uid !== pending.card.uid)}
         selectedUids={pending.picked} minimum={Math.min(1, choicePoolSize)} maximum={Math.min(1, choicePoolSize)}
         disabled={usingCard || !mutationsEnabled || authoritativeConnected === false}
@@ -6309,6 +6320,7 @@ function CombatScreenView({
 
       {startTurnChoicesOpen && pendingStartExhaust?.exhaustCards && !activeStartTurnDiscard
         ? <HandCardSelection key={pendingStartExhaust.id}
+          blockPreviews={cardBlock}
           cards={pendingStartExhaust.exhaustCards} minimum={1} maximum={1}
           source={pendingStartExhaust.label} disabled={!mutationsEnabled || sendingStartTurn ||
             authoritativeConnected === false} active={!owesChoice}
@@ -6318,6 +6330,7 @@ function CombatScreenView({
         /> : null}
       {pendingPower?.attachedGemId === 'guardian_jasper' && !powerGemContext && !gemFinderScryOpen
         ? <HandCardSelection key={pendingPower.uid}
+          blockPreviews={cardBlock}
           cards={viewer.hand} minimum={0} maximum={Math.min(3, viewer.hand.length)}
           source={`${pendingPowerDef!.name} — Jasper`} sourceCard={pendingPower} initialSelected={powerExhaustUids}
           disabled={usingPower || !mutationsEnabled || authoritativeConnected === false} active={!owesChoice}
@@ -6330,6 +6343,7 @@ function CombatScreenView({
           onCancel={() => setPendingPowerUid(null)}
         /> : null}
       {handSelectionOpen && pending ? <HandCardSelection key={pending.card.uid}
+         blockPreviews={cardBlock}
         cards={handSelectionCards} minimum={handSelectionMinimum} maximum={handSelectionMaximum}
         action={handSelectionAction}
         source={pendingDef!.name} sourceCard={pending.card} initialSelected={pending.picked}
@@ -7530,6 +7544,7 @@ function CombatScreenView({
               hoverHelp={enemyInspectionEnabled}
               shortcutKey={!cardTarget && !cardInteraction.session && index < 10 ? String((index + 1) % 10) : undefined}
               liveDamage={chamberCard ? undefined : cardDamage.get(card.uid)}
+              liveBlock={chamberCard ? undefined : cardBlock.get(card.uid)}
               drawLocked={viewer.drawLocked}
               sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
               card={chamberCard ? displayedCard : shownCard}
@@ -7600,6 +7615,7 @@ function CombatScreenView({
         </div>
       ))}
       <CardInteractionLayer interaction={cardInteraction} drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
+        block={cardInteraction.session ? cardBlock.get(cardInteraction.session.card.uid) : undefined}
         damage={cardInteraction.session ? cardDamage.get(cardInteraction.session.card.uid) : undefined} />
       {endTurnEffectDrag ? (
         <>

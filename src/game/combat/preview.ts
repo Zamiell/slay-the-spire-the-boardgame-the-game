@@ -8,8 +8,9 @@ import { cardDef, faceOf } from '../cards.ts'
 import type { CardDef } from '../cards.ts'
 import { clone, findPlayer } from './board.ts'
 import { playCard } from './play.ts'
-import { effectiveCombatCardDef, maximumXEnergy, persistentEffectOf, playCost } from './queries.ts'
-import type { CombatState } from './types.ts'
+import { cardBlockAmount } from './effects.ts'
+import { effectiveCombatCardDef, effectIsActive, maximumXEnergy, persistentEffectOf, playCost } from './queries.ts'
+import type { CombatState, PlayContext } from './types.ts'
 import type { CardInstance } from '../types.ts'
 
 /** Headroom added to the target so no single card can kill it. */
@@ -20,6 +21,37 @@ export type CardDamagePreview = {
   damage: number
   /** The same play with no Strength, Weak, Wrath or target Vulnerable. */
   baseline: number
+}
+
+export type CardBlockPreview = { block: number; baseline: number }
+
+/** Printed Block clauses with current icon bonuses, not Block caps or triggered effects. */
+export function previewCardBlock(
+  state: CombatState, playerId: string, cardUid: string, hiddenBoard = false,
+): CardBlockPreview | null {
+  const player = findPlayer(state, playerId)
+  const card = player?.hand.find(held => held.uid === cardUid)
+  if (!player || !card) return null
+  const def = effectiveCombatCardDef(faceOf(cardDef(card.defId), card.upgraded), player.guardianMode)
+  if ((def.type !== 'attack' && def.type !== 'skill') || def.modes || def.cost === 'X') return null
+  const clauses = def.effects.filter(effect => effect.kind === 'block')
+  if (!clauses.length || clauses.some(effect => effect.when?.kind === 'drewSkill') ||
+    hiddenBoard && PRIVATE_BOARD_RULES.test(JSON.stringify(clauses))) return null
+  const actor = { ...player, hand: player.hand.filter(held => held.uid !== cardUid) }
+  const context: PlayContext = {
+    enemyUid: null, playerId, sourceCardId: def.id, sourceCardUid: cardUid, sourceCardType: def.type,
+    sourceRetainedLastTurn: card.retainedLastTurn,
+  }
+  const plain = { ...actor, cardBlockBonus: 0, vigorSpentThisTurn: 0, starterDefendBlockBonus: 0,
+    powers: actor.powers.filter(power => !hasCardIconBonus(power)) }
+  let block = 0
+  let baseline = 0
+  for (const effect of clauses) {
+    if (!effectIsActive(effect, state, actor, context)) continue
+    block += cardBlockAmount(state, actor, effect.amount, context)
+    baseline += cardBlockAmount(state, plain, effect.amount, context)
+  }
+  return { block, baseline }
 }
 
 /** Rules an online client cannot evaluate: its copy of the state blanks these ledgers and piles. */

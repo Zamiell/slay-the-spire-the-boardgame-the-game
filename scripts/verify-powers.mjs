@@ -47,6 +47,22 @@ const combat = (players, enemies) => createCombat(createRng(31), players, enemie
 
 suite('powers')
 
+check('row triggers target the sole enemy even when another player row is empty', () => {
+  for (const queued of [false, true]) for (const multiple of [false, true]) {
+    const state = combat([
+      player({ powers: [instance('fire_breathing')], draw: [instance('daze')] }),
+      player({ id: 'p2', row: 1 }),
+    ], [enemy({ row: 1 }), ...(multiple ? [enemy({ uid: 'e2', row: 0 })] : [])])
+    const pending = queued ? [] : undefined
+    drawInto(state, state.players[0], 1, pending)
+    if (pending) state.pendingTriggers.push(...pending)
+    flushPendingTriggers(state)
+    assertEqual(state.pendingTriggers.length, multiple ? 1 : 0)
+    assertEqual(state.enemies[0].hp, multiple ? 30 : 28)
+    if (multiple) assertEqual(state.enemies[1].hp, 30, 'different occupied rows still need a choice')
+  }
+})
+
 check('playing a Power puts it in front of you and does nothing yet', () => {
   const demon = instance('demon_form')
   const state = combat([player({ hand: [demon], energy: 3 })], [enemy()])

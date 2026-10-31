@@ -204,7 +204,6 @@ for (const resource of ['shivs', 'soulburn']) {
     if (shiv) await refuse({ kind: 'spendShiv', enemyUid: 'time', all: 'yes' })
     await page.screenshot({ path: new URL('desktop-token-at-cap.png', out).pathname, fullPage: true })
     await token().click()
-    if (!shiv) await page.getByRole('button', { name: /^Time Eater,/ }).locator('.enemy__hit-area').click()
     await page.locator(shiv ? '[aria-label="Use Shiv"][aria-description="1 Shiv available"]'
       : '[aria-label="Spend Soulburn, 1 available"]').waitFor()
     if (shiv) {
@@ -233,7 +232,6 @@ for (const resource of ['shivs', 'soulburn']) {
     await assertAboveHead(page)
     await page.screenshot({ path: new URL('phone-token-after-reconnect.png', out).pathname, fullPage: true })
     await token().click()
-    if (!shiv) await page.getByRole('button', { name: /^Time Eater,/ }).locator('.enemy__hit-area').click()
     await page.waitForFunction(shiv => document.querySelector(shiv
       ? '[aria-label="Use Shiv"]' : '[aria-label^="Spend Soulburn,"]')?.disabled, shiv)
     assert.equal(room.run.combat.enemies[0].hp, 100 - 2 * damage)

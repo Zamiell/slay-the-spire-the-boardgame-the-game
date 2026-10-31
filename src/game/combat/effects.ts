@@ -4427,7 +4427,7 @@ function queuedTriggers(
 
 export function triggerNeedsRowChoice(state: CombatState, player: Player, source: TriggerSource): boolean {
   return source.scope === 'row' && source.effects.some((effect) => reachesEnemy(effect, player)) &&
-    combatRows(state).length > 1
+    combatRows(state).length > 1 && livingEnemies(state).length > 1
 }
 
 export function triggerNeedsEnemyChoice(
@@ -4744,7 +4744,7 @@ export function flushPendingTriggers(state: CombatState): void {
       player,
       source,
       pending.enemyUid ?? (source.scope === 'enemy' ? livingEnemies(state)[0]?.uid : undefined),
-      source.scope === 'row' ? combatRows(state)[0] : undefined,
+      source.scope === 'row' ? livingEnemies(state)[0]?.row ?? combatRows(state)[0] : undefined,
       undefined,
       pending.count === undefined ? undefined : { triggerCount: pending.count },
     )
@@ -4781,7 +4781,7 @@ function fireTriggersInner(
       resolveTriggerSource(state, player, source, {
         allowCombatOver,
         enemyUid: event.enemyUid,
-        enemyRow: source.scope === 'row' ? combatRows(state)[0] : undefined,
+        enemyRow: source.scope === 'row' ? livingEnemies(state)[0]?.row ?? combatRows(state)[0] : undefined,
         hermitContext: event.count === undefined ? undefined : { triggerCount: event.count },
       })
       if (!allowCombatOver && combatIsOver(state)) return

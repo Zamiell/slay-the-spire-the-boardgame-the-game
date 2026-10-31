@@ -53,9 +53,7 @@ try {
     await page.locator('dialog[open] .card').click()
     await page.getByRole('button', { name: 'Put selected card on top', exact: true }).click()
     await page.waitForFunction(() => document.querySelectorAll('.hand .card').length === 1)
-    // The copy now has an empty discard pile; it must go straight to targeting.
-    assert.match(await page.locator('.prompt').first().innerText(), /Choose an enemy/, `${screen}: copy asks for a target`)
-    await page.locator('[data-enemy-def="jaw_worm"] .enemy__hit-area').click()
+    // The copy has an empty discard pile and one enemy, so no further choice is needed.
     await page.waitForFunction(() => document.querySelector('[data-enemy-def="jaw_worm"]')?.getAttribute('aria-label')?.includes('56 of 60'),
       undefined, { timeout: 5000 })
     assert.equal(await hp(), 56, `${screen}: both Headbutts hit`)

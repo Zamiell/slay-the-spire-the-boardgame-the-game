@@ -79,9 +79,10 @@ export function DieRelicChoiceList({ state, choices, pressed, onChoose }: {
           const target = targetText(state, choice)
           return `${first.owner.name}: ${name} · die ${faces}${target ? ` → ${target}` : ''}`
         }
-        if (group.length === 1 && !first.enemy && !first.targetPlayer) {
+        if (group.length === 1) {
           return <RelicTooltipAnchor key={key} relic={held} className="die-relic-choice">
             <button type="button" className="die-relic die-relic--single"
+            aria-label={label(first)}
             aria-description={relicOptionLabel(first.defId)}
             aria-pressed={pressed?.(first)} onClick={() => onChoose(first)}>
             {heading}

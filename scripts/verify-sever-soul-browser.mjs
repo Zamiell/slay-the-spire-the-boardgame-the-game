@@ -247,12 +247,12 @@ try {
     await activate(dialog.locator('.card[data-card-name="Daze"]'))
     await activate(confirm())
     await dialog.waitFor({ state: 'detached' })
-    await activate(page.locator('[data-enemy-id="target"] .enemy__hit-area'))
     await page.waitForFunction(() => !window.__STS_DEBUG__.getState().pendingCardCopy)
     assert.deepEqual((await read()).players[0].exhaust.map(card => card.uid), ['defend', 'daze'])
     assert.equal((await read()).enemies[0].hp, 27, 'the copied Rampage must count its own new Exhaust')
 
     const originalEnemy = base.combat.enemies[0]
+    base.combat.enemies.push({ ...originalEnemy, uid: 'other-target' })
     base.combat.enemies[0] = { ...originalEnemy, defId: 'book_of_stabbing', hp: 35, maxHp: 35 }
     const crowdedHand = [
       ...Array.from({ length: 4 }, (_, index) => card('defend_ironclad', `crowded-defend-${index}`)),
@@ -310,6 +310,7 @@ try {
         [...['defend', 'daze'].slice(0, count), drawn.uid].sort())
       assert(havocPlayed.players[0].discard.some(card => card.uid === 'havoc'))
     }
+    base.combat.enemies = [originalEnemy]
     await setHand([card('havoc', 'havoc-empty')], [sever], 1)
     await play('Havoc')
     await page.waitForFunction(() => {

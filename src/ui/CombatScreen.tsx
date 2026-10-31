@@ -4,7 +4,7 @@ import { animateCardFlight, cardFlightPath } from './combat-screen/card-flight.t
 import { unknownPowerRefreshDecision } from './combat-screen/unknown-power.ts'
 import { HermitTriggerChoice } from './combat-screen/HermitTriggerChoice.tsx'
 import { pendingSneckoEyeCost, StartTurnOrder } from './combat-screen/StartTurnOrder.tsx'
-import { createCardPlayCoordinator, describeCardPickup, singleRequiredHandCard, stageHermitChamberViewer } from './combat-screen/card-play.ts'
+import { automaticEnemyOption, createCardPlayCoordinator, describeCardPickup, singleRequiredHandCard, stageHermitChamberViewer } from './combat-screen/card-play.ts'
 import { useCardInteraction } from './combat-screen/useCardInteraction.ts'
 import { trackCombatResources } from './combat-screen/resource-visibility.ts'
 import { CardInteractionLayer } from './combat-screen/CardInteractionLayer.tsx'
@@ -520,6 +520,7 @@ function CombatScreenView({
   const [miracleOnCard, setMiracleOnCard] = useState(false)
   const [spendingShiv, setSpendingShiv] = useState<false | 'one' | 'all'>(false)
   const shivActionPending = useRef(false)
+  const soulburnActionPending = useRef(false)
   const [spendingSoulburn, setSpendingSoulburn] = useState(false)
   const [extraCrispySoulburn, setExtraCrispySoulburn] = useState(false)
   const [chamberOpen, setChamberOpen] = useState(false)
@@ -621,6 +622,7 @@ function CombatScreenView({
   const potionActionPending = useRef(false)
   const powerActionPending = useRef(false)
   const cardActionPending = useRef(false)
+  const automaticCopyChoice = useRef<string | null>(null)
   const relicActionPending = useRef(false)
   const unknownPotionAction = useRef<UnknownPotionAction | null>(null)
   const unknownPowerAction = useRef<UnknownPowerAction | null>(null)
@@ -1859,11 +1861,15 @@ function CombatScreenView({
   useEffect(() => {
     const copy = state.pendingCardCopy
     if (state.phase !== 'copy' || !copy || copy.playerId !== viewerId || !viewer || cardPreview || usingCard) return
+    const key = `${state.combatId}:${copy.id}`
+    if (automaticCopyChoice.current === key) return
+    automaticCopyChoice.current = key
     const def = faceOf(cardDef(copy.card.defId), copy.card.upgraded)
     if (cardNeedsChoicePreview(def, state, viewer)) {
       if (cardNeedsEnemy(def, viewer, false, copy.energySpent, false, copy.card.attachedGemId, copy.card.uid,
         copy.energySpent, copy.card.hermitDeadOn === true)) {
         setPending({ ...pendingFor(copy.card, null, state, viewer, false, copy.energySpent), choice: null, choiceCards: null })
+        if (livingEnemies(state).length === 1) requestCopyChoicePreview(livingEnemies(state)[0]!.uid)
       } else requestCopyChoicePreview()
       return
     }
@@ -2264,6 +2270,7 @@ function CombatScreenView({
   const bosses = visibleEnemies.filter((enemy) => enemy.isBoss)
   const stageEnemies = visibleEnemies.filter((enemy) => !enemy.isBoss)
   const enemyButtonOrder = livingEnemiesInStageOrder(state.enemies)
+  const onlyEnemy = enemyButtonOrder.length === 1 ? enemyButtonOrder[0] : undefined
   const stageEnemyCount = visibleEnemies.length
   const stageScaleActors = state.players.length + stageEnemyCount
   // EnemyCard can briefly retain its previous visual during restoration.
@@ -3120,6 +3127,12 @@ function CombatScreenView({
     overflow?: { expected: number; skip: boolean },
   ) {
     if (potionActionPending.current || !canUsePotionNow(potionId)) return
+    const potion = potionDef(potionId)
+    if (onlyEnemy && context.enemyUid === undefined && context.enemyRow === undefined) {
+      if (potion.target === 'enemy' || potionId === 'mystery_potion' && state.die <= 2) {
+        context = { ...context, enemyUid: onlyEnemy.uid }
+      } else if (potion.target === 'row') context = { ...context, enemyRow: onlyEnemy.row }
+    }
     // Preview the atomic action against the visible board. Separate overflow
     // attacks may kill a target selected again later; keep the potion staged
     // and restart its choices instead of clearing the UI for a refused action.
@@ -3200,7 +3213,13 @@ function CombatScreenView({
   }
 
   function useRelic(relicIndex: number, context: RelicContext = {}) {
-    if (!canUseRelicNow(relicIndex)) return
+    if (!viewer || !canUseRelicNow(relicIndex)) return
+    const held = viewer.relics[relicIndex]!
+    if (onlyEnemy && held.defId.replace(/^downfall_/, '') === 'ninja_scroll' && !context.shivEnemyUids) {
+      context = { ...context, shivEnemyUids: Array<string>(
+        overflowShivCount(state, gainedShivs(relicDef(held.defId).effects) || 2),
+      ).fill(onlyEnemy.uid) }
+    }
     const result = activateRelic(state, viewer!.id, relicIndex, context)
     if (result === state) return
     if (onAction) {
@@ -3231,7 +3250,15 @@ function CombatScreenView({
   }
 
   function usePower(powerUid: string, context: PowerContext) {
-    if (powerActionPending.current) return
+    if (!viewer || powerActionPending.current) return
+    const power = viewer.powers.find(power => power.uid === powerUid)
+    const def = power && faceOf(cardDef(power.defId), power.upgraded)
+    if (onlyEnemy && def && context.enemyUid === undefined && context.enemyRow === undefined) {
+      if (def.target === 'row') context = { ...context, enemyRow: onlyEnemy.row }
+      else if (cardNeedsEnemy(def, viewer, true, undefined, true, power?.attachedGemId)) {
+        context = { ...context, enemyUid: onlyEnemy.uid }
+      }
+    }
     const result = onAction && powerChoiceCards ? undefined : activatePower(state, viewer!.id, powerUid, context)
     if (result === state) return
     powerActionPending.current = true
@@ -3358,6 +3385,9 @@ function CombatScreenView({
       usePower(pendingPowerUid!, scry)
     } else if (powerGemContext) {
       usePower(pendingPowerUid!, { ...powerGemContext, ...scry })
+    } else if (onlyEnemy && pendingPowerNeedsEnemy && !pendingPowerNeedsAlly &&
+      pendingPower.attachedGemId !== 'guardian_jasper' && pendingPower.attachedGemId !== 'guardian_amethyst') {
+      usePower(pendingPowerUid!, scry)
     } else setPowerScryConfirmed(true)
   }
 
@@ -3381,6 +3411,9 @@ function CombatScreenView({
     slimeEnemyUids = triggerSlimeEnemyUids) {
     const trigger = pendingTrigger
     if (usingTrigger || !trigger || trigger.playerId !== viewer?.id) return
+    if (onlyEnemy && triggerSlimeEnemyAmount > 0) {
+      slimeEnemyUids = Array<string>(triggerSlimeEnemyAmount).fill(onlyEnemy.uid)
+    }
     const triggerChoices = trigger.hermitChoices || trigger.slimeChoice || triggerSlimeEnemyAmount > 0 ? {
       ...(trigger.hermitChoices ? {
         loadUids: triggerHermitLoadUids,
@@ -3988,7 +4021,7 @@ function CombatScreenView({
     cancel: cancelCardPlay } = createCardPlayCoordinator({
     state, viewer, pending, miracleOnCard, blocked: Boolean(endTurnResolving || pendingTrigger),
     survivorDiscard, stateRef, cardActionPending, onAction, setUsingCard, setPending,
-    withAdjacentChoices, downfallChoicesReady, slimeEnemyChoicesRequired, slayerTargetAffordable,
+    withAdjacentChoices, downfallChoicesReady, slimeEnemyChoicesRequired, hermitEnemyChoicesRequired: loadedTargetCount, slayerTargetAffordable,
     cardContext, commit,
     clearOtherActions: () => {
       setPendingPowerUid(null)
@@ -4436,27 +4469,7 @@ function CombatScreenView({
       return
     }
     if (spendingSoulburn) {
-      const extraCrispyPowerUid = extraCrispySoulburn ? extraCrispyPower?.uid : undefined
-      if (onAction) {
-        const soulburnBefore = viewer!.soulburn
-        setSpendingSoulburn(false)
-        setExtraCrispySoulburn(false)
-        Promise.resolve(onAction({ kind: 'spendSoulburn', enemyUid: enemy.uid, extraCrispyPowerUid })).then((outcome) => {
-          const current = stateRef.current.players.find((player) => player.id === viewerId)
-          if ((outcome?.status === 'refused' || outcome?.status === 'reconciled') &&
-            current && current.soulburn >= soulburnBefore) {
-            setSpendingSoulburn(true)
-            setExtraCrispySoulburn(Boolean(extraCrispyPowerUid))
-          }
-        })
-        return
-      }
-      const result = spendSoulburn(state, viewer!.id, enemy.uid, extraCrispyPowerUid)
-      if (result !== state) {
-        setSpendingSoulburn(false)
-        setExtraCrispySoulburn(false)
-        onChange?.(result)
-      }
+      useSoulburn(enemy, extraCrispySoulburn)
       return
     }
     if (pending && (!pending.slimeChoice || pending.slimeChoiceConfirmed) &&
@@ -4519,6 +4532,38 @@ function CombatScreenView({
       if (pendingShivProgress && !pendingShivProgress.options.some((option) => option.uid === enemy.uid)) return
       const next = { ...pending, shivEnemyUids: [...pending.shivEnemyUids, enemy.uid] }
       stageOrCommit(next)
+    }
+  }
+
+  function useSoulburn(enemy: Enemy, extraCrispy = false) {
+    if (soulburnActionPending.current) return
+    const extraCrispyPowerUid = extraCrispy ? extraCrispyPower?.uid : undefined
+    if (onAction) {
+      const soulburnBefore = viewer!.soulburn
+      soulburnActionPending.current = true
+      setSpendingSoulburn(false)
+      setExtraCrispySoulburn(false)
+      const finish = (outcome: ActionOutcome | void) => {
+        soulburnActionPending.current = false
+        const current = stateRef.current.players.find(player => player.id === viewerId)
+        if ((outcome?.status === 'refused' || outcome?.status === 'reconciled') &&
+          stateRef.current.combatId === state.combatId && current && current.soulburn >= soulburnBefore) {
+          setSpendingSoulburn(true)
+          setExtraCrispySoulburn(Boolean(extraCrispyPowerUid))
+        }
+      }
+      Promise.resolve(onAction({ kind: 'spendSoulburn', enemyUid: enemy.uid, extraCrispyPowerUid }))
+        .then(finish, (error: unknown) => {
+          console.error('Could not spend Soulburn.', error)
+          finish({ status: 'unknown' })
+        })
+      return
+    }
+    const result = spendSoulburn(state, viewer!.id, enemy.uid, extraCrispyPowerUid)
+    if (result !== state) {
+      setSpendingSoulburn(false)
+      setExtraCrispySoulburn(false)
+      onChange?.(result)
     }
   }
 
@@ -4766,6 +4811,16 @@ function CombatScreenView({
     owedChoices.length === 0
   const startTurnChoicesOpen = startTurnOpen && !stagedStartTurnTriggerPending && !activeStartTurnScry &&
     orderedStartTurnScries.length === 0
+  useEffect(() => {
+    if (!startTurnChoicesOpen || !canResolveStartTurn || !mutationsEnabled || authoritativeConnected === false) return
+    if (pendingStartEvoke?.evokeChoice?.options.length === 1) {
+      chooseStartTurnEvoke(pendingStartEvoke.evokeChoice.options[0]!.slot)
+    } else if (pendingStartEvokeTarget?.ability.evokeTargets) {
+      const target = automaticEnemyOption(state, pendingStartEvokeTarget.ability.evokeTargets)
+      if (target) chooseStartTurnEvokeEnemy(target)
+    }
+  }, [startTurnChoicesOpen, canResolveStartTurn, mutationsEnabled, authoritativeConnected,
+    pendingStartEvoke, pendingStartEvokeTarget])
   const visibleStartModeShift = startTurnChoicesOpen ? pendingStartModeShift : undefined
   // A required seat whose Resolve button is disabled or missing, with
   // no private prompt to answer, has no way forward. Another seat may just be
@@ -4834,7 +4889,7 @@ function CombatScreenView({
     ? pendingTrigger.playerId === viewer.id
       ? `${pendingTrigger.label} — choose ${pendingTrigger.hermitChoices && !triggerHermitChoicesReady
         ? 'cards' : pendingTrigger.slimeChoice && !triggerSlimeChoicesReady ? 'Slime or self' :
-        triggerSlimeEnemyUids.length < triggerSlimeEnemyAmount
+        triggerSlimeEnemyUids.length < triggerSlimeEnemyAmount && !onlyEnemy
           ? `${triggerSlimeEnemyLabels[triggerSlimeEnemyUids.length] ?? 'Slime'} Command target ${triggerSlimeEnemyUids.length + 1}/${triggerSlimeEnemyAmount}` :
         pendingTrigger.targets ? triggerHermitCurse ? `an enemy for ${cardDef(triggerHermitCurse.defId).name}` : 'an enemy'
           : pendingTrigger.players ? 'a player' :
@@ -4906,7 +4961,7 @@ function CombatScreenView({
     : spendingShiv
     ? spendingShiv === 'all' ? `Choose an enemy for all ${viewer.shivs} Shivs` : 'Choose an enemy for the Shiv'
     : spendingSoulburn
-    ? 'Choose an enemy for Soulburn'
+    ? onlyEnemy && extraCrispyPower ? 'Choose whether to use Extra Crispy' : 'Choose an enemy for Soulburn'
     : (pending?.choice?.kind === 'load' || pending?.choice?.kind === 'loadAny') && !pending.choiceConfirmed
       ? `${pendingDef?.name ?? 'Card'} — choose ${pending.choice.kind === 'loadAny' ? 'up to ' : ''}${pending.choice.amount} card${pending.choice.amount === 1 ? '' : 's'} to Load`
     : pending?.slimeChoice && !pending.slimeChoiceConfirmed &&
@@ -4999,11 +5054,11 @@ function CombatScreenView({
     isStartTurnEnemyTarget(enemy.uid) ||
     (pendingTrigger?.playerId === viewer.id && triggerHermitChoicesReady &&
       (pendingTrigger.targets?.some((target) => target.uid === enemy.uid) ||
-        triggerSlimeEnemyUids.length < triggerSlimeEnemyAmount)) ||
+        triggerSlimeEnemyUids.length < triggerSlimeEnemyAmount && !onlyEnemy)) ||
     isEnemyRowClickTargetable(enemy) ||
     ((pendingPotionNeedsEnemy || pendingPowerNeedsEnemy || (pendingPowerDef && pendingPowerDef.target !== 'row' &&
       (!pendingHermitPower || pendingPowerDef.id === 'hermit_black_wind' && powerLoadUids.length === 1)) ||
-      pendingPotionOverflow > 0) || spendingShiv || spendingSoulburn ||
+      pendingPotionOverflow > 0) || spendingShiv || spendingSoulburn && !(onlyEnemy && extraCrispyPower) ||
       Boolean(pending && (pending.slimeEnemyUids.length < slimeEnemyChoicesRequired(pending) ||
         pending.hermitEnemyUids.length < loadedTargetCount(pending) ||
         pending.soulburnEnemyUids.length < pending.soulburnChoices)) ||
@@ -5176,7 +5231,7 @@ function CombatScreenView({
                       power.attachedGemId === 'guardian_jasper' || power.attachedGemId === 'guardian_amethyst'
                     const needsHermitChoice = def.id === 'hermit_shadow_cloak' || def.id === 'hermit_black_wind'
                     if (!staged && def.id === 'guardian_gem_finder') requestPowerPreview(power.uid)
-                    else if (!staged && !needsTarget && !needsGemChoice && !needsHermitChoice && !removesOrbs &&
+                    else if (!staged && (!needsTarget || onlyEnemy) && !needsGemChoice && !needsHermitChoice && !removesOrbs &&
                       def.id !== 'guardian_revenge_protocol') usePower(power.uid, {})
                     else setPendingPowerUid(staged ? null : power.uid)
                   }}
@@ -5203,9 +5258,9 @@ function CombatScreenView({
                 const shivs = gainedShivs(potion.effects)
                 const capacity = state.potionLimit + (viewer.relics.some((relic) => relic.defId === 'potion_belt') ? 2 : 0)
                 const needsTarget = ['gamblers_brew', 'liquid_memories', 'liquid_void', 'transforming_brew', 'purity_potion', 'destiny_draught'].includes(potionId) ||
-                  potionId === 'mystery_potion' && state.die <= 2 ||
+                  potionId === 'mystery_potion' && state.die <= 2 && !onlyEnemy ||
                   potionId === 'entropic_brew' && !viewerHasSozu &&
-                    viewer.potions.length - 1 + 2 > capacity || Boolean(potion.target) || (
+                    viewer.potions.length - 1 + 2 > capacity || Boolean(potion.target) && !onlyEnemy || (
                   potion.supportTarget === 'anyPlayer' && livingPlayers.length > 1
                 ) || overflowShivCount(state, shivs) > 0
                 const descriptionId = `potion-action-${viewer.id}-${potionId}-description`
@@ -5388,6 +5443,7 @@ function CombatScreenView({
               aria-label={`Spend Soulburn, ${viewer.soulburn} available`}
               aria-pressed={spendingSoulburn}
               onClick={() => {
+                if (soulburnActionPending.current) return
                 setPending(null)
                 setPendingPowerUid(null)
                 setMiracleOnCard(false)
@@ -5396,7 +5452,8 @@ function CombatScreenView({
                 setPotionOverflowRequired(0)
                 setSpendingShiv(false)
                 setExtraCrispySoulburn(false)
-                setSpendingSoulburn((current) => !current)
+                if (onlyEnemy && !extraCrispyPower) useSoulburn(onlyEnemy)
+                else setSpendingSoulburn((current) => !current)
               }}
             >
               <img className="item-icon-image" src={assetPath('icons/hexaghost-flame.png')} alt="" />
@@ -5404,11 +5461,16 @@ function CombatScreenView({
             </button>
           ) : null}
           {soulburnActionAvailable && spendingSoulburn && extraCrispyPower ? (
+            <>
+            {onlyEnemy ? <button type="button" onClick={() => useSoulburn(onlyEnemy)}>
+              Spend without Extra Crispy
+            </button> : null}
             <button type="button" className={extraCrispySoulburn ? 'is-chosen' : undefined}
               aria-label="Use Extra Crispy with Soulburn" aria-pressed={extraCrispySoulburn}
-              onClick={() => setExtraCrispySoulburn((current) => !current)}>
+              onClick={() => onlyEnemy ? useSoulburn(onlyEnemy, true) : setExtraCrispySoulburn((current) => !current)}>
               Extra Crispy ×2
             </button>
+            </>
           ) : null}
           {stagedStartTurnTriggerPending && startTurnCount ? (
             <button type="button" className="combat__end-turn" disabled>
@@ -5595,7 +5657,7 @@ function CombatScreenView({
                   }}>{slime.label}</button>
               })}
               {!pendingTrigger.targets && !pendingTrigger.rows && !pendingTrigger.players &&
-                triggerSlimeEnemyAmount === 0 ? (
+                (triggerSlimeEnemyAmount === 0 || onlyEnemy) ? (
                 <button type="button" className="prompt__mode"
                   disabled={triggerSlimeUids.length < pendingTrigger.slimeChoice.minimum}
                   onClick={() => resolveTrigger()}>
@@ -5631,7 +5693,10 @@ function CombatScreenView({
           powerLoadUids.length === 0 ? viewer.hand.map((card) => (
               <button type="button" className="prompt__mode" key={card.uid} onClick={() => {
                 if (['hermit_grudge', 'hermit_malice', 'hermit_horror'].includes(card.defId)) {
-                  setPowerLoadUids([card.uid])
+                  if (onlyEnemy) usePower(pendingPowerUid!, {
+                    chamberUids: powerChamberUids, loadUids: [card.uid], hermitEnemyUids: [onlyEnemy.uid],
+                  })
+                  else setPowerLoadUids([card.uid])
                 } else {
                   usePower(pendingPowerUid!, { chamberUids: powerChamberUids, loadUids: [card.uid] })
                   setPowerChamberUids([])
@@ -6072,7 +6137,7 @@ function CombatScreenView({
               }}>Cancel</button>
             </details>]
             if (held.defId === 'charons_ashes') return [<details key={relicIndex}>
-              {choiceSummary('choose a card and target')}
+              {choiceSummary(onlyEnemy ? 'choose a card' : 'choose a card and target')}
               <p className="room-item-text">{def.text}</p>
               <div className="campfire__deck">{viewer.hand.map((card) => <Card key={card.uid} card={card}
                 drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
@@ -6080,13 +6145,13 @@ function CombatScreenView({
               {enemyButtonOrder.map((enemy) => <button type="button" key={enemy.uid}
                 disabled={relicCardUids.length !== 1}
                 onClick={() => useRelic(relicIndex, { cardUids: relicCardUids, enemyUid: enemy.uid })}>
-                Hit {enemyLabel(state.enemies, enemy)}
+                {onlyEnemy ? 'Activate' : `Hit ${enemyLabel(state.enemies, enemy)}`}
               </button>)}
             </details>]
             if (heldId === 'ninja_scroll') {
               const amount = def.effects.find((effect) => effect.kind === 'gainShiv')?.amount ?? 2
               const overflow = overflowShivCount(state, amount)
-              if (overflow === 0) return [simpleAction]
+              if (overflow === 0 || onlyEnemy) return [simpleAction]
               return [<details key={relicIndex}>{choiceSummary()}<p className="room-item-text">{def.text}</p>
                 <p>Choose {overflow} immediate Shiv target{overflow === 1 ? '' : 's'}.</p>
                 {enemyButtonOrder.map((enemy) => <button type="button" key={enemy.uid}

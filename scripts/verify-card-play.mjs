@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { createCardPlayCoordinator, describeCardPickup } from '../src/ui/combat-screen/card-play.ts'
 import { pendingFor } from '../src/ui/combat-screen/card-play-requirements.ts'
-import { createCombat, slimeCommandEnemyChoiceCount } from '../src/game/combat.ts'
+import { createCombat, lightningRowTarget, playCard, slimeCommandEnemyChoiceCount } from '../src/game/combat.ts'
 import { cardDef, faceOf } from '../src/game/cards.ts'
 import { createPlayer } from '../src/game/run.ts'
 import { createRng } from '../src/game/rng.ts'
@@ -25,7 +25,46 @@ const options = {
   setUsingCard() {}, setPending(next) { pending = next }, clearOtherActions() {},
   withAdjacentChoices: next => next, downfallChoicesReady: () => true,
   slimeEnemyChoicesRequired: () => 0, slayerTargetAffordable: () => true,
+  hermitEnemyChoicesRequired: () => 0,
   cardContext: () => ({}), commit: next => commits.push(next),
+}
+for (const defId of ['dual_cast', 'unload', 'blade_dance', 'carve_reality']) {
+  const local = structuredClone(state)
+  local.phase = 'player'
+  local.enemies[0].row = 1
+  local.players.push(createPlayer(createRng(48), 'p2', 'Defect', 'defect', 1))
+  const actor = local.players[0]
+  actor.hand = [card(defId)]
+  actor.powers = [card('electrodynamics')]
+  actor.orbs = ['lightning', null, null]
+  actor.shivs = defId === 'blade_dance' ? 5 : 2
+  let submitted
+  let staged
+  const context = next => ({
+    enemyUid: next.enemyUid, playerId: next.playerId, mode: next.mode ?? undefined,
+    evokeSlots: next.evokeSlots, evokeEnemyUids: next.evokeEnemyUids,
+    shivEnemyUids: next.shivEnemyUids, enemyUids: next.enemyUids,
+  })
+  const coordinator = createCardPlayCoordinator({ ...options, state: local, viewer: actor,
+    stateRef: { current: local }, cardContext: context, setPending: next => { staged = next },
+    commit: next => { submitted = next } })
+  const outcome = coordinator.confirm(actor.hand[0], 'hand')
+  if (defId === 'carve_reality') {
+    assert.equal(outcome, 'choosing', 'a sole enemy must not select a card mode')
+    assert.equal(coordinator.choose({ ...staged, mode: 1, enemyChoices: 2 }), 'choosing')
+    assert.deepEqual(staged.enemyUids, [], 'distinct attacks cannot reuse the same enemy')
+  } else if (defId === 'blade_dance') {
+    assert.equal(outcome, 'choosing', 'overflow Shiv attacks remain optional')
+    assert.deepEqual(staged.shivEnemyUids, [])
+  } else {
+    assert.equal(outcome, 'submitted', `${defId}: mandatory repeated targets should be automatic`)
+    if (defId === 'dual_cast') assert.deepEqual(submitted.evokeEnemyUids,
+      [lightningRowTarget(1), lightningRowTarget(1)], 'Lightning must not target an empty player row')
+    else assert.deepEqual(submitted.shivEnemyUids, ['enemy', 'enemy'])
+    const played = playCard(local, actor.id, defId, context(submitted))
+    assert.notEqual(played, local, `${defId}: automatic choices must be accepted by the engine`)
+    assert(played.enemies[0].hp < local.enemies[0].hp)
+  }
 }
 for (const defId of ['defend_ironclad', 'shrug_it_off', 'survivor', 'inflame', 'whirlwind']) {
   viewer.hand = [card(defId)]
@@ -86,9 +125,9 @@ assert.equal(pending.energySpent, null)
 assert.equal(commits.length, 0, 'confirming pickup must still wait for an X-cost choice')
 assert.equal(createCardPlayCoordinator({ ...options, pending }).choose({
   ...pending, energySpent: 2, energyCharged: 2, effectEnergy: 2,
-}), 'choosing', 'paying X must still wait for the row target')
-assert.equal(createCardPlayCoordinator({ ...options, pending }).choose({ ...pending, enemyUid: 'enemy' }), 'submitted')
+}), 'submitted', 'after choosing X, the sole enemy should be selected automatically')
 assert.equal(commits[0].energySpent, 2)
+assert.equal(commits[0].enemyUid, 'enemy')
 
 viewer.hand = [card('prepared'), card('strike_ironclad')]
 const online = createCardPlayCoordinator({ ...options, pending: null,
@@ -127,9 +166,9 @@ assert.deepEqual(commits[0].picked, ['defend_ironclad'], 'targeting must preserv
 assert.equal(commits[0].enemyUid, 'enemy')
 assert.equal(commits[0].energyCharged, 0)
 pending = null
-assert.equal(createCardPlayCoordinator({ ...options, pending }).confirm(viewer.hand[0], 'hand'), 'choosing')
-assert.equal(pending.card.uid, 'sever_soul', 'clicking an abandoned forced card must reopen its choices')
-assert.equal(pending.energyCharged, 0)
+assert.equal(createCardPlayCoordinator({ ...options, pending }).confirm(viewer.hand[0], 'hand'), 'submitted')
+assert.equal(commits.at(-1).card.uid, 'sever_soul')
+assert.equal(commits.at(-1).energyCharged, 0)
 state.startTurnProgress = undefined
 assert.equal(createCardPlayCoordinator({ ...options, pending }).cancel(), 'cancelled')
 assert.equal(pending, null, 'an ordinary uncommitted play remains cancellable')

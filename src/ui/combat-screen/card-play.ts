@@ -4,6 +4,7 @@ import type { CombatState } from '../../game/combat.ts'
 import {
   cardNeedsChoicePreview, cardNeedsEnemy, cardShivChoiceCount, chosenEvokeOrbs,
   effectiveCombatCardDef, evokeTargetProgress, livingEnemies, nextEvokeChoice,
+  lightningRowTarget,
   overflowShivCount, playCost, previewCardChoice, previewCardCopyChoice,
   previewCardShivTargets, previewHermitChamberCardChoice,
   slimeChoiceIsAvailable,
@@ -43,6 +44,14 @@ export function singleRequiredHandCard(pending: Pending | null, viewer: Player |
   return cards.length === 1 ? cards[0] : undefined
 }
 
+export function automaticEnemyOption(state: CombatState, options: readonly { uid: string }[]): string | undefined {
+  if (options.length === 1) return options[0]!.uid
+  const enemies = livingEnemies(state)
+  const only = enemies.length === 1 ? enemies[0] : undefined
+  return only ? options.find(option => option.uid === only.uid || option.uid === lightningRowTarget(only.row))?.uid
+    : undefined
+}
+
 export function describeCardPickup(state: CombatState, viewer: Player, card: CardInstance, source: CardSource): CardPickup {
   const required = state.pendingHermitChamberPlays?.[0]
   const staged = source === 'chamber' ? stageHermitChamberViewer(viewer, card,
@@ -74,6 +83,7 @@ type Options = {
   withAdjacentChoices: (next: Pending) => Pending
   downfallChoicesReady: (next: Pending) => boolean
   slimeEnemyChoicesRequired: (next: Pending) => number
+  hermitEnemyChoicesRequired: (next: Pending) => number
   slayerTargetAffordable: (next: Pending, enemy: Enemy | undefined) => boolean
   cardContext: (next: Pending) => Parameters<typeof previewCardShivTargets>[3]
   commit: (next: Pending) => void
@@ -83,7 +93,7 @@ type Options = {
 export function createCardPlayCoordinator(options: Options) {
   const { state, viewer, pending, miracleOnCard, blocked, survivorDiscard,
     stateRef, cardActionPending, onAction, setUsingCard, setPending, clearOtherActions,
-    withAdjacentChoices, downfallChoicesReady, slimeEnemyChoicesRequired,
+    withAdjacentChoices, downfallChoicesReady, slimeEnemyChoicesRequired, hermitEnemyChoicesRequired,
     slayerTargetAffordable, cardContext, commit } = options
   const viewerId = viewer.id
 
@@ -148,6 +158,27 @@ export function createCardPlayCoordinator(options: Options) {
     const def = effectiveCombatCardDef(
       faceOf(cardDef(next.card.defId), next.card.upgraded), next.corruptedShardMode ?? viewer!.guardianMode,
     )
+    const selectedDef = def.modes && next.mode !== null
+      ? { ...def, modes: undefined, effects: def.modes[next.mode]!.effects } : def
+    const enemies = livingEnemies(state)
+    const soleEnemy = enemies.length === 1 ? enemies[0] : undefined
+    if (soleEnemy && (!def.modes || next.mode !== null)) {
+      if (next.enemyUid === null && cardNeedsEnemy(selectedDef, viewer, false,
+        next.effectEnergy ?? undefined, false, next.card.attachedGemId, next.card.uid,
+        next.energyCharged ?? undefined, next.card.hermitDeadOn === true) &&
+        slayerTargetAffordable(next, soleEnemy)) {
+        next = withAdjacentChoices({ ...next, enemyUid: soleEnemy.uid })
+      }
+      if (next.enemyUids.length < next.enemyChoices &&
+        !selectedDef.effects.some(effect => effect.kind === 'hitChoices' && effect.distinct && next.enemyChoices > 1)) {
+        next = { ...next, enemyUids: Array<string>(next.enemyChoices).fill(soleEnemy.uid) }
+      }
+      const loaded = hermitEnemyChoicesRequired(next)
+      if (next.hermitEnemyUids.length < loaded) next = { ...next, hermitEnemyUids: Array<string>(loaded).fill(soleEnemy.uid) }
+      if (next.soulburnEnemyUids.length < next.soulburnChoices) {
+        next = { ...next, soulburnEnemyUids: Array<string>(next.soulburnChoices).fill(soleEnemy.uid) }
+      }
+    }
     const onlySlime = viewer.slimes.length === 1 ? viewer.slimes[0] : undefined
     if (onlySlime && !next.slimeChoiceConfirmed && next.slimeChoice?.minimum === 1 &&
       next.slimeChoice.amount === 1 && (def.cost !== 'X' || next.energySpent !== null) &&
@@ -157,19 +188,29 @@ export function createCardPlayCoordinator(options: Options) {
         slimeChoiceIsAvailable(def, state, viewer, onlySlime.card.uid, next.effectEnergy ?? 0))) {
       next = { ...next, slimeUids: [onlySlime.card.uid], slimeChoiceConfirmed: true }
     }
-    const commandEnemies = livingEnemies(state)
+    const commandEnemies = enemies
     if (commandEnemies.length === 1 && (!next.slimeChoice || next.slimeChoiceConfirmed)) {
       const count = slimeEnemyChoicesRequired(next)
       next = { ...next, slimeEnemyUids: Array<string>(count).fill(commandEnemies[0]!.uid) }
     }
-    if (def.id === 'dual_cast') {
-      const choice = nextEvokeChoice(def, viewer!, next.evokeSlots, state.die, next.mode ?? undefined, next.effectEnergy ?? 0)
-      if (choice?.options.length === 1) next = withEvokeSlot(next, choice.options[0]!.slot)
+    let evokeChoice = nextEvokeChoice(def, viewer!, next.evokeSlots, state.die, next.mode ?? undefined, next.effectEnergy ?? 0)
+    while (evokeChoice?.options.length === 1) {
+      next = withEvokeSlot(next, evokeChoice.options[0]!.slot)
+      evokeChoice = nextEvokeChoice(def, viewer!, next.evokeSlots, state.die, next.mode ?? undefined, next.effectEnergy ?? 0)
     }
-    const evokeProgress = evokeTargetProgress(
+    let evokeProgress = evokeTargetProgress(
       def, state, viewer!, next.evokeSlots, next.evokeEnemyUids,
       next.mode ?? undefined, next.effectEnergy ?? 0,
     )
+    while (!evokeProgress.complete && next.evokeEnemyUids[evokeProgress.index] === undefined) {
+      const target = automaticEnemyOption(state, evokeProgress.options)
+      if (!target) break
+      const targets = [...next.evokeEnemyUids]
+      targets[evokeProgress.index] = target
+      next = { ...next, evokeEnemyUids: targets }
+      evokeProgress = evokeTargetProgress(def, state, viewer, next.evokeSlots, next.evokeEnemyUids,
+        next.mode ?? undefined, next.effectEnergy ?? 0)
+    }
     if (evokeProgress.complete && next.evokeEnemyUids.length > evokeProgress.index) {
       next = { ...next, evokeEnemyUids: next.evokeEnemyUids.slice(0, evokeProgress.index) }
     }
@@ -188,6 +229,12 @@ export function createCardPlayCoordinator(options: Options) {
         shivEnemyUids: [],
       }
       setPending(next)
+    }
+    while (next.shivEnemyUids.length < next.spentShivs) {
+      const progress = previewCardShivTargets(state, viewer.id, next.card.uid, cardContext(next),
+        next.chamberPlay ? 'chamber' : next.cardInHand ? 'hand' : 'copy')
+      if (!progress || progress.complete || progress.options.length !== 1) break
+      next = { ...next, shivEnemyUids: [...next.shivEnemyUids, progress.options[0]!.uid] }
     }
     if (next.shivEnemyUids.length < next.spentShivs + next.overflowShivs) {
       const progress = previewCardShivTargets(state, viewer!.id, next.card.uid, cardContext(next),

@@ -9748,9 +9748,8 @@ check('Fire Breathing can kill a splitting Slime Boss before a targetless Boot d
       draw: Array.from({ length: 5 }, () => instance('strike_silent')),
     }),
   ], [makeEnemy({ defId: 'slime_boss', isBoss: true, hp: 2, maxHp: 2 })])
-  const prepared = preparePlayerTurn(state)
-  assertEqual(prepared.pendingTriggers.length, 1)
-  const split = resolvePendingTrigger(prepared, 'p1', prepared.pendingTriggers[0].id, 0)
+  const split = preparePlayerTurn(state)
+  assertEqual(split.pendingTriggers.length, 0, 'the sole enemy needs no row selection')
   assertEqual(split.enemies[0].dead, true)
   assertEqual(split.pendingSummons.length, 2, 'Slime Boss must still Split next turn')
   assertEqual(split.die, 5)

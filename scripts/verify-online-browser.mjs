@@ -1658,9 +1658,10 @@ try {
   liveRoom.run.combat.powerTriggersUsedThisTurn = []
   const laneFireTemplate = liveRoom.run.combat.enemies[0]
   liveRoom.run.combat.enemies = [
-    // Row 0 has no living enemy or boss; row 1 has a clickable enemy.
+    // Keep multiple living enemies so this exercises an actual row choice.
     { ...laneFireTemplate, uid: 'online-lane-dead-row0', row: 0, hp: 0, maxHp: 10, dead: true, isBoss: false },
     { ...laneFireTemplate, uid: 'online-lane-living-row1', row: 1, hp: 10, maxHp: 10, dead: false, isBoss: false },
+    { ...laneFireTemplate, uid: 'online-lane-other-row1', row: 1, hp: 10, maxHp: 10, dead: false, isBoss: false },
   ]
   const publishLaneFireFixture = await fetch(`${roomOrigin}/api/rooms/${code}/action`, {
     method: 'POST',
@@ -1689,7 +1690,7 @@ try {
     assertEqual(foreignLaneTargets, 0)
     assertEqual(laneTargetGoneAfterResolve, 0)
     assertEqual(liveRoom.run.combat.pendingTriggers.length, 0)
-    assertDeepEqual(liveRoom.run.combat.enemies.map((enemy) => enemy.hp), [0, 10],
+    assertDeepEqual(liveRoom.run.combat.enemies.map((enemy) => enemy.hp), [0, 10, 10],
       'the empty row has nothing to hit and no boss exists here, so nothing should take damage')
   })
 

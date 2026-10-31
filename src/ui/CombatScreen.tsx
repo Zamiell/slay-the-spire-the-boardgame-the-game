@@ -4970,6 +4970,32 @@ function CombatScreenView({
     ? state.enemies.find((enemy) => enemy.uid === cardTarget.targetUid)
     : undefined
   const cardDragTargetRow = cardTarget?.hitsRow ? draggedEnemy?.row : undefined
+  const isEnemyTargeted = (enemy: Enemy, includeCardGesture = true) => Boolean(!enemy.dead && (
+    isEndTurnEnemyTarget(enemy) ||
+    includeCardGesture && (cardInteraction.session?.targetUid === enemy.uid ||
+      cardTarget?.targetUid === enemy.uid ||
+      cardDragTargetRow !== undefined && (cardDragTargetRow === enemy.row || enemy.isBoss)) ||
+    isStartTurnEnemyTarget(enemy.uid) ||
+    (pendingTrigger?.playerId === viewer.id && triggerHermitChoicesReady &&
+      (pendingTrigger.targets?.some((target) => target.uid === enemy.uid) ||
+        triggerSlimeEnemyUids.length < triggerSlimeEnemyAmount)) ||
+    isEnemyRowClickTargetable(enemy) ||
+    ((pendingPotionNeedsEnemy || pendingPowerNeedsEnemy || (pendingPowerDef && pendingPowerDef.target !== 'row' &&
+      (!pendingHermitPower || pendingPowerDef.id === 'hermit_black_wind' && powerLoadUids.length === 1)) ||
+      pendingPotionOverflow > 0) || spendingShiv || spendingSoulburn ||
+      Boolean(pending && (pending.slimeEnemyUids.length < slimeEnemyChoicesRequired(pending) ||
+        pending.hermitEnemyUids.length < loadedTargetCount(pending) ||
+        pending.soulburnEnemyUids.length < pending.soulburnChoices)) ||
+      (((pendingEvokeTarget < 0 && (pending?.needsEnemy === true && !enemyChoicesDone || independentEnemyPending) &&
+        slayerTargetAllowed(enemy) && (!pendingShivProgress ||
+          pendingShivProgress.options.some((option) => option.uid === enemy.uid))) ||
+        (pendingEvokeTarget >= 0 && !pendingEvokeUsesRows && pendingEvokeTargetUids.has(enemy.uid))) && choiceSatisfied))
+  ))
+  const aimingAttack = activePickup?.mode === 'enemy' &&
+    (activePickup.stage === 'dragging' || activePickup.stage === 'aiming')
+  const showEnemyTargetPrompt = !over && !usingCard && !survivorDiscard && !severSoulExhaustOpen &&
+    !itemModalOpen && !owesChoice && !(pending?.choiceCards && !pending.choiceConfirmed) &&
+    state.enemies.some(enemy => !enemy.dead && (aimingAttack || isEnemyTargeted(enemy, false)))
   const displayedPileCount = (kind: 'draw' | 'discard' | 'exhaust', count: number) =>
     Math.max(0, count - cardFlights.filter((flight) => flight.destination === kind && !flight.landed).length)
   const drawPileCount = drawCount ?? viewer.draw.length
@@ -5030,6 +5056,9 @@ function CombatScreenView({
           : hermitSetupPending ? 'Load 1 card'
           : hermitSetupOwner ? `${hermitSetupOwner.name} Loads a card`
           : PHASE_LABEL[state.phase]}</span>
+        {showEnemyTargetPrompt ? <span className="combat__target-instruction" role="status">
+          Select an enemy
+        </span> : null}
         {Number.isFinite(timeWarpCardLimit) ? <span className="combat__time-warp"
           data-warning={timeWarpCardsPlayed >= timeWarpCardLimit - 1 || undefined}
           data-limit-reached={timeWarpCardsPlayed >= timeWarpCardLimit || undefined}
@@ -6604,25 +6633,7 @@ function CombatScreenView({
                 defender={viewer}
                 disabled={Boolean(pendingStartEnemy?.id.startsWith('facing:') && !startEnemyChoiceAvailable(enemy.uid) ||
                   pendingShivProgress && !pendingShivProgress.options.some((option) => option.uid === enemy.uid))}
-                targeted={(isEndTurnEnemyTarget(enemy) ||
-                  cardInteraction.session?.targetUid === enemy.uid ||
-                  cardTarget?.targetUid === enemy.uid ||
-                  cardDragTargetRow !== undefined && (cardDragTargetRow === enemy.row || enemy.isBoss) ||
-                  isStartTurnEnemyTarget(enemy.uid) ||
-                  (pendingTrigger?.playerId === viewer.id && triggerHermitChoicesReady &&
-                    (pendingTrigger.targets?.some((target) => target.uid === enemy.uid) ||
-                      triggerSlimeEnemyUids.length < triggerSlimeEnemyAmount)) ||
-                  isEnemyRowClickTargetable(enemy) ||
-                  ((pendingPotionNeedsEnemy || pendingPowerNeedsEnemy || (pendingPowerDef && pendingPowerDef.target !== 'row' &&
-                    (!pendingHermitPower || pendingPowerDef.id === 'hermit_black_wind' && powerLoadUids.length === 1)) || pendingPotionOverflow > 0) || spendingShiv || spendingSoulburn ||
-                  Boolean(pending && (pending.slimeEnemyUids.length < slimeEnemyChoicesRequired(pending) ||
-                    pending.hermitEnemyUids.length < loadedTargetCount(pending) ||
-                    pending.soulburnEnemyUids.length < pending.soulburnChoices)) || (
-                  ((pendingEvokeTarget < 0 && (pending?.needsEnemy === true && !enemyChoicesDone || independentEnemyPending) &&
-                    slayerTargetAllowed(enemy) && (!pendingShivProgress ||
-                      pendingShivProgress.options.some((option) => option.uid === enemy.uid))) ||
-                    (pendingEvokeTarget >= 0 && !pendingEvokeUsesRows && pendingEvokeTargetUids.has(enemy.uid))) && choiceSatisfied
-                ))) && !enemy.dead}
+                targeted={isEnemyTargeted(enemy)}
                 onClick={onEnemyClick}
               />
             ))}
@@ -7208,25 +7219,7 @@ function CombatScreenView({
                         : occupant}
                       disabled={Boolean(pendingStartEnemy?.id.startsWith('facing:') && !startEnemyChoiceAvailable(enemy.uid) ||
                         pendingShivProgress && !pendingShivProgress.options.some((option) => option.uid === enemy.uid))}
-                      targeted={(isEndTurnEnemyTarget(enemy) ||
-                        cardInteraction.session?.targetUid === enemy.uid ||
-                        cardTarget?.targetUid === enemy.uid ||
-                        cardDragTargetRow !== undefined && (cardDragTargetRow === enemy.row || enemy.isBoss) ||
-                        isStartTurnEnemyTarget(enemy.uid) ||
-                        (pendingTrigger?.playerId === viewer.id && triggerHermitChoicesReady &&
-                          (pendingTrigger.targets?.some((target) => target.uid === enemy.uid) ||
-                            triggerSlimeEnemyUids.length < triggerSlimeEnemyAmount)) ||
-                        isEnemyRowClickTargetable(enemy) ||
-                        ((pendingPotionNeedsEnemy || pendingPowerNeedsEnemy || (pendingPowerDef && pendingPowerDef.target !== 'row' &&
-                          (!pendingHermitPower || pendingPowerDef.id === 'hermit_black_wind' && powerLoadUids.length === 1)) || pendingPotionOverflow > 0) || spendingShiv || spendingSoulburn ||
-                        Boolean(pending && (pending.slimeEnemyUids.length < slimeEnemyChoicesRequired(pending) ||
-                          pending.hermitEnemyUids.length < loadedTargetCount(pending) ||
-                          pending.soulburnEnemyUids.length < pending.soulburnChoices)) || (
-                        ((pendingEvokeTarget < 0 && (pending?.needsEnemy === true && !enemyChoicesDone || independentEnemyPending) &&
-                          slayerTargetAllowed(enemy) && (!pendingShivProgress ||
-                            pendingShivProgress.options.some((option) => option.uid === enemy.uid))) ||
-                          (pendingEvokeTarget >= 0 && !pendingEvokeUsesRows && pendingEvokeTargetUids.has(enemy.uid))) && choiceSatisfied
-                      ))) && !enemy.dead}
+                      targeted={isEnemyTargeted(enemy)}
                       onClick={onEnemyClick}
                     />
                   ))

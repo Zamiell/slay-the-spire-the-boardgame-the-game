@@ -58,9 +58,11 @@ try {
     const play = async (name) => {
       const target = page.locator('[data-enemy-id="target"] .enemy__hit-area')
       await pickUpCard(page, name)
+      if (name.startsWith('Sever Soul')) await targetInstruction.waitFor()
       await confirmCardPlay(page, target)
     }
     const dialog = page.getByRole('dialog', { name: /Choose .* in your hand to Exhaust/ })
+    const targetInstruction = page.locator('.combat__target-instruction')
     const read = () => page.evaluate(() => structuredClone(window.__STS_DEBUG__.getState()))
     const confirm = () => dialog.getByRole('button', { name: /^Exhaust / })
     const dragForcedCard = async name => {
@@ -114,6 +116,7 @@ try {
       await setHand([card('havoc', 'havoc'), ...fuel], [drawn], 1)
       await play('Havoc')
       await dialog.waitFor()
+      assert.equal(await targetInstruction.count(), 0, 'choose the Exhaust card before asking for an enemy')
       assert.equal(await dialog.getByRole('button', { name: 'Cancel', exact: true }).count(), 0,
         'Havoc has committed the forced play: cancelling must not abandon its required Exhaust choice')
       await dialog.focus()
@@ -124,9 +127,20 @@ try {
       await page.screenshot({ path: `${output}/${screen}-havoc-${count}-choice.png` })
       await activate(confirm())
       await dialog.waitFor({ state: 'detached' })
+      await targetInstruction.waitFor()
+      assert.equal(await targetInstruction.innerText(), 'Select an enemy')
+      assert(await targetInstruction.evaluate(label => {
+        const box = label.getBoundingClientRect()
+        const bar = label.closest('.combat__bar').getBoundingClientRect()
+        return box.width > 100 && box.height > 15 && box.left >= 0 && box.right <= innerWidth &&
+          box.top >= bar.top && box.bottom <= bar.bottom && box.bottom < innerHeight / 3 &&
+          getComputedStyle(label).clipPath === 'none'
+      }), `${screen}: the enemy instruction must be readable near the top of the screen`)
+      await page.screenshot({ path: `${output}/${screen}-select-enemy-${count}.png` })
       if (count === 1) await dragForcedCard('Sever Soul')
       else await activate(page.locator('[data-enemy-id="target"] .enemy__hit-area'))
       await page.waitForFunction(() => !window.__STS_DEBUG__.getState().startTurnProgress?.forcedCard)
+      await targetInstruction.waitFor({ state: 'detached' })
       const havocPlayed = await read()
       assert.equal(havocPlayed.enemies[0].hp, 30 - damage)
       assert.equal(havocPlayed.players[0].energy, 0, 'Havoc must not charge Sever Soul’s printed cost')

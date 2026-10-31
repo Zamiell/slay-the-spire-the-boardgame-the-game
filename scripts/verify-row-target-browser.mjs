@@ -149,6 +149,9 @@ try {
         await page.evaluate(() => { const f = window.fixture; f.state = structuredClone(f.original); f.render() })
         await page.getByRole('button', { name: 'Use Combust+' }).click()
         await page.locator('[data-enemy-id="living"].enemy--targeted').waitFor()
+        const targetInstruction = page.locator('.combat__target-instruction')
+        await targetInstruction.waitFor()
+        assert.equal(await targetInstruction.innerText(), 'Select an enemy')
         assert.equal(await page.locator('.row__lane-target').count(), 0,
           `${screen}: a visible fallback button competes with the boss`)
         const bossGround = page.getByRole('button', { name: 'Target Row Defect with Combust+ (the boss is hit)' })
@@ -182,8 +185,21 @@ try {
         await page.screenshot({ path: resolve(output, `${engineName}-${screen}-choice.png`) })
         await activate(page.locator('[data-enemy-id="boss"] .enemy__hit-area'))
         await page.waitForFunction(() => window.fixture.state.enemies.find(enemy => enemy.uid === 'boss').hp === 18)
+        await targetInstruction.waitFor({ state: 'detached' })
         assert.equal(await page.evaluate(() => window.fixture.state.enemies.find(enemy => enemy.uid === 'living').hp), 10,
           `${screen}: boss click also hit another row`)
+
+        await page.evaluate(() => {
+          window.fixture.state.players[0].potions = ['fire_potion', 'block_potion']
+          window.fixture.render()
+        })
+        await page.getByRole('button', { name: 'Use Fire Potion', exact: true }).press('Enter')
+        await targetInstruction.waitFor()
+        await activate(page.locator('[data-enemy-id="boss"] .enemy__hit-area'))
+        await page.waitForFunction(() => !window.fixture.state.players[0].potions.includes('fire_potion'))
+        await targetInstruction.waitFor({ state: 'detached' })
+        await page.getByRole('button', { name: 'Use Block Potion', exact: true }).press('Enter')
+        assert.equal(await targetInstruction.count(), 0, 'choosing a player must not ask for an enemy')
 
         await page.evaluate(() => window.fixture.bossPair())
         await page.locator('[data-enemy-id="deca"]').waitFor()
@@ -199,6 +215,7 @@ try {
         await page.getByRole('button', { name: /^End Turn \d+/ }).click()
         await page.locator('.end-turn-effects button.end-turn-effect--orb').click()
         await page.locator('[data-enemy-id="deca"].enemy--targeted').waitFor()
+        await targetInstruction.waitFor()
         await page.screenshot({ path: resolve(output, `${engineName}-${screen}-electrodynamics-boss-pair.png`) })
         await activate(page.locator('[data-enemy-id="deca"] .enemy__hit-area'))
         await page.waitForFunction(() => window.fixture.state.enemies.every(enemy => enemy.hp === 19))
@@ -225,7 +242,7 @@ try {
         assert.equal(await page.evaluate(() => window.fixture.state.enemies.find(enemy => enemy.uid === 'living').hp), 10)
 
         await page.evaluate(() => window.fixture.evoke())
-        await page.getByRole('button', { name: /^Dual Cast,/ }).click()
+        await page.getByRole('button', { name: /^Dual Cast,/ }).press('Enter')
         await page.getByRole('button', { name: 'Evoke lightning Orb 1', exact: true }).click()
         await page.locator('[data-enemy-id="boss"].enemy--targeted').waitFor()
         assert.equal(await page.locator('.row__lane-target').count(), 0,
@@ -241,7 +258,7 @@ try {
           `${screen}: boss click did not resolve lightning's sole populated row`)
 
         await page.evaluate(() => window.fixture.evoke())
-        await page.getByRole('button', { name: /^Dual Cast,/ }).click()
+        await page.getByRole('button', { name: /^Dual Cast,/ }).press('Enter')
         await page.getByRole('button', { name: 'Evoke lightning Orb 1', exact: true }).click()
         const lightningGround = page.getByRole('button', { name: 'Evoke Lightning in Row Defect (the boss is hit)' })
         await lightningGround.waitFor()
@@ -252,7 +269,7 @@ try {
           `${screen}: empty-row lightning choice should hit only the boss`)
 
         await page.evaluate(() => window.fixture.evoke())
-        await page.getByRole('button', { name: /^Dual Cast,/ }).click()
+        await page.getByRole('button', { name: /^Dual Cast,/ }).press('Enter')
         await page.getByRole('button', { name: 'Evoke lightning Orb 1', exact: true }).click()
         await lightningGround.focus()
         await lightningGround.evaluate(element => element.dispatchEvent(new KeyboardEvent('keydown', {
@@ -267,7 +284,7 @@ try {
 
         // The floating Evoke Orb can be dropped on the same empty-row ground.
         await page.evaluate(() => window.fixture.evoke())
-        await page.getByRole('button', { name: /^Dual Cast,/ }).click()
+        await page.getByRole('button', { name: /^Dual Cast,/ }).press('Enter')
         await page.getByRole('button', { name: 'Evoke lightning Orb 1', exact: true }).click()
         const bossBeforeDrop = await page.evaluate(() => window.fixture.state.enemies.find(enemy => enemy.uid === 'boss').hp)
         for (let aim = 0; aim < 2; aim++) {
@@ -293,7 +310,7 @@ try {
           Object.assign(window.fixture.state.enemies.find(enemy => enemy.uid === 'dead'), { hp: 10, dead: false })
           window.fixture.render()
         })
-        await page.getByRole('button', { name: /^Dual Cast,/ }).click()
+        await page.getByRole('button', { name: /^Dual Cast,/ }).press('Enter')
         await page.getByRole('button', { name: 'Evoke lightning Orb 1', exact: true }).click()
         const rowAim = await dragBounds(page.locator('.evoke-target-effect button'))
         await pointer.move(rowAim.x + rowAim.width / 2, rowAim.y + rowAim.height / 2)

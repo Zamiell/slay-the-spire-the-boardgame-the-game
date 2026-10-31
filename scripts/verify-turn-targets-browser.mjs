@@ -160,15 +160,17 @@ try {
     await load({ player: { hand: [c('dual', 'dual_cast')], orbs: ['lightning', 'frost', 'dark'], orbEvokeBonus: 1 } })
     await playDualCast()
     await orbButton('lightning', 1).waitFor()
-    assert.equal(await page.locator('.orbs__target').count(), 3)
-    assert(await orbsVisibleAndClear(), `${name}: the hero's Orbs are covered while choosing an Evoke`)
+    const orbDialog = page.getByRole('dialog', { name: 'Choose an Orb to Evoke', exact: true })
+    assert.equal(await orbDialog.locator('.orb-selection__option').count(), 3)
+    assert.equal(await page.locator('.orbs__target').count(), 0, 'the battlefield must not duplicate modal Orb controls')
     assert.equal(await page.locator('.prompt').filter({ hasText: /Evoke/ }).evaluateAll((prompts) =>
       prompts.filter((prompt) => prompt.getBoundingClientRect().width > 1).length), 0,
     `${name}: a text Orb picker is still painted over the board`)
-    assert.notEqual(await page.locator('.orbs__target .token--orb').first().evaluate((token) =>
+    assert.notEqual(await orbDialog.locator('.token--orb').first().evaluate((token) =>
       getComputedStyle(token).boxShadow), 'none', `${name}: choosable Orbs have no selection ring`)
     await page.screenshot({ path: `${out}/${name}-card-evoke-choice.png` })
     await orbButton('lightning', 1).click()
+    await orbDialog.getByRole('button', { name: 'Confirm evoke', exact: true }).click()
     const evokeTarget = page.locator('.evoke-target-effect')
     await evokeTarget.waitFor()
     assert.equal(await visibleCaption(), 'Drag to an enemy')
@@ -200,6 +202,7 @@ try {
       powers: [c('electro', 'electrodynamics')] } })
     await playDualCast()
     await orbButton('lightning', 1).click()
+    await orbDialog.getByRole('button', { name: 'Confirm evoke', exact: true }).click()
     await evokeTarget.waitFor()
     await drag(evokeTarget.locator('button'), 'boss')
     await page.waitForTimeout(200)
@@ -212,7 +215,7 @@ try {
     assert(rowHp[0] < 30 && rowHp[1] < 30 && rowHp[2] <= 50 - 4,
       `${name}: row Lightning did not hit both rows and the boss twice: ${rowHp}`)
 
-    // A start-of-turn Evoke uses the same Orb picker and aim.
+    // Start-of-turn choices stay on the board alongside their reorderable abilities.
     await load({ phase: 'start', player: { powers: [c('storm', 'storm', true)], orbs: ['lightning', 'frost', 'dark'] } })
     await orbButton('dark', 3).waitFor()
     assert(await orbsVisibleAndClear(), `${name}: the hero's Orbs are covered while choosing Storm's Evoke`)

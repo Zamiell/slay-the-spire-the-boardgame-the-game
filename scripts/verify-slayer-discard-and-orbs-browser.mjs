@@ -393,13 +393,17 @@ try {
     await assertReadable(page.getByRole('button', { name: 'Evoke lightning Orb 1', exact: true }), `${name} Aggregate Lightning Orb`, true)
     await page.screenshot({ path: `${out}/${name}-aggregate-orbs.png` })
     await press(page.getByRole('button', { name: 'Evoke lightning Orb 1', exact: true }))
+    await press(page.getByRole('button', { name: 'Confirm evoke', exact: true }))
     await page.getByText('Choose an enemy for this evoke').waitFor()
     await settle(page)
     await page.screenshot({ path: `${out}/${name}-aggregate.png` })
     await press(page.locator('.enemy[data-enemy-id="e0"] .enemy__hit-area'))
     await press(page.locator('.enemy[data-enemy-id="e1"] .enemy__hit-area'))
     const frost = page.getByRole('button', { name: 'Evoke frost Orb 2', exact: true })
-    if (await frost.count()) await press(frost)
+    if (await frost.count()) {
+      await press(frost)
+      await press(page.getByRole('button', { name: 'Confirm evoke', exact: true }))
+    }
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.players[0].hand.length === 0)
     combat = await combatOf()
     assert.deepEqual(combat.enemies.map((foe) => foe.hp), [38, 38], 'each Lightning application took its own target')

@@ -4,6 +4,7 @@ import { mkdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { createServer } from 'vite'
 import { chromium, webkit } from './lib/profile-browser.mjs'
+import { pickUpCard } from './lib/card-interactions.mjs'
 
 const root = resolve(import.meta.dirname, '..')
 const output = resolve(root, 'artifacts/combat-target-geometry')
@@ -22,6 +23,7 @@ try {
         const phone = screen !== 'desktop'
         const smallPhone = screen === 'small-horizontal-phone'
         if (orbsOnly && smallPhone) continue
+        console.log(`Checking ${engineName} ${screen} target geometry`)
         const context = await browser.newContext({ viewport, isMobile: phone, hasTouch: phone,
           recordVideo: { dir: output, size: viewport } })
         const page = await context.newPage()
@@ -229,13 +231,19 @@ try {
           })
           await ready()
           const dual = page.locator('.hand .card').first()
-          if (phone) { await tap(dual); await tap(dual) } else await dual.click()
-          await page.locator('.orbs__target').first().waitFor()
-          assert(await orbsReachable(), `${engineName}/${screen}: boss intercepts Dual Cast Orb choice`)
+          await dual.focus()
+          await page.keyboard.press('Enter')
+          const modalOrbs = page.locator('.hand-discard .orb-selection__option')
+          await modalOrbs.first().waitFor()
+          const modalOrbsReachable = () => modalOrbs.evaluateAll(orbs => orbs.every(orb => {
+            const r = orb.getBoundingClientRect()
+            return orb.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2))
+          }))
+          assert(await modalOrbsReachable(), `${engineName}/${screen}: boss intercepts Dual Cast Orb choice`)
           await page.screenshot({ path: resolve(output, `${engineName}-${screen}-dual-cast-orb-choice.png`) })
           // Stress the same stacking boundary when a tall boss's transparent hit
           // region overhangs the Orbs, independent of asset poses.
-          assert(await page.locator('.orbs__target').nth(1).evaluate(orb => {
+          assert(await modalOrbs.nth(1).evaluate(orb => {
             const hit = document.querySelector('.enemy__hit-area')
             const o = orb.getBoundingClientRect(), h = hit.getBoundingClientRect()
             hit.style.translate = `${o.x + o.width / 2 - (h.x + h.width / 2)}px ${o.y + o.height / 2 - (h.y + h.height / 2)}px`
@@ -243,10 +251,11 @@ try {
             return moved.left < o.x + o.width / 2 && moved.right > o.x + o.width / 2 &&
               moved.top < o.y + o.height / 2 && moved.bottom > o.y + o.height / 2
           }), `${engineName}/${screen}: the boss hit area was not moved over the Orbs`)
-          assert(await orbsReachable(), `${engineName}/${screen}: boss overhang intercepts the Orb choice`)
+          assert(await modalOrbsReachable(), `${engineName}/${screen}: boss overhang intercepts the Orb choice`)
           await page.evaluate(() => { document.querySelector('.enemy__hit-area').style.translate = '' })
           const frost = page.getByRole('button', { name: 'Evoke frost Orb 2', exact: true })
           if (phone) await tap(frost); else await frost.click()
+          await page.getByRole('button', { name: 'Confirm evoke', exact: true }).click()
           await page.waitForFunction(() => window.fixture.state.players[0].block > 0)
           // Boss size remains visibly larger than the hero, with hit areas following
           // changes in the artwork's height when a desktop window is resized.
@@ -279,7 +288,7 @@ try {
               const r = await card.boundingBox()
               await page.mouse.move(r.x + r.width / 2, r.y + r.height / 2)
               await page.mouse.down(); await page.mouse.move(p.x, p.y, { steps: 12 }); await page.mouse.up()
-            } else { await card.click(); await page.mouse.click(p.x, p.y) }
+            } else { await pickUpCard(page, card); await page.mouse.click(p.x, p.y) }
             await page.waitForFunction(target => window.fixture.state.enemies.find(e => e.uid === target).hp < 50, target)
             assert.equal(await page.evaluate(target => window.fixture.state.enemies.find(e => e.uid !== target).hp, target), 50)
           }
@@ -288,15 +297,16 @@ try {
           for (const defId of ['green_louse', 'gremlin_nob']) {
             await page.evaluate(defId => window.fixture.install([defId, 'jaw_worm']), defId)
             await ready()
-            await page.locator('.hand .card').first().click()
-            await page.locator('[data-enemy-id="enemy-0"] .enemy__head').click()
+            await pickUpCard(page, page.locator('.hand .card').first())
+            await page.locator('[data-enemy-id="enemy-0"] .enemy__hit-area').click()
             await page.waitForFunction(() => window.fixture.state.enemies[0].hp < 50)
             assert.equal(await page.evaluate(() => window.fixture.state.enemies[1].hp), 50)
           }
           // The native enemy button remains keyboard operable.
           await page.evaluate(() => window.fixture.install(['deca', 'donu']))
           await ready()
-          await page.locator('.hand .card').first().click()
+          await page.locator('.hand .card').first().focus()
+          await page.keyboard.press('Enter')
           await page.locator('[data-enemy-id="enemy-1"]').focus()
           await page.keyboard.press('Enter')
           await page.waitForFunction(() => window.fixture.state.enemies[1].hp < 50)
@@ -304,7 +314,8 @@ try {
           await page.evaluate(() => { document.documentElement.dataset.reducedMotion = 'true'; window.fixture.install(['deca', 'donu']) })
           await ready()
           const staticPoint = await bodyPoint('enemy-1')
-          await page.locator('.hand .card').first().click(); await page.mouse.click(staticPoint.x, staticPoint.y)
+          await pickUpCard(page, page.locator('.hand .card').first())
+          await page.mouse.click(staticPoint.x, staticPoint.y)
           await page.waitForFunction(() => window.fixture.state.enemies[1].hp < 50)
           await page.evaluate(() => { document.documentElement.dataset.reducedMotion = 'false' })
 
@@ -344,7 +355,7 @@ try {
           assert(orbGap >= 0 && orbGap < 4, `${engineName}/${screen}/party${partySize}: Orbs too far from Defect: ${orbGap}rem`)
           for (let i = 0; i < 2; i++) {
             await page.getByRole('button', { name: `Evoke ${orb} Orb ${orb === 'dark' ? i + 1 : 1}`, exact: true }).click()
-            await page.locator('.enemy__head').click()
+            await page.waitForFunction(() => !document.querySelector('.enemy--targeted'))
           }
           // Commit the last local target choice before injecting another render.
           await page.waitForFunction(() => document.querySelector('.combat__end-turn')?.disabled === false)

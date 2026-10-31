@@ -87,10 +87,13 @@ const focusedUiOwners = ownerMap([
     'verify-sever-soul-browser.mjs', 'verify-start-turn-order-browser.mjs',
     'verify-all-out-attack-browser.mjs', 'verify-survivor-selection-browser.mjs', 'verify-retain-selection-browser.mjs',
   ]],
-  ...['src/ui/combat-screen/HandSelectionScreen.tsx', 'src/ui/styles/hand-discard-selection.css']
+  ...['src/ui/combat-screen/HandSelectionScreen.tsx', 'src/ui/combat-screen/SelectionScreen.tsx',
+    'src/ui/styles/hand-discard-selection.css']
     .map(file => [file, ['verify-sever-soul-browser.mjs', 'verify-survivor-selection-browser.mjs',
       'verify-start-turn-order-browser.mjs', 'verify-retain-selection-browser.mjs', 'verify-runic-pyramid-browser.mjs',
-      'verify-card-choices-browser.mjs']]),
+      'verify-card-choices-browser.mjs', 'verify-hermit-combo-browser.mjs', 'verify-orb-selection-browser.mjs']]),
+  ...['src/ui/combat-screen/OrbSelectionScreen.tsx', 'src/ui/styles/orb-selection.css']
+    .map(file => [file, ['verify-orb-selection-browser.mjs', 'verify-orb-tooltips-browser.mjs', 'verify-turn-targets-browser.mjs']]),
   ['src/ui/CardCollectionOverlay.tsx', [
     'verify-deck-inspection-browser.mjs',
     'verify-flurry-stance-browser.mjs',
@@ -113,6 +116,7 @@ const focusedUiOwners = ownerMap([
   ['src/ui/styles/shop.css', ['verify-shop-browser.mjs']],
   ['src/ui/LeaderboardScreen.tsx', ['verify-leaderboard-browser.mjs']],
   ['src/ui/CombatScreen.tsx', [
+    'verify-orb-selection-browser.mjs',
     'verify-retain-selection-browser.mjs', 'verify-card-choices-browser.mjs',
     'verify-card-block-preview-browser.mjs',
     'verify-single-enemy-targets-browser.mjs',

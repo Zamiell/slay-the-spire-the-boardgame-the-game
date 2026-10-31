@@ -9,6 +9,7 @@ import { useCardInteraction } from './combat-screen/useCardInteraction.ts'
 import { trackCombatResources } from './combat-screen/resource-visibility.ts'
 import { CardInteractionLayer } from './combat-screen/CardInteractionLayer.tsx'
 import { HandSelectionScreen } from './combat-screen/HandSelectionScreen.tsx'
+import { OrbSelectionScreen } from './combat-screen/OrbSelectionScreen.tsx'
 import { HandCardSelection } from './combat-screen/HandCardSelection.tsx'
 import { useButtonShortcut } from './useButtonShortcut.ts'
 // Input owns pickup; the play coordinator owns choices; the engine owns mutations.
@@ -3690,6 +3691,7 @@ function CombatScreenView({
       : undefined
   const evokeChoiceOptions = pendingStartEvoke?.evokeChoice?.options ??
     (pendingEvokeChoice && pendingEvokeTarget < 0 && choiceSatisfied ? pendingEvokeChoice.options : undefined)
+  const cardOrbChoiceOpen = !pendingStartEvoke && Boolean(evokeChoiceOptions)
   // Local parties resolve every seat's start-of-turn choices from one screen.
   const evokeChoicePlayerId = pendingStartEvoke?.playerId ?? pendingStartEvokeTarget?.ability.playerId ?? viewer.id
   // Earlier Evokes and Channels in the same effect are still only planned; while they
@@ -6348,6 +6350,16 @@ function CombatScreenView({
           }}
           onCancel={() => setPendingPowerUid(null)}
         /> : null}
+      {cardOrbChoiceOpen && pending && pendingEvokeChoice ? <OrbSelectionScreen
+        key={`${pending.card.uid}:${pendingEvokeChoice.index}`}
+        sourceCard={pending.card} sourceBlock={cardBlock.get(pending.card.uid)}
+        player={viewer} options={pendingEvokeChoice.options}
+        disabled={usingCard || !mutationsEnabled || authoritativeConnected === false}
+        active={selectionDialogsActive && !owesChoice}
+        onConfirm={onEvokeClick}
+        onCancel={handSelectionCanCancel && (!pending.choiceCards ||
+          pending.choice?.kind === 'recover' || pending.choice?.kind === 'recoverExhaust') ? cancelCardPlay : undefined}
+      /> : null}
       {handSelectionOpen && pending ? <HandCardSelection key={pending.card.uid}
          blockPreviews={cardBlock}
         cards={handSelectionCards} minimum={handSelectionMinimum} maximum={handSelectionMaximum}
@@ -7215,7 +7227,7 @@ function CombatScreenView({
                       targetVerb={evokeChoiceOptions && occupant.id === evokeChoicePlayerId ? 'Evoke'
                         : creativeAiEffect && occupant.id === viewer.id ? 'Remove' : undefined}
                       selectedSlots={creativeAiEffect?.anyNumber && occupant.id === viewer.id ? powerOrbSlots : undefined}
-                      targetableSlots={evokeChoiceOptions && occupant.id === evokeChoicePlayerId
+                      targetableSlots={cardOrbChoiceOpen ? [] : evokeChoiceOptions && occupant.id === evokeChoicePlayerId
                         ? evokeChoiceOptions.map((option) => option.slot)
                         : creativeAiEffect && occupant.id === viewer.id
                         ? occupant.orbs.flatMap((orb, slot) => orb ? [slot] : [])

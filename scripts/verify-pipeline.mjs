@@ -87,7 +87,11 @@ check('frontend surfaces select their cores and named focused browser checks', (
   assert(combat.includes('verify-single-enemy-targets-browser.mjs'))
   assert(combat.includes('verify-card-block-preview-browser.mjs'))
   includesEvery(combat, ['verify-retain-selection-browser.mjs', 'verify-card-choices-browser.mjs'], 'shared combat choices')
-  assertEqual(combat.length, 55, 'combat screen selected an unrelated browser suite')
+  assert(combat.includes('verify-orb-selection-browser.mjs'))
+  assertEqual(combat.length, 56, 'combat screen selected an unrelated browser suite')
+  includesEvery(affectedBrowser('src/ui/combat-screen/SelectionScreen.tsx'), [
+    'verify-orb-selection-browser.mjs', 'verify-survivor-selection-browser.mjs', 'verify-hermit-combo-browser.mjs',
+  ], 'shared selection shell')
   includesEvery(affectedBrowser('src/ui/TokenRow.tsx'), ['verify-turn-targets-browser.mjs',
     'verify-row-target-browser.mjs', 'verify-combat-target-geometry-browser.mjs'], 'Orb row')
   assert(affectedBrowser('src/ui/styles/stage-scale.css').includes('verify-combat-layout-reload-browser.mjs'))

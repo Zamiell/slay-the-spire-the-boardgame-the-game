@@ -233,17 +233,15 @@ try {
         await page.evaluate(() => window.fixture.noBoss())
         await page.getByRole('button', { name: 'Use Combust+' }).click()
         const ground = page.getByRole('button', { name: 'Target Row Defect with Combust+' })
-        await ground.waitFor()
+        await page.waitForFunction(() => window.fixture.state.enemies.find(enemy => enemy.uid === 'living').hp === 8)
+        assert.equal(await ground.count(), 0, 'the sole enemy row must be selected automatically')
         assert.equal(await page.locator('.row__lane-target').count(), 0)
-        assert.equal(await ground.evaluate(element => getComputedStyle(element).display), 'block')
-        await page.screenshot({ path: resolve(output, `${engineName}-${screen}-empty-row.png`) })
-        await activate(ground)
-        await page.waitForFunction(() => !document.querySelector('.row__enemies--targetable'))
-        assert.equal(await page.evaluate(() => window.fixture.state.enemies.find(enemy => enemy.uid === 'living').hp), 10)
+        await page.screenshot({ path: resolve(output, `${engineName}-${screen}-sole-enemy-row.png`) })
 
         await page.evaluate(() => window.fixture.evoke())
         await page.getByRole('button', { name: /^Dual Cast,/ }).press('Enter')
         await page.getByRole('button', { name: 'Evoke lightning Orb 1', exact: true }).click()
+        await page.getByRole('button', { name: 'Confirm evoke', exact: true }).click()
         await page.locator('[data-enemy-id="boss"].enemy--targeted').waitFor()
         assert.equal(await page.locator('.row__lane-target').count(), 0,
           `${screen}: lightning evoke still shows a redundant button`)
@@ -260,6 +258,7 @@ try {
         await page.evaluate(() => window.fixture.evoke())
         await page.getByRole('button', { name: /^Dual Cast,/ }).press('Enter')
         await page.getByRole('button', { name: 'Evoke lightning Orb 1', exact: true }).click()
+        await page.getByRole('button', { name: 'Confirm evoke', exact: true }).click()
         const lightningGround = page.getByRole('button', { name: 'Evoke Lightning in Row Defect (the boss is hit)' })
         await lightningGround.waitFor()
         await activate(lightningGround)
@@ -271,6 +270,7 @@ try {
         await page.evaluate(() => window.fixture.evoke())
         await page.getByRole('button', { name: /^Dual Cast,/ }).press('Enter')
         await page.getByRole('button', { name: 'Evoke lightning Orb 1', exact: true }).click()
+        await page.getByRole('button', { name: 'Confirm evoke', exact: true }).click()
         await lightningGround.focus()
         await lightningGround.evaluate(element => element.dispatchEvent(new KeyboardEvent('keydown', {
           key: ' ', repeat: true, bubbles: true,
@@ -286,6 +286,7 @@ try {
         await page.evaluate(() => window.fixture.evoke())
         await page.getByRole('button', { name: /^Dual Cast,/ }).press('Enter')
         await page.getByRole('button', { name: 'Evoke lightning Orb 1', exact: true }).click()
+        await page.getByRole('button', { name: 'Confirm evoke', exact: true }).click()
         const bossBeforeDrop = await page.evaluate(() => window.fixture.state.enemies.find(enemy => enemy.uid === 'boss').hp)
         for (let aim = 0; aim < 2; aim++) {
           const from = await dragBounds(page.locator('.evoke-target-effect button'))
@@ -312,6 +313,7 @@ try {
         })
         await page.getByRole('button', { name: /^Dual Cast,/ }).press('Enter')
         await page.getByRole('button', { name: 'Evoke lightning Orb 1', exact: true }).click()
+        await page.getByRole('button', { name: 'Confirm evoke', exact: true }).click()
         const rowAim = await dragBounds(page.locator('.evoke-target-effect button'))
         await pointer.move(rowAim.x + rowAim.width / 2, rowAim.y + rowAim.height / 2)
         await pointer.down()

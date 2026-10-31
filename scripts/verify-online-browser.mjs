@@ -2232,6 +2232,7 @@ try {
   await a.getByText('Choose Energy for Multi-Cast').waitFor()
   await a.getByRole('button', { name: 'Spend 2' }).click()
   await a.getByRole('button', { name: 'Evoke frost Orb 1', exact: true }).click()
+  await a.getByRole('button', { name: 'Confirm evoke', exact: true }).click()
   await a.getByRole('button', { name: 'Evoke frost Orb 1', exact: true }).waitFor({ state: 'detached' })
   await a.getByRole('button', { name: 'Evoke frost Orb 2', exact: true }).waitFor()
   await a.locator('.combat[data-phase="copy"]').waitFor()
@@ -2258,6 +2259,7 @@ try {
       response.request().method() === 'GET' && response.ok()
   })
   await a.getByRole('button', { name: 'Evoke frost Orb 2', exact: true }).click()
+  await a.getByRole('button', { name: 'Confirm evoke', exact: true }).click()
   const multiCastCopyRefreshResponse = await multiCastCopyRefresh
   await multiCastCopyRefreshResponse.finished()
   assertEqual(submittedMultiCastCopy?.kind, 'playCardCopy', 'the forged action was not a Multi-Cast copy')
@@ -2287,6 +2289,7 @@ try {
   assert(multiCastCopyConflict >= 0, 'the refused Multi-Cast copy did not surface as an HTTP conflict')
   failures.splice(multiCastCopyConflict, 1)
   await a.getByRole('button', { name: 'Evoke frost Orb 2', exact: true }).click()
+  await a.getByRole('button', { name: 'Confirm evoke', exact: true }).click()
   for (let attempt = 0; attempt < 50 && liveRoom.run.combat.phase !== 'player'; attempt += 1) {
     await new Promise((resolveDelay) => setTimeout(resolveDelay, 100))
   }
@@ -6103,6 +6106,7 @@ try {
   await fourPages[2].getByRole('button', { name: /^Multi-Cast, cost X,/ }).click()
   await fourPages[2].getByRole('button', { name: 'Spend 2' }).click()
   await fourPages[2].getByRole('button', { name: 'Evoke lightning Orb 1', exact: true }).click()
+  await fourPages[2].getByRole('button', { name: 'Confirm evoke', exact: true }).click()
   const zeroDamageTarget = fourPages[2].getByRole('button', { name: /^Spire Shield,/ })
   await zeroDamageTarget.dispatchEvent('click')
   await zeroDamageTarget.waitFor()

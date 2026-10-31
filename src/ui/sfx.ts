@@ -11,6 +11,7 @@ export { SFX_STORAGE_KEY }
 const SOUNDS = {
   ...Object.fromEntries(Object.keys(ANIMATION_SOUND_VOLUMES).map(sound => [sound, assetPath(`sfx/${sound}.mp3`)])) as Record<AnimationSound, string>,
   ui: assetPath('sfx/ui.ogg'),
+  gold: assetPath('sfx/gold.wav'),
   card: assetPath('sfx/card.ogg'),
   draw: assetPath('sfx/draw.ogg'),
   attack: assetPath('sfx/attack.ogg'),

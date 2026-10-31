@@ -146,7 +146,7 @@ check('sound effects are complete and compact', () => {
     ...Object.keys(STAGED_SOUND_VOLUMES).map((sound) => `${sound}.mp3`),
   ].sort()
   assertDeepEqual([...listing(sfxRoot, '.ogg'), ...listing(sfxRoot, '.mp3')].sort(), expected)
-  const files = expected.map((file) => join(sfxRoot, file))
+  const files = [...expected, 'gold.wav'].map((file) => join(sfxRoot, file))
   assert(files.reduce((bytes, file) => bytes + statSync(file).size, 0) < 512 * 1024,
     'sound effects exceed 512 KiB')
 })

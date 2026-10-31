@@ -58,6 +58,7 @@ pnpm sync:assets     # refresh card faces and icons; add optional Act I enemy cr
 | Title-menu and compendium backgrounds | original OpenAI Imagegen fan illustrations created for this implementation |
 | Kreon typeface | Julia Petretta and the Kreon Project Authors, SIL Open Font License 1.1 |
 | UI click sound | Original synthesized effect; regenerate with `python3 scripts/generate-ui-click.py` |
+| Gold pickup jingle (`public/assets/sfx/gold.wav`) | Original procedural metallic coin clinks, synthesized without samples from any game. Regenerate with `python3 scripts/audio/generate-gold-sfx.py`; replace the WAV to swap the effect. |
 | Card and combat sound effects | `80 CC0 RPG SFX` by rubberduck, released under CC0 on OpenGameArt |
 
 The sync scripts keep the rulebook PDF, source-resolution working files, and unused enemy variants

@@ -71,7 +71,7 @@ check('every Safari hardware-video companion was encoded from the current rigged
 })
 
 check('every sound effect decodes', () => {
-  for (const file of [...listing(sfxRoot, '.ogg'), ...listing(sfxRoot, '.mp3')].map((name) => join(sfxRoot, name))) {
+  for (const file of [...listing(sfxRoot, '.ogg'), ...listing(sfxRoot, '.mp3'), ...listing(sfxRoot, '.wav')].map((name) => join(sfxRoot, name))) {
     const result = spawnSync('ffprobe', [
       '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', file,
     ], { encoding: 'utf8' })

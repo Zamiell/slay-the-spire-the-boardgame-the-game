@@ -12,14 +12,16 @@ import { ItemImage } from './ItemImage.tsx'
 import { PotionTooltipAnchor } from './PotionIcon.tsx'
 import { rewardSourceLabel } from './reward-source.ts'
 
-export function LootChoice({ children, icon, onClick, disabled = false, describedBy }: {
+export function LootChoice({ children, icon, onClick, disabled = false, describedBy, sound }: {
   children: ReactNode
   icon: ReactNode
   onClick: () => void
   disabled?: boolean
   describedBy?: string
+  sound?: 'gold'
 }) {
-  return <button className="loot-choice" type="button" onClick={onClick} disabled={disabled} aria-describedby={describedBy}>
+  return <button className="loot-choice" type="button" onClick={onClick} disabled={disabled} aria-describedby={describedBy}
+    data-sfx={sound}>
     <span className="loot-choice__icon">{icon}</span><strong>{children}</strong>
   </button>
 }
@@ -170,7 +172,7 @@ export function RewardScreen({ players, rewards, onReveal, onGold, onPotion, onR
         if (!player) return null
         return <div className="reward-screen__player" key={player.id}>
           {players.length > 1 ? <h3>{player.name}</h3> : null}
-          {offer.gold ? <LootChoice onClick={() => onGold(player.id)} icon={<img src={assetPath('icons/gold.png')} alt="" />}>{offer.gold} Gold</LootChoice> : null}
+          {offer.gold ? <LootChoice sound="gold" onClick={() => onGold(player.id)} icon={<img src={assetPath('icons/gold.png')} alt="" />}>{offer.gold} Gold</LootChoice> : null}
           {typeof offer.potion === 'string' ? <PotionLootChoices potionId={offer.potion} player={player} ascension={ascension}
             onChoose={(decision) => onPotion(player.id, decision)} /> : null}
           {typeof offer.relic === 'string' ? <ItemLootChoice kind="relic" id={offer.relic}

@@ -161,7 +161,7 @@ export function OnlineRewardScreen({ run, viewerId, waitingForTeammate = false, 
   return <section className="reward-screen reward-screen--loot" style={backdrop}>
     <h2 className="reward-screen__title">Loot!</h2>
     <div className="reward-screen__players"><div className="reward-screen__player">
-      {offer.gold ? <LootChoice disabled={lootPending} onClick={() => dispatchLoot([{ kind: 'goldReward' }])} icon={<img src={assetPath('icons/gold.png')} alt="" />}>{offer.gold} Gold</LootChoice> : null}
+      {offer.gold ? <LootChoice sound="gold" disabled={lootPending} onClick={() => dispatchLoot([{ kind: 'goldReward' }])} icon={<img src={assetPath('icons/gold.png')} alt="" />}>{offer.gold} Gold</LootChoice> : null}
       {typeof offer.potion === 'string' ? <PotionLootChoices potionId={offer.potion} player={player} ascension={run.ascension} disabled={lootPending}
         onChoose={(decision) => dispatchLoot([{ ...decision, kind: 'potionReward', choice: decision.kind }])} /> : null}
       {typeof offer.relic === 'string' ? <ItemLootChoice kind="relic" id={offer.relic} disabled={lootPending}

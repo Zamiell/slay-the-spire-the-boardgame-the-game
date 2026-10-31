@@ -61,6 +61,10 @@ const focusedEngineOwners = ownerMap([
   ['src/game/run/rewards.ts', ['verify-loot-browser.mjs', 'verify-tiny-house-browser.mjs']],
 ])
 const focusedUiOwners = ownerMap([
+  ...['src/ui/RewardScreen.tsx', 'src/ui/OnlineRewardScreen.tsx']
+    .map(file => [file, ['verify-gold-sfx-browser.mjs']]),
+  ...['scripts/audio/generate-gold-sfx.py', 'public/assets/sfx/gold.wav']
+    .map(file => [file, ['verify-assets.mjs', 'verify-gold-sfx-browser.mjs']]),
   ...['src/ui/MapDrawing.tsx', 'src/ui/styles/map-drawing.css', 'src/ui/MapOverlay.tsx']
     .map(file => [file, ['verify-map-drawing-browser.mjs']]),
   ...['src/ui/chrome/keys.css', 'src/ui/chrome/stone-keys.css']
@@ -166,7 +170,7 @@ const focusedUiOwners = ownerMap([
   ['src/profile.ts', ['verify-account-browser.mjs', 'verify-restricted-browser.mjs', 'verify-ascension-sync-browser.mjs']],
   ['src/campaign-storage.ts', ['verify-ascension-sync-browser.mjs', 'verify-daily-climb-browser.mjs', 'verify-multiplayer-resume-browser.mjs']],
   ['src/ui/styles/profile.css', ['verify-skin-profile-browser.mjs', 'verify-account-browser.mjs']],
-  ['src/ui/sfx.ts', ['verify-run-replay-browser.mjs']],
+  ['src/ui/sfx.ts', ['verify-run-replay-browser.mjs', 'verify-gold-sfx-browser.mjs']],
   ['src/ui/combat-screen/HermitTriggerChoice.tsx', [
     'verify-hermit-combo-browser.mjs', 'verify-hermit-online-staged-trigger-browser.mjs',
   ]],

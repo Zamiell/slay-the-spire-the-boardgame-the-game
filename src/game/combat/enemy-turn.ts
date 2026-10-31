@@ -6,8 +6,8 @@
 // consequences run through: damage to a player, a death, and settling the
 // fight once every enemy has acted.
 import { clone, combatIsOver, enemyLabel, playersInRowOf, retainedBlockAtStartOfTurn } from './board.ts'
-import { damagePlayer, settle, shedSlayerCardsOnLeave, triggerEnemyDeath } from './effects.ts'
-import { addDaze, addStatus, playerCanGainDebuffs, reviveAll } from './pieces.ts'
+import { damagePlayer, resolveEnemyPoison, settle, shedSlayerCardsOnLeave, triggerEnemyDeath } from './effects.ts'
+import { addDaze, addStatus, playerCanGainDebuffs, resolveDueSummons, reviveAll } from './pieces.ts'
 import type { CombatState } from './types.ts'
 import { applyDamage, attackerModsOfEnemy, gainBlock, gainStrength, gainVulnerable, gainWeak, hitDamage } from '../damage.ts'
 import { actionsForEnemy, advanceCube, enemyAbilities, enemyAttackBonus, enemyDef, startingHp } from '../enemies.ts'
@@ -100,25 +100,34 @@ function resolveEnemyTurn(state: CombatState, receiveAttack: typeof damagePlayer
 }
 
 /**
- * Wrath and current enemy attacks after Block, before HP-loss prevention or
+ * Wrath and current enemy attacks after Poison and Block, before HP-loss prevention or
  * other end-of-turn effects. Use the real enemy action order and targeting, but
  * don't stop at lethal damage or consume Buffer/Fairy effects.
  */
 export function previewIncomingDamage(state: CombatState): ReadonlyMap<string, IncomingDamagePreview> | null {
-  if (state.phase !== 'player' || state.pendingCardPlayWindows?.length) return null
+  if (state.phase !== 'player' || state.pendingCardPlayWindows?.length ||
+    state.pendingTriggers?.length || mandatoryChoicePending(state)) return null
   const incoming = new Map(state.players.filter(player => !player.dead).map(player => [player.id, 0]))
-  const probe = clone({ ...state, phase: 'enemy' as const, log: [], presentationEvents: [] })
+  const probe = clone({ ...state, log: [], presentationEvents: [] })
   const receiveDamage: typeof damagePlayer = (_state, player, amount) => {
     const outcome = applyDamage(player.block, Number.MAX_SAFE_INTEGER, amount)
     player.block = outcome.block
     incoming.set(player.id, (incoming.get(player.id) ?? 0) + outcome.hpLost)
     return outcome
   }
+  for (const enemy of probe.enemies) {
+    if (combatIsOver(probe)) break
+    resolveEnemyPoison(probe, enemy)
+  }
   for (const player of probe.players) {
+    if (combatIsOver(probe)) break
     if (!player.dead && player.stance === 'wrath') receiveDamage(probe, player, 1)
   }
-  const next = resolveEnemyTurn(probe, receiveDamage)
-  if (next === probe) return null
+  resolveDueSummons(probe, 'endOfTurn')
+  probe.phase = 'enemy'
+  const ended = combatIsOver(probe)
+  const next = ended ? settle(probe) : resolveEnemyTurn(probe, receiveDamage)
+  if (!ended && next === probe) return null
   return new Map(next.players.filter(player => incoming.has(player.id)).map(player => {
     const retained = next.phase === 'won' || next.phase === 'lost' ? 0 : retainedBlockAtStartOfTurn(player)
     return [player.id, { damage: incoming.get(player.id)!, wastedBlock: Math.max(0, player.block - retained) }]

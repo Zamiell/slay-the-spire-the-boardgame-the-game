@@ -64,6 +64,36 @@ try {
     }))
     await page.screenshot({ path: `${output}/${screen}-incoming.png` })
     await page.keyboard.press('Escape')
+    await page.mouse.move(2, 2)
+    await counter.evaluate(counter => counter.blur())
+    await page.waitForTimeout(180)
+    await page.evaluate(() => {
+      const run = structuredClone(window.__STS_DEBUG__.getRun())
+      Object.assign(run.combat.enemies[0], { hp: 2, poison: 2 })
+      window.__STS_DEBUG__.setRun(run)
+    })
+    await page.waitForFunction(() => document.querySelector('.seat__incoming-damage')?.textContent === 'Incoming: 0')
+    assert(await page.evaluate(() => {
+      const enemy = window.__STS_DEBUG__.getRun().combat.enemies[0]
+      return enemy.hp === 2 && enemy.poison === 2 && !enemy.dead
+    }), 'the preview must not apply Poison to the live enemy')
+    if (phone) await counter.tap()
+    else { await page.mouse.move(2, 2); await counter.hover() }
+    await page.locator('.potion-tip').filter({ hasText: 'incoming unblocked damage 0' }).waitFor()
+    assert.match(await page.locator('.potion-tip').innerText(), /Includes Poison before attacks/)
+    await page.screenshot({ path: `${output}/${screen}-lethal-poison.png` })
+    await page.keyboard.press('Escape')
+    await page.evaluate(() => {
+      const run = structuredClone(window.__STS_DEBUG__.getRun())
+      run.combat.enemies[0].poison = 1
+      window.__STS_DEBUG__.setRun(run)
+    })
+    await page.waitForFunction(() => document.querySelector('.seat__incoming-damage')?.textContent === 'Incoming: 2')
+    await page.evaluate(() => {
+      const run = structuredClone(window.__STS_DEBUG__.getRun())
+      Object.assign(run.combat.enemies[0], { hp: 30, poison: 0 })
+      window.__STS_DEBUG__.setRun(run)
+    })
     await pickUpCard(page, page.locator('.hand .card[data-card-name="Defend"]'))
     await confirmCardPlay(page)
     await page.waitForFunction(() => document.querySelector('.seat__incoming-damage')?.textContent === 'Incoming: 1')
@@ -144,6 +174,13 @@ try {
     await page.waitForFunction(() => document.querySelectorAll('.seat__incoming-damage').length === 2)
     assert.equal(await page.locator('.row__seat:has([data-player-id="p1"]) .seat__incoming-damage').innerText(), 'Incoming: 0')
     assert.equal(await page.locator('.row__seat:has([data-player-id="p2"]) .seat__incoming-damage').innerText(), 'Incoming: 1')
+    await page.evaluate(() => {
+      const run = structuredClone(window.__STS_DEBUG__.getRun())
+      Object.assign(run.combat.enemies[1], { hp: 1, poison: 1 })
+      window.__STS_DEBUG__.setRun(run)
+    })
+    await page.waitForFunction(() => [...document.querySelectorAll('.seat__incoming-damage')]
+      .every(counter => counter.textContent === 'Incoming: 0'))
     await page.evaluate(() => {
       const run = structuredClone(window.__STS_DEBUG__.getRun())
       Object.assign(run.combat, { phase: 'start', startTurnStage: 'effects', startTurnProgress: undefined, die: 4 })

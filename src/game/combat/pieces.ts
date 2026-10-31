@@ -9,7 +9,7 @@ import { recordPresentationHpLoss } from './presentation.ts'
 import { enemyLabel, playersInRowOf } from './board.ts'
 import type { CombatState, CopySource } from './types.ts'
 import { applyDamage, applyHpLoss, gainBlock, gainPoison, gainStrength, recordDamageDealt, totalPoisonInPlay } from '../damage.ts'
-import { enemyAbilities, enemyDef, startingHp } from '../enemies.ts'
+import { drawSummon, enemyAbilities, enemyDef, startingHp } from '../enemies.ts'
 import { addToDiscardTop } from '../piles.ts'
 import { CAPS } from '../types.ts'
 import type { CardInstance, Enemy, Player } from '../types.ts'
@@ -23,6 +23,44 @@ export function playerHasPersistentEffect(player: Player, kind: 'preventDebuffs'
 
 export const playerCanGainBlock = (player: Player): boolean => !playerHasPersistentEffect(player, 'preventBlock')
 export const playerCanGainDebuffs = (player: Player): boolean => !playerHasPersistentEffect(player, 'preventDebuffs')
+
+export function resolveDueSummons(next: CombatState, timing: 'startOfTurn' | 'endOfTurn'): void {
+  const due = next.pendingSummons.filter((summon) =>
+    (summon.timing ?? 'startOfTurn') === timing && summon.turn <= next.turn)
+  next.pendingSummons = next.pendingSummons.filter((summon) => !due.includes(summon))
+  for (const summon of due) {
+    const source = next.enemies.find((enemy) => enemy.uid === summon.sourceUid)
+    const ascension = source?.ascension
+    summon.defIds.forEach((name, index) => {
+      const defId = summon.direct ? name : drawSummon(next.summonSupply, name)
+      if (!defId) {
+        next.log = [...next.log, `No ${enemyDef(name).name} remained in the Summons deck`]
+        return
+      }
+      const def = enemyDef(defId, ascension)
+      const hp = startingHp(def, next.players.length)
+      const summonBuff = source && enemyAbilities(enemyDef(source.defId, source.ascension))
+        .find((ability) => ability.kind === 'buffSummons' && defId.startsWith(ability.defIdPrefix))
+      const summoned: Enemy = {
+        uid: `${summon.sourceUid}-summon-${next.turn}-${summon.row}-${index}`,
+        defId, row: summon.row, isBoss: summon.isBoss ?? false, ascension,
+        hp, maxHp: hp, block: summonBuff?.kind === 'buffSummons' ? summonBuff.block : 0,
+        strength: (summon.strengthDefId === undefined || summon.strengthDefId === name ? summon.strength ?? 0 : 0) +
+          (summon.strengthPerPower
+            ? Math.max(0, ...next.players.filter((player) => !player.dead).map((player) => player.powers.length))
+            : 0) + (summonBuff?.kind === 'buffSummons' ? summonBuff.strength : 0),
+        vulnerable: 0, weak: 0, poison: 0, goldReward: 0, cardReward: null,
+        actionIndex: 0, phase: 0, abilityUsed: false, dead: false,
+      }
+      const sourceIndex = source && source.row === summon.row &&
+        (source.isBoss || enemyDef(source.defId, source.ascension).elite)
+        ? next.enemies.indexOf(source) : -1
+      if (sourceIndex < 0) next.enemies.push(summoned)
+      else next.enemies.splice(sourceIndex, 0, summoned)
+      next.log = [...next.log, `${def.name} was summoned`]
+    })
+  }
+}
 
 export function forgetRetain(card: CardInstance): CardInstance {
   const {

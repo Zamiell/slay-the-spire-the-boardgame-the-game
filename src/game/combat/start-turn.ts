@@ -40,7 +40,7 @@ import {
 } from './effects.ts'
 import { applyEnemyAction } from './enemy-turn.ts'
 import { canActivatePotion, canActivateRelic } from './items.ts'
-import { addStatus, damageEnemy } from './pieces.ts'
+import { addStatus, damageEnemy, resolveDueSummons } from './pieces.ts'
 import { discardOrderNeedsChoice, effectEvokePlan, effectIsActive, invalidPlayChoice, mandatoryChoicePending, owedPlayerChoices, reachesEnemy } from './queries.ts'
 import type {
   CombatState,
@@ -59,11 +59,11 @@ import type {
 import { cardDef } from '../cards.ts'
 import type { Effect } from '../cards.ts'
 import { gainBlock, gainVulnerable } from '../damage.ts'
-import { drawSummon, enemyAbilities, enemyDef, startingHp } from '../enemies.ts'
+import { enemyAbilities, enemyDef, startingHp } from '../enemies.ts'
 import { nextInt } from '../rng.ts'
 import type { TriggerEvent } from '../triggers.ts'
 import { CAPS } from '../types.ts'
-import type { Enemy, OrbType, Player } from '../types.ts'
+import type { OrbType, Player } from '../types.ts'
 import { clearSlimeTurn } from '../downfall/slime-boss.ts'
 import { shiftGuardianMode } from '../downfall/guardian.ts'
 import { downfallRelicBaseId } from '../downfall/items.ts'
@@ -97,44 +97,6 @@ export function preparePlayerTurnThroughDraw(state: CombatState): CombatState {
   const opening = state.turn === 0
   if (!opening && state.phase !== 'roundEnd') return state
   return beginPlayerTurn(clone(state), true)
-}
-
-export function resolveDueSummons(next: CombatState, timing: 'startOfTurn' | 'endOfTurn'): void {
-  const due = next.pendingSummons.filter((summon) =>
-    (summon.timing ?? 'startOfTurn') === timing && summon.turn <= next.turn)
-  next.pendingSummons = next.pendingSummons.filter((summon) => !due.includes(summon))
-  for (const summon of due) {
-    const source = next.enemies.find((enemy) => enemy.uid === summon.sourceUid)
-    const ascension = source?.ascension
-    summon.defIds.forEach((name, index) => {
-      const defId = summon.direct ? name : drawSummon(next.summonSupply, name)
-      if (!defId) {
-        next.log = [...next.log, `No ${enemyDef(name).name} remained in the Summons deck`]
-        return
-      }
-      const def = enemyDef(defId, ascension)
-      const hp = startingHp(def, next.players.length)
-      const summonBuff = source && enemyAbilities(enemyDef(source.defId, source.ascension))
-        .find((ability) => ability.kind === 'buffSummons' && defId.startsWith(ability.defIdPrefix))
-      const summoned: Enemy = {
-        uid: `${summon.sourceUid}-summon-${next.turn}-${summon.row}-${index}`,
-        defId, row: summon.row, isBoss: summon.isBoss ?? false, ascension,
-        hp, maxHp: hp, block: summonBuff?.kind === 'buffSummons' ? summonBuff.block : 0,
-        strength: (summon.strengthDefId === undefined || summon.strengthDefId === name ? summon.strength ?? 0 : 0) +
-          (summon.strengthPerPower
-            ? Math.max(0, ...next.players.filter((player) => !player.dead).map((player) => player.powers.length))
-            : 0) + (summonBuff?.kind === 'buffSummons' ? summonBuff.strength : 0),
-        vulnerable: 0, weak: 0, poison: 0, goldReward: 0, cardReward: null,
-        actionIndex: 0, phase: 0, abilityUsed: false, dead: false,
-      }
-      const sourceIndex = source && source.row === summon.row &&
-        (source.isBoss || enemyDef(source.defId, source.ascension).elite)
-        ? next.enemies.indexOf(source) : -1
-      if (sourceIndex < 0) next.enemies.push(summoned)
-      else next.enemies.splice(sourceIndex, 0, summoned)
-      next.log = [...next.log, `${def.name} was summoned`]
-    })
-  }
 }
 
 export function finishStartTurnDraw(next: CombatState, drewFrom: number, roll: boolean): void {

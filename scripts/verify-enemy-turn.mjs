@@ -115,15 +115,64 @@ check('incoming damage includes earlier enemy buffs and follows enemy acting ord
   assertEqual(previewIncomingDamage(state).get('p1').damage, 4, 'Deca acts before the buff in the reversed order')
 })
 
-check('incoming means after Block, not final HP loss, and does not apply end-turn effects', () => {
+check('incoming means after Block, not final HP loss, and does not consume Buffer', () => {
   const state = incoming([player({ powers: [instance('buffer')], block: 1 })], [
-    enemy({ defId: 'jaw_worm', hp: 10, poison: 30 }),
+    enemy({ defId: 'jaw_worm', hp: 10, poison: 1 }),
   ], { die: 3 })
-  assertEqual(previewIncomingDamage(state).get('p1').damage, 3, 'Buffer and later Poison do not change current unblocked attack intents')
+  assertEqual(previewIncomingDamage(state).get('p1').damage, 3, 'Buffer and nonlethal Poison do not prevent unblocked attacks')
   assertEqual(enemyTurn({ ...state, phase: 'enemy' }).players[0].hp, 10, 'the real Enemy Turn still applies Buffer')
   assertEqual(previewIncomingDamage({ ...state, phase: 'start' }), null)
   assertEqual(previewIncomingDamage({ ...state, phase: 'enemy' }), null)
   assertEqual(previewIncomingDamage({ ...state, pendingTriggers: [{ playerId: 'p1' }] }), null)
+})
+
+check('incoming excludes enemies killed by Poison, which bypasses enemy Block', () => {
+  for (const poison of [1, 2, 3]) {
+    const state = incoming([player({ block: 1 })], [
+      enemy({ uid: 'poisoned', defId: 'small_slime', hp: 2, block: 20, strength: 1, poison }),
+      enemy({ uid: 'survivor', defId: 'small_slime', hp: 5 }),
+    ])
+    const before = structuredClone(state)
+    assertDeepEqual(previewIncomingDamage(state).get('p1'), { damage: poison < 2 ? 2 : 0, wastedBlock: 0 })
+    assertEqual(enemyTurn(endPlayerTurn(state)).players[0].hp, poison < 2 ? 8 : 10)
+    assertDeepEqual(state, before, 'forecasting Poison must not damage enemies or advance the real turn')
+  }
+})
+
+check('Poison victory ends the forecast before Wrath and leaves Block unused', () => {
+  const state = incoming([player({ stance: 'wrath', block: 2 })], [
+    enemy({ defId: 'small_slime', hp: 1, poison: 1 }),
+  ])
+  assertDeepEqual(previewIncomingDamage(state).get('p1'), { damage: 0, wastedBlock: 2 })
+  const resolved = endPlayerTurn(state)
+  assertEqual(resolved.phase, 'won')
+  assertEqual(resolved.players[0].block, 2)
+})
+
+check('Poison death effects can increase the surviving enemy attack', () => {
+  const state = incoming([player()], [
+    enemy({ uid: 'fungus', defId: 'fungi_beast', hp: 1, poison: 1 }),
+    enemy({ uid: 'slime', defId: 'small_slime' }),
+  ])
+  const before = structuredClone(state)
+  assertEqual(previewIncomingDamage(state).get('p1').damage, 2, 'Spore Cloud makes the survivor hit Vulnerable')
+  assertEqual(enemyTurn(endPlayerTurn(state)).players[0].hp, 8)
+  assertDeepEqual(state, before)
+})
+
+check('incoming respects Poison protection and rebirth instead of assuming lethal token counts mean death', () => {
+  for (const target of [
+    enemy({ defId: 'corrupt_heart', isBoss: true, hp: 100, maxHp: 100, poison: 100, abilityUsed: false, actionIndex: 1 }),
+    enemy({ defId: 'time_eater', isBoss: true, hp: 1, poison: 1, abilityUsed: false }),
+  ]) {
+    const state = incoming([player({ hp: 100, maxHp: 100 })], [target])
+    const before = structuredClone(state)
+    const damage = previewIncomingDamage(state).get('p1').damage
+    assert(damage > 0, `${target.defId} still attacks after Poison`)
+    const afterEndTurn = endPlayerTurn(state)
+    assertEqual(damage, afterEndTurn.players[0].hp - enemyTurn(afterEndTurn).players[0].hp)
+    assertDeepEqual(state, before)
+  }
 })
 
 check('forecasting random enemy actions does not advance RNG or expose private card order', () => {

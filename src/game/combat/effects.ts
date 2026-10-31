@@ -45,6 +45,7 @@ import {
   putPoison,
   playerCanGainBlock,
   playerCanGainDebuffs,
+  recordPoisonDamage,
   triggerAngry,
 } from './pieces.ts'
 import { addPresentationEvent, presentationTargets } from './presentation.ts'
@@ -467,6 +468,28 @@ function enemyTokensApplied(
       fireTriggers(state, { kind: 'onPutEnemyToken', enemyUid: target.uid }, actor)
     }
   }
+}
+
+export function resolveEnemyPoison(state: CombatState, enemy: Enemy): void {
+  if (enemy.dead || enemy.poison <= 0) return
+  const presentationActor = state.players.find(player => !player.dead) ?? state.players[0]
+  const outcome = loseEnemyHp(state, enemy, enemy.poison)
+  recordPoisonDamage(state, enemy, outcome.hpLost)
+  const name = enemyLabel(state.enemies, enemy)
+  state.log = [...state.log, `${name} loses ${outcome.hpLost} to Poison`]
+  enemy.hp = outcome.hp
+  if (enemy.hp === 0) {
+    enemy.dead = true
+    state.log = [...state.log, `${name} is dead`]
+    triggerEnemyDeath(state, enemy)
+  }
+  if (outcome.hpLost > 0 && !combatIsOver(state) &&
+    enemyAbilities(enemyDef(enemy.defId, enemy.ascension)).some(ability => ability.kind === 'shift')) {
+    grantShiftBlock(state, enemy, outcome.hpLost)
+  }
+  if (outcome.hpLost > 0 && presentationActor) publishTurnEffect(state, presentationActor.id, 'poison', 'poison', {
+    enemyIds: [enemy.uid],
+  })
 }
 
 export function triggerEnemyDeath(state: CombatState, enemy: Enemy): void {

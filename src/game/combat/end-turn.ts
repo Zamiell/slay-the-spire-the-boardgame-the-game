@@ -35,6 +35,7 @@ import {
   pendingTriggerSlimeEnemyChoiceCount,
   publishTurnEffect,
   resolveOrbAtEndOfTurn,
+  resolveEnemyPoison,
   resolveQueuedTriggerSource,
   resolveSlimeCommand,
   resolveTriggerSource,
@@ -50,13 +51,12 @@ import {
   triggerSourceById,
   triggerSources,
 } from './effects.ts'
-import { forgetRetain, grantShiftBlock, loseEnemyHp, playerCanGainBlock, playerCanGainDebuffs, recordPoisonDamage } from './pieces.ts'
+import { forgetRetain, loseEnemyHp, playerCanGainBlock, playerCanGainDebuffs, resolveDueSummons } from './pieces.ts'
 import {
   continueBeforeDraw,
   continueStartTurn,
   finishStartTurnDraw,
   queueHermitSetupLoads,
-  resolveDueSummons,
   stageStartTurnTriggerChoice,
   triggerTargets,
 } from './start-turn.ts'
@@ -363,25 +363,7 @@ function continueEndPlayerTurn(
     const presentationActor = next.players.find((candidate) => !candidate.dead) ?? next.players[0]
     if (id.startsWith('poison:')) {
       const enemy = next.enemies.find((candidate) => candidate.uid === id.slice(7))
-      if (enemy && !enemy.dead && enemy.poison > 0) {
-        const outcome = loseEnemyHp(next, enemy, enemy.poison)
-        recordPoisonDamage(next, enemy, outcome.hpLost)
-        const name = enemyLabel(next.enemies, enemy)
-        next.log = [...next.log, `${name} loses ${outcome.hpLost} to Poison`]
-        enemy.hp = outcome.hp
-        if (enemy.hp === 0) {
-          enemy.dead = true
-          next.log = [...next.log, `${name} is dead`]
-          triggerEnemyDeath(next, enemy)
-        }
-        if (outcome.hpLost > 0 && !combatIsOver(next) &&
-          enemyAbilities(enemyDef(enemy.defId, enemy.ascension)).some((ability) => ability.kind === 'shift')) {
-          grantShiftBlock(next, enemy, outcome.hpLost)
-        }
-        if (outcome.hpLost > 0 && presentationActor) publishTurnEffect(next, presentationActor.id, 'poison', 'poison', {
-          enemyIds: [enemy.uid],
-        })
-      }
+      if (enemy) resolveEnemyPoison(next, enemy)
     } else if (id.startsWith('beat:')) {
       const enemy = next.enemies.find((candidate) => candidate.uid === id.slice(5) && !candidate.dead)
       const beat = enemy && enemyAbilities(enemyDef(enemy.defId, enemy.ascension))

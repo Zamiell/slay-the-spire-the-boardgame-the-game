@@ -402,6 +402,10 @@ export function createCardPlayCoordinator(options: Options) {
     // A normal staged card can be cancelled. A card that already revealed
     // hidden information is committed and must be finished.
     if (pending?.card.uid === card.uid) {
+      const forced = state.startTurnProgress?.forcedCard
+      if (draggedEnemyUid && forced?.playerId === viewerId && forced.cardUid === card.uid) {
+        return stageOrCommit({ ...pending, enemyUid: draggedEnemyUid })
+      }
       return cancel()
     }
 

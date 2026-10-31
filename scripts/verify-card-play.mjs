@@ -88,6 +88,12 @@ assert.equal(forcedCoordinator.cancel(), 'choosing', 'a forced play cannot be ab
 assert.equal(forcedCoordinator.confirm(viewer.hand[0], 'hand'), 'choosing',
   'clicking the staged forced card must not cancel its choices')
 assert.equal(pending, forcedPending)
+commits = []
+assert.equal(forcedCoordinator.confirm(viewer.hand[0], 'hand', 'enemy'), 'submitted',
+  'dragging a staged forced card must finish targeting rather than toggle cancellation')
+assert.deepEqual(commits[0].picked, ['defend_ironclad'], 'targeting must preserve the chosen Exhaust cost')
+assert.equal(commits[0].enemyUid, 'enemy')
+assert.equal(commits[0].energyCharged, 0)
 pending = null
 assert.equal(createCardPlayCoordinator({ ...options, pending }).confirm(viewer.hand[0], 'hand'), 'choosing')
 assert.equal(pending.card.uid, 'sever_soul', 'clicking an abandoned forced card must reopen its choices')

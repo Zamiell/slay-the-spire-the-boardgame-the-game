@@ -4,7 +4,7 @@ import { createServer } from 'vite'
 import { chromium } from './lib/profile-browser.mjs'
 import { postNeowRun } from './lib/post-neow-run.mjs'
 import { enterRoom } from '../src/game/run.ts'
-import { pickUpCard, confirmCardPlay } from './lib/card-interactions.mjs'
+import { pickUpCard, confirmCardPlay, dragCardTo } from './lib/card-interactions.mjs'
 
 const output = 'artifacts/sever-soul'
 mkdirSync(output, { recursive: true })
@@ -63,6 +63,52 @@ try {
     const dialog = page.getByRole('dialog', { name: /Choose .* in your hand to Exhaust/ })
     const read = () => page.evaluate(() => structuredClone(window.__STS_DEBUG__.getState()))
     const confirm = () => dialog.getByRole('button', { name: /^Exhaust / })
+    const dragForcedCard = async name => {
+      const source = page.locator(`.hand .card[data-card-name="${name}"]`)
+      const target = page.locator('[data-enemy-id="target"] .enemy__hit-area')
+      await source.focus()
+      await page.waitForFunction(() => !document.querySelector('.hand[data-hand-moving]'))
+      if (!phone) return dragCardTo(page, source, target)
+      const touch = await page.context().newCDPSession(page)
+      try {
+        const from = await source.boundingBox()
+        const to = await target.boundingBox()
+        assert(from && to)
+        const start = { x: from.x + from.width / 2, y: from.y + from.height / 4 }
+        const end = { x: to.x + to.width / 2, y: to.y + to.height / 2 }
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...start, id: 1 }] })
+        for (const progress of [.25, .5, 1]) {
+          await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{
+            x: start.x + (end.x - start.x) * progress, y: start.y + (end.y - start.y) * progress, id: 1,
+          }] })
+        }
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+      } finally {
+        await touch.detach()
+      }
+    }
+
+    const originalEnemy = base.combat.enemies[0]
+    base.combat.enemies[0] = { ...originalEnemy, defId: 'book_of_stabbing', hp: 35, maxHp: 35 }
+    const crowdedHand = [
+      ...Array.from({ length: 4 }, (_, index) => card('defend_ironclad', `crowded-defend-${index}`)),
+      ...Array.from({ length: 2 }, (_, index) => card('strike_ironclad', `crowded-strike-${index}`)),
+      card('power_through', 'power-through'), card('sentinel', 'sentinel', true),
+      card('inflame', 'inflame'), card('body_slam', 'body-slam', true),
+    ]
+    await setHand([card('havoc', 'havoc-crowded', true), ...crowdedHand], [sever], 6)
+    await page.locator('.hand .card[data-card-name="Havoc+"]').focus()
+    await page.keyboard.press('Enter')
+    await dialog.waitFor()
+    await activate(dialog.locator('.card[data-card-name="Strike"]').first())
+    await activate(confirm())
+    await dialog.waitFor({ state: 'detached' })
+    await dragForcedCard('Sever Soul')
+    await page.waitForFunction(() => !window.__STS_DEBUG__.getState().startTurnProgress?.forcedCard)
+    assert.equal((await read()).enemies[0].hp, 32)
+    assert.equal((await read()).players[0].energy, 6)
+    assert.deepEqual((await read()).players[0].exhaust.map(card => card.uid).sort(), ['crowded-strike-0', 'sever'])
+    base.combat.enemies[0] = originalEnemy
 
     for (const [drawn, count, damage] of [[sever, 1, 3], [upgraded, 2, 4]]) {
       await setHand([card('havoc', 'havoc'), ...fuel], [drawn], 1)
@@ -78,7 +124,8 @@ try {
       await page.screenshot({ path: `${output}/${screen}-havoc-${count}-choice.png` })
       await activate(confirm())
       await dialog.waitFor({ state: 'detached' })
-      await activate(page.locator('[data-enemy-id="target"] .enemy__hit-area'))
+      if (count === 1) await dragForcedCard('Sever Soul')
+      else await activate(page.locator('[data-enemy-id="target"] .enemy__hit-area'))
       await page.waitForFunction(() => !window.__STS_DEBUG__.getState().startTurnProgress?.forcedCard)
       const havocPlayed = await read()
       assert.equal(havocPlayed.enemies[0].hp, 30 - damage)

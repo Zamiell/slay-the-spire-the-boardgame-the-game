@@ -4245,8 +4245,12 @@ function CombatScreenView({
   }
 
   function cardCanStartDrag(card: CardInstance) {
-    return !usingCard && !pending && !pendingTrigger && !endTurnResolving && state.phase === 'player' &&
-      !forcedCard && !distilled && !relicScry && canAfford(state, viewer!, card, miracleOnCard, drawCount)
+    if (usingCard || pendingTrigger || endTurnResolving) return false
+    if (card.uid === forcedCardUid && pending?.card.uid === card.uid) {
+      return pendingNeedsCardEnemy && pending.enemyUid === null && choiceSatisfied && evokeChoicesDone
+    }
+    return !pending && state.phase === 'player' && !forcedCard && !distilled && !relicScry &&
+      canAfford(state, viewer!, card, miracleOnCard, drawCount)
   }
 
   function chamberCardCanStartDrag(card: CardInstance) {

@@ -46,6 +46,7 @@ try {
     const player = combat.combat.players[0]
     player.energy = 3
     player.hand = ['strike_ironclad', 'defend_ironclad'].map((defId, i) => ({ uid: `live-${i}`, defId, upgraded: false }))
+    player.draw[0].uid = 'history-private-draw-sentinel'
     await page.evaluate(async (run) => {
       await (await import('/src/ui/run-log.ts')).startRunLog(run)
       window.__STS_DEBUG__.setRun(run)
@@ -124,8 +125,8 @@ try {
       player.hand.push({ uid: 'disconnected-crescendo', defId: 'crescendo', upgraded: false })
       window.__STS_DEBUG__.setRun(run)
     })
-    await page.locator('.hand .card[data-card-name="Crescendo"]').waitFor()
-    await dragCardTo(page, 'Crescendo')
+    await page.locator('.hand .card[data-card-name="Crescendo"]').focus()
+    await page.keyboard.press('Enter')
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.players[0].energy === 1)
     await page.getByRole('button', { name: 'Settings', exact: true }).click()
     await page.getByRole('button', { name: 'assistant', exact: true }).click()
@@ -140,6 +141,83 @@ try {
     assert.equal(disconnectedPlay.after.players[0].energy, 1)
     assert.equal(disconnectedPlay.cards[0].printedCost, 0)
     assert.deepEqual(disconnectedPlay.cardEnergySpent, [{ playerId: 'p1', amount: 2 }])
+    for (let index = 0; index < 42; index++) {
+      await page.evaluate(index => {
+        const run = structuredClone(window.__STS_DEBUG__.getRun())
+        run.combat.players[0].energy = index % 2 + 1
+        run.combat.players[0].gold = index
+        run.players[0].gold = index
+        run.log.push(`Public recorded note ${index}`)
+        window.__STS_DEBUG__.setRun(run)
+      }, index)
+      await page.waitForFunction(index => window.__STS_DEBUG__.getRun().players[0].gold === index, index)
+    }
+    await page.evaluate(() => {
+      const run = structuredClone(window.__STS_DEBUG__.getRun())
+      const card = { uid: 'history-added-card', defId: 'anger', upgraded: false }
+      run.players[0].deck.push(card)
+      run.combat.players[0].deck.push(card)
+      window.__STS_DEBUG__.setRun(run)
+    })
+    await page.waitForFunction(() => window.__STS_DEBUG__.getRun().players[0].deck.some(card => card.uid === 'history-added-card'))
+    const recordedCount = await page.evaluate(async () => {
+      const log = await (await import('/src/ui/run-log.ts')).readRunLog(window.__STS_DEBUG__.getRun().campaign.runId)
+      log.events.at(-1).choice = { source: {
+        name: 'Public recorded choice', selector: 'history-private-selector-sentinel', value: 'history-private-input-sentinel',
+      } }
+      return log.events.length
+    })
+    const recent = await bridge.current()
+    assert.equal(recent.state.history.truncated, true)
+    assert.equal(recent.state.history.transitions.length, 32)
+    const readPages = async first => {
+      const transitions = []
+      let response = first
+      while (true) {
+        assert(Buffer.byteLength(JSON.stringify(response)) < 512 * 1024, 'history pages must fit the transport budget')
+        transitions.push(...response.history.transitions)
+        if (!response.history.next) break
+        response = await bridge.history(response.history.next)
+      }
+      return { ...response.history, initial: first.history.initial, offset: first.history.offset, transitions }
+    }
+    const firstPage = await bridge.history({ limit: 7 })
+    assert.equal(firstPage.history.through, recordedCount)
+    assert.equal(firstPage.history.transitions.length, 7)
+    const beforeHistory = await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun()))
+    const beforeRecording = await page.evaluate(async () => JSON.stringify(
+      await (await import('/src/ui/run-log.ts')).readRunLog(window.__STS_DEBUG__.getRun().campaign.runId)))
+    await assert.rejects(bridge.history({ runId: 'not-the-active-run' }), /run or recording changed/)
+    const all = await readPages(firstPage)
+    assert.equal(all.transitions.length, recordedCount, 'full history must include every recorder event, not only changed public frames')
+    assert.deepEqual(all.transitions.map(entry => entry.index), Array.from({ length: recordedCount }, (_, index) => index + 1))
+    assert(all.transitions.some(entry => entry.cards.some(card => card.cardId === 'defend_ironclad')))
+    assert(all.transitions.some(entry => entry.cards.some(card => card.cardId === 'crescendo')))
+    assert(all.transitions.some(entry => entry.choice?.source?.startsWith('Defend')))
+    assert(all.transitions.some(entry => entry.deckChanges.some(change => change.added.some(card => card.cardId === 'anger'))))
+    assert(all.transitions.some(entry => entry.messages.run.entries.includes('Public recorded note 0')))
+    assert(all.transitions.some(entry => entry.messages.run.entries.includes('Public recorded note 41')))
+    assert.equal(all.caughtUp, true)
+    for (const hidden of [bridge.token, 'history-private-draw-sentinel', 'history-private-selector-sentinel',
+      'history-private-input-sentinel', '"patch"', '"rng"', '"seed"', '"hand"', '"draw"', '"rareRewards"', '"cardRewards"']) {
+      assert(!JSON.stringify(all).includes(hidden), `${hidden} must not leave the public history projection`)
+    }
+    assert.equal(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun())), beforeHistory,
+      'full history queries must not change the game or RNG')
+    assert.equal(await page.evaluate(async () => JSON.stringify(
+      await (await import('/src/ui/run-log.ts')).readRunLog(window.__STS_DEBUG__.getRun().campaign.runId))), beforeRecording,
+    'history queries must not rewrite the recording they read')
+    await page.evaluate(() => {
+      const run = structuredClone(window.__STS_DEBUG__.getRun())
+      run.log.push('Appended after the pinned history query')
+      window.__STS_DEBUG__.setRun(run)
+    })
+    await page.waitForFunction(() => window.__STS_DEBUG__.getRun().log.at(-1) === 'Appended after the pinned history query')
+    const pinned = await readPages(await bridge.history({ ...firstPage.history.next, offset: 0 }))
+    assert.equal(pinned.transitions.length, recordedCount, 'continuations must keep their original upper bound')
+    assert.equal(pinned.caughtUp, false)
+    const appended = await bridge.history({ runId: all.runId, recordingId: all.recordingId, offset: recordedCount })
+    assert(appended.history.transitions.some(entry => entry.messages.run.entries.includes('Appended after the pinned history query')))
     await page.reload()
     await page.getByRole('button', { name: 'Single Player', exact: true }).waitFor()
     await page.waitForFunction(async () => (await import('/src/ui/live-run.ts')).liveRunStatus().state === 'connected')
@@ -148,14 +226,31 @@ try {
     assert(restored.state.choices.some((choice) => choice.label === 'Single Player'), 'refresh returns the new screen, not cached combat')
     assert(!JSON.stringify(restored).includes(bridge.token))
     assert.equal(restored.state.history.status, 'idle', 'menus must not leak the previous run history')
+    await assert.rejects(bridge.history(), /active local run/, 'menus must not expose the complete recording either')
 
     await page.getByRole('button', { name: 'Resume', exact: true }).click()
     await page.locator('.hand .card').first().waitFor()
     await page.waitForFunction(async () => (await import('/src/ui/run-log.ts')).readAssistantRunHistory(
       window.__STS_DEBUG__.getRun().campaign.runId, 'local').status === 'ready')
     const resumed = await bridge.current()
-    assert(resumed.state.history.transitions.some(entry => entry.cards.some(card => card.cardId === 'crescendo')),
+    assert.equal(resumed.state.history.status, 'ready')
+    await assert.rejects(bridge.history({ runId: all.runId, recordingId: all.recordingId }), /recording changed/,
+      'a reload must not silently reuse a continuation from the previous loaded recording')
+    const fullResumed = await readPages(await bridge.history())
+    assert(fullResumed.transitions.some(entry => entry.cards.some(card => card.cardId === 'crescendo')),
       'the existing persisted recording must recover the card history after refresh and Resume')
+    const largeStart = fullResumed.through
+    for (let index = 0; index < 8; index++) {
+      await page.evaluate(index => {
+        const run = structuredClone(window.__STS_DEBUG__.getRun())
+        run.log.push(`Long public note ${index}: ${'x'.repeat(60_000)}`)
+        window.__STS_DEBUG__.setRun(run)
+      }, index)
+      await page.waitForFunction(index => window.__STS_DEBUG__.getRun().log.at(-1).startsWith(`Long public note ${index}:`), index)
+    }
+    const large = await bridge.history({ offset: largeStart, limit: 100 })
+    assert(large.history.next, 'large histories must paginate by bytes as well as event count')
+    assert.equal((await readPages(large)).transitions.length, 8)
 
     const opened = page.waitForEvent('popup')
     await page.evaluate(() => { window.open(location.href, '_blank') })
@@ -169,6 +264,17 @@ try {
     assert.equal(await duplicate.evaluate(async () => (await import('/src/ui/live-run.ts')).liveRunStatus().state), 'off')
     assert.equal((await bridge.current()).tabId, pairedTab)
     await duplicate.close()
+
+    await page.evaluate(() => {
+      const run = structuredClone(window.__STS_DEBUG__.getRun())
+      run.log.push('Oversize public note: ' + 'x'.repeat(450_000))
+      window.__STS_DEBUG__.setRun(run)
+    })
+    await page.waitForFunction(() => window.__STS_DEBUG__.getRun().log.at(-1).startsWith('Oversize public note:'))
+    const oversizeIndex = await page.evaluate(async () =>
+      (await (await import('/src/ui/run-log.ts')).readRunLog(window.__STS_DEBUG__.getRun().campaign.runId)).events.length - 1)
+    await assert.rejects(bridge.history({ offset: oversizeIndex, limit: 1 }), /exceeds the history response size limit/)
+    assert.equal((await bridge.current()).fresh, true, 'an oversize history entry must not break normal sharing')
 
     await page.getByRole('button', { name: 'Settings', exact: true }).click()
     await page.getByRole('button', { name: 'assistant', exact: true }).click()

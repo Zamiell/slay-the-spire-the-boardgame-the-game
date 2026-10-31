@@ -4,7 +4,7 @@ import { spawn } from 'node:child_process'
 import { copyFile, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { WebSocket } from 'ws'
-import { startLiveRunServer } from './lib/live-run-server.mjs'
+import { parseHistoryQuery, startLiveRunServer } from './lib/live-run-server.mjs'
 
 const origin = 'http://localhost:5180'
 const bridge = await startLiveRunServer({ port: 0, requestTimeout: 150 })
@@ -14,6 +14,15 @@ const state = {
   run: { id: 'campaign-1', phase: 'combat', mode: 'local' }, pending: false,
   screen: { headings: ['Ironclad'], text: 'Health 7 of 9', observations: [], announcements: [] },
   choices: [{ label: 'Strike', available: true, count: 2 }],
+}
+function historyPage(query) {
+  const through = query.through ?? 3
+  const end = Math.min(through, query.offset + query.limit)
+  return { status: 'ready', runId: state.run.id, recordingId: 'test-recording', offset: query.offset,
+    through, recordedTransitions: 3, initial: query.offset === 0 ? { frame: { phase: 'map' } } : undefined,
+    transitions: Array.from({ length: end - query.offset }, (_, index) => ({ index: query.offset + index + 1 })),
+    next: end < through ? { offset: end, limit: query.limit, through, runId: state.run.id, recordingId: 'test-recording' } : null,
+  }
 }
 async function open(token = bridge.token, tabId = '00000000-0000-4000-8000-000000000001') {
   const socket = new WebSocket(`ws://127.0.0.1:${bridge.port}/feed`, { origin })
@@ -34,6 +43,18 @@ try {
   const absent = await fetch(url, { headers })
   assert.equal(absent.status, 503)
   assert.equal((await absent.json()).code, 'not_paired')
+  const historyUrl = `http://127.0.0.1:${bridge.port}/history`
+  assert.equal((await fetch(historyUrl)).status, 401)
+  assert.equal((await fetch(historyUrl, { headers: { ...headers, Origin: origin } })).status, 403)
+  assert.equal((await fetch(historyUrl, { headers, method: 'POST' })).status, 404)
+  assert.equal((await fetch(historyUrl, { headers })).status, 503)
+  for (const query of ['limit=0', 'limit=101', 'offset=-1', 'offset=1.5', 'offset=9007199254740992',
+    'offset=2&through=1', 'limit=1&limit=2', 'action=end_turn', 'through=nope']) {
+    assert.equal((await fetch(`${historyUrl}?${query}`, { headers })).status, 400, query)
+  }
+  for (const input of [null, [], { limit: '1' }, { offset: null }, { runId: '' }, { action: 'end_turn' }]) {
+    assert.throws(() => parseHistoryQuery(input))
+  }
 
   const hostile = new WebSocket(`ws://127.0.0.1:${bridge.port}/feed`, { origin: 'https://unrelated.invalid' })
   await once(hostile, 'error')
@@ -46,9 +67,13 @@ try {
   assert.equal(duplicate.response.closed, 1008, 'another tab cannot silently replace the paired tab')
   let answer = true
   let latest = state
+  let historyError
   socket.on('message', (raw) => {
     const message = JSON.parse(raw.toString())
     if (answer && message.type === 'inspect') socket.send(JSON.stringify({ type: 'snapshot', requestId: message.requestId, state: latest }))
+    if (answer && message.type === 'inspect_history') socket.send(JSON.stringify(historyError
+      ? { type: 'history_error', requestId: message.requestId, error: historyError }
+      : { type: 'history', requestId: message.requestId, history: historyPage(message.query) }))
   })
   const first = await bridge.current()
   assert.equal(first.fresh, true)
@@ -57,6 +82,18 @@ try {
   assert.equal(first.revision, 1)
   const stable = await bridge.current()
   assert.equal(stable.revision, first.revision, 'fresh reads need not invent state changes')
+  const [recorded, concurrentCurrent] = await Promise.all([bridge.history({ limit: 1 }), bridge.current()])
+  assert.equal(recorded.history.transitions.length, 1)
+  assert.equal(recorded.history.next.offset, 1)
+  assert.equal(recorded.fresh, true)
+  assert.equal(recorded.state, undefined, 'full history must not be added to regular snapshots')
+  assert.equal(concurrentCurrent.revision, stable.revision, 'history requests must not change observation history')
+  const nextPage = await (await fetch(`${historyUrl}?offset=1&limit=1`, { headers })).json()
+  assert.equal(nextPage.history.transitions[0].index, 2)
+  historyError = 'Recording is unavailable.'
+  await assert.rejects(bridge.history(), /Recording is unavailable/)
+  assert.equal((await bridge.current()).fresh, true, 'a history error must not disconnect the feed')
+  historyError = undefined
   latest = { ...state, pending: true, screen: { ...state.screen, text: 'Enemy turn' } }
   const changed = await (await fetch(url, { headers })).json()
   assert.equal(changed.state.pending, true)
@@ -69,12 +106,14 @@ try {
   assert.equal(stale.code, 'tab_unresponsive')
   assert.equal(stale.state, undefined, 'never return cached state as current')
   assert(stale.lastSeenAt)
+  await assert.rejects(bridge.history(), /did not answer/)
   answer = true
   latest = { ...state, run: { ...state.run, id: 'campaign-2' } }
   const nextRun = await bridge.current()
   assert.equal(nextRun.recentObservations.length, 1, 'history does not mix runs')
   answer = false
-  const pending = assert.rejects(bridge.current(), /disconnected/)
+  const pending = Promise.all([assert.rejects(bridge.current(), /disconnected/),
+    assert.rejects(bridge.history(), /disconnected/)])
   const closed = once(socket, 'close')
   socket.close()
   await closed
@@ -102,8 +141,8 @@ assert.equal((await once(child, 'close'))[0], 0, errors)
 const replies = output.trim().split('\n').map((line) => JSON.parse(line))
 assert.equal(replies[0].error.code, -32700)
 assert.equal(replies[1].result.protocolVersion, '2024-11-05')
-assert.deepEqual(replies[2].result.tools.map((tool) => tool.name), ['get_current_run'])
-assert.equal(replies[2].result.tools[0].annotations.readOnlyHint, true)
+assert.deepEqual(replies[2].result.tools.map((tool) => tool.name), ['get_current_run', 'get_run_history'])
+assert(replies[2].result.tools.every(tool => tool.annotations.readOnlyHint === true))
 assert.equal(replies[3].result.isError, true)
 assert.match(replies[3].result.content[0].text, /no arguments/)
 console.log('Live-run pairing, fresh reads, disconnects, tab isolation, and read-only MCP passed.')
@@ -133,9 +172,13 @@ try {
   assert.equal((await stat(resolve(credentialsPath, '..'))).mode & 0o777, 0o700)
   const { socket, response } = await open(credentials.token)
   assert.equal(response.type, 'paired')
+  let refuseHistoryContinuation = false
   socket.on('message', (raw) => {
     const message = JSON.parse(raw.toString())
     if (message.type === 'inspect') socket.send(JSON.stringify({ type: 'snapshot', requestId: message.requestId, state }))
+    if (message.type === 'inspect_history') socket.send(JSON.stringify(refuseHistoryContinuation && message.query.offset > 0
+      ? { type: 'history_error', requestId: message.requestId, error: 'History continuation unavailable.' }
+      : { type: 'history', requestId: message.requestId, history: historyPage(message.query) }))
   })
   const run = async (command, input = '') => {
     const client = spawn(process.execPath, [script, command], { stdio: ['pipe', 'pipe', 'pipe'] })
@@ -153,11 +196,36 @@ try {
   reader.stderr.on('data', (data) => { readErrors += data })
   assert.equal((await once(reader, 'close'))[0], 0, readErrors)
   assert.deepEqual(JSON.parse(readOutput).state, state)
+  const historyReader = spawn(process.execPath, [script, 'history', '--all', '--limit=1'], { stdio: ['ignore', 'pipe', 'pipe'] })
+  let historyOutput = '', historyErrors = ''
+  historyReader.stdout.on('data', data => { historyOutput += data })
+  historyReader.stderr.on('data', data => { historyErrors += data })
+  assert.equal((await once(historyReader, 'close'))[0], 0, historyErrors)
+  const entire = JSON.parse(historyOutput).history
+  assert.deepEqual(entire.transitions.map(entry => entry.index), [1, 2, 3])
+  assert.equal(entire.initial.frame.phase, 'map')
+  assert.equal(entire.offset, 0)
+  assert.equal(entire.next, null)
   const [toolRead] = await run('mcp', JSON.stringify({
     jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'get_current_run', arguments: {} },
   }) + '\n')
   assert.equal(toolRead.result.isError, undefined)
   assert.deepEqual(JSON.parse(toolRead.result.content[0].text).state, state)
+  const [historyRead, invalidHistory] = await run('mcp', [
+    { jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'get_run_history', arguments: { limit: 1 } } },
+    { jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'get_run_history', arguments: { limit: 101 } } },
+  ].map(request => JSON.stringify(request)).join('\n') + '\n')
+  assert.equal(historyRead.result.isError, undefined)
+  assert.equal(JSON.parse(historyRead.result.content[0].text).history.next.offset, 1)
+  assert.equal(invalidHistory.result.isError, true)
+  refuseHistoryContinuation = true
+  const interrupted = spawn(process.execPath, [script, 'history', '--all', '--limit=1'], { stdio: ['ignore', 'pipe', 'pipe'] })
+  let partialOutput = '', interruption = ''
+  interrupted.stdout.on('data', data => { partialOutput += data })
+  interrupted.stderr.on('data', data => { interruption += data })
+  assert.equal((await once(interrupted, 'close'))[0], 1)
+  assert.equal(partialOutput, '', '--all must not print success-shaped partial history')
+  assert.match(interruption, /History continuation unavailable/)
   socket.terminate()
   companion.kill('SIGTERM')
   assert.equal((await once(companion, 'close'))[0], 0, diagnostics)

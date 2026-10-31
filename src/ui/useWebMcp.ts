@@ -3,7 +3,7 @@ import { CARDS, releasedCardDefs } from '../game/cards.ts'
 import { parseStatsExpression, validateStatsQuery } from '../stats-query.ts'
 import { loadStats, type StatsFilters } from '../stats.ts'
 import { CHARACTER_IDS } from '../game/types.ts'
-import { readAssistantRunHistory } from './run-log.ts'
+import { readAssistantRunHistory, readAssistantRunHistoryPage, type RunHistoryQuery } from './run-log.ts'
 
 type Tool = {
   name: string
@@ -314,6 +314,18 @@ function gameScreen(announcementNodes = announcementElements()) {
     observations,
     ...(announcements.length > 0 ? { announcements } : {}),
   }
+}
+
+/** Observation only: do not rotate WebMCP control IDs or acknowledge its announcements. */
+export async function captureAssistantRunHistory(query: RunHistoryQuery) {
+  const activeRun = () => [...document.querySelectorAll<HTMLElement>('[data-assistant-run-id]')].find(rendered)
+  const run = activeRun()
+  const history = await readAssistantRunHistoryPage(run?.dataset.assistantRunId, run?.dataset.assistantMode, query)
+  const current = activeRun()
+  if (current?.dataset.assistantRunId !== history.runId || current.dataset.assistantMode !== 'local') {
+    throw new Error('The active run changed during the history query. Inspect the current run again.')
+  }
+  return { ...history, pending: interactionPending() }
 }
 
 /** Observation only: do not rotate WebMCP control IDs or acknowledge its announcements. */

@@ -50,6 +50,11 @@ For questions about a recent play or Energy change, inspect `state.history`:
 require `status: ready` and `caughtUp`, and respect truncation/rewind flags.
 Use before/after Energy and `cardEnergySpent`; a card's `effectEnergy` is not
 necessarily another payment, especially for copied cards.
+For the full recorded local-run history, use `get_run_history` and follow
+`history.next`, or run `node scripts/live-run.mjs history --all`. These queries
+include public log messages and all recorded transitions, not only the recent
+32. Respect recording guards and rewind flags; historical data is not a fresh
+observation of the current board.
 
 ## AI-directed playtest budgets
 

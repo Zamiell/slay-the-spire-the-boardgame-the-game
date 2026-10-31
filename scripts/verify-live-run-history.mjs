@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { enterRoom } from '../src/game/run.ts'
 import { playCard } from '../src/game/combat.ts'
 import { postNeowRun } from './lib/post-neow-run.mjs'
-import { reduceRunHistory } from '../src/ui/live-run-history.ts'
+import { projectRunTransition, publicLogChange, publicRecordedFrame, reduceRunHistory } from '../src/ui/live-run-history.ts'
 
 const run = postNeowRun(47, [{ id: 'p1', name: 'Watcher', character: 'watcher' }])
 const room = run.map.rows[0][0]
@@ -36,6 +36,17 @@ assert(!JSON.stringify(history).includes('private-draw-order-sentinel'))
 assert(!JSON.stringify(history).includes('"rng"'))
 assert(!JSON.stringify(history).includes('"hand"'))
 assert(!JSON.stringify(history).includes('"seed"'))
+assert.deepEqual(projectRunTransition(1, before, after), played, 'full and recent history must share card/payment semantics')
+const publicFrame = publicRecordedFrame(after)
+assert.equal(publicFrame.players[0].gold, after.combat.players[0].gold)
+assert.equal(publicFrame.enemies[0].hp, after.combat.enemies[0].hp)
+for (const hidden of ['private-draw-order-sentinel', '"rng"', '"seed"', '"hand"', '"draw"', '"rareRewards"', '"cardRewards"']) {
+  assert(!JSON.stringify(publicFrame).includes(hidden), `${hidden} must not appear in historical frames`)
+}
+assert.deepEqual(publicLogChange(['old'], ['old', 'new']), { reset: false, entries: ['new'] })
+assert.deepEqual(publicLogChange(['old'], ['old']), { reset: false, entries: [] })
+assert.deepEqual(publicLogChange(['old', 'new'], ['old']), { reset: true, entries: ['old'] })
+assert.deepEqual(publicLogChange(['old'], ['new fight'], true), { reset: true, entries: ['new fight'] })
 
 const copied = structuredClone(after)
 const resolution = copied.combat.presentationEvents.at(-1)

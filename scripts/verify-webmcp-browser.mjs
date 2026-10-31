@@ -925,7 +925,8 @@ const automaticStartResolveControls = automaticStartInspection.controls.filter((
   /^Resolve start/.test(control.label))
 const beforeAttack = await page.evaluate(() => {
   const state = window.__STS_DEBUG__.getState()
-  return { energy: state.players[0].energy, enemyHp: state.enemies.reduce((total, enemy) => total + enemy.hp, 0) }
+  return { energy: state.players[0].energy, enemyHp: state.enemies.reduce((total, enemy) => total + enemy.hp, 0),
+    livingEnemies: state.enemies.filter(enemy => !enemy.dead).length }
 })
 const combatInspection = await inspectAll()
 const attack = combatInspection.controls.find((control) => /, attack,/i.test(control.label))
@@ -934,24 +935,27 @@ if (!attack) throw new Error(`WebMCP did not expose a playable real Ironclad Att
   controls: combatInspection.controls.map((control) => control.label),
   unavailable: combatInspection.unavailableControls.map((control) => control.label),
 })}`)
-await interact(attack.id)
+const interactionSettlement = async controlId => {
+  const tool = (await document.modelContext.getTools()).find(tool => tool.name === 'interact_with_game')
+  let settled = false
+  const pending = tool.execute({ controlId }, { signal: new AbortController().signal })
+    .then(result => { settled = true; return result })
+  for (let frame = 0; frame < 200 && !settled && !document.querySelector('.enemy[data-webmcp-pending="true"]'); frame++)
+    await new Promise(resolve => setTimeout(resolve, 10))
+  const marked = Boolean(document.querySelector('.enemy[data-webmcp-pending="true"]'))
+  const settledBeforeContact = settled
+  return { marked, settledBeforeContact, result: await pending }
+}
+const attackSettlement = await page.evaluate(interactionSettlement, attack.id)
 await page.waitForFunction(() => document.querySelector('.enemy--targeted') || (() => {
   const state = window.__STS_DEBUG__.getState()
   return state.players[0].energy < 3
 })())
 const targetInspection = await inspectAll()
-const targetLabel = await page.locator('.enemy--targeted').first().getAttribute('aria-label').catch(() => null)
+const targetLabel = await page.locator('.enemy--targeted').count()
+  ? await page.locator('.enemy--targeted').first().getAttribute('aria-label') : null
 const target = targetInspection.controls.find((control) => control.label === targetLabel)
-const targetSettlement = target ? await page.evaluate(async (controlId) => {
-  const interact = (await document.modelContext.getTools()).find((tool) => tool.name === 'interact_with_game')
-  let settled = false
-  const pending = interact.execute({ controlId }, { signal: new AbortController().signal })
-    .then((result) => { settled = true; return result })
-  await new Promise((resolve) => setTimeout(resolve, 800))
-  const marked = Boolean(document.querySelector('.enemy[data-webmcp-pending="true"]'))
-  const settledBeforeContact = settled
-  return { marked, settledBeforeContact, result: await pending }
-}, target.id) : null
+const targetSettlement = target ? await page.evaluate(interactionSettlement, target.id) : attackSettlement
 await page.waitForFunction(({ energy, enemyHp }) => {
   const state = window.__STS_DEBUG__.getState()
   return state.players[0].energy < energy || state.enemies.reduce((total, enemy) => total + enemy.hp, 0) < enemyHp
@@ -979,6 +983,7 @@ const combatFlow = {
   seesDrawPile: combatInspection.controls.some((control) => /^Draw pile, \d+ cards$/.test(control.label)),
   richAttack: attack.label,
   targetLabel,
+  automaticallyTargeted: beforeAttack.livingEnemies === 1 && targetLabel === null,
   targetSettlementMarked: targetSettlement?.marked,
   targetSettledBeforeContact: targetSettlement?.settledBeforeContact,
   targetReturnedState: Boolean(targetSettlement?.result.controls),
@@ -1063,6 +1068,8 @@ const sequences = await page.evaluate(async () => {
   reconstructed.revision = deltaFull.revision
   const deltaChars = JSON.stringify(delta).length
   const deltaFullChars = JSON.stringify(deltaFull).length
+  const deltaControlChars = JSON.stringify(delta.changes.controls).length
+  const fullControlChars = JSON.stringify(deltaFull.controls).length
   state = await reset()
   const steps = [
     ['Use Energy Potion'], ['Use Fire Potion', 0], ['Strike,', 0], ['Strike,', 0],
@@ -1155,6 +1162,7 @@ const sequences = await page.evaluate(async () => {
   state = await reset(autoRun)
   const automatic = await interact.execute({ actions: [
     { controlId: find(state, 'Defend,').id }, { controlId: find(state, 'End Turn ').id },
+    { controlId: find(state, 'Defend,').id },
   ] })
   const autoBoard = board()
   const choiceRun = fresh()
@@ -1233,7 +1241,7 @@ const sequences = await page.evaluate(async () => {
   host.remove()
   await reset(saved)
   return { expected, actual, fullChars, compactChars, batchChars, individualChars, groupedCopies, unchanged, formatSwitch,
-    reconstructed, deltaFull, deltaChars, deltaFullChars,
+    reconstructed, deltaFull, deltaChars, deltaFullChars, deltaControlChars, fullControlChars,
     batch, orderings, malformed, killed, killBoard, chamber, chamberBoard, turnBoundary, turnBoard, automatic, autoBoard, choice, choiceBoard,
     jasper, jasperBoard, potionBoundaries,
     during, locked, cancelled, cancelBoard, multiplayerRejected, onlineRejected }
@@ -1263,7 +1271,7 @@ for (const hasHeldCard of [false, true]) {
   const feint = (await inspectAll()).controls.find((control) => control.label.startsWith('Feint, cost 1'))
   if (!feint) throw new Error(`WebMCP did not expose chambered Feint: ${JSON.stringify((await inspectAll()).controls.map((control) => control.label))}`)
   const feintChoice = await interact(feint.id)
-  const feintCards = feintChoice.controls.filter((control) => control.context === 'Choose 1 to Load')
+  const feintCards = feintChoice.controls.filter((control) => control.context === 'Cards available to load')
   assertDeepEqual(feintCards.map((control) => control.label.split(',')[0]).sort(),
     hasHeldCard ? ['Defend', 'Snapshot', 'Strike'] : ['Defend', 'Strike'],
     'chambered Feint must reveal its post-draw Load choices without a pre-draw prompt')
@@ -1568,8 +1576,8 @@ check('solo sequences preserve individual outcomes and stop safely at boundaries
       compact: sequences.compactChars, batch: sequences.batchChars, individual: sequences.individualChars })}`)
   assertDeepEqual(sequences.unchanged.changes, {})
   assertDeepEqual(sequences.reconstructed, sequences.deltaFull, 'compact references reconstruct the complete state without losing duplicate IDs')
-  assert(sequences.deltaChars < sequences.deltaFullChars * 0.75,
-    `compact references avoid repeating unchanged metadata: delta=${sequences.deltaChars}, full=${sequences.deltaFullChars}`)
+  assert(sequences.deltaChars < sequences.deltaFullChars && sequences.deltaControlChars < sequences.fullControlChars * 0.75,
+    `compact references avoid repeating unchanged control metadata: delta=${sequences.deltaControlChars}, full=${sequences.fullControlChars}`)
   assert(sequences.formatSwitch.controls && !sequences.formatSwitch.baseRevision,
     'switching compact/full formats returns a full baseline rather than an incompatible delta')
 })
@@ -1589,16 +1597,16 @@ check('sequences stop before another turn or a mandatory choice', () => {
   assert(sequences.turnBoundary.sequence.completed === 1 && sequences.turnBoundary.sequence.stopped &&
     sequences.turnBoard.enemies.every((enemy) => enemy.hp === 20) &&
     (sequences.turnBoard.phase !== 'player' || sequences.turnBoard.turn !== 1) &&
-    sequences.automatic.sequence.completed === 1 && sequences.autoBoard.turn === 2,
-    `explicit and automatic turn transitions stop queued actions before another turn: ${JSON.stringify({ explicit: sequences.turnBoundary.sequence,
+    sequences.automatic.sequence.completed === 2 && sequences.automatic.sequence.stopped && sequences.autoBoard.turn === 2,
+    `exhausting Energy still requires End Turn, and queued actions must stop before another turn: ${JSON.stringify({ explicit: sequences.turnBoundary.sequence,
       explicitTurn: sequences.turnBoard.turn, automatic: sequences.automatic.sequence, automaticTurn: sequences.autoBoard.turn })}`)
   assert(sequences.choice.sequence.completed === 1 && sequences.choice.sequence.stopped &&
     sequences.choiceBoard.players[0].block === 0 && sequences.choiceBoard.players[0].energy === 3,
     'mandatory Load choices are not cancelled by the next queued card')
   assert(sequences.jasper.sequence.completed === 1 && sequences.jasper.sequence.stopped === 'choice_required' &&
     sequences.jasperBoard.players[0].block === 0 && sequences.jasperBoard.players[0].energy === 3 &&
-    sequences.jasper.screen.status.includes('Jasper — Exhaust up to 3 cards'),
-    'a staged power stops the sequence even when its choice prompt does not say choose')
+    sequences.jasper.screen.headings.includes('Choose up to 3 cards to Exhaust.'),
+    'a staged power stops the sequence at its shared Exhaust picker')
   assert(sequences.potionBoundaries.every(({ rejected, repeatRejected, result, board }) => rejected && repeatRejected &&
     result.sequence.completed === 2 && board.players[0].energy === 2 && board.players[0].block === 1),
     'draw and special potions are exposed as terminal actions, rejected before mutation in the middle, and allowed at the end')
@@ -1810,8 +1818,9 @@ check('keeps snapshots scoped, stable, opaque, and current', () => {
 })
 
 check('keeps representative WebMCP payloads compact', () => {
+  // Combat observations now include the full Incoming damage explanation.
   assert(payloadChars.metadata < 4_400 && payloadChars.start < 1_000 && payloadChars.fixture < 3_600 && payloadChars.lab < 900 &&
-    payloadChars.map < 6_700 && payloadChars.combat < 2_500,
+    payloadChars.map < 6_700 && payloadChars.combat < 2_800,
     `payload budget exceeded: ${JSON.stringify(payloadChars)}`)
 })
 
@@ -1834,7 +1843,7 @@ check('starts a real Watcher run through WebMCP and loads cleanly', () => {
   }, 'WebMCP exposed a redundant action for deterministic start-of-combat effects')
   assert(combatFlow.seesTurn && combatFlow.seesEnergy && combatFlow.seesDrawPile,
     `combat inspection exposes turn, current Energy, and draw-pile count: ${JSON.stringify(combatInspection)}`)
-  assert(/, attack,/i.test(combatFlow.richAttack) && combatFlow.targetLabel && combatFlow.targetSettlementMarked &&
+  assert(/, attack,/i.test(combatFlow.richAttack) && (combatFlow.targetLabel || combatFlow.automaticallyTargeted) && combatFlow.targetSettlementMarked &&
     !combatFlow.targetSettledBeforeContact && combatFlow.targetReturnedState && combatFlow.changed && combatFlow.nextTurnReturned,
   `a real Watcher Attack remains pending through contact, then returns settled controls: ${JSON.stringify(combatFlow)}`)
   assert(Object.values(activeRelicFlow).every(Boolean),

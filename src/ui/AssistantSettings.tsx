@@ -8,7 +8,7 @@ export function AssistantSettings() {
   const sharing = status.state === 'connecting' || status.state === 'connected'
   return <section className="assistant-settings" data-webmcp-passive aria-label="Live run sharing">
     <h3>Share run with assistant</h3>
-    <p>Let your local assistant read this tab's visible game information when you ask for advice.
+    <p>Let your local assistant read this tab's visible game information and query the public history of your active local run.
       It cannot play cards or change your run. Hidden cards and saved account credentials are not shared.
       Sharing reconnects after refreshes until you select Stop sharing.</p>
     <p><code>pnpm run dev</code> starts the local companion automatically. Paste the pairing code from that terminal.

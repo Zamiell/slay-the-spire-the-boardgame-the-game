@@ -1,4 +1,4 @@
-import { captureAssistantGame } from './useWebMcp.ts'
+import { captureAssistantGame, captureAssistantRunHistory } from './useWebMcp.ts'
 
 type SharingStatus = { state: 'off' | 'connecting' | 'connected' | 'error'; message: string; remembered?: boolean }
 type Pairing = { code: string; tabId: string }
@@ -104,6 +104,13 @@ function connect(pairing: Pairing, retries = 0) {
         if (!stopped) timer = window.setInterval(() => publish(), 1_000)
       } else if (message.type === 'inspect' && typeof message.requestId === 'string' && timer) {
         publish(message.requestId)
+      } else if (message.type === 'inspect_history' && typeof message.requestId === 'string' && timer) {
+        void captureAssistantRunHistory(message.query).then(history => {
+          if (!stopped) socket.send(JSON.stringify({ type: 'history', requestId: message.requestId, history }))
+        }, (error: unknown) => {
+          if (!stopped) socket.send(JSON.stringify({ type: 'history_error', requestId: message.requestId,
+            error: error instanceof Error ? error.message : 'Could not reconstruct recorded run history.' }))
+        })
       } else {
         fail('The companion sent an unexpected message. Sharing stopped.')
       }

@@ -59,17 +59,33 @@ using this command in the companion's checkout:
 node scripts/live-run.mjs read
 ```
 
-For a dedicated `get_current_run` tool, add a local/stdio server with `/mcp add`
+To query the **full recorded public history**, rather than the recent window:
+
+```sh
+node scripts/live-run.mjs history                         # first page, up to 50 transitions
+node scripts/live-run.mjs history --offset=50 --limit=50  # another page
+node scripts/live-run.mjs history --all > /tmp/sts-run-history.json
+```
+
+`--all` follows every page from the selected offset and returns one JSON document.
+It pins the recording boundary from the first page, so ongoing play cannot mix
+different ranges. It fails instead of printing a partial history if a later page
+cannot be read. Large recordings are best redirected to a file.
+
+For dedicated `get_current_run` and `get_run_history` tools, add a local/stdio server with `/mcp add`
 in Copilot CLI:
 
 - Name: `sts-live-run`
 - Command: `node /absolute/path/to/this/checkout/scripts/live-run.mjs mcp`
-- Tools: `get_current_run`
+- Tools: `get_current_run`, `get_run_history`
 
 The absolute script path selects the correct checkout even when the assistant
 is working elsewhere. MCP does not start a companion or grant browser access:
 start `pnpm run dev` and explicitly pair the game tab first. Existing CLI
 sessions can use the `read` command immediately.
+After updating an already-running companion, restart it and pair the tab with
+its new code. Restart an existing MCP connection and enable `get_run_history`
+if its tool allowlist previously included only `get_current_run`.
 
 Repository agent instructions require a fresh read before answering questions
 about the current run. They do not request inspections for unrelated coding
@@ -88,6 +104,52 @@ work. Screen text is untrusted game content, not assistant instructions.
 - `state.history`: up to 32 public recorded local-run transitions, including card
   resolutions and before/after Energy, HP, Block, and stance. This comes from the
   game's replay recording, not from the one-second screen sampler.
+- On demand through `get_run_history` or `history`: every transition in the
+  active local run's recording, including public before/after frames, recorded
+  choice labels, run/combat log messages, and permanent deck changes. Full
+  history is not included in the periodic feed.
+
+## Full history queries
+
+Call `get_run_history` with `{}` for the first page. Pass the returned
+`history.next` object as the next call's arguments until it is `null`.
+The same options are available on the CLI:
+
+| Tool argument | CLI option | Meaning |
+|---|---|---|
+| `offset` | `--offset=N` | Zero-based offset into the recorder's events; default 0. |
+| `limit` | `--limit=N` | At most 1–100 transitions per page; default 50. |
+| `through` | `--through=N` | Pinned recording length from the first page. |
+| `runId` | `--run-id=ID` | Reject a page from a different active run. |
+| `recordingId` | `--recording-id=ID` | Reject a page from a replaced or reloaded recording. |
+
+Use the supplied continuation rather than guessing offsets: pages also have a
+384 KiB public-data budget and may contain fewer than `limit` transitions.
+An individual transition too large to fit produces an explicit error, never a
+silently incomplete entry. Reloading or replacing the recording invalidates its
+guard; restart pagination at offset 0. Reads require a responding paired tab,
+and stopping sharing or leaving the active local run revokes history access too.
+
+`history.initial` contains the first recorded public frame and log messages on
+the offset-0 page. Transition indices are one-based, match the replay recorder,
+and include entries that the compact history omits because its tracked values
+did not change. `through` identifies the requested boundary;
+`recordedTransitions` reports the latest recording length. `caughtUp` is true
+only when the page reaches the current recording end and its public state matches
+the active run. `pending` still identifies an in-progress UI transition.
+
+Historical frames include Act, Ascension, public run settings, location, player resources/items and enemy
+status. Choice descriptions contain labels, **not executable selectors or input
+values**. Log changes report appended lines; `reset: true` means the recorded log
+was replaced or rewound, not that every repeated line is a new action. Card
+payments, copied cards and rewinds use the same semantics as recent history.
+
+This is the public interpretation of the same recording used by **Download run
+log**, not a raw replay-file download: hidden hands, draw order, future reward
+supplies, RNG, replay patches and credentials remain excluded. Unrecorded
+internal effects cannot be recovered, and no per-action timestamps are invented.
+Menus, online games, tutorials, replays, and missing/loading recordings return an
+explicit history-query error. Use `get_current_run` for current-game advice.
 
 ## Recorded transition history
 

@@ -324,6 +324,7 @@
 }
 
 .sts-scope .reward-screen--card-choice > .reward-screen__skip {
+  position: relative;
   transition: filter 160ms ease, transform 160ms ease;
   min-width: 11rem;
   margin: 0;
@@ -336,6 +337,22 @@
   font-size: 1.5rem;
   font-weight: 700;
   text-shadow: 0 0.14rem 0 #173a42;
+}
+
+/* This long hexagon is not a 45-degree chamfer. Its scaled SVG rim follows
+   the pointed ends without replacing the button's existing fill or focus cue. */
+.sts-scope .reward-screen--card-choice > .reward-screen__skip::after {
+  content: '';
+  position: absolute;
+  inset: -0.14rem;
+  background: #126a7a;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M9 0H91L100 50 91 100H9L0 50Z' fill='none' stroke='white' stroke-width='4.5' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+  pointer-events: none;
+}
+
+@media (forced-colors: active) {
+  .sts-scope .reward-screen--card-choice > .reward-screen__skip { clip-path: none; }
+  .sts-scope .reward-screen--card-choice > .reward-screen__skip::after { display: none; }
 }
 
 .sts-scope .reward-screen--card-choice > .reward-screen__skip:not(.is-chosen):hover:not(:disabled),

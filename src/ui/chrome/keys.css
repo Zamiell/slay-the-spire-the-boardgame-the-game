@@ -1,14 +1,3 @@
-/* A rectangular border cannot follow a clipped corner. These four bands extend
-   it along the diagonals; the cutoff is the corner's perpendicular distance. */
-button {
-  --key-corner-edge: calc(var(--key-cut, 7px) * 0.70710678 + var(--key-border-width, 1px));
-  --key-corners:
-    linear-gradient(135deg, var(--key-border-color, var(--trim-dim)) var(--key-corner-edge), transparent var(--key-corner-edge)),
-    linear-gradient(225deg, var(--key-border-color, var(--trim-dim)) var(--key-corner-edge), transparent var(--key-corner-edge)),
-    linear-gradient(45deg, var(--key-border-color, var(--trim-dim)) var(--key-corner-edge), transparent var(--key-corner-edge)),
-    linear-gradient(315deg, var(--key-border-color, var(--trim-dim)) var(--key-corner-edge), transparent var(--key-corner-edge));
-}
-
 /* Which buttons are keys.
    Cards, enemies, map rooms and the other pictorial buttons all carry a class
    of their own; the plumbing buttons — "New run", "Rest +3 HP", "Take" — carry
@@ -46,7 +35,7 @@ button {
      compute a contrast ratio — against a transparent value it cannot. The flat
      colour is also the fallback if the gradient ever fails to paint. */
   background-color: var(--slate);
-  background-image: var(--key-corners), linear-gradient(180deg, var(--slate-lit), var(--slate) 46%, var(--slate-dim));
+  background-image: var(--bevel-corners), linear-gradient(180deg, var(--slate-lit), var(--slate) 46%, var(--slate-dim));
   background-origin: border-box;
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 0.18),
@@ -125,7 +114,7 @@ button {
   opacity: 1;
   color: #9dc0c0;
   background-color: #26303a;
-  background-image: var(--key-corners), linear-gradient(180deg, #26303a, #161c22);
+  background-image: var(--bevel-corners), linear-gradient(180deg, #26303a, #161c22);
   filter: none;
   text-shadow: none;
   cursor: not-allowed;
@@ -144,10 +133,10 @@ button {
 .sts-scope button:not([class])[aria-pressed='true']:not(:disabled),
 .sts-scope button[class=''][aria-pressed='true']:not(:disabled),
 .sts-scope button.is-chosen:not(:disabled) {
-  --key-border-color: #4a3110;
+  --bevel-color: #4a3110;
   color: #2a1c07;
   background-color: var(--trim-lit);
-  background-image: var(--key-corners), linear-gradient(180deg, #ffe9a8, var(--trim-lit) 42%, #a97e2c);
+  background-image: var(--bevel-corners), linear-gradient(180deg, #ffe9a8, var(--trim-lit) 42%, #a97e2c);
   border-color: #4a3110;
   text-shadow: 0 1px 0 rgb(255 255 255 / 0.35);
 }

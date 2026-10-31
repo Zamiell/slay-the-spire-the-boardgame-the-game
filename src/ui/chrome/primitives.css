@@ -28,3 +28,53 @@
   color: var(--cream);
   filter: drop-shadow(var(--hard-shadow-lg));
 }
+
+button,
+summary {
+  --bevel-cut: 7px;
+  --bevel-width: 1px;
+  --bevel-color: var(--trim-dim);
+}
+
+.relic-actions > section,
+.event-loot,
+.map-peek__panel,
+.portal-map,
+.mailbox__panel {
+  --bevel-cut: var(--chamfer);
+  --bevel-width: 2px;
+  --bevel-color: var(--trim-dim);
+}
+
+/* Rectangular borders cannot follow a clip. Paint the diagonal edges in the
+   background too, so the frame stays fixed even when its contents scroll. */
+button,
+summary,
+.relic-actions > section,
+.event-loot,
+.map-peek__panel,
+.portal-map,
+.mailbox__panel {
+  --bevel-corner-edge: calc(var(--bevel-cut) * 0.70710678 + var(--bevel-width));
+  --bevel-corners:
+    linear-gradient(135deg, var(--bevel-color) var(--bevel-corner-edge), transparent var(--bevel-corner-edge)),
+    linear-gradient(225deg, var(--bevel-color) var(--bevel-corner-edge), transparent var(--bevel-corner-edge)),
+    linear-gradient(45deg, var(--bevel-color) var(--bevel-corner-edge), transparent var(--bevel-corner-edge)),
+    linear-gradient(315deg, var(--bevel-color) var(--bevel-corner-edge), transparent var(--bevel-corner-edge));
+  --bevel-shape: polygon(
+    var(--bevel-cut) 0, calc(100% - var(--bevel-cut)) 0,
+    100% var(--bevel-cut), 100% calc(100% - var(--bevel-cut)),
+    calc(100% - var(--bevel-cut)) 100%, var(--bevel-cut) 100%,
+    0 calc(100% - var(--bevel-cut)), 0 var(--bevel-cut)
+  );
+}
+
+@media (forced-colors: active) {
+  .relic-actions > section,
+  .event-loot,
+  .map-peek__panel,
+  .portal-map,
+  .mailbox__panel,
+  .online-lobby__settings > summary,
+  .start-menu__meta > summary { --bevel-shape: none; }
+}

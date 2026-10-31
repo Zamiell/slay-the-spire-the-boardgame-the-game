@@ -15,11 +15,11 @@
   min-width: 13rem;
   max-width: min(26rem, calc(100vw - 2rem));
   padding: 0.75rem;
-  background: linear-gradient(180deg, #2b1f1a, #15100c 72%);
-  box-shadow:
-    inset 0 0 0 2px var(--trim-dim),
-    inset 0 0 0 3px rgb(0 0 0 / 0.7),
-    inset 0 2px 0 rgb(217 180 91 / 0.28);
+  border: var(--bevel-width) solid var(--bevel-color);
+  clip-path: var(--bevel-shape);
+  background: var(--bevel-corners), linear-gradient(180deg, #2b1f1a, #15100c 72%);
+  background-origin: border-box;
+  box-shadow: none;
   filter: drop-shadow(var(--hard-shadow-lg));
 }
 
@@ -37,6 +37,8 @@
   overscroll-behavior-inline: contain;
   scrollbar-width: none;
   padding: 0;
+  border: 0;
+  clip-path: none;
   background: none;
   box-shadow: none;
   filter: none;
@@ -45,9 +47,12 @@
 .relic-actions > section:not(:has(details[open]))::-webkit-scrollbar { display: none; }
 
 .relic-actions > section.relic-actions__start-turn {
+  --bevel-width: 1px;
   padding: 0.4rem;
-  border: 1px solid var(--trim-dim);
-  background: rgb(36 28 18 / 92%);
+  border: var(--bevel-width) solid var(--bevel-color);
+  clip-path: var(--bevel-shape);
+  background: var(--bevel-corners), linear-gradient(rgb(36 28 18 / 92%), rgb(36 28 18 / 92%));
+  background-origin: border-box;
 }
 
 .relic-actions__heading {

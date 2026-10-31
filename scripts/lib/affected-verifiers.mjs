@@ -242,7 +242,8 @@ const focusedOnlyUiOwners = ownerMap([
   ['scripts/audio/generate-combat-sfx.py', ['verify-assets.mjs', 'verify-safari-sound-browser.mjs', 'verify-rig-animation-browser.mjs']],
   ['scripts/lib/skin-attack-fixture.mjs', ['verify-skin-attack-browser.mjs', 'verify-monogatari-animation-browser.mjs', 'verify-monogatari-skins-browser.mjs', 'verify-defect-chan-evoke-browser.mjs']],
   ['scripts/art/campfire-sitters.py', ['verify-assets.mjs', 'verify-art-scenes-browser.mjs']],
-  ['scripts/art/normalize-inflame-text.py', ['verify-assets.mjs', 'verify-card-rendering-browser.mjs']],
+  ...['scripts/art/normalize-card-text.py', 'scripts/art/normalize-inflame-text.py']
+    .map(file => [file, ['verify-assets.mjs', 'verify-card-rendering-browser.mjs']]),
   ['scripts/sync-card-assets.mjs', ['verify-assets.mjs', 'verify-card-rendering-browser.mjs']],
   ['scripts/art/export-kratos-menu.py', ['verify-assets.mjs', 'verify-skin-browser.mjs']],
   ['scripts/art/export-kratos-noncombat.py', ['verify-assets.mjs', 'verify-merchant-overflow-browser.mjs', 'verify-treasure-animation-browser.mjs']],

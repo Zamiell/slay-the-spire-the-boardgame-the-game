@@ -41,6 +41,14 @@ const limit = Number(flag('limit', '0'))
 const concurrency = Number(flag('jobs', '8'))
 const onlyKey = flag('key', '')
 
+const TEXT_CORRECTIONS = {
+  'ironclad__normal__inflame+': ['--region', '180', '630', '570', '840'],
+  'defect__rare__thunder-strike+': [
+    '--region', '180', '630', '570', '840',
+    '--replacement', '380', '652', '413', '707', '274', '652',
+  ],
+}
+
 const index = JSON.parse(readFileSync(join(repoRoot, 'data/card-index.json'), 'utf8'))
 const isCharacter = (entry) => ['ironclad', 'silent', 'defect', 'watcher'].includes(entry.tier.split('/')[0])
 
@@ -154,22 +162,23 @@ async function fetchOne({ entry, upgraded }) {
 
   let exportSource = source
   const corrected = join(outRoot, `.${key}.corrected.png`)
-  if (upgraded && entry.name === 'Inflame' && entry.tier.startsWith('ironclad/')) {
+  const textCorrection = TEXT_CORRECTIONS[key]
+  if (textCorrection) {
     const base = join(outRoot, `.${key}.base.png`)
     const response = await fetch(sourceUrl(entry, false))
     if (!response.ok) {
       if (!hasMaster) rmSync(source, { force: true })
-      return { key, error: `Inflame text source: HTTP ${response.status}` }
+      return { key, error: `Card text source: HTTP ${response.status}` }
     }
     writeFileSync(base, Buffer.from(await response.arrayBuffer()))
     const correction = await run('python3', [
-      join(repoRoot, 'scripts/art/normalize-inflame-text.py'), base, source, corrected,
+      join(repoRoot, 'scripts/art/normalize-card-text.py'), base, source, corrected, ...textCorrection,
     ])
     rmSync(base, { force: true })
     if (correction.code !== 0) {
       if (!hasMaster) rmSync(source, { force: true })
       rmSync(corrected, { force: true })
-      return { key, error: correction.stderr.trim() || 'Inflame text correction failed (requires Pillow)' }
+      return { key, error: correction.stderr.trim() || 'Card text correction failed (requires Pillow)' }
     }
     exportSource = corrected
   }

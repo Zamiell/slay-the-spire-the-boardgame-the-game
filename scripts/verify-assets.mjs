@@ -464,6 +464,32 @@ for root in sys.argv[1:]:
   assert(result.status === 0, result.stderr || 'Inflame rules-panel image comparison failed')
 })
 
+check('Thunder Strike upgrades preserve the base wording and layout in every image tier', () => {
+  const key = 'defect__rare__thunder-strike'
+  const skins = Object.entries(SKIN_CARD_FACES).filter(([, assets]) => assets.faces.includes(`${key}+`))
+  const roots = ['cards', 'cards-sm', ...skins.flatMap(([skin]) =>
+    [`skin-cards/${skin}`, `skin-cards-sm/${skin}`])]
+  const result = spawnSync('python3', ['-c', `
+import sys
+from pathlib import Path
+from PIL import Image, ImageChops, ImageStat
+for root in sys.argv[1:]:
+    base = Image.open(Path(root) / 'defect__rare__thunder-strike.webp').convert('RGB')
+    upgraded = Image.open(Path(root) / 'defect__rare__thunder-strike+.webp').convert('RGB')
+    assert base.size == upgraded.size, root
+    def scaled(box):
+        return tuple(round(value * (base.width / 744 if i % 2 == 0 else base.height / 1039))
+                     for i, value in enumerate(box))
+    difference = ImageChops.difference(base, upgraded)
+    amount = scaled((270, 645, 315, 715))
+    assert max(ImageStat.Stat(difference.crop(amount)).mean) > 8, (root, 'upgrade lost its changed damage')
+    difference.paste((0, 0, 0), amount)
+    unchanged = ImageStat.Stat(difference.crop(scaled((180, 630, 570, 840))))
+    assert max(unchanged.mean) < 3, (root, 'unchanged rules moved or gained extra words', unchanged.mean)
+`, ...roots.map(root => join(publicRoot, 'assets', root))], { encoding: 'utf8' })
+  assert(result.status === 0, result.stderr || 'Thunder Strike rules-panel image comparison failed')
+})
+
 check('every card scan has a thumbnail inside the decode budget', () => {
   if (cardFiles.length === 0) return // not synced
   assertDeepEqual(

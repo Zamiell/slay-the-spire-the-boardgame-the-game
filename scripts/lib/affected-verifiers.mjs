@@ -62,6 +62,7 @@ const focusedEngineOwners = ownerMap([
   ['src/game/run/rewards.ts', ['verify-loot-browser.mjs', 'verify-tiny-house-browser.mjs']],
 ])
 const focusedUiOwners = ownerMap([
+  ['src/ui/chrome/back-buttons.css', ['verify-back-buttons-browser.mjs']],
   ['src/ui/chrome/interaction-polish.css', ['verify-ui-polish-browser.mjs']],
   ['src/ui/useControlPress.ts', ['verify-ui-polish-browser.mjs']],
   ...['src/ui/Tooltip.tsx', 'src/ui/chrome/tooltip-panels.css']

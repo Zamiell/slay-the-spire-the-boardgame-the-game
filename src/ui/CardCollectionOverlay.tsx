@@ -145,9 +145,9 @@ export function CardCollectionDialog({ cards, label, onClose, open = true, order
           {open && cards.length === 0 ? <span className="muted">No cards.</span> : null}
         </div>
         <footer className="card-collection__footer">
-          <Tooltip name="Back">{help => <button {...help} type="button" ref={element => { closeButton.current = element; help.ref?.(element) }}
+          <button type="button" ref={closeButton}
             className="ribbon-back" aria-label="Back"
-            aria-keyshortcuts={shortcut?.toUpperCase()} onClick={onClose}><span aria-hidden="true" /></button>}</Tooltip>
+            aria-keyshortcuts={shortcut?.toUpperCase()} onClick={onClose}><span aria-hidden="true" /></button>
           <label><input type="checkbox" aria-label={`${label} upgrade preview`} checked={viewUpgrades}
           onChange={(event) => setViewUpgrades(event.target.checked)} /> View Upgrades</label>
         </footer>

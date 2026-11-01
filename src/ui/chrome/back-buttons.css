@@ -2,6 +2,7 @@
    the landmark and accessible label describe where it returns, while the red
    ribbon remains a consistent visual affordance everywhere. */
 button.ribbon-back {
+  --ribbon-outline: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M0 16H100L82 50 100 84H0L14 50Z' fill='none' stroke='%23f0b400' stroke-width='4' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
   display: grid;
   width: clamp(3.75rem, 7vw, 5.5rem);
   min-width: 0;
@@ -17,10 +18,25 @@ button.ribbon-back {
   box-shadow: inset 0 1px rgb(255 128 83 / 0.42), inset 0 -3px rgb(79 8 4 / 0.48);
   clip-path: polygon(0 16%, 100% 16%, 82% 50%, 100% 84%, 0 84%, 14% 50%);
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
   filter: drop-shadow(0 0.28rem 0.28rem rgb(0 0 0 / 0.6));
+  scale: 1;
+  transition: scale 500ms var(--ui-ease-out, ease-out), filter 500ms var(--ui-ease-out, ease-out);
 }
 
+/* Share the arrow's grid cell so the contour needs neither a wrapper nor a new containing block. */
+button.ribbon-back::before {
+  content: '';
+  grid-area: 1 / 1;
+  align-self: stretch;
+  justify-self: stretch;
+  background: var(--ribbon-outline) center / 100% 100% no-repeat;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 500ms var(--ui-ease-out, ease-out);
+}
 button.ribbon-back > span {
+  grid-area: 1 / 1;
   display: block;
   width: 2.7rem;
   height: 1.45rem;
@@ -37,6 +53,7 @@ button.ribbon-back:disabled { cursor: not-allowed; filter: grayscale(0.5) bright
 
 .start-menu__screen-back.ribbon-back { position: absolute; bottom: 0; left: 0; }
 .start-menu__character-back.ribbon-back {
+  --ribbon-outline: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M0 0H100L82 50 100 100H0L15 50Z' fill='none' stroke='%23f0b400' stroke-width='4' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
   width: clamp(4rem, 8vw, 7.5rem);
   aspect-ratio: 1.7;
   clip-path: polygon(0 0, 100% 0, 82% 50%, 100% 100%, 0 100%, 15% 50%);
@@ -79,6 +96,30 @@ button.ribbon-back:disabled { cursor: not-allowed; filter: grayscale(0.5) bright
 
 .settings-dialog .settings-dialog__back.ribbon-back { flex: 0 0 auto; min-width: 0; }
 
+button.ribbon-back:focus-visible:not(:disabled, [aria-disabled='true']) {
+  scale: 1.05;
+  transition-duration: 50ms;
+  transition-timing-function: linear;
+  outline: 2px solid var(--ui-focus, #ffe6a1);
+  outline-offset: -4px;
+}
+button.ribbon-back:focus-visible:not(:disabled, [aria-disabled='true'])::before { opacity: 1; transition-duration: 50ms; }
+@media (hover: hover) and (pointer: fine) {
+  button.ribbon-back:hover:not(:disabled, [aria-disabled='true']) { scale: 1.05; transition-duration: 50ms; transition-timing-function: linear; }
+  button.ribbon-back:hover:not(:disabled, [aria-disabled='true'])::before { opacity: 1; transition-duration: 50ms; }
+}
+button.ribbon-back:is(:active, [data-ui-pressed]):not(:disabled, [aria-disabled='true']) {
+  scale: 1;
+  filter: brightness(0.5);
+  transition-duration: 250ms;
+  transition-timing-function: var(--ui-ease-out, ease-out);
+}
+button.ribbon-back:is(:active, [data-ui-pressed]):not(:disabled, [aria-disabled='true'])::before {
+  opacity: 0;
+  transition-duration: 250ms;
+}
+html[data-reduced-motion='true'] button.ribbon-back { scale: none !important; }
+
 @media (max-height: 620px) {
   button.ribbon-back { width: 3.15rem; }
   button.ribbon-back > span { width: 2rem; height: 1.08rem; }
@@ -88,6 +129,8 @@ button.ribbon-back:disabled { cursor: not-allowed; filter: grayscale(0.5) bright
 }
 
 @media (prefers-reduced-motion: reduce) {
+  button.ribbon-back { scale: none !important; transition: none; }
+  button.ribbon-back::before { transition: none; }
   button.ribbon-back:hover:not(:disabled),
   button.ribbon-back:active:not(:disabled) { filter: none; }
   button.ribbon-back:focus-visible:not(:disabled) {

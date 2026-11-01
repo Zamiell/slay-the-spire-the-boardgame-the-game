@@ -10,18 +10,18 @@
   --ui-focus: #ffe6a1;
 }
 
-:root :is(button, summary):not(.card, .enemy, .room, .compendium-card, .power, .pile, .map-drawing__button) {
+:root :is(button, summary):not(.card, .enemy, .room, .compendium-card, .power, .pile, .map-drawing__button, .ribbon-back) {
   transition-property: color, background-color, border-color, box-shadow, filter, opacity, transform, scale, translate;
   transition-duration: var(--ui-release);
   transition-timing-function: var(--ui-ease-out);
   -webkit-tap-highlight-color: transparent;
 }
-:root :is(button, summary):not(.card, .enemy, .room, .compendium-card, .power, .pile, .map-drawing__button):focus-visible {
+:root :is(button, summary):not(.card, .enemy, .room, .compendium-card, .power, .pile, .map-drawing__button, .ribbon-back):focus-visible {
   transition-duration: var(--ui-hover);
   outline: 2px solid var(--ui-focus);
   outline-offset: -4px;
 }
-:root button:not(.card, .enemy, .room, .compendium-card, .power, .pile, .map-drawing__button):is(:active, [data-ui-pressed]):not(:disabled, [aria-disabled='true']) {
+:root button:not(.card, .enemy, .room, .compendium-card, .power, .pile, .map-drawing__button, .ribbon-back):is(:active, [data-ui-pressed]):not(:disabled, [aria-disabled='true']) {
   transition-duration: var(--ui-press);
 }
 :root button[aria-busy='true'] { cursor: progress; }
@@ -42,10 +42,6 @@
   filter: brightness(1.1);
   transition-duration: 0ms, var(--ui-release), 0ms;
 }
-button.ribbon-back > span {
-  transition: scale var(--ui-release) var(--ui-ease-out), translate var(--ui-release) var(--ui-ease-out);
-}
-button.ribbon-back:focus-visible > span { scale: 1.05; translate: -2px 0; transition-duration: var(--ui-hover); }
 
 /* A consistent, bounded highlight for controls on menu sheets and in dialogs. */
 :is(.settings-dialog, .stats, .profile, .leaderboard, .mailbox, .online-entry, .quick-setup, .give-up-panel)
@@ -196,7 +192,7 @@ dialog[open] > :is(.settings-dialog__panel, .choice-modal__panel, .map-peek__pan
 @keyframes ui-panel-arrive { from { opacity: 0; } to { opacity: 1; } }
 
 @media (hover: hover) and (pointer: fine) {
-  :root :is(button, summary):not(.card, .enemy, .room, .compendium-card, .power, .pile, .map-drawing__button):hover:not(:disabled, [aria-disabled='true']) {
+  :root :is(button, summary):not(.card, .enemy, .room, .compendium-card, .power, .pile, .map-drawing__button, .ribbon-back):hover:not(:disabled, [aria-disabled='true']) {
     transition-duration: var(--ui-hover);
   }
   .start-menu__nav button:hover:not(:disabled) .start-menu__label { scale: 1.05; transition-duration: var(--ui-hover); }
@@ -204,7 +200,6 @@ dialog[open] > :is(.settings-dialog__panel, .choice-modal__panel, .map-peek__pan
     scale: 1.1; rotate: -12deg; filter: brightness(1.1);
     transition-duration: 0ms, var(--ui-release), 0ms;
   }
-  button.ribbon-back:hover:not(:disabled) > span { scale: 1.05; translate: -2px 0; transition-duration: var(--ui-hover); }
   :is(.settings-dialog, .stats, .profile, .leaderboard, .mailbox, .online-entry, .quick-setup, .give-up-panel)
     button:not(:disabled, [aria-disabled='true'], .ribbon-back, .card):hover,
   .replay-bar__button:hover:not(:disabled) {
@@ -231,7 +226,6 @@ dialog[open] > :is(.settings-dialog__panel, .choice-modal__panel, .map-peek__pan
 :is(.start-menu__icon, .game-settings__summary, .map-peek__open, .deck-peek__open):is(:active, [data-ui-pressed]):not(:disabled) > img {
   scale: 1; rotate: 0deg; filter: brightness(0.85); transition-duration: 250ms;
 }
-button.ribbon-back:is(:active, [data-ui-pressed]):not(:disabled) > span { scale: 1; translate: 0 0; transition-duration: 250ms; }
 
 /* Both the game's toggle and the OS preference suppress the new decorative motion.
    Keep colour/outline feedback and all layout-defining transforms intact. */

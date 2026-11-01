@@ -434,8 +434,8 @@ export function StartMenu({
             <img src={assetPath(`menu/character-select/portrait-${heroArt(candidate.id)}.png`)} alt="" />
           </button>)}
         </div>
-        <Tooltip name="Back">{help => <button {...help} type="button" className="start-menu__character-back ribbon-back" aria-label="Back"
-          onClick={() => { returnToMain(); onCharacterBack() }}><span aria-hidden="true"></span></button>}</Tooltip>
+        <button type="button" className="start-menu__character-back ribbon-back" aria-label="Back"
+          onClick={() => { returnToMain(); onCharacterBack() }}><span aria-hidden="true"></span></button>
         {tutorialSetup ? <Tooltip name="Start tutorial">{help => <button {...help} type="button" className="start-menu__character-embark" aria-label="Start tutorial"
           disabled={embarking} onClick={() => { setEmbarking(true); onTutorial() }}><span aria-hidden="true">✓</span></button>}</Tooltip>
           : <Tooltip name="Embark">{help => <button {...help} type="button" className="start-menu__character-embark" aria-label="Embark" disabled={embarking}
@@ -444,9 +444,9 @@ export function StartMenu({
       {screen === 'character' && preparingCharacter ? <section className="start-menu__character-select start-menu__character-loading"
         aria-label="Preparing character selection" aria-busy="true">
         <p role="status">Preparing character artwork…</p>
-        <Tooltip name="Back">{help => <button {...help} type="button" className="start-menu__character-back ribbon-back" aria-label="Back"
-          ref={element => { loadingBack.current = element; help.ref?.(element) }}
-          onClick={() => { returnToMain(); onCharacterBack() }}><span aria-hidden="true"></span></button>}</Tooltip>
+        <button type="button" className="start-menu__character-back ribbon-back" aria-label="Back"
+          ref={loadingBack}
+          onClick={() => { returnToMain(); onCharacterBack() }}><span aria-hidden="true"></span></button>
       </section> : null}
 
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} settings={settings} onChange={onSettings} />

@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import { Tooltip } from './Tooltip.tsx'
 import { assetPath, isPreloadedImageDecoded, preloadImages } from '../game/assets.ts'
 import type { RuleSet } from '../game/meta.ts'
 import './styles/campaign-select.css'
@@ -49,12 +48,12 @@ export function CampaignSelect({ onChoose, onBack, disabled = false, message }: 
   }, [ready])
   useEffect(() => { heading.current?.focus() }, [ready])
   if (!ready) return <section className="campaign-select" aria-label="Choose your campaign">
-    {onBack ? <Tooltip name="Back">{help => <button {...help} className="campaign-select__back ribbon-back" type="button" aria-label="Back" onClick={onBack}><span aria-hidden="true" /></button>}</Tooltip> : null}
+    {onBack ? <button className="campaign-select__back ribbon-back" type="button" aria-label="Back" onClick={onBack}><span aria-hidden="true" /></button> : null}
     <h1 className="visually-hidden" ref={heading} tabIndex={-1}>Choose your campaign</h1>
     <p className="campaign-select__status" role="status">Preparing campaign artwork…</p>
   </section>
   return <section className="campaign-select" aria-label="Choose your campaign">
-    {onBack ? <Tooltip name="Back">{help => <button {...help} className="campaign-select__back ribbon-back" type="button" aria-label="Back" onClick={onBack}><span aria-hidden="true" /></button>}</Tooltip> : null}
+    {onBack ? <button className="campaign-select__back ribbon-back" type="button" aria-label="Back" onClick={onBack}><span aria-hidden="true" /></button> : null}
     <h1 className="visually-hidden" ref={heading} tabIndex={-1}>Choose your campaign</h1>
     <div className="campaign-select__split">
       {(['base', 'downfall'] as const).map((campaign) => <button

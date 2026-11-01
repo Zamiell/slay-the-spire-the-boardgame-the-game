@@ -12,7 +12,8 @@ type TreasurePlayer = Pick<Player, "id" | "gold" | "relics" | "character" | "ski
 type Bounds = { left: number; top: number; width: number; height: number }
 type Scene = { stage: Bounds; chest: Bounds }
 
-type Claim = { key: string; id: string; seat: number; character: string; x: number; y: number }
+type Point = { x: number; y: number; size: number }
+type Claim = Point & { key: string; id: string; seat: number; character: string }
 const colors = ['#dc8060', '#82b998', '#7abde0', '#bd98df']
 export const treasurePlayerColor = (seat: number) => colors[seat % colors.length]
 /** `character` is the hand's visual id: the skin worn, else the character. */
@@ -26,7 +27,7 @@ export function TreasureEffects({ room, players, runId, resolved }: {
   resolved: boolean
 }) {
   const reduced = useReducedEffects()
-  const previous = useRef<{ room: RelicRewardState | null; players: TreasurePlayer[]; runId: string; points: Map<string, { x: number; y: number }>; scene: Scene | null } | null>(null)
+  const previous = useRef<{ room: RelicRewardState | null; players: TreasurePlayer[]; runId: string; points: Map<string, Point>; scene: Scene | null } | null>(null)
   const [claims, setClaims] = useState<Claim[]>([])
   const [departure, setDeparture] = useState<Scene | null>(null)
   useLayoutEffect(() => {
@@ -65,11 +66,14 @@ export function TreasureEffects({ room, players, runId, resolved }: {
       previous.current = { room, players, runId, points: new Map(), scene: null }
       return
     }
-    const current = { room, players, runId, points: new Map<string, { x: number; y: number }>(), scene: null as Scene | null }
+    const current = { room, players, runId, points: new Map<string, Point>(), scene: null as Scene | null }
     const measure = () => {
       document.querySelectorAll<HTMLElement>('[data-treasure-slot]').forEach((element) => {
         const rect = element.getBoundingClientRect()
-        current.points.set(element.dataset.treasureSlot!, { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 })
+        const icon = element.querySelector<HTMLElement>('.item-icon-image')
+        current.points.set(element.dataset.treasureSlot!, {
+          x: rect.x + rect.width / 2, y: rect.y + rect.height / 2, size: icon?.clientWidth ?? rect.width,
+        })
       })
       const stage = document.querySelector('.treasure-stage')?.getBoundingClientRect()
       const chest = document.querySelector('.treasure-chest')?.getBoundingClientRect()
@@ -79,11 +83,15 @@ export function TreasureEffects({ room, players, runId, resolved }: {
     measure()
     previous.current = current
     const observer = new MutationObserver(measure)
+    const resize = new ResizeObserver(measure)
     const stage = document.querySelector('.treasure-stage')
-    if (stage) observer.observe(stage, { childList: true, subtree: true })
+    if (stage) {
+      observer.observe(stage, { childList: true, subtree: true })
+      resize.observe(stage)
+    }
     window.addEventListener('resize', measure)
     window.addEventListener('scroll', measure, true)
-    return () => { observer.disconnect(); window.removeEventListener('resize', measure); window.removeEventListener('scroll', measure, true) }
+    return () => { observer.disconnect(); resize.disconnect(); window.removeEventListener('resize', measure); window.removeEventListener('scroll', measure, true) }
   }, [room, players, runId, resolved, reduced])
   useLayoutEffect(() => {
     if (!claims.length) return
@@ -96,13 +104,16 @@ export function TreasureEffects({ room, players, runId, resolved }: {
       <img src={assetPath('noncombat/treasure/background.webp')} alt="" style={departure.chest} />
       <img src={assetPath('noncombat/treasure/chest-open.webp')} alt="" style={departure.chest} />
     </div> : null}
-    {claims.map((claim) => <div className="treasure-claim-source" key={`source-${claim.key}`} style={{ left: claim.x, top: claim.y }}><ItemImage kind="relic" id={claim.id} /></div>)}
+    {claims.map((claim) => <div className="treasure-claim-source" key={`source-${claim.key}`}
+      style={{ left: claim.x, top: claim.y, width: claim.size, height: claim.size }}><ItemImage kind="relic" id={claim.id} /></div>)}
     {claims.map((claim) => <div key={claim.key} className={`treasure-claim treasure-claim--${claim.seat % 4}`}
       style={{ left: claim.x, top: claim.y }}
       onAnimationEnd={(event) => { if (event.target === event.currentTarget) setClaims((current) => current.filter((item) => item.key !== claim.key)) }}>
       <img className="treasure-claim__hand treasure-claim__hand--reach" src={treasureHandPath(claim.character)} alt="" />
       <img className="treasure-claim__hand treasure-claim__hand--grip" src={treasureHandPath(claim.character, true)} alt="" />
-      <div className="treasure-claim__relic"><ItemImage kind="relic" id={claim.id} /></div>
+      <div className="treasure-claim__relic" style={{ left: -claim.size / 2, top: -claim.size / 2, width: claim.size, height: claim.size }}>
+        <ItemImage kind="relic" id={claim.id} />
+      </div>
     </div>)}
   </div>, document.body)
 }

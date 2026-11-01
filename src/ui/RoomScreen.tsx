@@ -653,19 +653,21 @@ function RelicRoomScreen({
   return (
     <section
       className="room-stage treasure-stage"
-      aria-labelledby="treasure-title"
+      data-opened={opened}
+      aria-label={opened ? undefined : "Treasure room"}
+      aria-labelledby={opened ? "treasure-title" : undefined}
+      aria-describedby={opened ? "treasure-description" : undefined}
     >
       <div className="treasure-scene">
-      <div className="room-banner" data-visible={opened}>
-        <span className="visually-hidden">Treasure room</span>
-        <h2 id="treasure-title">Choose the Relic YOU Want!</h2>
-        <p>
+      {opened ? <div className="room-banner">
+        <h2 id="treasure-title">What's Inside?</h2>
+        <p id="treasure-description" className="visually-hidden">
           {room.sharedOffers ? "Each player chooses one relic from the chest." : "Every player resolves their own face-up relic."}
           {canChooseSapphire
             ? " The Sapphire Key requires everyone to skip."
             : ""}
         </p>
-      </div>
+      </div> : null}
         {[...new Set(players.flatMap((seat) => [treasureHandPath(playerVisualId(seat)), treasureHandPath(playerVisualId(seat), true)]))].map((href) => <link key={href} rel="preload" as="image" href={href} />)}
         <img className="treasure-ground" src={assetPath("noncombat/treasure/background.webp")} alt="" />
         <img className="treasure-chest" src={`${assetPath(`noncombat/treasure/${!opened ? "chest-closed" : reducedMotion || !playOpening ? "chest-open" : "chest-opening"}.webp`)}${playOpening && !reducedMotion ? `?opening=${encodeURIComponent(openingId)}` : ""}`} alt="A vine-covered treasure chest" />
@@ -684,33 +686,18 @@ function RelicRoomScreen({
               {id && !claimedBy ? <PotionTooltipAnchor key={id} id={id} name={relicDef(id).name} text={relicDef(id).text} kindLabel="Relic" confirmLabel={canTake ? "take this relic" : undefined} hoverable>
                 <button type="button" ref={canTake && (room.sharedOffers ? index === firstSharedOffer : true) ? firstAction : undefined}
                   data-treasure-slot={room.sharedOffers ? index : ownerId} className="treasure-offer__relic"
-                  aria-label={`${relicDef(id).name}. ${relicDef(id).text}`}
+                  aria-label={`${!room.sharedOffers && ownerId === player.id ? "Take relic — " : ""}${relicDef(id).name}. ${relicDef(id).text}`}
                   aria-disabled={!canTake}
                   onClick={() => { if (canTake) onRelic(player.id, room.sharedOffers ? index : "take"); }}>
                   <ItemImage kind="relic" id={id} />
                 </button>
               </PotionTooltipAnchor> : claimedBy ? <span className="treasure-offer__relic" data-treasure-slot={room.sharedOffers ? index : ownerId} data-taken="true" aria-hidden="true" /> : <span className="treasure-offer__empty">✦</span>}
-              {!room.sharedOffers && !unavailable ? <small>{owner?.name ?? ownerId}</small> : null}
+              {!room.sharedOffers && room.playerIds.length > 1 && !unavailable ? <small>{owner?.name ?? ownerId}</small> : null}
             </div>;
           })}
         </div> : null}
       </div>
       {opened ? <div className="treasure-actions">
-        {!room.sharedOffers ? <button
-          type="button"
-          disabled={!relic || decided !== undefined}
-          onClick={() => onRelic(player.id, "take")}
-        >
-          Take relic
-        </button> : null}
-        {!automaticSkip ? <button
-          ref={room.sharedOffers ? firstSharedOffer < 0 ? firstAction : undefined : !relic ? firstAction : undefined}
-          type="button"
-          disabled={decided !== undefined}
-          onClick={() => onRelic(player.id, "skip")}
-        >
-          Skip
-        </button> : <p role="status">No Relic or Sapphire choice remains · skipping automatically…</p>}
         {canChooseSapphire ? (
           <button
             type="button"
@@ -720,6 +707,15 @@ function RelicRoomScreen({
             ◆ Skip for Sapphire Key
           </button>
         ) : null}
+        {!automaticSkip ? <button
+          ref={room.sharedOffers ? firstSharedOffer < 0 ? firstAction : undefined : !relic ? firstAction : undefined}
+          type="button"
+          className="room-proceed treasure-skip"
+          disabled={decided !== undefined}
+          onClick={() => onRelic(player.id, "skip")}
+        >
+          Skip
+        </button> : <p role="status">No Relic or Sapphire choice remains · skipping automatically…</p>}
       </div> : null}
       {decided !== undefined ? (
         <p className="treasure-status" role="status">Choice locked. Waiting for the party…</p>

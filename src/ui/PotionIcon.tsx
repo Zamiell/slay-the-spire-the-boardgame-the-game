@@ -75,6 +75,7 @@ export function PotionTooltipAnchor({
   }
 
   const enterAnchor = () => {
+    if (tapToRead) return
     window.clearTimeout(leaveTimer.current)
     claimTooltip()
     if (dismissed === 'superseded') setDismissed(false)

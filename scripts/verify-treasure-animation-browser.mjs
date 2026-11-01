@@ -46,6 +46,7 @@ function fixture(shared = true, roster = seats) {
 try {
   for (const [engineName, engine] of [['chromium', chromium], ['webkit', webkit]]) {
     if (process.argv.includes('--webkit-only') && engineName !== 'webkit') continue
+    if (process.argv.includes('--chromium-only') && engineName !== 'chromium') continue
     const browser = await engine.launch()
     try {
       for (const [name, viewport] of [['desktop', { width: 1440, height: 900 }], ['horizontal-phone', { width: 844, height: 390 }]]) {
@@ -109,6 +110,7 @@ try {
         await page.screenshot({ path: `${output}/${engineName}-${name}-hover.png` })
         await page.clock.install()
         await page.clock.pauseAt(new Date())
+        const offeredSize = await page.locator('[data-treasure-slot="0"] .item-icon-image').evaluate(image => image.clientWidth)
         if (name === 'horizontal-phone') await tap(page.locator('[data-treasure-slot="0"]'))
         else await page.locator('[data-treasure-slot="0"]').click()
         await page.locator('.treasure-claim--0').waitFor({ state: 'attached' })
@@ -116,6 +118,9 @@ try {
         assert.equal(await page.locator('[data-treasure-slot="0"]').evaluate((element) => element.tagName), 'SPAN')
         await page.locator('.potion-tip:visible').waitFor({ state: 'detached' })
         const pickup = page.locator('.treasure-claim--0')
+        assert(Math.abs(await pickup.locator('.treasure-claim__relic .item-icon-image')
+          .evaluate(image => image.getBoundingClientRect().width) - offeredSize) < 1,
+        'claim animation must retain the displayed relic size')
         assert.match(await pickup.locator('img.treasure-claim__hand--reach').getAttribute('src'), new RegExp(`hand-${visualOf(seats[0])}\\.webp`), 'the skin reaches with its own hand')
         await pickup.locator('img.treasure-claim__hand').evaluateAll((images) => Promise.all(images.map((image) => image.decode())))
         const pose = (time) => pickup.evaluate((element, time) => {
@@ -173,7 +178,8 @@ try {
         await page.locator('[data-treasure-slot="p2"]').dispatchEvent('click')
         assert.deepEqual(await page.evaluate(() => window.__STS_DEBUG__.getRun().roomState.decisions), {})
         await page.evaluate(() => { document.documentElement.dataset.reducedMotion = 'true' })
-        await page.getByRole('button', { name: 'Take relic', exact: true }).click()
+        await page.locator('[data-treasure-slot="p1"]').focus()
+        await page.keyboard.press('Enter')
         assert.equal(await page.locator('.treasure-claim:not(.treasure-preview)').count(), 0)
         const run = await page.evaluate(() => window.__STS_DEBUG__.getRun())
         assert.equal(run.roomState.decisions.p1, 'take')
@@ -204,14 +210,26 @@ try {
         for (const shared of [false, true]) {
           const elite = fixture(shared)
           elite.roomState.kind = 'elite'
+          await page.evaluate((run) => window.__STS_DEBUG__.setRun({ ...run, phase: 'map', roomState: null }), elite)
+          await page.locator('.treasure-stage, .reward-screen[aria-label="Elite loot"]').waitFor({ state: 'detached' })
           await page.evaluate((run) => window.__STS_DEBUG__.setRun(run), elite)
           await page.getByRole('heading', { name: 'Loot!', exact: true }).waitFor()
+          await page.locator('.reward-screen[aria-label="Elite loot"]').evaluate(async screen => {
+            await Promise.all([...screen.querySelectorAll('img')].map(image => image.decode()))
+            await Promise.all(screen.getAnimations({ subtree: true })
+              .filter(animation => animation.effect.getTiming().iterations !== Infinity).map(animation => animation.finished))
+          })
           assert.equal(await page.locator('.treasure-chest').count(), 0)
           assert.equal(await page.locator('.loot-choice').count(), shared ? 4 : 1)
           const item = page.locator('.loot-choice').first()
           if (name === 'horizontal-phone') {
             await tap(item)
             assert.deepEqual(await page.evaluate(() => window.__STS_DEBUG__.getRun().roomState.decisions), {})
+            if (shared) {
+              // Touch browsers can synthesize hover at a stale mouse position.
+              await page.locator('.loot-choice').nth(2).dispatchEvent('mouseover')
+              assert.match(await page.locator('.potion-tip:visible').innerText(), /Anchor.*Tap again/is)
+            }
             await tap(item)
           } else await item.click()
           await page.waitForFunction(() => window.__STS_DEBUG__.getRun().roomState.decisions.p1 !== undefined)

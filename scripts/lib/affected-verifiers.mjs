@@ -62,6 +62,10 @@ const focusedEngineOwners = ownerMap([
   ['src/game/run/rewards.ts', ['verify-loot-browser.mjs', 'verify-tiny-house-browser.mjs']],
 ])
 const focusedUiOwners = ownerMap([
+  ...['src/ui/chrome/treasure.css', 'src/ui/TreasureEffects.tsx', 'public/assets/ui/treasure-skip.svg']
+    .map(file => [file, ['verify-treasure-layout-browser.mjs', 'verify-treasure-animation-browser.mjs']]),
+  ['src/ui/PotionIcon.tsx', ['verify-treasure-animation-browser.mjs', 'verify-orb-tooltips-browser.mjs',
+    'verify-resource-tooltips-browser.mjs']],
   ['src/ui/chrome/back-buttons.css', ['verify-back-buttons-browser.mjs']],
   ['src/ui/chrome/interaction-polish.css', ['verify-ui-polish-browser.mjs']],
   ['src/ui/useControlPress.ts', ['verify-ui-polish-browser.mjs']],
@@ -168,7 +172,8 @@ const focusedUiOwners = ownerMap([
   ['src/ui/ItemImage.tsx', ['verify-courier-browser.mjs']],
   ['src/ui/MailBox.tsx', ['verify-mail-browser.mjs']],
   ['src/ui/MapScreen.tsx', ['verify-map-drawing-browser.mjs', 'verify-wing-focus-browser.mjs']],
-  ['src/ui/RoomScreen.tsx', ['verify-unavailable-event-browser.mjs', 'verify-card-choices-browser.mjs', 'verify-merchant-overflow-browser.mjs',
+  ['src/ui/RoomScreen.tsx', ['verify-treasure-layout-browser.mjs', 'verify-treasure-animation-browser.mjs',
+    'verify-unavailable-event-browser.mjs', 'verify-card-choices-browser.mjs', 'verify-merchant-overflow-browser.mjs',
     'verify-joust-browser.mjs', 'verify-scrap-ooze-browser.mjs', 'verify-event-panels-browser.mjs', 'verify-potion-header-browser.mjs', 'verify-relic-refresh-browser.mjs']],
   ['src/ui/chrome/item-tiles.css', ['verify-relic-refresh-browser.mjs', 'verify-map-drawing-browser.mjs']],
   ['src/ui/chrome/event-phone.css', ['verify-event-panels-browser.mjs', 'verify-scrap-ooze-browser.mjs']],

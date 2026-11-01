@@ -21,6 +21,12 @@ const includesEvery = (actual, expected, context) => {
 }
 
 suite('verification pipeline')
+check('treasure presentation and touch help select focused regression coverage', () => {
+  for (const file of ['src/ui/RoomScreen.tsx', 'src/ui/TreasureEffects.tsx', 'src/ui/chrome/treasure.css',
+    'public/assets/ui/treasure-skip.svg'])
+    includesEvery(affected(file), ['verify-treasure-layout-browser.mjs', 'verify-treasure-animation-browser.mjs'], file)
+  assert(affected('src/ui/PotionIcon.tsx').includes('verify-treasure-animation-browser.mjs'))
+})
 check('upgrade text normalization selects focused layout and image coverage', () => {
   for (const file of ['data/card-upgrade-layouts.json', 'scripts/art/stabilize-upgrade-text.py',
     'scripts/lib/stabilize-upgrade-text.mjs'])

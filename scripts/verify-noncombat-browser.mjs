@@ -1952,7 +1952,7 @@ await page.evaluate(() => {
 })
 await page.getByRole('button', { name: 'Open treasure chest', exact: true }).focus()
 await page.keyboard.press('Enter')
-await page.getByRole('heading', { name: 'Choose the Relic YOU Want!' }).waitFor()
+await page.getByRole('heading', { name: "What's Inside?" }).waitFor()
 await page.locator('.potion-tip:visible').waitFor()
 await page.screenshot({ path: join(outDir, 'treasure-4p-desktop.png'), fullPage: true })
 const treasureDetail = await page.locator('.potion-tip:visible').innerText()

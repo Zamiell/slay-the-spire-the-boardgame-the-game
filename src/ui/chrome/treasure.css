@@ -1,24 +1,31 @@
 /* Scene assets were extracted from the supplied recording, including its black void. */
+.app-shell:has(.treasure-stage)::before { background: #000; }
 .sts-scope .treasure-stage {
-  display: flex;
-  flex-direction: column;
+  display: block;
   position: relative;
   isolation: isolate;
+  container-type: size;
+  flex: 1;
+  width: 100vw;
+  margin-inline: calc(50% - 50vw);
   padding: 0;
   min-height: 0;
   background: #000;
   text-align: center;
-  overflow: auto;
+  overflow: clip;
   clip-path: none;
   filter: none;
+  box-shadow: none;
 }
 .sts-scope .treasure-scene {
-  position: relative;
-  width: min(100%, 1200px);
-  height: min(70vh, 750px);
-  min-height: 0;
-  margin: auto;
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: min(100cqw, 135cqh);
+  aspect-ratio: 3 / 2;
+  transform: translateX(-50%);
 }
+.sts-scope .treasure-stage[data-opened='true'] .treasure-scene { width: min(100cqw, 150cqh); }
 .sts-scope .treasure-ground, .sts-scope .treasure-chest {
   position: absolute;
   inset: 0;
@@ -27,12 +34,14 @@
   object-fit: contain;
   pointer-events: none;
 }
+.sts-scope .treasure-stage[data-opened='true'] :is(.treasure-ground, .treasure-chest) { filter: brightness(0.65); }
 .sts-scope .treasure-stage .room-banner {
   position: absolute;
-  top: 16%;
-  left: 27%;
-  width: 49%;
-  height: 15%;
+  top: 12%;
+  left: 50%;
+  width: min(54%, 34cqw);
+  transform: translateX(-50%);
+  aspect-ratio: 1509 / 260;
   max-width: none;
   z-index: 4;
   margin: 0;
@@ -41,17 +50,15 @@
   background: url('/assets/noncombat/treasure/banner.webp') center / 100% 100% no-repeat;
   pointer-events: none;
 }
-.sts-scope .treasure-stage .room-banner[data-visible='false'] { visibility: hidden; }
 .sts-scope .treasure-stage .room-banner h2 {
   margin: 0 6% 2%;
-  font-size: clamp(17px, 2.3vw, 30px);
+  font-size: clamp(17px, 2cqw, 40px);
   color: #f6edcb;
   text-shadow: 2px 2px 0 #51462f, -1px -1px 0 #51462f;
 }
-.sts-scope .treasure-stage .room-banner p { display: none; }
 .sts-scope .treasure-open {
   position: absolute;
-  left: 29%; top: 33%; width: 47%; height: 51%;
+  left: 22%; top: 23%; width: 63%; height: 70%;
   z-index: 3;
   cursor: pointer;
   color: #eadbb1;
@@ -60,31 +67,76 @@
   font-size: 0;
 }
 .sts-scope .treasure-open:focus-visible { outline: none; }
-.sts-scope .treasure-offers { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
-.sts-scope .treasure-offer { position: absolute; width: 100px; transform: translate(-50%, -50%); text-align: center; }
-.sts-scope .treasure-offer:nth-child(1) { left: 36%; top: 53%; }
-.sts-scope .treasure-offer:nth-child(2) { left: 49%; top: 42%; }
-.sts-scope .treasure-offer:nth-child(3) { left: 60%; top: 67%; }
-.sts-scope .treasure-offer:nth-child(4) { left: 74%; top: 53%; }
-.sts-scope .treasure-offer:only-child { left: 54%; top: 52%; }
+.sts-scope .treasure-offers {
+  position: absolute;
+  left: 50%;
+  top: 43%;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  display: flex;
+  align-items: start;
+  justify-content: center;
+  gap: clamp(8px, 3cqw, 32px);
+  max-width: 90%;
+  pointer-events: none;
+}
+.sts-scope .treasure-offer { flex: none; text-align: center; }
 .sts-scope .treasure-offer__relic {
-  display: grid; place-items: center; width: 88px; height: 88px; margin: auto;
-  padding: 10px; border: 0; background: none; cursor: pointer; pointer-events: auto;
+  display: grid; place-items: center;
+  width: clamp(56px, 15cqh, 144px); height: clamp(56px, 15cqh, 144px); margin: auto;
+  padding: 8px; border: 0; background: none; cursor: pointer; pointer-events: auto;
 }
 .sts-scope .treasure-offer__relic .item-icon-image {
-  width: 64px; height: 64px; object-fit: contain;
-  filter: drop-shadow(0 0 12px #69c9d7aa);
+  width: 100%; height: 100%; object-fit: contain;
+  filter: drop-shadow(0 3px 4px #0009);
   animation: treasure-reveal 500ms ease-out both;
   animation-delay: calc(350ms + var(--relic-delay));
 }
-.sts-scope .treasure-offer__relic:hover .item-icon-image { filter: drop-shadow(0 0 16px #a7f6ff); }
+.sts-scope .treasure-offer__relic:is(:hover, :focus-visible):not([aria-disabled='true']) .item-icon-image { filter: drop-shadow(0 0 8px #f0b40099) brightness(1.12); }
 .sts-scope .treasure-offer__relic:focus-visible { outline: 2px solid #b0e5e8; border-radius: 50%; }
 .sts-scope .treasure-offer__relic[aria-disabled='true'] { cursor: default; }
 .sts-scope .treasure-offer__relic[data-taken='true'] { pointer-events: none; }
 .sts-scope .treasure-offer small { color: var(--claim-color); font-size: 12px; text-shadow: 0 2px 3px #000; }
 .sts-scope .treasure-offer__empty { height: 88px; display: grid; place-items: center; }
-.sts-scope .treasure-actions { position: relative; z-index: 4; flex-shrink: 0; padding: 0 12px 12px; margin: 0; }
-.sts-scope .treasure-status { flex-shrink: 0; margin: 0; padding-bottom: 10px; color: #b9ad89; }
+.sts-scope .treasure-actions {
+  position: absolute;
+  right: clamp(12px, 3cqw, 48px);
+  bottom: clamp(12px, 12cqh, 100px);
+  z-index: 4;
+  max-width: calc(100% - 24px);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 0;
+  margin: 0;
+}
+.sts-scope .treasure-actions .treasure-skip {
+  position: static;
+  display: grid;
+  place-items: center;
+  width: clamp(8rem, 17cqw, 18rem);
+  aspect-ratio: 220 / 104;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  clip-path: none;
+  background: url('/assets/ui/treasure-skip.svg') center / 100% 100% no-repeat;
+  box-shadow: none;
+  color: #fff6e2;
+  font: 700 clamp(1rem, 4cqh, 2.4rem) 'Kreon', Georgia, serif;
+  -webkit-text-stroke: 3px #442018;
+  paint-order: stroke fill;
+  text-shadow: 0 3px 0 #442018;
+}
+.sts-scope .treasure-actions > button:not(.treasure-skip) { min-width: 0; min-height: 44px; }
+.sts-scope .treasure-status {
+  position: absolute; bottom: 0.6rem; left: 50%; transform: translateX(-50%);
+  max-width: calc(100% - 2rem); margin: 0; color: #b9ad89;
+}
 .sts-scope .treasure-coins { position: absolute; inset: 0; z-index: 3; pointer-events: none; overflow: hidden; }
 .sts-scope .treasure-coins img {
   position: absolute; left: 54%; top: 58%; width: 23px; height: 23px;
@@ -124,8 +176,8 @@
   transform: translate(-50%, -16%) rotate(var(--hand-angle));
   filter: drop-shadow(0 5px 8px #0008);
 }
-.sts-scope .treasure-claim__relic { position: absolute; left: -32px; top: -32px; animation: treasure-held 1400ms linear both; }
-.sts-scope .treasure-claim__relic .item-icon-image { width: 64px; height: 64px; object-fit: contain; filter: drop-shadow(0 0 10px #ffdc79); }
+.sts-scope .treasure-claim__relic { position: absolute; animation: treasure-held 1400ms linear both; }
+.sts-scope .treasure-claim__relic .item-icon-image { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 0 10px #ffdc79); }
 @keyframes treasure-reveal { from { opacity: 0; transform: translateY(100px) scale(.3); } to { opacity: 1; transform: none; } }
 @keyframes treasure-grab {
   0% { opacity: 0; transform: translate(var(--reach-x), var(--reach-y)); }
@@ -134,12 +186,8 @@
 }
 @keyframes treasure-held { 0%, 27% { opacity: 0; } 30%, 100% { opacity: 1; } }
 @media (max-height: 500px) and (orientation: landscape) {
-  .sts-scope .treasure-scene { height: 235px; min-height: 0; width: min(100%, 630px); }
-  .sts-scope .treasure-stage .room-banner h2 { font-size: 17px; }
-  .sts-scope .treasure-offer__relic { width: 48px; height: 48px; padding: 4px; }
-  .sts-scope .treasure-offer__relic .item-icon-image { width: 40px; height: 40px; }
   .sts-scope .treasure-offer small { font-size: 10px; }
-  .sts-scope .treasure-actions button { min-height: 32px; font-size: 13px; }
+  .sts-scope .treasure-actions > button:not(.treasure-skip) { min-height: 32px; font-size: 13px; }
   .sts-scope .treasure-claim__hand { width: 180px; height: auto; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -151,9 +199,9 @@
   background: #000;
   animation: treasure-depart 1400ms linear both;
 }
-.sts-scope .treasure-departure > img { position: fixed; object-fit: contain; }
+.sts-scope .treasure-departure > img { position: fixed; object-fit: contain; filter: brightness(0.65); }
 .sts-scope .treasure-claim-source { position: absolute; transform: translate(-50%, -50%); animation: treasure-source 1400ms linear both; }
-.sts-scope .treasure-claim-source .item-icon-image { width: 64px; height: 64px; object-fit: contain; }
+.sts-scope .treasure-claim-source .item-icon-image { width: 100%; height: 100%; object-fit: contain; }
 @keyframes treasure-source { 0%, 27% { opacity: 1; } 30%, 100% { opacity: 0; } }
 @keyframes treasure-depart { 0%, 85% { opacity: 1; } 100% { opacity: 0; } }
 .sts-scope .treasure-claim__hand--reach { animation: treasure-reaching-pose 1400ms steps(1) both; }

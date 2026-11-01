@@ -1,4 +1,4 @@
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
@@ -28,10 +28,18 @@ check('extracted protocol and presentation modules retain focused coverage', () 
       'verify-start-turn-resync-browser.mjs'], path)
   includesEvery(affected('src/ui/RoomBanner.tsx'), ['verify-treasure-layout-browser.mjs', 'verify-event-panels-browser.mjs'], 'shared banners')
   includesEvery(affected('src/ui/useKeywordHelp.ts'), ['verify-tooltips-browser.mjs'], 'keyword help controller')
+  includesEvery(affected('src/ui/tooltip-position.ts'), ['verify-room-resume-browser.mjs'], 'action-safe tooltip placement')
+  includesEvery(affected('src/ui/combat-screen/usePowerController.ts'),
+    ['verify-guardian-card-browser.mjs', 'verify-hermit-chamber-browser.mjs'], 'Power workflows')
+  includesEvery(affected('src/ui/combat-screen/useRelicController.ts'),
+    ['verify-relic-refresh-browser.mjs', 'verify-post-roll-item-browser.mjs'], 'relic workflows')
+  includesEvery(affected('src/ui/combat-screen/useScopedSelection.ts'),
+    ['verify-card-choices-browser.mjs', 'verify-start-turn-resync-browser.mjs'], 'viewer-scoped drafts')
 })
 check('Playwright fixture specs keep standalone verifier ownership', () => {
-  for (const name of ['back-buttons', 'incoming-damage', 'resource-tooltips']) {
-    assertDeepEqual(affected(`scripts/browser-tests/${name}.spec.mjs`), [`verify-${name}-browser.mjs`, 'verify-pipeline.mjs'].sort())
+  for (const name of readdirSync(resolve(root, 'scripts/browser-tests'))
+    .filter(file => file.endsWith('.spec.mjs')).map(file => file.replace(/\.spec\.mjs$/, ''))) {
+    assertDeepEqual(affected(`scripts/browser-tests/${name}.spec.mjs`), [`verify-${name}-browser.mjs`])
   }
   includesEvery(affected('scripts/lib/browser-test.mjs'), [
     'verify-back-buttons-browser.mjs', 'verify-incoming-damage-browser.mjs', 'verify-resource-tooltips-browser.mjs',
@@ -536,5 +544,20 @@ check('retry flags are rejected', () => {
   const result = runRealVerifyAll('--heavy-retries=2', '--list')
   assertEqual(result.status, 2)
   assert(result.stderr.includes('fix flaky tests instead'))
+})
+check('help and unknown options never execute verifiers', () => {
+  withHeavyLaneFixture(dir => ({
+    'verify-marker.mjs': `import { writeFileSync } from 'node:fs'; writeFileSync(${JSON.stringify(resolve(dir, 'executed'))}, 'ran')`,
+  }), (runVerifyAll, dir) => {
+    for (const flag of ['--help', '-h']) {
+      const help = runVerifyAll(flag)
+      assertEqual(help.status, 0)
+      assert(help.stdout.startsWith('Usage:'))
+    }
+    const unknown = runVerifyAll('--lan=browser')
+    assertEqual(unknown.status, 2)
+    assert(unknown.stderr.includes('Unknown option'))
+    assert(!existsSync(resolve(dir, 'executed')), 'a help/usage error executed product verification')
+  })
 })
 report('verification pipeline')

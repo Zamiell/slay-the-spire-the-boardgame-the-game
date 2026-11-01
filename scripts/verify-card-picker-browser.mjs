@@ -171,6 +171,18 @@ try {
   ]) {
     await page.setViewportSize(viewport)
     assert.equal(await viewUpgrades.isChecked(), false)
+    await picker.evaluate(root => {
+      const disabled = document.createElement('button')
+      disabled.disabled = true
+      disabled.tabIndex = 0
+      disabled.dataset.focusRegression = ''
+      root.append(disabled)
+    })
+    await picker.focus()
+    await page.keyboard.press('Shift+Tab')
+    assert(await viewUpgrades.evaluate(input => input === document.activeElement),
+      `${screen}: reverse Tab must wrap to the last enabled control, ignoring disabled tabindex targets`)
+    await picker.locator('[data-focus-regression]').evaluate(button => button.remove())
     await viewUpgrades.focus()
     await page.keyboard.press('d')
     const inspectedDeck = page.getByRole('dialog', { name: 'Current deck', exact: true })

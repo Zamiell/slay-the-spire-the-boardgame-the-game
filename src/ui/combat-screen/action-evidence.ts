@@ -21,6 +21,26 @@ export function powerSubmissionCommitted(
   return combat.powerTriggersUsedThisTurn.includes(powerAbilityKey(viewerId, submitted.powerUid))
 }
 
+export type RelicSubmissionEvidence = {
+  relicIndex: number
+  defId: string
+  spentBefore: boolean
+  cubesBefore?: number
+  scryId?: number
+}
+
+export function relicSubmissionCommitted(
+  submitted: RelicSubmissionEvidence, combat: CombatState | VisibleCombat, viewerId: string,
+) {
+  const held = combat.players.find((player) => player.id === viewerId)?.relics[submitted.relicIndex]
+  if (!held || held.defId !== submitted.defId) return false
+  if (!submitted.spentBefore && held.spent) return true
+  if (submitted.cubesBefore !== undefined && held.cubes !== undefined && held.cubes < submitted.cubesBefore) return true
+  const scry = combat.pendingRelicScry
+  return submitted.defId.replace(/^downfall_/, '') === 'golden_eye' && submitted.scryId === undefined &&
+    scry?.playerId === viewerId && scry.relicIndex === submitted.relicIndex
+}
+
 export function cardSubmissionCommitted(
   submitted: CardSubmissionSource, combat: CombatState | VisibleCombat, viewerId: string,
 ) {

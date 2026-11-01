@@ -63,18 +63,26 @@ const focusedEngineOwners = ownerMap([
   ['src/game/run/rewards.ts', ['verify-loot-browser.mjs', 'verify-tiny-house-browser.mjs']],
 ])
 const focusedUiOwners = ownerMap([
-  ...['src/ui/useTooltipPosition.ts', 'src/ui/useKeywordHelp.ts']
+  ['src/ui/useModalFocus.ts', ['verify-card-picker-browser.mjs', 'verify-card-choices-browser.mjs',
+    'verify-deck-inspection-browser.mjs', 'verify-boss-relic-picker-browser.mjs']],
+  ...['src/ui/useTooltipPosition.ts', 'src/ui/useKeywordHelp.ts', 'src/ui/tooltip-position.ts']
     .map(file => [file, ['verify-tooltips-browser.mjs', 'verify-resource-tooltips-browser.mjs',
-      'verify-orb-tooltips-browser.mjs', 'verify-treasure-layout-browser.mjs']]),
+      'verify-orb-tooltips-browser.mjs', 'verify-treasure-layout-browser.mjs', 'verify-room-resume-browser.mjs']]),
   ['src/ui/RunHeader.tsx', ['verify-ui-polish-browser.mjs', 'verify-potion-header-browser.mjs',
     'verify-deck-inspection-browser.mjs', 'verify-incoming-damage-browser.mjs']],
   ['src/ui/RoomBanner.tsx', ['verify-treasure-layout-browser.mjs', 'verify-event-panels-browser.mjs',
     'verify-unavailable-event-browser.mjs']],
   ...['action-delivery.ts', 'action-evidence.ts', 'action-lifecycle.ts', 'combat-resync.ts',
-    'potion-selection.ts', 'power-selection.ts', 'useActionLifecycle.ts', 'usePotionController.ts']
+    'potion-selection.ts', 'power-selection.ts', 'useActionLifecycle.ts', 'usePotionController.ts',
+    'selection-scope.ts', 'useScopedSelection.ts']
     .map(file => [`src/ui/combat-screen/${file}`, ['verify-card-choices-browser.mjs',
       'verify-single-enemy-targets-browser.mjs', 'verify-post-roll-item-browser.mjs',
       'verify-start-turn-resync-browser.mjs', 'verify-slayer-powers-browser.mjs']]),
+  ['src/ui/combat-screen/usePowerController.ts', ['verify-guardian-card-browser.mjs',
+    'verify-hermit-chamber-browser.mjs', 'verify-slayer-discard-and-orbs-browser.mjs',
+    'verify-start-turn-resync-browser.mjs']],
+  ...['useRelicController.ts', 'relic-selection.ts'].map(file => [`src/ui/combat-screen/${file}`,
+    ['verify-relic-action-icons-browser.mjs', 'verify-relic-refresh-browser.mjs', 'verify-post-roll-item-browser.mjs']]),
   ...['src/ui/chrome/treasure.css', 'src/ui/TreasureEffects.tsx', 'public/assets/ui/treasure-skip.svg']
     .map(file => [file, ['verify-treasure-layout-browser.mjs', 'verify-treasure-animation-browser.mjs']]),
   ['src/ui/PotionIcon.tsx', ['verify-treasure-animation-browser.mjs', 'verify-orb-tooltips-browser.mjs',
@@ -476,7 +484,8 @@ export function affectedVerifiers(root, changedFiles, scripts) {
     if (dependenciesOf('src/ui/OnlineGame.tsx').has(absolute)) owners.push('verify-online-browser.mjs')
     return owners
   }
-  const externalReferences = [...changed].filter((file) => !file.startsWith('src/')).flatMap((file) => {
+  const externalReferences = [...changed].filter((file) => !file.startsWith('src/') &&
+    !/^scripts\/browser-tests\/.*\.spec\.mjs$/.test(file)).flatMap((file) => {
     const directory = file.split('/').slice(0, -1).join('/')
     return [file, basename(file), ...(directory.includes('/') ? [directory] : [])]
   })

@@ -310,7 +310,7 @@
   transform: translateX(-50%);
 }
 
-.seat__meta > * {
+.seat__meta > :where(:not(.visually-hidden)) {
   flex: 0 1 auto;
   min-width: 0;
   max-width: 100%;

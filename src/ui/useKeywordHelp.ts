@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { cardTooltipPosition } from './card-tooltip-position.ts'
-import { autoUpdate, positionTooltip } from './useTooltipPosition.ts'
+import { autoUpdate, positionTooltip, tooltipControlBounds } from './useTooltipPosition.ts'
 
 export function useKeywordHelp() {
   useEffect(() => {
@@ -37,11 +37,11 @@ export function useKeywordHelp() {
       tooltip.setAttribute('data-open', '')
       if (!card.classList.contains('card') && !tooltip.classList.contains('card-keyword-tips--image')) {
         const generation = ++placementGeneration
-        void positionTooltip(card, tooltip).then(({ x, y }) => {
+        void positionTooltip(card, tooltip).then(({ x, y, middlewareData }) => {
           if (generation !== placementGeneration || active !== card || !tooltip.isConnected) return
           tooltip.style.left = `${x}px`
           tooltip.style.top = `${y}px`
-          tooltip.removeAttribute('data-overlaps-card')
+          tooltip.toggleAttribute('data-overlaps-card', middlewareData.avoidControls?.overlap > 0)
         })
         return
       }
@@ -66,13 +66,7 @@ export function useKeywordHelp() {
           candidates.push([x, y])
         }
       }
-      const anchors = [...document.querySelectorAll<HTMLElement>(
-        'button, a[href], input, select, textarea, [role="button"]',
-      )]
-        // Controls inside a closed <details> keep layout boxes that nobody can see.
-        .filter((element) => !element.closest('details:not([open])') || element.closest('summary'))
-        .map((element) => (element.querySelector('.enemy__hit-area') ?? element).getBoundingClientRect())
-        .filter((box) => box.right > 0 && box.bottom > 0 && box.left < window.innerWidth && box.top < window.innerHeight)
+      const anchors = tooltipControlBounds(tooltip)
       const powerZoom = document.querySelector<HTMLElement>('.power__zoom')?.getBoundingClientRect()
       const enemyTargets = tooltip.classList.contains('card-keyword-tips--image')
         ? [...document.querySelectorAll<HTMLElement>('.enemy:not(.enemy--dead)')]

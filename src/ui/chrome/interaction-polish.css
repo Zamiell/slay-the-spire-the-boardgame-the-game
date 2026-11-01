@@ -195,8 +195,10 @@ dialog[open] > :is(.settings-dialog__panel, .choice-modal__panel, .map-peek__pan
 @keyframes ui-panel-arrive { from { opacity: 0; } to { opacity: 1; } }
 
 @media (hover: hover) and (pointer: fine) {
+  @layer interaction-defaults {
   :root :is(button, summary):not(.card, .enemy, .room, .compendium-card, .power, .pile, .map-drawing__button, .ribbon-back):hover:not(:disabled, [aria-disabled='true']) {
     transition-duration: var(--ui-hover);
+  }
   }
   .start-menu__nav button:hover:not(:disabled) .start-menu__label { scale: 1.05; transition-duration: var(--ui-hover); }
   :is(.start-menu__icon, .game-settings__summary, .map-peek__open, .deck-peek__open):hover:not(:disabled) > img {

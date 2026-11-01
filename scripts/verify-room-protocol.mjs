@@ -1,5 +1,12 @@
 import { is } from 'valibot'
 import { parseChoiceAction, RoomCredentialsSchema, UID_LIMIT } from '../src/protocol/actions.ts'
+import {
+  CardTargetsSchema, CardCharacterChoicesSchema, ChamberChoicesSchema,
+  PowerChoicesSchema, TriggerTargetsSchema, parseActionFields,
+} from '../src/protocol/action-fields.ts'
+import {
+  cardPlayContext, powerContext, potionContext, slotList, targetList,
+} from './lib/rooms/action-context.mjs'
 import { redactPlayer } from '../src/server/player-projection.ts'
 import { redactRun, redactCombat } from './lib/rooms/projection.mjs'
 import { createRoom, createStore, joinRoom, snapshotFor, startRun } from './lib/rooms.mjs'
@@ -52,6 +59,104 @@ check('credential schema accepts legacy extras but not malformed saved sessions'
   for (const input of [null, [], { code: 123, token: 'owner-token' }, { code: 'ABC123' }]) {
     assert(!is(RoomCredentialsSchema, input))
   }
+})
+
+check('combat field groups preserve historical first errors and recovery-format ordering', () => {
+  for (const [schema, fields, error] of [
+    [CardTargetsSchema, { enemyUids: null, playerIds: 1 }, 'Enemy choices must be a list of ids'],
+    [CardTargetsSchema, { recoverDiscardUid: 'a', recoverDiscardUids: [], recoverExhaustUid: 2 },
+      'Discard recovery must use one choice format'],
+    [CardTargetsSchema, { recoverDiscardUid: 'a', recoverDiscardUids: [2] },
+      'Discard recovery must be a list of card ids'],
+    [CardTargetsSchema, { recoverExhaustUid: 'a', recoverExhaustUids: [], energySpent: 0.5 },
+      'Exhaust recovery must use one choice format'],
+    [CardTargetsSchema, { energySpent: null, corruptedShardMode: 'bad' }, 'X Energy must be a whole number'],
+    [CardTargetsSchema, { corruptedShardMode: null }, 'Corrupted Shard Mode must be attack or defense'],
+    [CardCharacterChoicesSchema, { loadUids: [1], spendVigor: -1 }, 'Load choices must be a list of ids'],
+    [CardCharacterChoicesSchema, { spendVigor: 2 ** 60 }, 'Vigor spend must be a non-negative whole number'],
+    [CardCharacterChoicesSchema, { guardianBlockSpend: -1, guardianModeShift: 1 },
+      'Guardian Block spend must be a non-negative whole number'],
+    [CardCharacterChoicesSchema, { guardianModeShift: null, guardianPowerCardUid: [] },
+      'Guardian Mode shift must be true or false'],
+    [ChamberChoicesSchema, { recoverDiscardUid: 'a', recoverDiscardUids: [], recoverExhaustUid: 2 },
+      'Exhaust recovery must be a card id'],
+    [ChamberChoicesSchema, {
+      recoverDiscardUid: 'a', recoverDiscardUids: [], recoverExhaustUid: 'b', recoverExhaustUids: [],
+    }, 'Exhaust recovery must use one choice format'],
+    [ChamberChoicesSchema, { soulburnEnemyUids: [1], energySpent: 0.5 }, 'soulburnEnemyUids must be a list of ids'],
+    [ChamberChoicesSchema, { guardianPowerCardUid: false, spendVigor: -1 }, 'Power Beam must identify a Power card'],
+    [PowerChoicesSchema, { scryDiscardUids: 'a', exhaustUids: null }, 'Scry choices must be a list of ids'],
+    [TriggerTargetsSchema, { enemyRow: null, enemyUid: 1 }, 'Triggered ability row must be a whole number'],
+    [TriggerTargetsSchema, { enemyUid: null, targetPlayerId: 1 }, 'Triggered ability enemy must be a valid id'],
+    [TriggerTargetsSchema, { targetPlayerId: null }, 'Triggered ability player must be a valid id'],
+    [TriggerTargetsSchema, { slimeEnemyUids: [null] }, 'Triggered Slime targets must be a list of ids'],
+  ]) assertDeepEqual(parseActionFields(schema, fields), { status: 'invalid', error })
+})
+
+check('bounded combat lists retain duplicate/order semantics and never silently truncate', () => {
+  for (const [schema, key] of [
+    [CardTargetsSchema, 'enemyUids'], [CardTargetsSchema, 'recoverDiscardUids'],
+    [CardCharacterChoicesSchema, 'slimeUids'], [ChamberChoicesSchema, 'topdeckUids'],
+    [PowerChoicesSchema, 'exhaustUids'], [TriggerTargetsSchema, 'slimeEnemyUids'],
+  ]) {
+    const list = Array(UID_LIMIT).fill('same-id')
+    const parsed = parseActionFields(schema, { [key]: list, futureField: { untouched: true } })
+    assertEqual(parsed.status, 'valid')
+    assertDeepEqual(parsed.fields[key], list, 'duplicates are a game-legality concern, not deduplicated here')
+    assert(!Object.hasOwn(parsed.fields, 'futureField'), 'unknown fields cannot enter engine context')
+    assertEqual(parseActionFields(schema, { [key]: [...list, 'extra'] }).status, 'invalid')
+    for (const value of [null, 'id', [1], ['id', undefined]]) {
+      assertEqual(parseActionFields(schema, { [key]: value }).status, 'invalid')
+    }
+    assertEqual(parseActionFields(schema, {}).status, 'valid')
+    assertEqual(parseActionFields(schema, { [key]: undefined }).status, 'valid')
+  }
+  assertEqual(parseActionFields(CardTargetsSchema, { energySpent: 2 ** 60 }).status, 'valid',
+    'X Energy historically requires an integer, not a safe integer or a nonnegative amount')
+})
+
+check('context normalization preserves distinct hand, Chamber, Power and Potion policies', () => {
+  const raw = {
+    enemyUid: 17, playerId: false, switchWithPlayerId: 0, mode: '1',
+    guardianModeShift: 'true', secondGuardianModeShift: true, spendMiracle: 1,
+    scryToHandUid: null, metamorphosisPowerUid: 'power', evil: 'must not forward',
+  }
+  const fields = { loadUids: ['a', 'a'], energySpent: 2 }
+  const contextual = { discardUids: [], exhaustUids: [], shivEnemyUids: ['enemy'] }
+  const hand = cardPlayContext(raw, 'owner', fields, contextual)
+  const chamber = cardPlayContext(raw, 'owner', fields, contextual, true)
+  assertEqual(hand.enemyUid, 17)
+  assertEqual(hand.playerId, false)
+  assertEqual(hand.mode, '1')
+  assertEqual(chamber.enemyUid, null)
+  assertEqual(chamber.playerId, 'owner')
+  assertEqual(chamber.switchWithPlayerId, null)
+  assertEqual(chamber.mode, undefined)
+  for (const context of [hand, chamber]) {
+    assertEqual(context.guardianModeShift, false)
+    assertEqual(context.secondGuardianModeShift, true)
+    assertEqual(context.spendMiracle, false)
+    assertEqual(context.scryToHandUid, undefined)
+    assertEqual(context.metamorphosisPowerUid, 'power')
+    assertDeepEqual(context.loadUids, ['a', 'a'])
+    assertDeepEqual(context.shivEnemyUids, ['enemy'])
+    assert(!Object.hasOwn(context, 'evil'))
+  }
+  assertDeepEqual(slotList(['length', '__proto__', -1, 0, 1.5]), [-1, -1, -1, 0, -1])
+  assertDeepEqual(targetList([null, 'a', 2]), [null, 'a', ''])
+  assertEqual(slotList(Array(UID_LIMIT + 1).fill(0)).length, UID_LIMIT)
+  const power = powerContext({ ...raw, enemyRow: '1', orbSlots: ['length', 0] }, fields)
+  assertEqual(power.enemyRow, null)
+  assertEqual(power.playerId, null)
+  assertDeepEqual(power.orbSlots, [-1, 0])
+  const potion = potionContext({
+    ...raw, targetPlayerId: false, die: 0.5, recoverDiscardUid: null,
+    exhaustUids: [...Array(UID_LIMIT + 1).fill('a'), false],
+  }, ['enemy'])
+  assertEqual(potion.targetPlayerId, false)
+  assertEqual(potion.die, undefined)
+  assertEqual(potion.recoverDiscardUid, undefined)
+  assertEqual(potion.exhaustUids.length, UID_LIMIT + 1, 'Potion choices are filtered, not capped')
 })
 
 function fixture() {

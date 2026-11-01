@@ -14,6 +14,10 @@ import { affectedVerifiers, browserScript, changedPaths, gateArtBakes, mergeBase
 
 const scriptsDir = dirname(fileURLToPath(import.meta.url))
 const args = process.argv.slice(2)
+if (args.includes('--help') || args.includes('-h')) {
+  console.log('Usage: node scripts/verify-all.mjs [--changed[=ref]] [--lane=light|browser] [--shard=INDEX/TOTAL] [--skip-typecheck] [--jobs=N] [--heavy=N] [--list] [filter...]')
+  process.exit(0)
+}
 // Rejected rather than coerced: `Math.max(1, Number('abc'))` is NaN, and
 // `Array.from({ length: NaN })` is empty — so a typo'd --heavy= ran ZERO browser
 // suites and still exited 0, which reads exactly like a green run.
@@ -31,6 +35,12 @@ const count = (flag, fallback) => {
 const explicitHeavyJobs = count('--heavy', undefined)
 if (args.some((arg) => arg.startsWith('--heavy-retries'))) {
   console.error('--heavy-retries is not supported; fix flaky tests instead')
+  process.exit(2)
+}
+const unknownFlag = args.find(arg => arg.startsWith('-') &&
+  !/^(?:--changed(?:=.+)?|--(?:lane|shard|jobs|heavy)=.+|--skip-typecheck|--list)$/.test(arg))
+if (unknownFlag) {
+  console.error(`Unknown option: ${unknownFlag}. Use --help for usage.`)
   process.exit(2)
 }
 // `--jobs` remains the TOTAL child-process cap. In particular, `--jobs=1` is the

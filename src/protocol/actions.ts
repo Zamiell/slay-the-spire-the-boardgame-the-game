@@ -2,9 +2,9 @@ import * as v from 'valibot'
 
 export const UID_LIMIT = 32
 
-const wholeNumber = (message: string) => v.pipe(v.number(message), v.integer(message))
-const safeWholeNumber = (message: string) => v.pipe(v.number(message), v.safeInteger(message))
-const idList = (message: string) => v.pipe(v.array(v.string(message), message), v.maxLength(UID_LIMIT, message))
+export const wholeNumber = (message: string) => v.pipe(v.number(message), v.integer(message))
+export const safeWholeNumber = (message: string) => v.pipe(v.number(message), v.safeInteger(message))
+export const idList = (message: string) => v.pipe(v.array(v.string(message), message), v.maxLength(UID_LIMIT, message))
 
 export const RoomCredentialsSchema = v.looseObject({
   code: v.string(),

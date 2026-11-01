@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { cardTooltipPosition } from '../src/ui/card-tooltip-position.ts'
 import { drawLockText } from '../src/ui/draw-lock-text.ts'
+import { avoidTooltipControls } from '../src/ui/tooltip-position.ts'
 
 for (const [text, blocked] of [
   ['Gain 2 Energy. Draw 3 cards. Exhaust.', ['Draw 3 cards']],
@@ -31,3 +32,18 @@ assert.deepEqual(cardTooltipPosition({ left: 360, right: 480, top: 220 },
   { width: 224, height: 350 }, { width: 844, height: 390 }), { x: 489, y: 32 },
   'horizontal phones must keep tall stacks beside the card and inside the viewport')
 console.log('PASS card-side tooltip alignment, upward overflow and left-side fallback')
+
+const preferred = { x: 300, y: 200, width: 224, height: 100 }
+const unobstructed = avoidTooltipControls(preferred, desktop, [])
+assert.deepEqual({ x: unobstructed.x, y: unobstructed.y }, { x: 300, y: 200 })
+for (const viewport of [desktop, { width: 844, height: 390 }]) {
+  const placed = avoidTooltipControls(preferred, viewport,
+    [{ left: 250, right: 650, top: 180, bottom: 320 }])
+  assert.equal(placed.overlap, 0, 'text help must not intercept adjacent action buttons')
+  assert(placed.x >= 16 && placed.y >= 16 &&
+    placed.x + preferred.width <= viewport.width - 16 &&
+    placed.y + preferred.height <= viewport.height - 16)
+}
+assert(avoidTooltipControls(preferred, desktop,
+  [{ left: 0, right: desktop.width, top: 0, bottom: desktop.height }]).overlap > 0,
+'unavoidable overlap must be reported so unpinned help can allow clicks through')

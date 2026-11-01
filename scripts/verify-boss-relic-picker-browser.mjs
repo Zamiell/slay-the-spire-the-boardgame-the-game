@@ -85,7 +85,8 @@ try {
     ['desktop', { width: 1440, height: 900 }, false],
     ['horizontal-phone', { width: 844, height: 390 }, true],
   ]) {
-    const context = await browser.newContext({ viewport, hasTouch: phone, isMobile: phone })
+    const context = await browser.newContext({ viewport, hasTouch: phone, isMobile: phone,
+      recordVideo: { dir: output, size: viewport } })
     const page = await context.newPage()
     page.on('pageerror', (error) => errors.push(error.message))
     await page.goto(origin)
@@ -193,7 +194,10 @@ try {
     await picker(page).getByRole('button', { name: 'Tiny House', exact: true }).click()
     await page.getByRole('heading', { name: 'Tiny House', exact: true }).waitFor()
     assert.equal(await picker(page).count(), 0, 'the relic picker covered its follow-up rewards')
+    const video = page.video()
     await context.close()
+    await video.saveAs(`${output}/${screen}.webm`)
+    await video.delete()
 
     const online = await browser.newContext({ viewport, hasTouch: phone, isMobile: phone })
     const tab = await online.newPage()

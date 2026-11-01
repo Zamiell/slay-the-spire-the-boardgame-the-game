@@ -2,10 +2,15 @@ import assert from 'node:assert/strict'
 import { completedActionOutcome, transitionAction, unknownActionDecision } from '../src/ui/combat-screen/action-lifecycle.ts'
 import { resyncCombatOnSuccess } from '../src/ui/combat-screen/combat-resync.ts'
 import { deliverAction } from '../src/ui/combat-screen/action-delivery.ts'
-import { cardSubmissionCommitted, potionSubmissionCommitted, powerSubmissionCommitted } from '../src/ui/combat-screen/action-evidence.ts'
+import { cardSubmissionCommitted, potionSubmissionCommitted, powerSubmissionCommitted, relicSubmissionCommitted } from '../src/ui/combat-screen/action-evidence.ts'
 import { transitionPotionSelection } from '../src/ui/combat-screen/potion-selection.ts'
-import { powerSelectionValues, transitionPowerSelection } from '../src/ui/combat-screen/power-selection.ts'
-import { powerAbilityKey } from '../src/game/combat.ts'
+import { powerActivationChoice, powerSelectionValues, reconcilePowerSelection, restorePowerSelection, transitionPowerSelection } from '../src/ui/combat-screen/power-selection.ts'
+import { reconcileRelicSelection, relicUsable, restoreRelicSelection, toggleRelicCard } from '../src/ui/combat-screen/relic-selection.ts'
+import { selectionForScope, updateScopedSelection } from '../src/ui/combat-screen/selection-scope.ts'
+import { activateRelic, createCombat, powerAbilityKey } from '../src/game/combat.ts'
+import { createPlayer } from '../src/game/run.ts'
+import { createRng } from '../src/game/rng.ts'
+import { relicDef } from '../src/game/relics.ts'
 
 const idle = { kind: 'idle' }
 const board = { revision: 1 }
@@ -167,11 +172,178 @@ const restored = transitionPowerSelection(idle, {
   }, chamber: ['held'], hand: ['hand'], cards: [{ uid: 'a' }], confirmed: true,
 })
 assert.deepEqual(restored.chamber, ['held'])
-assert.deepEqual(restored.load, ['hand'])
+assert.deepEqual(restored.load, [], 'a missing Chamber choice invalidates the dependent Load choice')
 assert.deepEqual(restored.scry.discarded, ['a'])
 assert.equal(restored.scry.kind, 'confirmed')
 const withoutPreview = transitionPowerSelection(idle, {
   type: 'restore', powerUid: 'gem-finder', context: {}, chamber: [], hand: [], confirmed: true,
 })
 assert.equal(withoutPreview.scry.kind, 'none', 'missing or mismatched private preview is never fabricated')
-console.log('✓ combat workflows: selection/reset, stale replies, local render locks, causal unknown reconciliation and exact evidence')
+
+const rng = createRng(37)
+const workflowBoard = createCombat(rng, [createPlayer(rng, 'me', 'Guardian', 'guardian', 0)], [{
+  uid: 'enemy', defId: 'jaw_worm', row: 0, hp: 30, maxHp: 30, block: 0,
+  strength: 0, weak: 0, vulnerable: 0, poison: 0, actionIndex: 0, abilityUsed: false, dead: false,
+}])
+workflowBoard.phase = 'player'
+const actor = workflowBoard.players[0]
+const instance = (defId, extra = {}) => ({ uid: defId, defId, upgraded: false, ...extra })
+actor.hand = [instance('guardian_strike', { uid: 'strike_guardian' }), instance('guardian_defend', { uid: 'defend_guardian' })]
+actor.chamber = [instance('hermit_grudge')]
+actor.powers = [instance('guardian_gem_finder', { attachedGemId: 'guardian_jasper' }),
+  instance('hermit_black_wind'), instance('slayer_creative_ai'), instance('slayer_master_reality')]
+actor.orbs = ['lightning', null, 'frost']
+actor.discard = [instance('strike_ironclad')]
+actor.relics = [{ defId: 'blue_candle' }, { defId: 'golden_eye' }, { defId: 'ninja_scroll' }, { defId: 'holy_water', cubes: 2 },
+  { defId: 'fuel_canister' }]
+actor.draw = [instance('guardian_ruby'), instance('guardian_defend', { uid: 'revealed' })]
+assert.equal(powerActivationChoice(workflowBoard, 'me', 'guardian_gem_finder'), 'preview')
+assert.equal(powerActivationChoice(workflowBoard, 'me', 'hermit_black_wind'), 'select')
+assert.equal(powerActivationChoice(workflowBoard, 'me', 'slayer_creative_ai'), 'select')
+assert.equal(powerActivationChoice(workflowBoard, 'me', 'slayer_master_reality'), 'submit')
+assert.equal(powerActivationChoice({
+  ...workflowBoard, players: [{ ...actor, discard: [] }],
+}, 'me', 'slayer_creative_ai'), 'blocked')
+assert.equal(powerActivationChoice({
+  ...workflowBoard, players: [{ ...actor, orbs: [null, null, null] }],
+}, 'me', 'slayer_creative_ai'), 'blocked')
+
+const reveal = { id: 8, powerUid: 'guardian_gem_finder', kind: 'scry', cards: actor.draw }
+const gemSubmission = { powerUid: reveal.powerUid, powerPreviewId: reveal.id, context: {
+  enemyUid: 'gone', exhaustUids: ['strike_guardian', 'gone'], scryDiscardUids: ['revealed', 'unseen'],
+} }
+const restoredGem = restorePowerSelection(gemSubmission, workflowBoard, 'me', reveal, true)
+assert.deepEqual(restoredGem.exhaust, ['strike_guardian'])
+assert.deepEqual(restoredGem.scry.discarded, ['revealed'])
+assert.equal(restoredGem.scry.context, null, 'dead targets and lost Jasper cards must be chosen again')
+assert.equal(restoredGem.scry.kind, 'confirmed', 'the already confirmed reveal remains confirmed while reselecting a Gem effect')
+for (const preview of [undefined, { ...reveal, id: 7 }, { ...reveal, powerUid: 'other' }]) {
+  assert.equal(restorePowerSelection(gemSubmission, workflowBoard, 'me', preview, true).scry.kind, 'none',
+    'a draw pile in memory is never a substitute for the matching private preview')
+}
+assert.deepEqual(restorePowerSelection(gemSubmission, {
+  ...workflowBoard, powerTriggersUsedThisTurn: [powerAbilityKey('me', reveal.powerUid)],
+}, 'me', reveal, true), idle, 'committed powers must not reopen')
+assert.deepEqual(restorePowerSelection(gemSubmission, {
+  ...workflowBoard, startTurnProgress: { forcedCard: { cardUid: 'forced', playerId: 'me' } },
+}, 'me', reveal, true), idle, 'mandatory forced plays supersede a refused power')
+const restoredOrbs = restorePowerSelection({
+  powerUid: 'slayer_creative_ai', context: { orbSlots: [0, 1, 2, 9] },
+}, workflowBoard, 'me', undefined, false)
+assert.deepEqual(restoredOrbs.orbs, [0, 2], 'restoration keeps only still-occupied Orb slots')
+assert.deepEqual(reconcilePowerSelection(restoredOrbs, {
+  ...workflowBoard, players: [{ ...actor, orbs: [null, null, 'frost'] }],
+}, 'me').orbs, [2])
+let stagedWind = transitionPowerSelection(idle, { type: 'select', powerUid: 'hermit_black_wind' })
+stagedWind = transitionPowerSelection(stagedWind, { type: 'chamber', uids: ['hermit_grudge'] })
+stagedWind = transitionPowerSelection(stagedWind, { type: 'load', uids: ['strike_guardian'] })
+const changedChamber = reconcilePowerSelection(stagedWind, {
+  ...workflowBoard, players: [{ ...actor, chamber: [] }],
+}, 'me')
+assert.deepEqual(changedChamber.chamber, [])
+assert.deepEqual(changedChamber.load, [], 'snapshot changes cannot leave a later Hermit step without its prerequisite')
+
+let relicCards = { kind: 'cards', relicIndex: 0, defId: 'blue_candle', picked: [] }
+relicCards = toggleRelicCard(relicCards, 'strike_guardian', 2)
+relicCards = toggleRelicCard(relicCards, 'defend_guardian', 2)
+assert.deepEqual(toggleRelicCard(relicCards, 'third', 2).picked, relicCards.picked)
+assert.deepEqual(toggleRelicCard(relicCards, 'strike_guardian', 2).picked, ['defend_guardian'])
+assert.deepEqual(toggleRelicCard(relicCards, 'replacement', 1).picked, ['replacement'])
+assert.deepEqual(reconcileRelicSelection(relicCards, {
+  ...workflowBoard, players: [{ ...actor, hand: [actor.hand[1]] }],
+}, 'me').picked, ['defend_guardian'])
+assert.deepEqual(reconcileRelicSelection(relicCards, workflowBoard, 'me', false), idle,
+  'post-roll locking cancels the entire choice, not only its selected cards')
+assert.deepEqual(reconcileRelicSelection(relicCards, {
+  ...workflowBoard, players: [{ ...actor, relics: [{ defId: 'runic_pyramid' }] }],
+}, 'me'), idle, 'an index reused for another relic cannot inherit choices')
+
+const goldenEye = activateRelic(workflowBoard, 'me', 1)
+assert.notEqual(goldenEye, workflowBoard)
+const scryDraft = reconcileRelicSelection(relicCards, goldenEye, 'me')
+assert.equal(scryDraft.kind, 'scry')
+assert.deepEqual(scryDraft.picked, [], 'Golden Eye never inherits unrelated hand choices')
+const pickedScry = toggleRelicCard(scryDraft, 'revealed', 3)
+assert.deepEqual(restoreRelicSelection(pickedScry, { scryDiscardUids: ['revealed', 'unseen'] },
+  goldenEye, 'me').picked, ['revealed'])
+assert.deepEqual(reconcileRelicSelection(pickedScry, {
+  ...goldenEye, pendingRelicScry: { ...goldenEye.pendingRelicScry, id: 900 },
+}, 'me').picked, [], 'a new reveal cannot inherit a prior reveal draft')
+assert.deepEqual(reconcileRelicSelection(pickedScry, {
+  ...goldenEye, pendingRelicScry: { ...goldenEye.pendingRelicScry, playerId: 'other', cards: null },
+}, 'me'), idle, 'another seat never receives private Scry selections')
+
+actor.shivs = 5
+const ninjaDraft = { kind: 'overflow', relicIndex: 2, defId: 'ninja_scroll', required: 2,
+  targets: ['gone', 'enemy', 'enemy'] }
+assert.deepEqual(reconcileRelicSelection(ninjaDraft, workflowBoard, 'me').targets, ['enemy', 'enemy'])
+assert.deepEqual(reconcileRelicSelection(ninjaDraft, {
+  ...workflowBoard, players: [{ ...actor, shivs: 4 }],
+}, 'me').targets, [], 'a changed shared Shiv capacity restarts the required sequence')
+assert.deepEqual(reconcileRelicSelection(ninjaDraft, {
+  ...workflowBoard, players: [{ ...actor, shivs: 0 }],
+}, 'me'), idle)
+const scroll = relicDef('ninja_scroll')
+const printedScrollEffects = scroll.effects
+try {
+  for (const effects of [[{ kind: 'gainShiv', amount: 0 }],
+    [{ kind: 'gainShiv', amount: 1 }, { kind: 'gainShiv', amount: 1 }]]) {
+    scroll.effects = effects
+    assert.deepEqual(reconcileRelicSelection(ninjaDraft, workflowBoard, 'me').targets, ['enemy', 'enemy'],
+      'the shared gain calculation sums effects and preserves the original two-Shiv zero fallback')
+  }
+} finally {
+  scroll.effects = printedScrollEffects
+}
+
+const relicSubmission = { relicIndex: 0, defId: 'blue_candle', spentBefore: false }
+assert.equal(relicSubmissionCommitted(relicSubmission, workflowBoard, 'me'), false)
+const candleUsed = activateRelic(workflowBoard, 'me', 0, { cardUids: ['strike_guardian'] })
+assert.equal(relicSubmissionCommitted(relicSubmission, candleUsed, 'me'), true)
+assert.equal(relicSubmissionCommitted({ ...relicSubmission, defId: 'fuel_canister' }, candleUsed, 'me'), false)
+assert.equal(relicSubmissionCommitted({ ...relicSubmission, spentBefore: true }, candleUsed, 'me'), false)
+const eyeSubmission = { relicIndex: 1, defId: 'golden_eye', spentBefore: false }
+assert.equal(relicSubmissionCommitted(eyeSubmission, goldenEye, 'me'), true, 'opening Golden Eye is itself a committed action')
+assert.equal(relicSubmissionCommitted({ ...eyeSubmission, scryId: goldenEye.pendingRelicScry.id }, goldenEye, 'me'), false,
+  'the same open reveal does not prove its resolution')
+const eyeUsed = activateRelic(goldenEye, 'me', 1, { scryDiscardUids: ['revealed'] })
+assert.equal(relicSubmissionCommitted({ ...eyeSubmission, scryId: goldenEye.pendingRelicScry.id }, eyeUsed, 'me'), true)
+assert.equal(relicSubmissionCommitted(eyeSubmission, {
+  ...goldenEye, pendingRelicScry: { ...goldenEye.pendingRelicScry, playerId: 'other' },
+}, 'me'), false)
+const waterSubmission = { relicIndex: 3, defId: 'holy_water', cubesBefore: 2, spentBefore: false }
+assert.equal(relicSubmissionCommitted(waterSubmission, activateRelic(workflowBoard, 'me', 3), 'me'), true,
+  'repeatable Holy Water commits by cube decrement, not a spent flag')
+const startBoard = { ...workflowBoard, phase: 'start', die: 1 }
+assert.equal(relicUsable(startBoard, 'me', 4, false), true)
+assert.equal(relicUsable(startBoard, 'me', 4, true), false)
+for (const draft of [restoredGem, relicCards, stage('purity_potion')]) {
+  const originalScope = 'combat-1:me'
+  const stored = { scope: originalScope, value: draft }
+  const uncertain = reply(start(), { status: 'unknown', refreshAttempt: 5 }).state
+  assert.equal(selectionForScope(stored, originalScope, idle), stored,
+    'same-scope rerenders and reconnects preserve the exact draft')
+  const cancelledDraft = updateScopedSelection(stored, originalScope, () => idle)
+  assert.deepEqual(cancelledDraft.value, idle)
+  assert.equal(observe(uncertain, 5).state, uncertain,
+    'clearing a visible draft must not release its uncertain action')
+  for (const nextScope of ['combat-1:other', 'combat-2:me']) {
+    const switched = selectionForScope(stored, nextScope, idle)
+    assert.deepEqual(switched, { scope: nextScope, value: idle },
+      'the first render of another seat or combat cannot expose private cards or reuse a relic index/potion')
+    assert.equal(updateScopedSelection(switched, originalScope, () => draft), switched,
+      'a previous owner cannot restore a draft into the new scope')
+    const returned = selectionForScope(switched, originalScope, idle)
+    assert.deepEqual(returned.value, idle, 'returning to a seat cannot resurrect its discarded draft')
+    const resetAction = transitionAction(uncertain, { type: 'reset' }).state
+    const nextAction = transitionAction(resetAction, {
+      type: 'start', id: 2, mode: 'online', board, payload,
+    }).state
+    assert.equal(reply(nextAction, { status: 'refused' }, 1).state, nextAction,
+      'even after returning to the same seat, an old reply cannot unlock the new operation')
+  }
+  assert.equal(observe(uncertain, 5, true).resolution.committed, true)
+  assert.equal(observe(uncertain, 6).resolution.committed, false,
+    'draft scoping does not replace causal refresh reconciliation')
+}
+console.log('✓ combat workflows: complete Power/relic choices, private reveals, stale drafts, causal reconciliation and exact evidence')

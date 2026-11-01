@@ -17,6 +17,14 @@ import { randomBytes } from 'node:crypto'
 import { redactRun } from './rooms/projection.mjs'
 import { deterministicDieRelicChoiceContext, dieRelicChoiceNeedsInput, prioritizePendingTrigger } from './rooms/combat-choices.mjs'
 import { parseChoiceAction, UID_LIMIT } from '../../src/protocol/actions.ts'
+import {
+  CardTargetsSchema, CardCharacterChoicesSchema, ChamberChoicesSchema,
+  PowerChoicesSchema, TriggerTargetsSchema, parseActionFields,
+} from '../../src/protocol/action-fields.ts'
+import {
+  uidList, slotList, targetList, hermitDieRelicList,
+  cardPlayContext, powerContext, potionContext,
+} from './rooms/action-context.mjs'
 import { loadStore } from './rooms/store.mjs'
 import { ascensionBossQualifies, MAX_ASCENSION } from '../../src/game/campaign.ts'
 import {
@@ -440,6 +448,12 @@ class RoomError extends Error {
 
 const fail = (message) => {
   throw new RoomError(message)
+}
+
+function actionFields(schema, action) {
+  const parsed = parseActionFields(schema, action)
+  if (parsed.status === 'invalid') fail(parsed.error)
+  return parsed.fields
 }
 
 /**
@@ -1930,21 +1944,7 @@ function applyRoomAction(room, seatToken, action, consumedPreviewPlayerId, suspe
     if (action?.kind !== 'resolveTrigger') fail('Finish the triggered ability first')
     if (!Number.isInteger(action.triggerId)) fail('Triggered ability id must be a whole number')
     if (pendingTrigger.id !== action.triggerId) fail('Resolve your oldest triggered ability first')
-    if (action.enemyRow !== undefined && !Number.isInteger(action.enemyRow)) {
-      fail('Triggered ability row must be a whole number')
-    }
-    if (action.enemyUid !== undefined && typeof action.enemyUid !== 'string') {
-      fail('Triggered ability enemy must be a valid id')
-    }
-    if (action.targetPlayerId !== undefined && typeof action.targetPlayerId !== 'string') {
-      fail('Triggered ability player must be a valid id')
-    }
-    const slimeUids = uidList(action.slimeUids)
-    const slimeEnemyUids = uidList(action.slimeEnemyUids)
-    if (action.slimeUids !== undefined && (!Array.isArray(action.slimeUids) ||
-      slimeUids.length !== action.slimeUids.length)) fail('Triggered Slime choices must be a list of ids')
-    if (action.slimeEnemyUids !== undefined && (!Array.isArray(action.slimeEnemyUids) ||
-      slimeEnemyUids.length !== action.slimeEnemyUids.length)) fail('Triggered Slime targets must be a list of ids')
+    const { slimeUids, slimeEnemyUids } = actionFields(TriggerTargetsSchema, action)
     const combat = triggerCombat
     const startTurnTrigger = combat.phase === 'start' && pendingTrigger.startTurn === true
     if (startTurnTrigger) ensureStartTurnReady(room)
@@ -4351,10 +4351,7 @@ function settleReward(room) {
  * end-turn discard orders can span an unbounded hand and are validated
  * separately against that hand.
  */
-export const uidList = (value) =>
-  Array.isArray(value)
-    ? value.filter((item) => typeof item === 'string').slice(0, UID_LIMIT)
-    : undefined
+export { uidList } from './rooms/action-context.mjs'
 
 function reservePreviewRng(room, preview, locked) {
   const { reservedRng, ...visible } = preview
@@ -4534,41 +4531,6 @@ function clearInvalidPreviews(room, suspendedWork) {
     }))
 }
 
-const hermitDieRelicList = (value) => Array.isArray(value)
-  ? value.slice(0, UID_LIMIT).flatMap((choice) => {
-    const discardUids = uidList(choice?.discardUids)
-    if (!choice || typeof choice.playerId !== 'string' || !Number.isInteger(choice.relicIndex) ||
-      choice.relicIndex < 0 || !Number.isInteger(choice.abilityIndex) || choice.abilityIndex < 0 ||
-      choice.enemyUid !== undefined && choice.enemyUid !== null && typeof choice.enemyUid !== 'string' ||
-      choice.targetPlayerId !== undefined && choice.targetPlayerId !== null && typeof choice.targetPlayerId !== 'string' ||
-      choice.discardUids !== undefined && discardUids?.length !== choice.discardUids.length) return []
-    return [{
-      playerId: choice.playerId,
-      relicIndex: choice.relicIndex,
-      abilityIndex: choice.abilityIndex,
-      ...(choice.enemyUid === undefined ? {} : { enemyUid: choice.enemyUid }),
-      ...(choice.targetPlayerId === undefined ? {} : { targetPlayerId: choice.targetPlayerId }),
-      ...(discardUids === undefined ? {} : { discardUids }),
-    }]
-  })
-  : undefined
-
-/**
- * A list of orb slot indices from the network.
- *
- * Integers only. Passed through raw, a string element was used as a property
- * key on the orbs array — `'length'` evoked a phantom orb and then truncated
- * the array, and `'__proto__'` crashed the room layer outright.
- */
-const slotList = (value) =>
-  Array.isArray(value)
-    ? value.slice(0, UID_LIMIT).map((item) => Number.isInteger(item) && item >= 0 ? item : -1)
-    : undefined
-
-const targetList = (value) => Array.isArray(value)
-  ? value.slice(0, UID_LIMIT).map((item) => item === null || typeof item === 'string' ? item : '')
-  : undefined
-
 function overflowChoices(combat, effects, action, mandatory = 0) {
   const discarded = Array.isArray(action.discardUids) ? action.discardUids.length : 0
   const gained = effects.reduce(
@@ -4644,131 +4606,15 @@ function dispatch(run, seat, action, lockedPreview) {
       const { overflow, targets: shivEnemyUids } = overflowChoices(run.combat, shivEffects, {
         ...action, discardUids,
       }, mandatoryShivs)
-      const enemyUids = uidList(action.enemyUids)
-      const playerIds = uidList(action.playerIds)
-      if (action.enemyUids !== undefined && (
-        !Array.isArray(action.enemyUids) || enemyUids.length !== action.enemyUids.length
-      )) fail('Enemy choices must be a list of ids')
-      if (action.playerIds !== undefined && (
-        !Array.isArray(action.playerIds) || playerIds.length !== action.playerIds.length
-      )) fail('Player choices must be a list of ids')
-      const scryDiscardUids = uidList(action.scryDiscardUids)
-      if (action.scryDiscardUids !== undefined && (
-        !Array.isArray(action.scryDiscardUids) || scryDiscardUids.length !== action.scryDiscardUids.length
-      )) fail('Scry choices must be a list of card ids')
-      const topdeckUids = uidList(action.topdeckUids)
-      if (action.topdeckUids !== undefined && (
-        !Array.isArray(action.topdeckUids) || topdeckUids.length !== action.topdeckUids.length
-      )) fail('Topdeck choices must be a list of card ids')
-      const searchDrawUids = uidList(action.searchDrawUids)
-      if (action.searchDrawUids !== undefined && (
-        !Array.isArray(action.searchDrawUids) || searchDrawUids.length !== action.searchDrawUids.length
-      )) fail('Draw-pile choices must be a list of card ids')
-      const recoverDiscardUid = action.recoverDiscardUid
-      if (recoverDiscardUid !== undefined && typeof recoverDiscardUid !== 'string') {
-        fail('Discard recovery must be a card id')
-      }
-      const recoverDiscardUids = uidList(action.recoverDiscardUids)
-      if (action.recoverDiscardUids !== undefined && (
-        !Array.isArray(action.recoverDiscardUids) || recoverDiscardUids.length !== action.recoverDiscardUids.length
-      )) fail('Discard recovery must be a list of card ids')
-      if (recoverDiscardUid !== undefined && action.recoverDiscardUids !== undefined) {
-        fail('Discard recovery must use one choice format')
-      }
-      const recoverExhaustUid = action.recoverExhaustUid
-      if (recoverExhaustUid !== undefined && typeof recoverExhaustUid !== 'string') {
-        fail('Exhaust recovery must be a card id')
-      }
-      const recoverExhaustUids = uidList(action.recoverExhaustUids)
-      if (action.recoverExhaustUids !== undefined && (
-        !Array.isArray(action.recoverExhaustUids) || recoverExhaustUids.length !== action.recoverExhaustUids.length
-      )) fail('Exhaust recovery must be a list of card ids')
-      if (recoverExhaustUid !== undefined && action.recoverExhaustUids !== undefined) {
-        fail('Exhaust recovery must use one choice format')
-      }
-      if (action.energySpent !== undefined && !Number.isInteger(action.energySpent)) {
-        fail('X Energy must be a whole number')
-      }
-      if (action.corruptedShardMode !== undefined && action.corruptedShardMode !== 'attack' && action.corruptedShardMode !== 'defense') {
-        fail('Corrupted Shard Mode must be attack or defense')
-      }
-      const loadUids = uidList(action.loadUids)
-      const chamberUids = uidList(action.chamberUids)
-      const hermitEnemyUids = uidList(action.hermitEnemyUids)
-      const slimeUids = uidList(action.slimeUids)
-      const slimeEnemyUids = uidList(action.slimeEnemyUids)
-      const soulburnEnemyUids = uidList(action.soulburnEnemyUids)
+      const targets = actionFields(CardTargetsSchema, action)
       const hermitDieRelics = hermitDieRelicList(action.hermitDieRelics)
       if (action.hermitDieRelics !== undefined && hermitDieRelics?.length !== action.hermitDieRelics.length) {
         fail('Cheat choices must identify valid die-relic abilities')
       }
-      for (const [label, original, sanitized] of [
-        ['Load', action.loadUids, loadUids],
-        ['Chamber', action.chamberUids, chamberUids],
-        ['Hermit enemy', action.hermitEnemyUids, hermitEnemyUids],
-        ['Slime', action.slimeUids, slimeUids],
-        ['Slime enemy', action.slimeEnemyUids, slimeEnemyUids],
-        ['Soulburn enemy', action.soulburnEnemyUids, soulburnEnemyUids],
-      ]) if (original !== undefined && (!Array.isArray(original) || sanitized.length !== original.length)) {
-        fail(`${label} choices must be a list of ids`)
-      }
-      for (const [label, value] of [
-        ['Vigor spend', action.spendVigor],
-        ['Guardian Block spend', action.guardianBlockSpend],
-      ]) if (value !== undefined && (!Number.isSafeInteger(value) || value < 0)) {
-        fail(`${label} must be a non-negative whole number`)
-      }
-      if (action.guardianModeShift !== undefined && typeof action.guardianModeShift !== 'boolean') {
-        fail('Guardian Mode shift must be true or false')
-      }
-      if (action.guardianPowerCardUid !== undefined && typeof action.guardianPowerCardUid !== 'string') {
-        fail('Power Beam must identify a Power card')
-      }
-      const context = {
-        enemyUid: action.enemyUid ?? null,
-        enemyUids,
-        playerId: action.playerId ?? seat.playerId,
-        energySpent: action.energySpent,
-        playerIds,
-        switchWithPlayerId: action.switchWithPlayerId ?? null,
-        mode: action.mode,
-        corruptedShardMode: action.corruptedShardMode,
-        // Coerced, not trusted: these arrive as JSON from a socket, and a
-        // string where a list belongs threw a raw TypeError out of `apply`
-        // instead of being refused like any other bad message.
-        discardUids,
-        exhaustUids,
-        spendMiracle: action.spendMiracle === true,
-        shivEnemyUids,
-        // Both of these are real choices the rules grant (p.16, p.24). Dropping
-        // them here made a Scry unable to bin anything and an orb evoke always
-        // fall back to the first filled slot.
-        scryDiscardUids,
-        scryToHandUid: typeof action.scryToHandUid === 'string' ? action.scryToHandUid : undefined,
-        topdeckUids,
-        searchDrawUids,
-        recoverDiscardUid,
-        recoverDiscardUids,
-        recoverExhaustUid,
-        recoverExhaustUids,
-        loadUids,
-        chamberUids,
-        hermitEnemyUids,
-        slimeUids,
-        slimeEnemyUids,
-        soulburnEnemyUids,
-        hermitDieRelics,
-        chooseLoadSelf: action.chooseLoadSelf === true,
-        spendVigor: action.spendVigor,
-        guardianModeShift: action.guardianModeShift === true,
-        secondGuardianModeShift: action.secondGuardianModeShift === true,
-        guardianBlockSpend: action.guardianBlockSpend,
-        guardianPowerCardUid: action.guardianPowerCardUid,
-        evokeSlots: slotList(action.evokeSlots),
-        evokeEnemyUids: targetList(action.evokeEnemyUids),
-        // Slayer Pack: Metamorphosis's chosen Power; the engine rejects anything else.
-        metamorphosisPowerUid: typeof action.metamorphosisPowerUid === 'string' ? action.metamorphosisPowerUid : undefined,
-      }
+      const characterChoices = actionFields(CardCharacterChoicesSchema, action)
+      const context = cardPlayContext(action, seat.playerId, { ...targets, ...characterChoices }, {
+        discardUids, exhaustUids, shivEnemyUids, hermitDieRelics,
+      })
       const combat = playWithReservedRng(run.combat, lockedPreview, (state) => copied
         ? playCardCopy(state, seat.playerId, context)
         : playCard(state, seat.playerId, action.cardUid, context))
@@ -4820,39 +4666,7 @@ function dispatch(run, seat, action, lockedPreview) {
       if (variableExhaust && exhaustUids.length < Math.min(variableExhaust.minimum ?? 0, player.hand.length)) {
         fail('Choose the minimum number of cards to Exhaust')
       }
-      const lists = Object.fromEntries([
-        'enemyUids', 'playerIds', 'scryDiscardUids', 'topdeckUids', 'searchDrawUids',
-        'recoverDiscardUids', 'recoverExhaustUids', 'loadUids', 'chamberUids', 'hermitEnemyUids', 'slimeUids',
-        'slimeEnemyUids',
-        'soulburnEnemyUids',
-      ].map((key) => [key, uidList(action[key])]))
-      for (const key of Object.keys(lists)) if (action[key] !== undefined &&
-        (!Array.isArray(action[key]) || lists[key]?.length !== action[key].length)) {
-        fail(`${key} must be a list of ids`)
-      }
-      if (action.recoverDiscardUid !== undefined && typeof action.recoverDiscardUid !== 'string') {
-        fail('Discard recovery must be a card id')
-      }
-      if (action.recoverExhaustUid !== undefined && typeof action.recoverExhaustUid !== 'string') {
-        fail('Exhaust recovery must be a card id')
-      }
-      if (action.recoverExhaustUid !== undefined && action.recoverExhaustUids !== undefined) {
-        fail('Exhaust recovery must use one choice format')
-      }
-      if (action.recoverDiscardUid !== undefined && action.recoverDiscardUids !== undefined) {
-        fail('Discard recovery must use one choice format')
-      }
-      if (action.energySpent !== undefined && !Number.isInteger(action.energySpent)) fail('X Energy must be a whole number')
-      if (action.corruptedShardMode !== undefined && action.corruptedShardMode !== 'attack' &&
-        action.corruptedShardMode !== 'defense') fail('Corrupted Shard Mode must be attack or defense')
-      if (action.guardianPowerCardUid !== undefined && typeof action.guardianPowerCardUid !== 'string') {
-        fail('Power Beam must identify a Power card')
-      }
-      for (const [label, value] of [
-        ['Vigor spend', action.spendVigor], ['Guardian Block spend', action.guardianBlockSpend],
-      ]) if (value !== undefined && (!Number.isSafeInteger(value) || value < 0)) {
-        fail(`${label} must be a non-negative whole number`)
-      }
+      const choices = actionFields(ChamberChoicesSchema, action)
       const hermitDieRelics = hermitDieRelicList(action.hermitDieRelics)
       if (action.hermitDieRelics !== undefined && hermitDieRelics?.length !== action.hermitDieRelics.length) {
         fail('Cheat choices must identify valid die-relic abilities')
@@ -4862,44 +4676,9 @@ function dispatch(run, seat, action, lockedPreview) {
         ...action, discardUids,
       }, mandatoryShivs)
       const combat = playWithReservedRng(run.combat, lockedPreview, (state) => playHermitChamberCard(
-        state, seat.playerId, action.cardUid, {
-        enemyUid: typeof action.enemyUid === 'string' ? action.enemyUid : null,
-        enemyUids: lists.enemyUids,
-        playerId: typeof action.playerId === 'string' ? action.playerId : seat.playerId,
-        playerIds: lists.playerIds,
-        energySpent: Number.isInteger(action.energySpent) ? action.energySpent : undefined,
-        mode: Number.isInteger(action.mode) ? action.mode : undefined,
-        switchWithPlayerId: typeof action.switchWithPlayerId === 'string' ? action.switchWithPlayerId : null,
-        corruptedShardMode: action.corruptedShardMode,
-        discardUids,
-        exhaustUids,
-        spendMiracle: action.spendMiracle === true,
-        shivEnemyUids,
-        scryDiscardUids: lists.scryDiscardUids,
-        scryToHandUid: typeof action.scryToHandUid === 'string' ? action.scryToHandUid : undefined,
-        topdeckUids: lists.topdeckUids,
-        searchDrawUids: lists.searchDrawUids,
-        recoverDiscardUid: action.recoverDiscardUid,
-        recoverDiscardUids: lists.recoverDiscardUids,
-        recoverExhaustUid: action.recoverExhaustUid,
-        recoverExhaustUids: lists.recoverExhaustUids,
-        loadUids: lists.loadUids,
-        chamberUids: lists.chamberUids,
-        hermitEnemyUids: lists.hermitEnemyUids,
-        slimeUids: lists.slimeUids,
-        slimeEnemyUids: lists.slimeEnemyUids,
-        soulburnEnemyUids: lists.soulburnEnemyUids,
-        hermitDieRelics,
-        chooseLoadSelf: action.chooseLoadSelf === true,
-        spendVigor: action.spendVigor,
-        guardianModeShift: action.guardianModeShift === true,
-        secondGuardianModeShift: action.secondGuardianModeShift === true,
-        guardianBlockSpend: action.guardianBlockSpend,
-        guardianPowerCardUid: action.guardianPowerCardUid,
-        evokeSlots: slotList(action.evokeSlots),
-        evokeEnemyUids: targetList(action.evokeEnemyUids),
-        metamorphosisPowerUid: typeof action.metamorphosisPowerUid === 'string' ? action.metamorphosisPowerUid : undefined,
-      }))
+        state, seat.playerId, action.cardUid, cardPlayContext(action, seat.playerId, choices, {
+          discardUids, exhaustUids, shivEnemyUids, hermitDieRelics,
+        }, true)))
       if (combat === run.combat && action.preflight === true) fail('That Chamber play is no longer legal')
       return combat === run.combat ? run : { ...run, combat }
     }
@@ -4960,33 +4739,8 @@ function dispatch(run, seat, action, lockedPreview) {
 
     case 'activatePower': {
       if (!run.combat) fail('No combat in progress')
-      const loadUids = uidList(action.loadUids)
-      const chamberUids = uidList(action.chamberUids)
-      const hermitEnemyUids = uidList(action.hermitEnemyUids)
-      const scryDiscardUids = uidList(action.scryDiscardUids)
-      const exhaustUids = uidList(action.exhaustUids)
-      for (const [label, original, sanitized] of [
-        ['Load', action.loadUids, loadUids],
-        ['Chamber', action.chamberUids, chamberUids],
-        ['Hermit enemy', action.hermitEnemyUids, hermitEnemyUids],
-        ['Scry', action.scryDiscardUids, scryDiscardUids],
-        ['Exhaust', action.exhaustUids, exhaustUids],
-      ]) if (original !== undefined && (!Array.isArray(original) || sanitized.length !== original.length)) {
-        fail(`${label} choices must be a list of ids`)
-      }
-      const combat = activatePower(run.combat, seat.playerId, action.powerUid, {
-        enemyUid: action.enemyUid ?? null,
-        enemyRow: Number.isInteger(action.enemyRow) ? action.enemyRow : null,
-        playerId: typeof action.playerId === 'string' ? action.playerId : null,
-        exhaustUids,
-        guardianModeShift: action.guardianModeShift === true,
-        loadUids,
-        chamberUids,
-        hermitEnemyUids,
-        scryDiscardUids,
-        cardUid: typeof action.cardUid === 'string' ? action.cardUid : undefined,
-        orbSlots: slotList(action.orbSlots),
-      })
+      const choices = actionFields(PowerChoicesSchema, action)
+      const combat = activatePower(run.combat, seat.playerId, action.powerUid, powerContext(action, choices))
       if (combat === run.combat && action.preflight === true) {
         fail('That Power ability is no longer legal; choose again')
       }
@@ -5109,23 +4863,7 @@ function dispatch(run, seat, action, lockedPreview) {
         run.combat,
         seat.playerId,
         action.potionId,
-        {
-          enemyUid: action.enemyUid ?? null,
-          targetPlayerId: action.targetPlayerId ?? null,
-          enemyRow: Number.isInteger(action.enemyRow) ? action.enemyRow : null,
-          shivEnemyUids,
-          recoverDiscardUid: typeof action.recoverDiscardUid === 'string' ? action.recoverDiscardUid : undefined,
-          exhaustUids: Array.isArray(action.exhaustUids)
-            ? action.exhaustUids.filter((uid) => typeof uid === 'string')
-            : undefined,
-          die: Number.isInteger(action.die) ? action.die : undefined,
-          replacePotionId: typeof action.replacePotionId === 'string' ? action.replacePotionId : undefined,
-          transformHandUid: typeof action.transformHandUid === 'string' ? action.transformHandUid : undefined,
-          recoverExhaustUid: typeof action.recoverExhaustUid === 'string' ? action.recoverExhaustUid : undefined,
-          targetRelicPlayerId: typeof action.targetRelicPlayerId === 'string' ? action.targetRelicPlayerId : undefined,
-          targetRelicIndex: Number.isInteger(action.targetRelicIndex) ? action.targetRelicIndex : undefined,
-          targetAbilityIndex: Number.isInteger(action.targetAbilityIndex) ? action.targetAbilityIndex : undefined,
-        },
+        potionContext(action, shivEnemyUids),
       )
       if (
         combat === run.combat &&

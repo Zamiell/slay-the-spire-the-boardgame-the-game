@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import {
   activatePotion, canActivatePotion, isPostRollStartTurnPotionChoice, livingEnemies, overflowShivCount,
 } from '../../game/combat.ts'
@@ -8,7 +8,9 @@ import type { ActionOutcome, VisibleCombat, VisiblePlayer } from '../../multipla
 import type { Player } from '../../game/types.ts'
 import { gainedShivs } from './helpers.ts'
 import { transitionPotionSelection } from './potion-selection.ts'
+import type { PotionSelection, PotionSelectionEvent } from './potion-selection.ts'
 import { useActionLifecycle } from './useActionLifecycle.ts'
+import { useScopedSelection } from './useScopedSelection.ts'
 import { potionSubmissionCommitted } from './action-evidence.ts'
 import type { CombatScreenProps } from './types.ts'
 
@@ -37,9 +39,13 @@ export function potionNeedsSelection(state: CombatState | VisibleCombat, viewer:
 export function usePotionController(options: Options) {
   const { state, viewerId, onAction, onChange, partyStartTurnPostRollLocked } = options
   const viewer = state.players.find((player) => player.id === viewerId)
-  const [selection, dispatch] = useReducer(transitionPotionSelection, { kind: 'idle' })
+  const scope = `${state.combatId}:${viewerId}`
+  const [selection, setSelection] = useScopedSelection<PotionSelection>(scope, { kind: 'idle' })
+  function dispatch(event: PotionSelectionEvent) {
+    setSelection((current) => transitionPotionSelection(current, event))
+  }
   const lifecycle = useActionLifecycle<PotionSubmission, CombatState>({
-    scope: `${state.combatId}:${viewerId}`,
+    scope,
     board: state,
     refresh: options.authoritativeRefresh,
     committed: (potion, board) => potionSubmissionCommitted(potion, board, viewerId),

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { cardDef } from '../game/cards.ts'
 import type { CardInstance } from '../game/types.ts'
 import { Card } from './Card.tsx'
+import { useModalFocus } from './useModalFocus.ts'
 
 type PickerVerb = 'Remove' | 'Transform' | 'Upgrade' | 'Trade'
 
@@ -45,7 +46,6 @@ export function CardPicker({
 }: CardPickerProps) {
   const pickerRef = useRef<HTMLElement>(null)
   const gridRef = useRef<HTMLDivElement>(null)
-  const restoreFocusRef = useRef<HTMLElement | null>(null)
   const gridScrollTopRef = useRef(0)
   const lastSelectedUidRef = useRef<string | null>(null)
   const wasPreview = useRef(false)
@@ -55,39 +55,8 @@ export function CardPicker({
   const chosen = selected[0]
   const selectionLabel = selectionLabelOverride ?? (maxSelections === 1 ? 'a card' : `${maxSelections} cards`)
 
-  useEffect(() => {
-    const picker = pickerRef.current
-    if (!picker || !active) return undefined
-    restoreFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
-    const controls = () => [...picker.querySelectorAll<HTMLElement>(
-      'button:not([disabled]):not([aria-disabled="true"]), input:not([disabled])')]
-    const focusFirst = () => (controls()[0] ?? picker).focus()
-    focusFirst()
-    const retainFocus = (event: FocusEvent) => {
-      if (event.target instanceof Element && event.target.closest('dialog.card-collection[open], dialog.card-inspection[open]')) return
-      if (event.target instanceof Node && !picker.contains(event.target)) focusFirst()
-    }
-    const trapTab = (event: KeyboardEvent) => {
-      if (event.key !== 'Tab') return
-      const items = controls()
-      const first = items[0]
-      const last = items.at(-1)
-      if (!first || !last) {
-        event.preventDefault()
-        picker.focus()
-        return
-      }
-      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
-      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
-    }
-    document.addEventListener('focusin', retainFocus)
-    picker.addEventListener('keydown', trapTab)
-    return () => {
-      document.removeEventListener('focusin', retainFocus)
-      picker.removeEventListener('keydown', trapTab)
-      if (restoreFocusRef.current?.isConnected) restoreFocusRef.current.focus()
-    }
-  }, [active])
+  useModalFocus(pickerRef, { active, initial: 'first', contain: true,
+    allowFocusOutside: 'dialog.card-collection[open], dialog.card-inspection[open]' })
 
   useEffect(() => {
     const grid = gridRef.current

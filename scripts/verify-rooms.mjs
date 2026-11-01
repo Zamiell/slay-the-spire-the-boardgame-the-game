@@ -9408,6 +9408,56 @@ check('a fixed-size card-effect uid list is capped above every supported printed
   assertDeepEqual(uidList([1, 'a', null]), ['a'], 'non-strings are still dropped')
 })
 
+check('structural card parsing stays behind ownership and contextual discard checks', () => {
+  const { room, a } = twoSeatRoom()
+  const actor = room.run.combat.players.find((player) => player.id === a.playerId)
+  const card = { uid: 'protocol-order', defId: 'defend_ironclad', upgraded: false }
+  Object.assign(actor, { hand: [card], energy: 3 })
+  const before = JSON.stringify(room.run)
+  for (const [fields, message] of [
+    [{ cardUid: 'foreign-card', enemyUids: null }, 'That card is not in your hand'],
+    [{ discardUids: [1], enemyUids: null }, 'Discard choices must be a valid list of card ids'],
+    [{ exhaustUids: [1], enemyUids: null }, 'Exhaust choices must be a valid list of card ids'],
+    [{ expectedShivOverflow: 1, enemyUids: null }, 'The shared Shiv supply changed; choose targets again'],
+    [{ enemyUids: null, hermitDieRelics: [] }, 'Enemy choices must be a list of ids'],
+    [{ hermitDieRelics: [null], loadUids: null }, 'Cheat choices must identify valid die-relic abilities'],
+    [{ loadUids: null, spendVigor: -1 }, 'Load choices must be a list of ids'],
+  ]) {
+    let refused
+    try { apply(room, a.token, { kind: 'playCard', cardUid: card.uid, ...fields }) }
+    catch (error) { refused = error }
+    assertEqual(refused?.name, 'RoomError')
+    assertEqual(refused?.message, message)
+    assertEqual(JSON.stringify(room.run), before, 'failed structural parsing must not mutate combat')
+  }
+  apply(room, a.token, {
+    kind: 'playCard', cardUid: card.uid, playerId: a.playerId,
+    loadUids: undefined, futureField: { ignored: true }, preflight: true,
+  })
+  assert(!room.run.combat.players.find((player) => player.id === a.playerId).hand.some((held) => held.uid === card.uid))
+})
+
+check('Power structural parsing keeps its list cap without claiming ownership or legal targets', () => {
+  const { room, a, b } = twoSeatRoom()
+  const actor = room.run.combat.players.find((player) => player.id === a.playerId)
+  const power = { uid: 'protocol-power', defId: 'combust', upgraded: true }
+  actor.powers = [power]
+  room.run.combat.powerTriggersUsedThisTurn = []
+  for (const [token, fields, message] of [
+    [a.token, { loadUids: Array(UID_LIMIT + 1).fill('a') }, 'Load choices must be a list of ids'],
+    [a.token, { scryDiscardUids: null, exhaustUids: null }, 'Scry choices must be a list of ids'],
+    [b.token, { loadUids: [] }, 'That Power ability is no longer legal; choose again'],
+  ]) {
+    const before = JSON.stringify(room.run)
+    let refused
+    try { apply(room, token, { kind: 'activatePower', powerUid: power.uid, preflight: true, ...fields }) }
+    catch (error) { refused = error }
+    assertEqual(refused?.name, 'RoomError')
+    assertEqual(refused?.message, message)
+    assertEqual(JSON.stringify(room.run), before)
+  }
+})
+
 check('online seats can activate only their own once-per-turn Combust', () => {
   const { room, a, b } = twoSeatRoom()
   const actor = room.run.combat.players.find((player) => player.id === a.playerId)

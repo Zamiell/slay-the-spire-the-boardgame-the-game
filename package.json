@@ -18,6 +18,7 @@
     "verify": "node scripts/verify-all.mjs",
     "verify:changed": "node scripts/verify-all.mjs --changed",
     "verify:browser": "node --experimental-strip-types scripts/verify-browser.mjs",
+    "verify:ui-fixtures": "playwright test --config scripts/playwright.config.mjs",
     "verify:webmcp": "node --experimental-strip-types scripts/verify-webmcp-browser.mjs",
     "verify:card-picker": "node --experimental-strip-types scripts/verify-card-picker-browser.mjs",
     "verify:loot": "node --experimental-strip-types scripts/verify-loot-browser.mjs",
@@ -36,17 +37,22 @@
     "typecheck": "tsc -b"
   },
   "dependencies": {
+    "@floating-ui/react": "0.27.20",
     "@openai/codex-sdk": "0.155.1",
     "react": "19.2.6",
     "react-dom": "19.2.6",
+    "motion": "14.9.0",
     "typescript": "5.9.3",
     "vite": "7.3.3",
-    "ws": "^8.21.0"
+    "ws": "^8.21.0",
+    "valibot": "1.5.0"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "@types/react": "19.2.15",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "^5.0.5",
-    "playwright": "1.63.0"
+    "playwright": "1.63.0",
+    "fast-check": "4.10.2"
   }
 }

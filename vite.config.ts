@@ -17,6 +17,8 @@ export default defineConfig(({ mode }) => {
   return {
     base: singlePlayer || hostedSession ? './' : '/',
     plugins: [react()],
+    // Lazy game screens must not trigger a dependency-discovery reload mid-interaction.
+    optimizeDeps: { include: ['@floating-ui/react', 'motion/react', 'valibot'] },
     server: localServer,
     preview: localServer,
   }

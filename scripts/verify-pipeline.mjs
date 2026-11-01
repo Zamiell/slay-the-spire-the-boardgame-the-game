@@ -21,6 +21,22 @@ const includesEvery = (actual, expected, context) => {
 }
 
 suite('verification pipeline')
+check('extracted protocol and presentation modules retain focused coverage', () => {
+  for (const path of ['src/protocol/actions.ts', 'src/protocol/room.ts', 'src/server/player-projection.ts',
+    'scripts/lib/rooms/projection.mjs', 'scripts/lib/rooms/store.mjs'])
+    includesEvery(affected(path), ['verify-room-protocol.mjs', 'verify-rooms.mjs', 'verify-room-server.mjs',
+      'verify-start-turn-resync-browser.mjs'], path)
+  includesEvery(affected('src/ui/RoomBanner.tsx'), ['verify-treasure-layout-browser.mjs', 'verify-event-panels-browser.mjs'], 'shared banners')
+  includesEvery(affected('src/ui/useKeywordHelp.ts'), ['verify-tooltips-browser.mjs'], 'keyword help controller')
+})
+check('Playwright fixture specs keep standalone verifier ownership', () => {
+  for (const name of ['back-buttons', 'incoming-damage', 'resource-tooltips']) {
+    assertDeepEqual(affected(`scripts/browser-tests/${name}.spec.mjs`), [`verify-${name}-browser.mjs`, 'verify-pipeline.mjs'].sort())
+  }
+  includesEvery(affected('scripts/lib/browser-test.mjs'), [
+    'verify-back-buttons-browser.mjs', 'verify-incoming-damage-browser.mjs', 'verify-resource-tooltips-browser.mjs',
+  ], 'shared Playwright fixtures')
+})
 check('hand end-turn rules select incoming-damage browser coverage', () => {
   for (const file of ['src/game/combat/queries.ts', 'src/game/combat/end-turn.ts', 'src/game/combat/enemy-turn.ts'])
     assert(affected(file).includes('verify-incoming-damage-browser.mjs'), `${file}: missing hand-damage forecast coverage`)

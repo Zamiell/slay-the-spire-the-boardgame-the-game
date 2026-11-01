@@ -63,6 +63,18 @@ const focusedEngineOwners = ownerMap([
   ['src/game/run/rewards.ts', ['verify-loot-browser.mjs', 'verify-tiny-house-browser.mjs']],
 ])
 const focusedUiOwners = ownerMap([
+  ...['src/ui/useTooltipPosition.ts', 'src/ui/useKeywordHelp.ts']
+    .map(file => [file, ['verify-tooltips-browser.mjs', 'verify-resource-tooltips-browser.mjs',
+      'verify-orb-tooltips-browser.mjs', 'verify-treasure-layout-browser.mjs']]),
+  ['src/ui/RunHeader.tsx', ['verify-ui-polish-browser.mjs', 'verify-potion-header-browser.mjs',
+    'verify-deck-inspection-browser.mjs', 'verify-incoming-damage-browser.mjs']],
+  ['src/ui/RoomBanner.tsx', ['verify-treasure-layout-browser.mjs', 'verify-event-panels-browser.mjs',
+    'verify-unavailable-event-browser.mjs']],
+  ...['action-delivery.ts', 'action-evidence.ts', 'action-lifecycle.ts', 'combat-resync.ts',
+    'potion-selection.ts', 'power-selection.ts', 'useActionLifecycle.ts', 'usePotionController.ts']
+    .map(file => [`src/ui/combat-screen/${file}`, ['verify-card-choices-browser.mjs',
+      'verify-single-enemy-targets-browser.mjs', 'verify-post-roll-item-browser.mjs',
+      'verify-start-turn-resync-browser.mjs', 'verify-slayer-powers-browser.mjs']]),
   ...['src/ui/chrome/treasure.css', 'src/ui/TreasureEffects.tsx', 'public/assets/ui/treasure-skip.svg']
     .map(file => [file, ['verify-treasure-layout-browser.mjs', 'verify-treasure-animation-browser.mjs']]),
   ['src/ui/PotionIcon.tsx', ['verify-treasure-animation-browser.mjs', 'verify-orb-tooltips-browser.mjs',
@@ -405,10 +417,10 @@ function directImports(file, root) {
   if (!existsSync(absolute)) return []
   if (!directImportCache.has(absolute)) {
     const source = sourceOf(absolute)
-    const pattern = /\bfrom\s*['"]((?:\.\.?\/|\/src\/)[^'"]+)['"]|\bimport\s*(?:\(\s*)?['"]((?:\.\.?\/|\/src\/)[^'"]+)['"]\s*\)?|@import\s+(?:url\(\s*)?['"]((?:\.\.?\/|\/src\/)[^'"]+)['"]/g
+    const pattern = /\bfrom\s*['"]((?:\.\.?\/|\/src\/)[^'"]+)['"]|\bimport\s*(?:\(\s*)?['"]((?:\.\.?\/|\/src\/)[^'"]+)['"]\s*\)?|@import\s+(?:url\(\s*)?['"]((?:\.\.?\/|\/src\/)[^'"]+)['"]|new\s+URL\(\s*['"](\.[^'"]+\.(?:mjs|[jt]sx?))['"]\s*,\s*import\.meta\.url/g
     const dependencies = []
     for (const match of source.matchAll(pattern)) {
-      const specifier = match[1] ?? match[2] ?? match[3]
+      const specifier = match[1] ?? match[2] ?? match[3] ?? match[4]
       const target = specifier.startsWith('/') ? resolve(root, `.${specifier}`) : resolve(dirname(absolute), specifier)
       const dependency = sourceExtensions.map((extension) => `${target}${extension}`).find(existsSync)
       if (dependency) dependencies.push(dependency)
@@ -602,6 +614,13 @@ export function affectedVerifiers(root, changedFiles, scripts) {
       for (const script of stylesheetBrowserOwners(file)) selected.add(script)
       for (const script of focusedUiOwners.get(file) ?? []) selected.add(script)
       for (const script of browserMentioning([file, ...stylesheetRootsFor(file)])) selected.add(script)
+      covered = true
+    }
+    else if (file.startsWith('src/protocol/') || file.startsWith('src/server/') ||
+      file.startsWith('scripts/lib/rooms/')) {
+      for (const script of ['verify-room-protocol.mjs', 'verify-rooms.mjs', 'verify-room-server.mjs',
+        'verify-start-turn-resync-browser.mjs', 'verify-guardian-online-start-choice-browser.mjs',
+        'verify-hermit-load-reconnect-browser.mjs']) selected.add(script)
       covered = true
     }
     else if (onlineUi.test(file)) {

@@ -1,18 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { CombatPhase, CombatPresentationEvent, CombatState, EndTurnAbility, PendingTriggerAbility, PlayedCard, StartTurnAbility, StartTurnChoice, StartTurnScryAbility } from '../game/combat.ts'
-import type { SpireMap } from '../game/map.ts'
-import type { CampfireChoice, CardRewardOffer, PendingGuardianSocket, PendingRelicPreview, RunPhase } from '../game/run.ts'
-import type { DailyModifierId, QuickSetupState, RunMetaOptions, RunMetaState } from '../game/meta.ts'
-import type { EventDecision, EventRoomState } from '../game/event-room.ts'
-import type { CourierOffer, MerchantState, RelicRewardState } from '../game/noncombat.ts'
-import type { CampaignProgress, SpireKeys } from '../game/campaign.ts'
-import type { BossCoinAward } from '../game/coins.ts'
-import type { NeowCard, NeowRewardOffer } from '../game/neow.ts'
-import type { CardInstance, CharacterId, Enemy, Player } from '../game/types.ts'
+import type { DailyModifierId, RunMetaOptions } from '../game/meta.ts'
+import type { CharacterId } from '../game/types.ts'
+import type { ActionOutcome, RoomSnapshot } from '../protocol/room.ts'
+import { RoomCredentialsSchema } from '../protocol/actions.ts'
+import type { RoomCredentials } from '../protocol/actions.ts'
+import { is } from 'valibot'
 import { CAMPAIGN_EVENT, campaignKey, savedCampaign, saveAscensionUnlock } from '../campaign-storage.ts'
-import type { CardPackId } from '../game/packs.ts'
 import { enabledCardPacks } from '../wallet.ts'
-import type { SkinId } from '../game/skins.ts'
 import { onSkinPreferenceChange, preferredSkin } from '../skin-preference.ts'
 import { claimSeatOwner, savedWallet } from '../wallet-storage.ts'
 import {
@@ -23,6 +17,8 @@ import {
   supportsWebSocketActionAcks,
 } from './room-endpoint.ts'
 
+export type { ActionOutcome, PublicSeat, RoomSnapshot, VisibleCombat, VisiblePlayer, VisibleRun } from '../protocol/room.ts'
+
 const ACTIVE_KEY = 'sts-room-session'
 const RECOVERY_KEY = 'sts-room-recoveries'
 const ACTION_TIMEOUT_MS = 10_000
@@ -31,260 +27,7 @@ const LIVENESS_INTERVAL_MS = 10_000
 const RECONNECT_MIN_DELAY_MS = 500
 const RECONNECT_MAX_DELAY_MS = 1_500
 
-export type PublicSeat = {
-  playerId: string
-  name: string
-  character: CharacterId
-  /** The skin this seat's hero wears (presentation only, public to the table); absent for the default look. */
-  skin?: SkinId
-  connected: boolean
-  /** The Shop packs this player brings to the room's runs; absent when none. */
-  cardPacks?: CardPackId[]
-}
-
-export type VisiblePlayer = Omit<
-  Player,
-  'deck' | 'draw' | 'hand' | 'chamber' | 'cardRewards' | 'rareRewards'
-> & {
-  deck: CardInstance[] | null
-  draw: CardInstance[] | null
-  hand: CardInstance[] | null
-  chamber: CardInstance[] | null
-  deckCount: number
-  tradableDeckCount: number
-  drawCount: number
-  handCount: number
-  cardRewardCount: number
-  rareRewardCount: number
-}
-
-export type VisibleCombat = {
-  combatId: string
-  initialEnemyCount?: number
-  lastStand: boolean
-  turn: number
-  die: number
-  phase: CombatPhase
-  potionLimit: 2 | 3
-  startTurnStage?: 'effects' | 'facing'
-  players: VisiblePlayer[]
-  enemies: Enemy[]
-  powerTriggersUsedThisTurn: string[]
-  pendingTriggers: { id: number; playerId: string; sourceId: string; startTurn?: true; enemyUid?: string }[]
-  pendingTriggerAbility: PendingTriggerAbility | null
-  nextTriggerId: number
-  startTurnProgress?: {
-    choices: StartTurnChoice[]
-    beforeDraw?: {
-      drewFrom: number
-      sources: { playerId: string; sourceId: string }[]
-      ordered: boolean
-    }
-    rollPending?: { drewFrom: number }
-    discard?: { playerId: string; sourceId: string; pendingTriggers: VisibleCombat['pendingTriggers'] }
-    forcedCard?: {
-      playerId: string
-      cardUid: string | null
-      sourceCardId: string
-      sourceLabel?: string
-      exhaustNonPower: boolean
-    }
-  }
-  pendingCardCopy?: {
-    id: number
-    playerId: string
-    card: CardInstance
-    energySpent: number
-    resumePhase: 'start' | 'player' | 'discard'
-    forcedExhaust: boolean
-    forcedChoices: StartTurnChoice[] | null
-    deferredHavocs: {
-      card: CardInstance
-      exhaust: boolean
-      virtualOnly?: boolean
-      copySourceNames?: ('Double Tap' | 'Blasphemy' | 'Echo Form' | 'Burst' | 'Omniscience')[]
-      copyResumePhase?: 'start' | 'player' | 'discard'
-    }[]
-    deferredTriggers?: { id: number; playerId: string; sourceId: string; enemyUid?: string }[]
-    sourceNames: ('Double Tap' | 'Blasphemy' | 'Echo Form' | 'Burst' | 'Doppelganger' | 'Foreign Influence' | 'Haunting Echo' | 'Omniscience' | 'Overexert' | 'Replication' | 'Weave' | 'Rapid Fire')[]
-    virtualOnly?: boolean
-    queuedWeaves?: CardInstance[]
-  }
-  pendingDistilled?: { playerId: string; cards: CardInstance[] | null }
-  pendingRelicScry?: { id: number; playerId: string; relicIndex: number; cards: CardInstance[] | null }
-  pendingPlunderSwitches?: CombatState['pendingPlunderSwitches']
-  pendingDieRelicChoices?: CombatState['pendingDieRelicChoices']
-  pendingHermitSetupLoads?: CombatState['pendingHermitSetupLoads']
-  pendingHermitChamberPlays?: CombatState['pendingHermitChamberPlays']
-  pendingHermitStrengthRewards?: CombatState['pendingHermitStrengthRewards']
-  /** Slayer Pack: Only the viewer's own card-play windows. */
-  pendingCardPlayWindows?: CombatState['pendingCardPlayWindows']
-  pendingPlayerChoices?: CombatState['pendingPlayerChoices']
-  /** Slayer Pack: a Ritual Dagger+ reveal is null for everyone but its owner. */
-  pendingSlayerChoices?: CombatState['pendingSlayerChoices']
-  playedCardsThisTurn: PlayedCard[]
-  viewerStanceChangedThisTurn?: boolean
-  presentationEvents: CombatPresentationEvent[]
-  pendingSummons: {
-    sourceUid: string
-    row: number
-    defIds: string[]
-    turn: number
-    timing?: 'startOfTurn' | 'endOfTurn'
-    direct?: boolean
-    isBoss?: boolean
-    strength?: number
-    strengthDefId?: string
-    strengthPerPower?: boolean
-  }[]
-  log: string[]
-}
-
-export type VisibleRun = {
-  ascension: number
-  chooseYourRelic: boolean
-  lastStand: boolean
-  meta: RunMetaState
-  setup: QuickSetupState | null
-  act: number
-  phase: RunPhase
-  neow: {
-    players: Record<string, {
-      card: NeowCard | undefined
-      redRewardPending: boolean
-      redReward: NeowRewardOffer | null
-      blueOption: number | null
-      pendingEffect: import('../game/neow.ts').NeowImmediateReward | null
-      transformExcludedUids?: string[]
-      rewardKind: NeowRewardOffer['kind'] | null
-      reward: NeowRewardOffer | null
-      availableSources: import('../game/run.ts').RewardSource[]
-      done: boolean
-    } | null>
-  } | null
-  pendingBossDefId: string | null
-  pendingGuardianSockets: PendingGuardianSocket[]
-  /** This act's boss. Rolled in the open at setup, so it is not redacted. */
-  actBossDefId: string | null
-  canRerollDownfallSelfBoss?: boolean
-  map: SpireMap
-  log: string[]
-  players: VisiblePlayer[]
-  combat: VisibleCombat | null
-  rewards: CardRewardOffer[]
-  roomState: MerchantState | RelicRewardState | EventRoomState | null
-  courier: { usedBy: string[]; offer: CourierOffer | null }
-  campaign: {
-    runId: string
-    bossesDefeated: number
-    highestBossActDefeated: 0 | 1 | 2 | 3 | 4
-    bossCoins?: BossCoinAward[]
-    /** Bosses beaten before a hero joined by Catch Up; only the viewer's own hero is sent. */
-    joinedAfterBosses?: Partial<Record<CharacterId, number>>
-    keys: SpireKeys
-    finalized: boolean
-  }
-}
-
-export type RoomSnapshot = {
-  earnedAscension?: number
-  code: string
-  phase: 'lobby' | 'run'
-  selectingCampaign: boolean
-  ascension: number
-  chooseYourRelic: boolean
-  lastStand: boolean
-  metaOptions: { mode: 'standard' | 'custom'; modifiers: DailyModifierId[]; quickStartAct: 1 | 2 | 3 | 4 }
-  /**
-   * The party's recently recorded runs this seat played and may not have claimed
-   * yet: the awards and where this seat's share starts. Kept after the return to
-   * the lobby so a seat that missed a recording still claims its boss coins.
-   */
-  recordedRuns?: { runId: string; bossCoins: BossCoinAward[]; skip: number }[]
-  /** The union of the seats' packs in the lobby; the run's frozen packs once it starts. Older servers omit it. */
-  cardPacks?: CardPackId[]
-  version: number
-  /** Server boot id; a new one lets a restored room resume at a lower version. */
-  epoch?: string
-  you: PublicSeat
-  seats: PublicSeat[]
-  pendingRelic?: PendingRelicPreview | null
-  pendingRelicStatus?: { playerId: string; playerName: string; relicId: string } | null
-  pendingTeammateAcquisitionPlayerId?: string | null
-  campfireChoice?: { choice: CampfireChoice; cardUid?: string }
-  campfireTransformAvailable?: boolean
-  quickSetupTransformAvailable?: boolean
-  campfireDecided: string[]
-  endTurnDecided: string[]
-  endTurnRequired: string[]
-  endTurnTopPlayerIds?: string[]
-  endTurnAbilities?: EndTurnAbility[]
-  startTurnAbilities?: StartTurnAbility[]
-  startTurnDecided: string[]
-  startTurnRequired: string[]
-  startTurnCoordinatorId?: string | null
-  startTurnChoiceId?: string
-  startTurnEnemyTargets?: Record<string, string>
-  startTurnChoices?: StartTurnChoice[]
-  stagedStartTurnTriggers?: (PendingTriggerAbility & { choiceId: string })[]
-  startTurnPostRollLocked?: boolean
-  startTurnOrderPending?: boolean
-  startTurnOrderLocked?: boolean
-  startTurnScryAbilities?: StartTurnScryAbility[]
-  startTurnScry?: {
-    id: string
-    playerId: string
-    label: string
-    amount: number
-    cards: CardInstance[] | null
-  }
-  startTurnDiscard?: {
-    playerId: string
-    sourceId: string
-    label: string
-    remaining: number
-    cards: CardInstance[] | null
-  }
-  discardOrder?: string[]
-  cardPreview?: {
-    cardUid: string
-    copy?: boolean
-    chamber?: boolean
-    kind: 'discard' | 'scry' | 'scryToHand' | 'topdeck' | 'search' | 'load' | 'loadAny'
-    cards: CardInstance[]
-    spendMiracle: boolean
-    enemyUid: string | null
-    energySpent?: number
-    slimeUids?: string[]
-    slimeEnemyUids?: string[]
-  }
-  powerPreview?: { id: number; powerUid: string; kind: 'scry'; cards: CardInstance[] }
-  cardChoicePlayerId?: string
-  merchantPledges?: Record<string, { buyerId: string; section?: string; slot?: number; kind?: 'removal'; cardUid?: string; potionRecipientId?: string; discardPotionId?: string; payments: Record<string, number> }>
-  merchantReady?: string[]
-  courierPledge?: { playerId: string; id: string; discardPotionId?: string; payments: Record<string, number> }
-  eventPledge?: { actorId: string; optionId: string; cost: number; payments: Record<string, number>; decision: EventDecision }
-  eventCanSkip: boolean
-  unavailableEventOptionIds: string[]
-  giveUpVote?: {
-    runId: string
-    deadlineAt: number
-    remainingMs: number
-    receivedAt?: number
-    eligiblePlayerIds: string[]
-    votes: Record<string, boolean>
-  }
-  campaignProgress: CampaignProgress
-  run: VisibleRun | null
-}
-
-export type ActionOutcome = {
-  status: 'accepted' | 'refused' | 'reconciled' | 'unknown'
-  snapshot?: RoomSnapshot
-  refreshAttempt?: number
-}
-
-type Credentials = { code: string; token: string }
+type Credentials = RoomCredentials
 type JoinOptions = { name: string; character: CharacterId; code?: string }
 type Connection = 'idle' | 'connecting' | 'connected' | 'reconnecting'
 export type VoiceSignal = {
@@ -314,7 +57,7 @@ class RequestError extends Error {
 function savedCredentials(): Credentials | null {
   try {
     const saved = JSON.parse(sessionStorage.getItem(ACTIVE_KEY) ?? 'null')
-    return typeof saved?.code === 'string' && typeof saved?.token === 'string' ? saved : null
+    return is(RoomCredentialsSchema, saved) ? saved : null
   } catch {
     return null
   }
@@ -324,7 +67,7 @@ function savedRecoveries(): Credentials[] {
   try {
     const saved = JSON.parse(localStorage.getItem(RECOVERY_KEY) ?? '[]')
     return Array.isArray(saved)
-      ? saved.filter((entry): entry is Credentials => typeof entry?.code === 'string' && typeof entry?.token === 'string')
+      ? saved.filter((entry): entry is Credentials => is(RoomCredentialsSchema, entry))
       : []
   } catch {
     return []
@@ -506,9 +249,9 @@ export function useRoomSession() {
     })()
   }, [accept])
 
-  /** Replaces the local snapshot with the server's, even if it looks older. */
+  /** Replaces the local snapshot; only a successful current-session refresh may reset UI locks. */
   const resync = useCallback(async () => {
-    if (!credentials) return
+    if (!credentials) return false
     const resyncGeneration = generation.current
     const before = snapshotRef.current
     try {
@@ -516,15 +259,17 @@ export function useRoomSession() {
         headers: { 'x-room-token': credentials.token },
         signal: AbortSignal.timeout(REFRESH_TIMEOUT_MS),
       })) as RoomSnapshot
-      if (generation.current !== resyncGeneration) return
+      if (generation.current !== resyncGeneration) return false
       // A pushed frame that arrived meanwhile is newer than this GET.
       if (snapshotRef.current === before) {
         snapshotRef.current = null
         accept(latest)
       }
       setRestorationEpoch((current) => current + 1)
+      return true
     } catch {
       resetAfterFailure()
+      return false
     }
   }, [accept, credentials])
 

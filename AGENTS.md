@@ -30,6 +30,7 @@ Before pushing `master`, require `node scripts/verify-all.mjs --changed=origin/m
 
 - Always disable audible output during browser tests, screenshots, and manual browser checks so automation cannot interfere with the user's playing run.
 - Use `scripts/lib/profile-browser.mjs` for returning-player fixtures, or `scripts/lib/silent-browser.mjs` for fresh-profile fixtures. Do not launch Playwright directly.
+- Playwright Test specs import `test`/`expect` from `scripts/lib/browser-test.mjs`, never directly from `@playwright/test`. The shared fixtures preserve silent returning-player contexts, serial desktop/horizontal-phone projects, recordings, and zero retries. Keep standalone `verify-*-browser.mjs` entrypoints so affected-verifier routing remains usable.
 - Keep both HTML media and Web Audio output muted, including in headed browsers. Sound-specific tests may exercise playback and volume controls internally, but must never produce audible output.
 - Never mute the system, change the user's audio settings, or alter the user's running browser to silence a test. Apply muting only to the isolated automation session.
 

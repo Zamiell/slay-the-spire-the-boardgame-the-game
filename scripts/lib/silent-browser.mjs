@@ -1,5 +1,6 @@
 import { chromium as chromiumEngine, webkit as webkitEngine } from 'playwright'
 export { devices } from 'playwright'
+export { test as baseTest, expect } from '@playwright/test'
 
 /** Silence this test document's output without disabling playback, decoding, or sound assertions. */
 export function silenceBrowserAudio() {
@@ -67,7 +68,7 @@ export function silenceBrowserAudio() {
 }
 
 const mutedContexts = new WeakSet()
-async function silence(context) {
+export async function silenceContext(context) {
   if (mutedContexts.has(context)) return
   await context.addInitScript(silenceBrowserAudio)
   mutedContexts.add(context)
@@ -81,13 +82,13 @@ function silentBrowser(engine) {
       const newContext = browser.newContext.bind(browser)
       browser.newContext = async options => {
         const context = await newContext(options)
-        await silence(context)
+        await silenceContext(context)
         return context
       }
       const newPage = browser.newPage.bind(browser)
       browser.newPage = async options => {
         const page = await newPage(options)
-        await silence(page.context())
+        await silenceContext(page.context())
         // Also cover tests using setContent/evaluate on the initial about:blank document.
         await page.evaluate(silenceBrowserAudio)
         return page

@@ -11,7 +11,7 @@ suite('start-of-turn fuzz')
 // seat's Evoke prompt; 30145: a reordered plan outdates a non-required seat's staged pick;
 // 20242: an Evoke draft staged before the order commit; 70195: an answered seat's outdated pick hides
 // another seat's Shiv prompt. 1000 is an ordinary window.
-const SEEDS = [30813, 41226, 30145, 20242, 70195, 1000]
+const SEEDS = [30813, 41226, 30145, 20242, 70195, 1000, 4079, 92913]
 
 for (const seed of SEEDS) {
   check(`seed ${seed} finishes the window`, () => {

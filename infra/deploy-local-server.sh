@@ -21,12 +21,13 @@ prepare_release() {
     cleanup_candidate() { rm -rf -- "$candidate"; }
     trap cleanup_candidate EXIT
     git -C "$root" archive HEAD -- package.json scripts/room-server.mjs \
-      scripts/lib/rooms.mjs scripts/lib/leaderboard.mjs scripts/lib/stats.mjs scripts/lib/codex-deck-classifier.mjs \
+      scripts/lib/rooms.mjs scripts/lib/rooms scripts/lib/leaderboard.mjs scripts/lib/stats.mjs scripts/lib/codex-deck-classifier.mjs \
       scripts/lib/codex-deck-worker.sh scripts/lib/deck-type.schema.json scripts/lib/profiles.mjs scripts/lib/mail.mjs \
       scripts/lib/coin-grants.mjs scripts/lib/account-wallets.mjs scripts/lib/daily-coins.mjs \
-      src/game src/wallet.ts infra/systemd/sts-room-server.service infra/validate-room-store.mjs | tar -x -C "$candidate"
+      src/game src/protocol src/server src/wallet.ts infra/systemd/sts-room-server.service infra/validate-room-store.mjs | tar -x -C "$candidate"
     mkdir -p "$candidate/node_modules/@openai"
     cp -aL "$root/node_modules/ws" "$candidate/node_modules/ws"
+    cp -aL "$root/node_modules/valibot" "$candidate/node_modules/valibot"
     cp -aL "$root/node_modules/@openai/codex-sdk" "$candidate/node_modules/@openai/codex-sdk"
     chmod -R u=rwX,go=rX "$candidate"
     mv "$candidate" "$release"
@@ -34,6 +35,7 @@ prepare_release() {
   fi
   test -f "$release/scripts/room-server.mjs"
   test -d "$release/node_modules/ws"
+  test -d "$release/node_modules/valibot"
   test -f "$release/node_modules/@openai/codex-sdk/dist/index.js"
 }
 

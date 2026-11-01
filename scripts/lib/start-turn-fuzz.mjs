@@ -7,6 +7,7 @@ import { CARDS, faceOf } from '../../src/game/cards.ts'
 import { RELICS, relicAbilities } from '../../src/game/relics.ts'
 import { ENEMIES, enemyDef, startingHp } from '../../src/game/enemies.ts'
 import { startTurnAbilities } from '../../src/game/combat/start-turn.ts'
+import { cardNeedsEnemy, guardianGemForCard } from '../../src/game/combat/queries.ts'
 import * as lib from './rooms.mjs'
 
 function mulberry(a) {
@@ -122,6 +123,38 @@ function clientChoices(room, token, shuffleOrder, rnd) {
 }
 
 // ---- driver
+const simpleForcedEffects = new Set(['hit', 'block', 'applyVulnerable', 'applyWeak'])
+// These four sequences only hit, grant Block, or gain Vigor in the current Mode.
+// Upgraded support targets choose self, and optional Vigor spending chooses zero.
+const simpleGuardianStarters = new Set([
+  'guardian_strike', 'guardian_defend', 'guardian_twin_slam', 'guardian_curl_up',
+])
+
+/** Only complete, supported answers; unknown prompts remain explicitly inconclusive. */
+export function forcedCardAction(snapshot) {
+  const combat = snapshot.run?.combat
+  const forced = combat?.startTurnProgress?.forcedCard
+  const me = snapshot.you.playerId
+  if (!forced || forced.playerId !== me || combat.pendingTriggers?.length ||
+    combat.pendingDieRelicChoices?.length || combat.pendingPlayerChoices?.length ||
+    combat.pendingSlayerChoices?.length || combat.pendingCardCopy) return undefined
+  const player = combat.players.find((candidate) => candidate.id === me)
+  const card = player?.hand?.find((candidate) => candidate.uid === forced.cardUid)
+  if (!card || guardianGemForCard(player, card) || card.growOnPlay) return undefined
+  const def = faceOf(CARDS[card.defId], card.upgraded)
+  const guardianStarter = simpleGuardianStarters.has(def.id) && def.effects.length === 1 &&
+    def.effects[0].kind === 'sequence' && def.effects[0].guardianAction === 'card' &&
+    def.effects[0].effects.length === 0
+  if (def.modes || def.cost === 'X' ||
+    !guardianStarter && !def.effects.every((effect) => simpleForcedEffects.has(effect.kind))) return undefined
+  const enemyUid = cardNeedsEnemy(def, player)
+    ? combat.enemies.find((enemy) => !enemy.dead)?.uid : undefined
+  if (cardNeedsEnemy(def, player) && enemyUid === undefined) return undefined
+  return { kind: 'playCard', cardUid: card.uid, playerId: me,
+    ...(guardianStarter ? { spendVigor: 0 } : {}),
+    ...(enemyUid === undefined ? {} : { enemyUid }) }
+}
+
 export function runSeed(seed) {
   const { room, rnd } = buildScenario(seed)
   const tokens = room.seats.map((s) => s.token)
@@ -147,12 +180,27 @@ export function runSeed(seed) {
       if (scry && scry.playerId === me) { lib.apply(room, token, { kind: 'resolveStartTurnScry', sourceId: scry.id, discardUids: [] }); return 'progress' }
       const dis = snap.startTurnDiscard
       if (dis && dis.playerId === me) { lib.apply(room, token, { kind: 'resolveStartTurnDiscard', sourceId: dis.sourceId, discardUid: dis.cards[0].uid }); return 'progress' }
+      const forcedAction = forcedCardAction(snap)
+      if (forcedAction) {
+        const result = lib.apply(room, token, forcedAction)
+        if (!result.changed) throw new Error('Supported forced-card answer made no progress')
+        events.push(`forced p${i}:${forcedAction.cardUid}@${round}`)
+        return 'progress'
+      }
       const c = room.run.combat
       if (c.pendingTriggers?.some((t) => t.startTurn) || c.startTurnProgress?.forcedCard ||
         c.pendingDieRelicChoices?.length || c.startTurnProgress?.rollPending || c.startTurnProgress?.discard || c.startTurnProgress?.beforeDraw) {
         const owners = [c.startTurnProgress?.discard?.playerId, c.startTurnProgress?.forcedCard?.playerId, ...(c.pendingTriggers ?? []).filter((t) => t.startTurn).map((t) => t.playerId), ...(c.pendingDieRelicChoices ?? []).map((t) => t.playerId)].filter(Boolean)
         orphan = owners.length > 0 && owners.every((o) => room.seats.find((x) => x.playerId === o)?.connected === false)
-        lastPrompt = JSON.stringify({ progress: c.startTurnProgress, pend: c.pendingTriggers, die: c.pendingDieRelicChoices, conn: room.seats.map((x) => x.connected) }).slice(0, 600)
+        const forced = c.startTurnProgress?.forcedCard
+        const forcedCard = forced && c.players.find((player) => player.id === forced.playerId)?.hand
+          .find((card) => card.uid === forced.cardUid)
+        lastPrompt = JSON.stringify({
+          forcedCard, copy: c.pendingCardCopy && { id: c.pendingCardCopy.id, playerId: c.pendingCardCopy.playerId, card: c.pendingCardCopy.card },
+          playerChoices: c.pendingPlayerChoices, slayerChoices: c.pendingSlayerChoices,
+          progress: c.startTurnProgress, pend: c.pendingTriggers, die: c.pendingDieRelicChoices,
+          conn: room.seats.map((x) => x.connected),
+        }).slice(0, 600)
         return 'other-prompt'
       }
       const required = snap.startTurnRequired ?? []
@@ -229,4 +277,3 @@ export function runSeed(seed) {
   }
   return { seed, kind: errors.length ? 'recovered-after-errors' : 'ok', errors, events }
 }
-

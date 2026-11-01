@@ -1,8 +1,9 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { potionIconPath } from '../game/assets.ts'
 import { potionDef } from '../game/relics.ts'
 import { POINTER_CLICK_WINDOW_MS, useHoverUnavailable } from './touch-input.ts'
+import { useTooltipPosition } from './useTooltipPosition.ts'
 
 type AnchorProps = {
   id: string
@@ -17,6 +18,7 @@ type AnchorProps = {
   kindLabel?: string
   tooltipContent?: React.ReactNode
   hoverable?: boolean
+  animateIcon?: boolean
   /**
    * What the second tap will actually do, as a verb phrase — today "drink",
    * "aim", or "choose a replacement".
@@ -37,7 +39,7 @@ const tooltipListeners = new Set<(owner: object) => void>()
 /** An unclipped Potion tooltip anchor for either an icon or an action button. */
 export function PotionTooltipAnchor({
   id, children, focusable = false, decorative = false, name, text, kindLabel = 'Potion', confirmLabel, tooltipContent, hoverable = false,
-  as: Tag = 'span', className, 'aria-label': ariaLabel,
+  as: Tag = 'span', className, 'aria-label': ariaLabel, animateIcon = false,
 }: AnchorProps) {
   const def = name === undefined || text === undefined ? potionDef(id) : undefined
   const itemName = name ?? def!.name
@@ -51,7 +53,6 @@ export function PotionTooltipAnchor({
   const [hovered, setHovered] = useState(false)
   const [focused, setFocused] = useState(false)
   const [dismissed, setDismissed] = useState<false | 'manual' | 'superseded'>(false)
-  const [position, setPosition] = useState({ left: 0, top: 0 })
   // A potion is spent the instant its button is pressed, and on a phone that
   // press is also the only way to reach the panel saying what the potion does —
   // so the rules arrived, at best, as an explanation of what the player had
@@ -64,6 +65,15 @@ export function PotionTooltipAnchor({
   // moved on — and `onMouseLeave` may never arrive to clear it. Where there is
   // no hover, only the tap and real focus open the panel.
   const showing = (readingTap || focused || (!tapToRead && hovered)) && !dismissed
+  const { refs, floatingStyles } = useTooltipPosition(showing)
+  const setAnchor = useCallback((element: HTMLElement | null) => {
+    anchor.current = element
+    refs.setReference(element)
+  }, [refs])
+  const setTip = useCallback((element: HTMLSpanElement | null) => {
+    tip.current = element
+    refs.setFloating(element)
+  }, [refs])
 
   const claimTooltip = () => tooltipListeners.forEach((listener) => listener(owner))
 
@@ -85,32 +95,6 @@ export function PotionTooltipAnchor({
     window.clearTimeout(leaveTimer.current)
     leaveTimer.current = window.setTimeout(() => setHovered(false), 150)
   }
-  useLayoutEffect(() => {
-    if (!showing || !anchor.current || !tip.current) return
-    const place = () => {
-      const trigger = anchor.current!.getBoundingClientRect()
-      const panel = tip.current!.getBoundingClientRect()
-      const left = Math.max(16, Math.min(trigger.left, window.innerWidth - panel.width - 16))
-      const below = trigger.bottom + 8
-      const top = Math.max(16, Math.min(
-        below + panel.height <= window.innerHeight - 16 ? below : trigger.top - panel.height - 8,
-        window.innerHeight - panel.height - 16,
-      ))
-      setPosition({ left, top })
-    }
-    place()
-    window.addEventListener('scroll', place, true)
-    window.addEventListener('resize', place)
-    return () => {
-      window.removeEventListener('scroll', place, true)
-      window.removeEventListener('resize', place)
-    }
-    // `readingTap` too: the browser focuses the button before dispatching the
-    // click, so `showing` turns true one commit BEFORE the confirm line is
-    // added — and the guard above would place the panel using a height that is
-    // one line short of what it renders.
-  }, [showing, readingTap, itemName, itemText])
-
   useEffect(() => {
     if (!showing) return undefined
     const dismiss = (event: KeyboardEvent) => {
@@ -158,7 +142,7 @@ export function PotionTooltipAnchor({
 
   useEffect(() => () => window.clearTimeout(leaveTimer.current), [])
 
-  return <Tag ref={anchor} className={`potion-chip${className ? ` ${className}` : ''}`} tabIndex={focusable ? 0 : undefined}
+  return <Tag ref={setAnchor} className={`potion-chip${animateIcon ? ' potion-chip--animated' : ''}${className ? ` ${className}` : ''}`} tabIndex={focusable ? 0 : undefined}
     role={Tag === 'summary' ? 'button' : focusable ? 'img' : undefined} aria-hidden={decorative ? 'true' : undefined}
     aria-label={ariaLabel ?? (focusable ? `${itemName}. ${kindLabel}. ${itemText}` : undefined)}
     onMouseEnter={enterAnchor} onMouseLeave={leaveAnchor}
@@ -255,9 +239,9 @@ export function PotionTooltipAnchor({
     <span className="visually-hidden" aria-live="polite" aria-atomic="true">
       {readingTap && confirmLabel ? `${itemName}. ${itemText} Activate again to ${confirmLabel}.` : ''}
     </span>
-    {showing ? createPortal(<span ref={tip}
+    {showing ? createPortal(<span ref={setTip}
       className={`relic-tip potion-tip${readingTap || hoverable ? ' potion-tip--hoverable' : ''}`} aria-hidden="true"
-      style={position}
+      style={floatingStyles}
       onMouseEnter={hoverable ? enterAnchor : undefined}
       onMouseLeave={hoverable ? leaveAnchor : undefined}
       // `--hoverable` is the only thing that makes this panel hit-testable
@@ -281,7 +265,7 @@ export function PotionTooltipAnchor({
 
 /** A held Potion icon that explains its printed effect on hover or focus. */
 export function PotionIcon({ id, focusable = true }: { id: string; focusable?: boolean }) {
-  return <PotionTooltipAnchor id={id} focusable={focusable} decorative={!focusable}>
+  return <PotionTooltipAnchor id={id} focusable={focusable} decorative={!focusable} animateIcon>
     <img className="item-icon-image" src={potionIconPath(id)} alt="" />
   </PotionTooltipAnchor>
 }

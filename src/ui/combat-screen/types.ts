@@ -23,6 +23,7 @@ export type CombatScreenProps = {
   /** The seat this client controls. Everyone sees the same board. */
   viewerId: string
   onChange?: (next: CombatState) => void
+  /** Fulfilled void acknowledges completion; reject or return unknown for uncertain delivery. */
   onAction?: (action: Record<string, unknown>) => void | Promise<ActionOutcome | void>
   autoAdvance?: boolean
   selectionDialogsActive?: boolean
@@ -88,17 +89,13 @@ export type CombatScreenProps = {
   animateOpeningHand?: boolean
 }
 
-export type UnknownPotionAction = { refreshAttempt: number; potionId: string; countBefore: number }
-
-export type UnknownPowerAction = {
-  refreshAttempt: number
+export type PowerSubmission = {
   powerUid: string
   powerPreviewId?: number
   context: PowerContext
 }
 
-export type UnknownCardAction = {
-  refreshAttempt: number
+export type CardSubmission = {
   cardUid: string
   source: 'hand' | 'chamber' | 'copy'
   copyId?: number

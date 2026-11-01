@@ -50,7 +50,7 @@ type CardProps = {
   tabIndex?: number
   /** Appended to the accessible name, e.g. to tell a just-drawn duplicate apart. */
   accessibleNote?: string
-  onClick?: (card: CardInstance) => void
+  onClick?: (card: CardInstance, event: React.MouseEvent<HTMLButtonElement>) => void
   onInspect?: (card: CardInstance) => void
   onPointerDown?: React.PointerEventHandler<HTMLButtonElement>
   onPointerMove?: React.PointerEventHandler<HTMLButtonElement>
@@ -907,7 +907,7 @@ export function Card({
           event.preventDefault()
           return
         }
-        onClick?.(card)
+        onClick?.(card, event)
       }}
       aria-label={`${cardAccessibleName(def, effectiveCost)}${costChanged ? `, printed cost ${def.cost}` : ''}${
         liveBlock && liveBlock.block !== liveBlock.baseline ? `, ${liveBlock.block} Block now, normally ${liveBlock.baseline}` : ''}${attachedGem

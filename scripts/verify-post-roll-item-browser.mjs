@@ -90,7 +90,7 @@ try {
     })
     await page.locator('.combat[data-phase="start"]').waitFor()
     touchState ??= await page.evaluate(() => structuredClone(window.postRollFixture.state))
-    const charon = page.locator('.relic-actions details').filter({ hasText: "Charon's Ashes" })
+    const charon = page.getByRole('dialog', { name: 'Exhaust 1 card', exact: true })
     const charonIcon = page.getByRole('button', { name: /^Use Charon's Ashes:/ })
     await charonIcon.waitFor()
     assert(await charonIcon.locator('img').evaluate((image) => image.complete && image.naturalWidth > 0),
@@ -143,13 +143,13 @@ try {
       `${screen}: declined Gambler's Brew remained clickable`)
     assert.equal(await page.getByRole('button', { name: /^Use Holy Water/ }).count(), 1,
       `${screen}: unrelated Holy Water was hidden`)
-    const candle = page.locator('.relic-actions details').filter({ hasText: 'Blue Candle' })
-    await candle.locator('summary').click()
+    const candle = page.getByRole('dialog', { name: 'Exhaust up to 2 cards', exact: true })
+    await page.getByRole('button', { name: /^Use Blue Candle:/ }).click()
     assert.equal(await candle.locator('.card--selected').count(), 0,
       `${screen}: Charon's Ashes card leaked into Blue Candle after lock`)
     assert.deepEqual(errors, [], `${screen}: browser errors`)
     await page.screenshot({ path: resolve(output, `${screen}.png`), fullPage: true })
-    await candle.locator('summary').click()
+    await candle.getByRole('button', { name: 'Cancel', exact: true }).click()
     await page.evaluate(() => {
       const fixture = window.postRollFixture
       const root = document.querySelector('#root')
@@ -214,6 +214,7 @@ try {
       const fixture = window.postRollFixture
       fixture.state = { ...fixture.state, die: 1, enemies: [
         { ...fixture.state.enemies[0], uid: 'boss', defId: 'donu', isBoss: true, hp: 50, maxHp: 50 },
+        fixture.state.enemies[1],
       ] }
       fixture.render()
     })
@@ -224,6 +225,15 @@ try {
     assert.match(await webmcpTarget('Donu'), /Donu/, `${screen}: WebMCP boss target not available`)
     assert.equal((await page.evaluate(() => window.postRollFixture.actions.at(-1)))?.enemyUid, 'boss',
       `${screen}: Mystery Potion did not select the boss`)
+    await page.evaluate(() => {
+      const fixture = window.postRollFixture
+      fixture.state = { ...fixture.state, enemies: fixture.state.enemies.filter(enemy => enemy.uid === 'boss') }
+      fixture.render()
+    })
+    await page.getByRole('button', { name: 'Use Mystery Potion' }).click()
+    assert.equal((await page.evaluate(() => window.postRollFixture.actions.at(-1)))?.enemyUid, 'boss',
+      `${screen}: a sole boss must be selected automatically`)
+    assert.equal(await page.getByText('Choose an enemy for Mystery Potion').count(), 0)
     assert.deepEqual(errors, [], `${screen}: browser errors after Mystery Potion`)
     await context.close()
   }
@@ -255,16 +265,26 @@ try {
   }, touchState)
   const touchIcon = touchPage.getByRole('button', { name: /^Use Charon's Ashes:/ })
   await touchIcon.tap()
-  const touchTip = touchPage.locator('.potion-tip').filter({ hasText: "Charon's Ashes" })
-  await touchTip.getByText('Tap again to choose a card and target', { exact: true }).waitFor()
-  assert.equal(await touchIcon.evaluate((summary) => summary.parentElement.open), false,
-    'the first touch opened choices instead of showing the rules')
-  await touchPage.screenshot({ path: resolve(output, 'horizontal-phone-charon-touch-tooltip.png') })
-  await touchIcon.tap()
-  await touchTip.waitFor({ state: 'hidden' })
-  await touchPage.locator('.relic-actions details[open] .card').first().waitFor()
+  // Opening the reversible fullscreen chooser is not an irreversible activation.
+  const touchChoice = touchPage.getByRole('dialog', { name: 'Exhaust 1 card', exact: true })
+  await touchChoice.waitFor()
+  assert((await touchChoice.innerText()).includes('On a 1 or 2: you may Exhaust a card to deal 2 damage.'))
+  assert(await touchChoice.getByRole('button', { name: /^Hit / }).first().isDisabled())
+  await touchPage.screenshot({ path: resolve(output, 'horizontal-phone-charon-touch-choices.png') })
   assert.deepEqual(await touchPage.evaluate(() => window.touchRelicActions), [],
     'reading or opening Charon\'s Ashes spent the relic')
+  await touchChoice.locator('.hand-discard__hand .card').first().tap()
+  assert.equal(await touchChoice.locator('.card--selected').count(), 0, 'first touch only inspects the recessed card')
+  await touchChoice.locator('.hand-discard__hand .card').first().tap()
+  assert.equal(await touchChoice.locator('.card--selected').count(), 1)
+  assert.deepEqual(await touchPage.evaluate(() => window.touchRelicActions), [],
+    'selecting an exhaust card spent the relic before choosing a target')
+  await touchChoice.getByRole('button', { name: /^Hit / }).last().tap()
+  await touchChoice.waitFor({ state: 'detached' })
+  assert.deepEqual(await touchPage.evaluate(() => window.touchRelicActions.map(({ kind, relicIndex, cardUids, enemyUid }) =>
+    ({ kind, relicIndex, cardUids, enemyUid }))), [{
+    kind: 'activateRelic', relicIndex: 1, cardUids: ['post-roll-relic-card'], enemyUid: 'right',
+  }])
   assert.deepEqual(touchErrors, [])
   await touchContext.close()
   console.log('✓ post-roll item browser: 2/2 screen classes passed')

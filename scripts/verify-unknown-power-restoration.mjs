@@ -10,6 +10,6 @@ assert.equal(unknownPowerRefreshDecision(false, 12, 12), 'wait')
 assert.equal(unknownPowerRefreshDecision(false, 12, 11), 'wait')
 assert.equal(unknownPowerRefreshDecision(false, 12, undefined), 'wait')
 assert.equal(unknownPowerRefreshDecision(true, 12, 13), 'committed')
-assert.equal(unknownPowerRefreshDecision(false, undefined, 13), 'unlock')
+assert.equal(unknownPowerRefreshDecision(false, undefined, 13), 'wait')
 
 console.log('✓ unknown Power delivery restores for every callback/refresh ordering')

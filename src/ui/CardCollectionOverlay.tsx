@@ -138,7 +138,10 @@ export function CardCollectionDialog({ cards, label, onClose, open = true, order
         <div className="choice-modal__cards">
           {open ? sortedCards.map((card) => <Card key={card.uid}
             card={viewUpgrades && cardDef(card.defId).upgrade ? { ...card, upgraded: true } : card}
-            playable={inspectable} hoverHelp onClick={inspectable ? () => setInspectedUid(card.uid) : undefined}
+            playable={inspectable} hoverHelp onClick={inspectable ? (_, event) => {
+              event.currentTarget.focus({ preventScroll: true })
+              setInspectedUid(card.uid)
+            } : undefined}
             onInspect={() => setInspectedUid(card.uid)}
             stanceChangedThisTurn={stanceChangedThisTurn}
             drawLocked={drawLocked} sharedDrawLocked={sharedDrawLocked} />) : null}

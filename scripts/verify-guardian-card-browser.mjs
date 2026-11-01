@@ -4,6 +4,7 @@ import { chromium } from './lib/profile-browser.mjs'
 import { createServer } from 'vite'
 import { createRun } from '../src/game/run.ts'
 import { createCombat } from '../src/game/combat.ts'
+import { pickUpCard, confirmCardPlay } from './lib/card-interactions.mjs'
 
 const out = 'artifacts/guardian-card-audit'
 mkdirSync(out, { recursive: true })
@@ -40,11 +41,12 @@ try {
       await page.waitForTimeout(1200) // Let the previous card's presentation finish before capturing the next fixture.
     }
     await load('guardian_prismatic_spray', false, 'guardian_pearl')
-    await page.locator('.hand .card').click()
-    await page.getByText(/whole row/).waitFor()
+    await pickUpCard(page, page.locator('.hand .card'))
+    await page.locator('.enemy:not(.enemy--dead) .enemy__hit-area').first().hover()
+    await page.getByText('Select an enemy', { exact: true }).waitFor()
     assert.equal(await page.locator('.enemy--targeted').count(), 2)
     await page.screenshot({ path: `${out}/${name}-prismatic-spray-pearl.png` })
-    await page.locator('.enemy:not(.enemy--dead)').first().click()
+    await confirmCardPlay(page, page.locator('.enemy:not(.enemy--dead) .enemy__hit-area').first())
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.players[0].hand.length === 0)
     assert.deepEqual(await page.evaluate(() => {
       const combat = window.__STS_DEBUG__.getRun().combat
@@ -56,27 +58,28 @@ try {
     }), { energy: 2, freePowers: 1, enemyHp: [39, 39] })
     for (const upgraded of [false, true]) {
       await load('guardian_stasis_field', upgraded)
-      await page.getByRole('button', { name: /^Stasis Field\+?,/ }).click()
-      const count = upgraded ? 5 : 4
-      await page.getByText(`Choose Block recipient 1/${count}`, { exact: true }).waitFor()
-      await page.screenshot({ path: `${out}/${name}-stasis${upgraded ? '-upgraded' : ''}.png` })
+      await pickUpCard(page, page.locator('.hand .card'))
       await page.locator('button.seat--viewer').click({ position: { x: 8, y: 8 } })
-      for (let i = 1; i < count; i++) await page.locator('button.seat:not(.seat--viewer)').click()
+      const count = upgraded ? 5 : 4
+      await page.getByText(`Choose Block recipient 2/${count}`, { exact: true }).waitFor()
+      await page.screenshot({ path: `${out}/${name}-stasis${upgraded ? '-upgraded' : ''}.png` })
+      for (let i = 1; i < count; i++) await page.locator('button.seat:not(.seat--viewer)').click({ position: { x: 8, y: 8 } })
       await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.players[0].hand.length === 0)
       assert.deepEqual(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.players.map(p => p.block)), [1, count - 1])
     }
     await load('guardian_prismatic_barrier', false, 'guardian_sapphire')
-    await page.getByRole('button', { name: /^Prismatic Barrier,/ }).click()
+    await pickUpCard(page, page.locator('.hand .card'))
     await page.locator('button.seat--targetable:not(.seat--viewer)').waitFor()
     await page.screenshot({ path: `${out}/${name}-prismatic.png` })
-    await page.locator('button.seat--targetable:not(.seat--viewer)').click()
+    await page.locator('button.seat--targetable:not(.seat--viewer)').click({ position: { x: 8, y: 8 } })
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.players[0].hand.length === 0)
     assert.deepEqual(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.players.map(p => p.block)), [1, 1])
     await load('guardian_refracted_beam')
-    await page.getByRole('button', { name: /^Refracted Beam,/ }).click()
-    assert(!/whole row/.test(await page.locator('.prompt').textContent()))
+    await pickUpCard(page, page.locator('.hand .card'))
+    await page.locator('.enemy:not(.enemy--dead) .enemy__hit-area').first().hover()
+    assert.equal(await page.locator('.enemy--targeted').count(), 1, 'Refracted Beam must target one enemy, not its row')
     await page.screenshot({ path: `${out}/${name}-refracted.png` })
-    await page.locator('.enemy:not(.enemy--dead)').first().click()
+    await confirmCardPlay(page, page.locator('.enemy:not(.enemy--dead) .enemy__hit-area').first())
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.players[0].hand.length === 0)
     assert.deepEqual(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.enemies.map(e => e.hp)).then(hp => hp.sort()), [37, 40])
     const keywords = await page.evaluate(async () => {

@@ -16,7 +16,7 @@ function roomyDevShm() {
   } catch { return false }
 }
 
-async function seed(context) {
+export async function seedReturningPlayer(context) {
   await context.addInitScript(() => {
     try {
       if (!localStorage.getItem('sts-profile')) localStorage.setItem('sts-profile', JSON.stringify({
@@ -25,6 +25,9 @@ async function seed(context) {
     } catch { /* Sandboxed raster frames intentionally have no storage origin. */ }
   })
 }
+
+export const returningPlayerLaunchOptions = () => roomyDevShm()
+  ? { ignoreDefaultArgs: ['--disable-dev-shm-usage'] } : {}
 
 function returningPlayer(engine) {
   const optionsFor = (options) => engine === webkitEngine && options?.isMobile
@@ -35,13 +38,13 @@ function returningPlayer(engine) {
     const newContext = browser.newContext.bind(browser)
     browser.newContext = async (options) => {
       const context = await newContext(optionsFor(options))
-      await seed(context)
+      await seedReturningPlayer(context)
       return context
     }
     const newPage = browser.newPage.bind(browser)
     browser.newPage = async (options) => {
       const page = await newPage(optionsFor(options))
-      await seed(page.context())
+      await seedReturningPlayer(page.context())
       return page
     }
     return browser

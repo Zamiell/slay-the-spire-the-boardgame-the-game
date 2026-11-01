@@ -1,7 +1,7 @@
 import { TreasureEffects } from "./TreasureEffects.tsx"
 import { MapDrawingProvider } from './MapDrawing.tsx'
 import { savedProfile } from '../profile.ts'
-import { PlayerTitle } from './PlayerTitle.tsx'
+import { RunHeader } from './RunHeader.tsx'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Tooltip } from './Tooltip.tsx'
 import { cardDef, faceOf } from '../game/cards.ts'
@@ -15,16 +15,13 @@ import { useRoomSession } from '../multiplayer/useRoomSession.ts'
 import type { PublicSeat, VisibleCombat, VisiblePlayer } from '../multiplayer/useRoomSession.ts'
 import { useVoiceChat } from '../multiplayer/useVoiceChat.ts'
 import { CombatScreen } from './CombatScreen.tsx'
-import { IconValue } from './Icon.tsx'
+import { resyncCombatOnSuccess } from './combat-screen/combat-resync.ts'
 import { CampaignSelect } from './CampaignSelect.tsx'
 import { MapScreen } from './MapScreen.tsx'
-import { MapOverlay } from './MapOverlay.tsx'
-import { CardCollectionOverlay } from './CardCollectionOverlay.tsx'
 import { OnlineCampfireScreen } from './OnlineCampfireScreen.tsx'
 import { OnlineRewardScreen } from './OnlineRewardScreen.tsx'
 import { OutsidePotionBar } from './OutsidePotionBar.tsx'
 import { PotionSlots } from './PotionSlots.tsx'
-import { RelicBar } from './RelicChip.tsx'
 import { RunSummary } from './RunSummary.tsx'
 import { CardMorph, CardMorphAnnouncement } from './CardMorph.tsx'
 import { useCardMorphs } from './useCardMorphs.ts'
@@ -302,8 +299,7 @@ export function OnlineGame({ onLocal, settings, onSettings }: Props) {
   const [character, setCharacter] = useState<(typeof CHARACTERS)[number][0]>('ironclad')
   const [combatResyncs, setCombatResyncs] = useState(0)
   const resyncCombat = useCallback(async () => {
-    await room.resync()
-    setCombatResyncs((count) => count + 1)
+    await resyncCombatOnSuccess(room.resync, () => setCombatResyncs((count) => count + 1))
   }, [room.resync])
   const [compendiumOpen, setCompendiumOpen] = useState(false)
   const [soloGiveUpOpen, setSoloGiveUpOpen] = useState(false)
@@ -784,16 +780,17 @@ export function OnlineGame({ onLocal, settings, onSettings }: Props) {
       data-assistant-run-id={run.campaign.runId} data-assistant-phase={run.phase} data-assistant-mode="online"
       data-webmcp-pending={room.entering || room.mutationPending || leaving || undefined}
       className={`app-shell app-shell--online sts-scope${run.phase === 'combat' ? ' app-shell--combat' : ''}${run.phase === 'neow' ? ' app-shell--neow' : ''}${run.roomState?.kind === 'event' ? ' app-shell--event' : ''}${compendiumOpen ? ' app-shell--compendium-open' : ''}`}>
-      <header className="app-shell__header">
-        <PlayerTitle character={headerViewer?.character} />
-        <div className="run-status">
+      <RunHeader player={headerViewer} act={run.act} ascension={run.ascension} combat={run.phase === 'combat'}
+        die={run.combat?.die} deck={viewer?.deck}
+        map={run.phase !== 'map' && run.phase !== 'setup' ? run.map : undefined} bossDefId={run.actBossDefId}
+        stanceChangedThisTurn={run.phase === 'combat' ? run.combat?.viewerStanceChangedThisTurn : undefined}
+        sharedDrawLocked={combat?.players.filter(player => !player.dead).every(player => player.drawLocked)}
+        onSettings={() => { setSettingsReturnToPause(false); setSettingsOpen(true) }}
+        statusBefore={<>
           <span className="pip">Room {snapshot.code}</span>
           <span className={`connection connection--${room.connection}`}>{room.connection}</span>
-          <span className="pip">Act {run.act}</span>
-          {run.ascension > 0 ? <span className="pip">Ascension {run.ascension}</span> : null}
-          {/* See App.tsx: HP belongs in the header on every screen, not only in combat. */}
-          {headerViewer ? <span className="pip pip--hp" role="img" aria-label={`Health ${headerViewer.hp} of ${headerViewer.maxHp}`}>{headerViewer.hp}/{headerViewer.maxHp}</span> : null}
-          {headerViewer ? <span className="pip"><IconValue name="gold" value={headerViewer.gold} size={20} /></span> : null}
+        </>}
+        inventory={<>
           {viewer && run.phase !== 'combat' && run.phase !== 'defeat' && run.phase !== 'neow' &&
           !victoryIsTerminal(run, snapshot.campaignProgress) && !pendingAcquisition ? (
             <OutsidePotionBar players={run.players.map(playerForUi)} viewerId={snapshot.you.playerId}
@@ -806,29 +803,9 @@ export function OnlineGame({ onLocal, settings, onSettings }: Props) {
           {run.phase === 'combat' && combat ? <CourierPeek placement="header" players={combat.players} viewerId={snapshot.you.playerId} usedBy={run.courier.usedBy}
             active={!run.courier.offer && courierPeekPhase(combat) && room.connection === 'connected' && !foreignInteractionLock && !giveUpStartPending}
             onReveal={revealCourierOnline} /> : null}
-          {headerViewer ? <RelicBar relics={headerViewer.relics} label={`${headerViewer.name}'s relics`}
-            exhaustCount={run.phase === 'combat' ? headerViewer.exhaust.length : undefined}
-            die={run.phase === 'combat' ? run.combat?.die : undefined} /> : null}
-        </div>
-        <VoiceControls voice={voice} seats={snapshot.seats} connected={room.connection === 'connected'}
-          volume={settings.voiceVolume} compact />
-        {viewer?.deck ? (
-          <CardCollectionOverlay cards={viewer.deck} label="Current deck" triggerClassName="deck-peek__open" shortcut="d" inspectable
-            stanceChangedThisTurn={run.phase === 'combat' ? run.combat?.viewerStanceChangedThisTurn : undefined}
-            drawLocked={run.phase === 'combat' && headerViewer?.drawLocked}
-            sharedDrawLocked={combat?.players.filter(player => !player.dead).every(player => player.drawLocked)}>
-            <img src={assetPath('menu/current-deck.webp')} alt="" />
-            <span aria-hidden="true">{viewer.deck.length}</span>
-          </CardCollectionOverlay>
-        ) : null}
-        {run.phase !== 'map' && run.phase !== 'setup' ? (
-          <MapOverlay map={run.map} act={run.act} bossDefId={run.actBossDefId} />
-        ) : null}
-        <button type="button" className="game-settings game-settings__summary" aria-label="Settings"
-          onClick={() => { setSettingsReturnToPause(false); setSettingsOpen(true) }}>
-          <img src={assetPath('menu/settings-cog.png')} alt="" />
-        </button>
-      </header>
+        </>}
+        controls={<VoiceControls voice={voice} seats={snapshot.seats} connected={room.connection === 'connected'}
+          volume={settings.voiceVolume} compact />} />
 
       <SettingsDialog open={settingsOpen} settings={settings} onChange={onSettings}
         onClose={() => { setSettingsOpen(false); if (settingsReturnToPause) setPauseOpen(true) }}

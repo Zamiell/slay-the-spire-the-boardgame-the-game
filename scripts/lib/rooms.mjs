@@ -14,13 +14,11 @@
 // the same instant. Every mutation therefore goes through `apply`, which is the
 // single writer — Node's single thread does the rest.
 import { randomBytes } from 'node:crypto'
+import { redactRun } from './rooms/projection.mjs'
+import { deterministicDieRelicChoiceContext, dieRelicChoiceNeedsInput, prioritizePendingTrigger } from './rooms/combat-choices.mjs'
+import { parseChoiceAction, UID_LIMIT } from '../../src/protocol/actions.ts'
+import { loadStore } from './rooms/store.mjs'
 import { ascensionBossQualifies, MAX_ASCENSION } from '../../src/game/campaign.ts'
-import { appendFileSync, closeSync, existsSync, fstatSync, mkdirSync, openSync, readFileSync, readSync, renameSync, truncateSync, writeFileSync } from 'node:fs'
-import { dirname } from 'node:path'
-import { isRemovedHeroRun, mergeLeaderboardRuns, restoreLeaderboardRuns } from './leaderboard.mjs'
-import { restoreMail } from './mail.mjs'
-import { classificationRecord, deckHash, HERO_NAMES, INITIAL_DECK_CLASSIFICATIONS, INITIAL_DECK_TYPES,
-  isRemovedHero, isRemovedHeroDeckType, recordDeckClassification, statsDecks, validClassifierThreadId, validDeckType, validSoloDeck } from './stats.mjs'
 import {
   CAPS,
   CHARACTER_IDS,
@@ -146,7 +144,6 @@ import {
   startTurnDiscardPreview,
   startTurnScryAbilities,
   startTurnScryPreview,
-  visibleMap,
   parseCampaignProgress,
   allocateSharedMarks,
   finishCampaign,
@@ -156,14 +153,11 @@ import {
 } from '../../src/game/state.ts'
 import {
   hasPostRollStartTurnChoice,
-  initialEnemySlots,
   isPostRollStartTurnPotionChoice,
   isPostRollStartTurnRelicChoice,
   scryPlayCardPlayable,
 } from '../../src/game/combat.ts'
 import { previewTinyHouseRewardCard } from '../../src/game/run/relic-acquisition.ts'
-import { chosenDieRelicAbilities } from '../../src/game/relics.ts'
-import { reachesEnemy } from '../../src/game/combat/queries.ts'
 import { discardNeedsChoice, discardTopNeedsChoice } from '../../src/game/combat/end-turn.ts'
 import {
   continueStartTurn,
@@ -179,7 +173,9 @@ import { mandatoryCardPlayWindowOwners } from '../../src/game/combat/queries.ts'
 import { normalizeCardPacks } from '../../src/game/packs.ts'
 import { isSkinOf, validSkin } from '../../src/game/skins.ts'
 import { MAX_BOSS_AWARDS, catchUpAwardIndex } from '../../src/game/coins.ts'
-import { restoreCoinGrants } from './coin-grants.mjs'
+
+export { UID_LIMIT } from '../../src/protocol/actions.ts'
+export { repairInterruptedJournals, saveStore } from './rooms/store.mjs'
 
 /** Characters a seat may pick. Two players may not take the same one (p.4). */
 export const CHARACTERS = [...CHARACTER_IDS]
@@ -191,20 +187,6 @@ export const GIVE_UP_TIMEOUT_MS = 10_000
  * Ambiguous glyphs are left out: a room code gets read aloud over voice chat,
  * where O/0 and I/1 are the same sound and the same mistake.
  */
-const LEGACY_DECK_TYPES = new Set([
-  'Ironclad Barricade Body Slam', 'Ironclad Strength Multi-Hit', 'Ironclad Exhaust Engine',
-  'Ironclad Block Fortress', 'Ironclad Heavy Blade', 'Ironclad Wound Engine',
-  'Silent Poison Catalyst', 'Silent Shiv Finisher', 'Silent Discard Engine',
-  'Silent Footwork Block', 'Silent Poison Shiv Hybrid', 'Silent Draw Combo',
-  'Defect Lightning Orb Focus', 'Defect Frost Orb Focus', 'Defect Mixed Orb',
-  'Defect Claw Spam', 'Defect Dark Orb Burst', 'Defect Zero Cost Cycle', 'Defect Powers Engine',
-  'Watcher Stance Dance', 'Watcher Wrath Burst', 'Watcher Retain Engine',
-  'Watcher Scry Engine', 'Watcher Divinity Mantra', 'Watcher Calm Block',
-  'Slime Boss Slime Swarm', 'Slime Boss Split Engine', 'Slime Boss Tackle Burst',
-  'Guardian Mode Shift', 'Guardian Socket Gems', 'Guardian Defensive Scaling',
-  'Hexaghost Ignite Engine', 'Hexaghost Ghostflame Cycle', 'Hexaghost Burn Control',
-  'Hermit Chamber Combo', 'Hermit Dead On Burst', 'Hermit Curse Engine',
-])
 const CODE_ALPHABET = 'ACDEFGHJKLMNPQRTUVWXY34679'
 
 const SERVER_EPOCH = randomBytes(6).toString('hex')
@@ -229,16 +211,6 @@ export function roomCode(random = randomBytes) {
 
 function token(random = randomBytes) {
   return random(24).toString('base64url')
-}
-
-/**
- * A saved room that seats a hero that no longer exists (Kratos was a character before he became
- * a skin) cannot continue: the engine has no such hero. Recovery discards it instead of failing.
- */
-function roomHasRemovedHero(room) {
-  const removed = (character) => typeof character === 'string' && !CHARACTERS.includes(character)
-  return room.seats.some((seat) => removed(seat?.character)) ||
-    Array.isArray(room.run?.players) && room.run.players.some((player) => removed(player?.character))
 }
 
 function normalizeLegacyPlayer(player) {
@@ -267,392 +239,143 @@ function assignPendingRelicIds(run) {
   run.nextPendingRelicId = next
 }
 
-function readJournal(store, path) {
-  let buffer
-  try { buffer = readFileSync(path) } catch (error) {
-    if (error?.code === 'ENOENT') return ''
-    throw error
-  }
-  const validBytes = buffer.lastIndexOf(10) + 1
-  if (validBytes === buffer.length) return buffer.toString('utf8')
-  let complete = false
-  try { JSON.parse(buffer.subarray(validBytes).toString('utf8')); complete = true } catch {}
-  store.interruptedJournals.set(path, { buffer, validBytes, complete })
-  return complete ? `${buffer.toString('utf8')}\n` : buffer.subarray(0, validBytes).toString('utf8')
+export function createStore(options = {}) {
+  return loadStore(options, hydrateRoom)
 }
 
-export function repairInterruptedJournals(store) {
-  for (const [path, { buffer, validBytes, complete }] of store.interruptedJournals) {
-    if (!readFileSync(path).equals(buffer)) throw new Error(`Journal changed during recovery: ${path}`)
-    if (complete) appendFileSync(path, '\n', { mode: 0o600 })
-    else {
-      writeFileSync(`${path}.partial-${randomBytes(8).toString('hex')}`, buffer.subarray(validBytes), { mode: 0o600, flag: 'wx' })
-      truncateSync(path, validBytes)
-      console.warn(`Preserved an incomplete journal tail from ${path}`)
+function hydrateRoom(room, connectedAtSave) {
+  room.seats = room.seats.map((seat) => {
+    const { cardPacks, skin, ...rest } = seat
+    const packs = normalizeCardPacks(cardPacks)
+    return { ...rest, ...(isSkinOf(seat.character, skin) ? { skin } : {}), ...(packs.length ? { cardPacks: packs } : {}), connected: false }
+  })
+  room.campaignProgress = parseCampaignProgress(room.campaignProgress)
+  room.campaignBaseProgress = parseCampaignProgress(room.campaignBaseProgress, room.campaignProgress)
+  // The Daily Climb is a solo shared-seed run; a lobby saved on Daily reopens on Standard.
+  room.metaOptions = room.metaOptions && ['standard', 'custom'].includes(room.metaOptions.mode)
+    ? { mode: room.metaOptions.mode, modifiers: normalizeModifierIds(room.metaOptions.modifiers), quickStartAct: [1, 2, 3, 4].includes(room.metaOptions.quickStartAct) ? room.metaOptions.quickStartAct : 1 }
+    : { mode: 'standard', modifiers: [], quickStartAct: 1 }
+  room.chooseYourRelic = room.chooseYourRelic === true
+  room.lastStand = room.lastStand === true && room.seats.length > 1
+  // Recorded runs' unclaimed shares: only well-formed ones, only for seats still here.
+  const tokens = new Set(room.seats.map((seat) => seat.token))
+  const recordedValid = (recorded) => recorded && typeof recorded.runId === 'string' && Array.isArray(recorded.bossCoins) &&
+    recorded.bossCoins.length <= MAX_BOSS_AWARDS && recorded.bossCoins.every((award) => award && Number.isSafeInteger(award.coins) && award.coins >= 0) &&
+    recorded.skips && typeof recorded.skips === 'object' && !Array.isArray(recorded.skips) &&
+    Object.values(recorded.skips).every((skip) => Number.isSafeInteger(skip) && skip >= 0)
+  const recordedRuns = (Array.isArray(room.recordedRuns) ? room.recordedRuns : [])
+    .filter(recordedValid).slice(-MAX_RECORDED_RUNS)
+    .map((recorded) => ({ ...recorded, skips: Object.fromEntries(Object.entries(recorded.skips).filter(([token]) => tokens.has(token))) }))
+    .filter((recorded) => Object.keys(recorded.skips).length > 0)
+  if (recordedRuns.length) room.recordedRuns = recordedRuns
+  else delete room.recordedRuns
+  if (room.run) {
+    for (const player of room.run.players ?? []) normalizeLegacyPlayer(player)
+    assignPendingRelicIds(room.run)
+    for (const player of room.run.combat?.players ?? []) normalizeLegacyPlayer(player)
+    for (const player of room.run.roomState?.preparedCombat?.players ?? []) normalizeLegacyPlayer(player)
+    room.run.guardianGemDeck = Array.isArray(room.run.guardianGemDeck) ? room.run.guardianGemDeck : []
+    room.run.pendingGuardianSockets = Array.isArray(room.run.pendingGuardianSockets)
+      ? room.run.pendingGuardianSockets : []
+    if (room.run.roomState?.kind === 'merchant') {
+      room.run.roomState.guardianGems = room.run.roomState.guardianGems ?? {}
+      room.run.roomState.socketCardsBought = room.run.roomState.socketCardsBought ?? {}
     }
-    store.interruptedJournals.delete(path)
-  }
-}
-
-function appendJournal(store, path, entries) {
-  let descriptor
-  try { descriptor = openSync(path, 'r') } catch (error) {
-    if (error?.code !== 'ENOENT') throw error
-  }
-  if (descriptor !== undefined) {
-    try {
-      const size = fstatSync(descriptor).size
-      if (size) {
-        const lastByte = Buffer.alloc(1)
-        if (readSync(descriptor, lastByte, 0, 1, size - 1) !== 1) throw new Error(`Journal changed during append: ${path}`)
-        if (lastByte[0] !== 10) {
-          readJournal(store, path)
-          repairInterruptedJournals(store)
+    const storedRuleset = room.run.meta?.ruleset
+    room.run.meta = room.run.meta && Array.isArray(room.run.meta.modifierIds)
+      ? room.run.meta : { mode: 'standard', modifierIds: [] }
+    room.run.meta = {
+      ...room.run.meta,
+      ruleset: storedRuleset === 'base' || storedRuleset === 'downfall'
+        ? storedRuleset
+        : rulesetForCharacters(Array.isArray(room.run.players)
+          ? room.run.players.map((player) => player.character) : []),
+    }
+    if (room.run.meta.cardPacks !== undefined) {
+      const packs = normalizeCardPacks(room.run.meta.cardPacks)
+      if (packs.length) room.run.meta.cardPacks = packs
+      else delete room.run.meta.cardPacks
+    }
+    room.run.setup ??= null
+    room.run.lastStand = room.run.lastStand == null ? room.lastStand : room.run.lastStand === true
+    if (room.run.combat) {
+      room.run.combat.lastStand = room.run.combat.lastStand === true
+      if (room.run.combat.potionLimit !== 2 && room.run.combat.potionLimit !== 3) {
+        room.run.combat.potionLimit = room.run.ascension >= 4 ? 2 : 3
+      }
+      if (!Number.isInteger(room.run.combat.nextTriggerId)) room.run.combat.nextTriggerId = 0
+      for (const copy of [room.run.combat.pendingCardCopy, ...(room.concurrentCardCopies ?? [])]) {
+        if (copy && !Number.isInteger(copy.id)) copy.id = room.run.combat.nextTriggerId++
+      }
+      for (const scry of [room.run.combat.pendingRelicScry, ...(room.concurrentRelicScries ?? [])]) {
+        if (scry && !Number.isInteger(scry.id)) scry.id = room.run.combat.nextTriggerId++
+      }
+      for (const preview of Object.values(room.powerPreviews ?? {})) {
+        if (!Number.isInteger(preview.id)) preview.id = room.run.combat.nextTriggerId++
+      }
+      for (const choice of room.run.combat.pendingDieRelicChoices ?? []) {
+        if (!Number.isInteger(choice.id)) choice.id = room.run.combat.nextTriggerId++
+      }
+      // Older saves recorded only yes votes, so restore the quorum that
+      // was connected when saved rather than letting reconnect shrink it.
+      if (room.run.combat.phase === 'start') {
+        // Start-turn requirements are derived from the live board. Older
+        // saves may contain votes for effects that are deterministic now.
+        room.startTurnRequired = undefined
+        room.startTurnReady = undefined
+      }
+      if (room.run.combat.phase === 'player' && room.endTurnReady &&
+        Object.values(room.endTurnReady).every((ready) => ready === true)) {
+        room.endTurnReady = Object.fromEntries(room.run.combat.players
+          .filter((player) => !player.dead && connectedAtSave.has(player.id))
+          .map((player) => [player.id, room.endTurnReady[player.id] === true]))
+      }
+      if (room.run.combat.phase === 'player' && room.endTurnAbilities &&
+        !room.run.combat.endTurnProgress?.interactive) {
+        room.endTurnAbilities = undefined
+        room.endTurnPublicIds = undefined
+        room.endTurnOrders = undefined
+        room.endTurnOrder = undefined
+        room.endTurnReady = undefined
+      } else if (room.run.combat.endTurnProgress?.interactive) {
+        // Target ids are derived from the live board. Re-publish them
+        // after loading so older saved Loop prompts cannot retain their
+        // former Orb-and-enemy target encoding.
+        room.endTurnAbilities = undefined
+        room.endTurnPublicIds = undefined
+        room.endTurnOrders = undefined
+        room.endTurnOrder = undefined
+        room.run.combat = advanceDeterministicEndTurnChoices(room.run.combat)
+        if (room.run.combat.endTurnProgress?.interactive) publishEndTurnEffect(room)
+      }
+    }
+    const migratedRewards = revealRewardItems(migratePendingRelicRewardDraws(migrateLegacyBossRareRewards(room.run)))
+    if (migratedRewards !== room.run) {
+      room.run = migratedRewards
+      room.rewardChoices = undefined
+      room.rewardConfirmed = undefined
+    }
+    migrateLegacyCardPreviews(room)
+    const runNumber = Number(/^campaign-(\d+)$/.exec(room.run.campaign?.runId ?? '')?.[1])
+    const fallback = {
+      ...room.campaignProgress,
+      nextRunNumber: Number.isSafeInteger(runNumber)
+        ? Math.max(room.campaignProgress.nextRunNumber, runNumber)
+        : room.campaignProgress.nextRunNumber,
+    }
+    room.run.campaignProgress = parseCampaignProgress(room.run.campaignProgress, fallback)
+    if (room.run.phase === 'neow' && room.run.neow?.players) {
+      for (const progress of Object.values(room.run.neow.players)) {
+        if (!progress || typeof progress !== 'object') continue
+        if (typeof progress.redRewardPending !== 'boolean') progress.redRewardPending = Boolean(progress.redReward)
+        if (!Object.hasOwn(progress, 'pendingEffect')) progress.pendingEffect = null
+        if (!Object.hasOwn(progress, 'rewardKind')) progress.rewardKind = progress.reward?.kind ?? null
+        if (Array.isArray(progress.rewardQueue) && progress.rewardQueue.includes('curse')) {
+          progress.rewardQueue = progress.rewardQueue.map((entry) => entry === 'curse' ? { kind: 'curse' } : entry)
         }
       }
-    } finally { closeSync(descriptor) }
-  }
-  appendFileSync(path, entries.map((entry) => JSON.stringify(entry)).join('\n') + '\n', { mode: 0o600 })
-}
-
-export function createStore({ file, restartRecovery = false, restartReconnectMs = 5 * 60_000 } = {}) {
-  const store = { rooms: new Map(), leaderboardRuns: [], statsRuns: [], leaderboardRevision: 0, leaderboardDirty: true, leaderboardChanges: new Map(),
-    statsStateDirty: true, statsChanges: new Map(), interruptedJournals: new Map(),
-    deckTypes: [...INITIAL_DECK_TYPES], deckClassificationBudget: { day: -1, used: 0 },
-    deckClassifierThreadId: undefined, deckClassifierRelease: undefined, profiles: [], mail: [], mailDirty: false, file, reconnectQuorums: new Map(),
-    // Runs recorded before this moment are paid by a one-time coin grant (coin-grants.mjs);
-    // set once, the first time a server with the Shop starts, and kept from then on.
-    coinsLaunchedAt: Date.now(), coinGrants: [] }
-  if (!file) return store
-  try {
-    const saved = JSON.parse(readFileSync(file, 'utf8'))
-    if (!Array.isArray(saved?.rooms)) throw new Error('rooms must be an array')
-    const legacyRuns = restoreLeaderboardRuns(saved.leaderboardRuns)
-    let archive
-    try { archive = JSON.parse(readFileSync(`${file}.leaderboard.json`, 'utf8')) } catch (error) {
-      if (error?.code === 'ENOENT' && saved.leaderboardArchive) throw new Error('Leaderboard archive is missing')
-      if (error?.code !== 'ENOENT') throw error
+      room.run = resumeNeow(room.run)
     }
-    if (archive !== undefined && !Array.isArray(archive)) throw new Error('Leaderboard archive must be an array')
-    const archivedRuns = restoreLeaderboardRuns(archive)
-    if (archive !== undefined && archivedRuns.length !== archive.filter((run) => !isRemovedHeroRun(run)).length)
-      throw new Error('Leaderboard archive has invalid runs')
-    const journal = readJournal(store, `${file}.leaderboard.log`)
-    if (archive === undefined && existsSync(`${file}.leaderboard.log`)) throw new Error('Leaderboard archive is missing for its log')
-    const archivedById = new Map(archivedRuns.map((run) => [run.id, run]))
-    const journalIds = new Set()
-    for (const line of journal.split('\n')) {
-      if (!line) continue
-      const entry = JSON.parse(line)
-      if (isRemovedHeroRun(entry)) continue
-      const [run] = restoreLeaderboardRuns([entry])
-      if (!run) throw new Error('Leaderboard log contains an invalid run')
-      archivedById.set(run.id, run)
-      journalIds.add(run.id)
-    }
-    store.leaderboardRuns = mergeLeaderboardRuns(legacyRuns, [...archivedById.values()], {
-      preferLegacyRuns: !saved.leaderboardArchive, journalIds,
-    })
-    store.statsRuns = store.leaderboardRuns.flatMap(statsDecks)
-    store.leaderboardDirty = archive === undefined
-    if (!store.leaderboardDirty && legacyRuns.length)
-      for (const run of store.leaderboardRuns)
-        if (JSON.stringify(run) !== JSON.stringify(archivedById.get(run.id))) store.leaderboardChanges.set(run.id, run)
-    if (Array.isArray(saved.deckTypes)) store.deckTypes = [...new Set([...store.deckTypes, ...saved.deckTypes.filter(validDeckType)])]
-    if (Number.isSafeInteger(saved.deckClassificationBudget?.day) && Number.isSafeInteger(saved.deckClassificationBudget?.used) && saved.deckClassificationBudget.used >= 0)
-      store.deckClassificationBudget = saved.deckClassificationBudget
-    if (validClassifierThreadId(saved.deckClassifierThreadId) && typeof saved.deckClassifierRelease === 'string') {
-      store.deckClassifierThreadId = saved.deckClassifierThreadId
-      store.deckClassifierRelease = saved.deckClassifierRelease
-    }
-    let statsState
-    try { statsState = JSON.parse(readFileSync(`${file}.stats.json`, 'utf8')) } catch (error) {
-      if (error?.code !== 'ENOENT') throw error
-    }
-    if (statsState !== undefined) {
-      if (Array.isArray(statsState?.deckTypes)) statsState.deckTypes = statsState.deckTypes.filter((type) => !isRemovedHeroDeckType(type))
-      if (!Array.isArray(statsState?.deckTypes) || statsState.deckTypes.some((type) => !validDeckType(type)) ||
-          !Number.isSafeInteger(statsState.deckClassificationBudget?.day) ||
-          !Number.isSafeInteger(statsState.deckClassificationBudget?.used) || statsState.deckClassificationBudget.used < 0 ||
-          statsState.deckClassifierThreadId !== undefined && (!validClassifierThreadId(statsState.deckClassifierThreadId) ||
-          typeof statsState.deckClassifierRelease !== 'string') ||
-          statsState.deckClassifierRelease !== undefined && typeof statsState.deckClassifierRelease !== 'string')
-        throw new Error('Stats state is invalid')
-      store.deckTypes = [...new Set([...store.deckTypes, ...statsState.deckTypes])]
-      if (statsState.deckClassifierRelease !== undefined) {
-        store.deckClassifierThreadId = statsState.deckClassifierThreadId
-        store.deckClassifierRelease = statsState.deckClassifierRelease
-      }
-      const currentBudget = store.deckClassificationBudget
-      const backedUpBudget = statsState.deckClassificationBudget
-      if (backedUpBudget.day > currentBudget.day ||
-          backedUpBudget.day === currentBudget.day && backedUpBudget.used > currentBudget.used)
-        store.deckClassificationBudget = backedUpBudget
-      store.statsStateDirty = store.deckTypes.length !== statsState.deckTypes.length ||
-        store.deckClassificationBudget.day !== backedUpBudget.day ||
-        store.deckClassificationBudget.used !== backedUpBudget.used ||
-        store.deckClassifierThreadId !== statsState.deckClassifierThreadId ||
-        store.deckClassifierRelease !== statsState.deckClassifierRelease
-    }
-    const statsLog = readJournal(store, `${file}.stats.log`)
-    const logged = new Map()
-    const knownTypes = new Set(store.deckTypes)
-    for (const line of statsLog.split('\n')) {
-      if (!line) continue
-      const record = JSON.parse(line)
-      if (isRemovedHero(record?.hero)) continue
-      if (typeof record?.id !== 'string' || !Object.hasOwn(HERO_NAMES, record.hero) || !/^[0-9a-f]{64}$/.test(record.hash) ||
-          record.deckType !== undefined && !validDeckType(record.deckType) ||
-          record.retry !== undefined && (!Number.isSafeInteger(record.retry?.after) || record.retry.after < 0 ||
-          !/^[0-9a-f]{64}$/.test(record.retry.hash))) throw new Error('Stats log is invalid')
-      logged.set(record.id, record)
-    }
-    for (const run of store.statsRuns) {
-      const record = logged.get(run.id)
-      if (record?.hero === run.character && record.hash === deckHash(run)) {
-        if (!run.deckType && record.deckType) { run.deckType = record.deckType; delete run.deckClassificationRetry }
-        else if (!run.deckType && record.retry &&
-            (!run.deckClassificationRetry || record.retry.after >= run.deckClassificationRetry.after))
-          run.deckClassificationRetry = record.retry
-      }
-      if (run.deckType || run.deckClassificationRetry) {
-        const latest = classificationRecord(run)
-        if (JSON.stringify(latest) !== JSON.stringify(record)) store.statsChanges.set(run.id, latest)
-      }
-      if (run.deckType && !knownTypes.has(run.deckType)) {
-        knownTypes.add(run.deckType)
-        store.deckTypes.push(run.deckType)
-        store.statsStateDirty = true
-      }
-    }
-    store.profiles = saved.profiles ?? []
-    if (Number.isSafeInteger(saved.coinsLaunchedAt) && saved.coinsLaunchedAt > 0) store.coinsLaunchedAt = saved.coinsLaunchedAt
-    store.coinGrants = restoreCoinGrants(saved.coinGrants)
-    for (const room of saved.rooms) {
-      if (typeof room?.code === 'string' && Array.isArray(room.seats) && room.campaignProgress && !roomHasRemovedHero(room)) {
-        const connectedAtSave = new Set(room.seats
-          .filter((seat) => seat.connected !== false).map((seat) => seat.playerId))
-        const seatIds = new Set(room.seats.map((seat) => seat.playerId))
-        const savedQuorum = saved.reconnectQuorums?.[room.code]
-        const unresolvedAtSave = Array.isArray(savedQuorum?.playerIds) && savedQuorum.expiresAt > Date.now()
-          ? savedQuorum.playerIds.filter((playerId) => seatIds.has(playerId)) : []
-        const recoverySeats = new Set([...connectedAtSave, ...unresolvedAtSave])
-        if (restartRecovery && recoverySeats.size > 0) {
-          store.reconnectQuorums.set(room.code, { playerIds: recoverySeats, expiresAt: Date.now() + restartReconnectMs })
-        }
-        room.seats = room.seats.map((seat) => {
-          const { cardPacks, skin, ...rest } = seat
-          const packs = normalizeCardPacks(cardPacks)
-          return { ...rest, ...(isSkinOf(seat.character, skin) ? { skin } : {}), ...(packs.length ? { cardPacks: packs } : {}), connected: false }
-        })
-        room.campaignProgress = parseCampaignProgress(room.campaignProgress)
-        room.campaignBaseProgress = parseCampaignProgress(room.campaignBaseProgress, room.campaignProgress)
-        // The Daily Climb is a solo shared-seed run; a lobby saved on Daily reopens on Standard.
-        room.metaOptions = room.metaOptions && ['standard', 'custom'].includes(room.metaOptions.mode)
-          ? { mode: room.metaOptions.mode, modifiers: normalizeModifierIds(room.metaOptions.modifiers), quickStartAct: [1, 2, 3, 4].includes(room.metaOptions.quickStartAct) ? room.metaOptions.quickStartAct : 1 }
-          : { mode: 'standard', modifiers: [], quickStartAct: 1 }
-        room.chooseYourRelic = room.chooseYourRelic === true
-        room.lastStand = room.lastStand === true && room.seats.length > 1
-        // Recorded runs' unclaimed shares: only well-formed ones, only for seats still here.
-        const tokens = new Set(room.seats.map((seat) => seat.token))
-        const recordedValid = (recorded) => recorded && typeof recorded.runId === 'string' && Array.isArray(recorded.bossCoins) &&
-          recorded.bossCoins.length <= MAX_BOSS_AWARDS && recorded.bossCoins.every((award) => award && Number.isSafeInteger(award.coins) && award.coins >= 0) &&
-          recorded.skips && typeof recorded.skips === 'object' && !Array.isArray(recorded.skips) &&
-          Object.values(recorded.skips).every((skip) => Number.isSafeInteger(skip) && skip >= 0)
-        const recordedRuns = (Array.isArray(room.recordedRuns) ? room.recordedRuns : [])
-          .filter(recordedValid).slice(-MAX_RECORDED_RUNS)
-          .map((recorded) => ({ ...recorded, skips: Object.fromEntries(Object.entries(recorded.skips).filter(([token]) => tokens.has(token))) }))
-          .filter((recorded) => Object.keys(recorded.skips).length > 0)
-        if (recordedRuns.length) room.recordedRuns = recordedRuns
-        else delete room.recordedRuns
-        if (room.run) {
-          for (const player of room.run.players ?? []) normalizeLegacyPlayer(player)
-          assignPendingRelicIds(room.run)
-          for (const player of room.run.combat?.players ?? []) normalizeLegacyPlayer(player)
-          for (const player of room.run.roomState?.preparedCombat?.players ?? []) normalizeLegacyPlayer(player)
-          room.run.guardianGemDeck = Array.isArray(room.run.guardianGemDeck) ? room.run.guardianGemDeck : []
-          room.run.pendingGuardianSockets = Array.isArray(room.run.pendingGuardianSockets)
-            ? room.run.pendingGuardianSockets : []
-          if (room.run.roomState?.kind === 'merchant') {
-            room.run.roomState.guardianGems = room.run.roomState.guardianGems ?? {}
-            room.run.roomState.socketCardsBought = room.run.roomState.socketCardsBought ?? {}
-          }
-          const storedRuleset = room.run.meta?.ruleset
-          room.run.meta = room.run.meta && Array.isArray(room.run.meta.modifierIds)
-            ? room.run.meta : { mode: 'standard', modifierIds: [] }
-          room.run.meta = {
-            ...room.run.meta,
-            ruleset: storedRuleset === 'base' || storedRuleset === 'downfall'
-              ? storedRuleset
-              : rulesetForCharacters(Array.isArray(room.run.players)
-                ? room.run.players.map((player) => player.character) : []),
-          }
-          if (room.run.meta.cardPacks !== undefined) {
-            const packs = normalizeCardPacks(room.run.meta.cardPacks)
-            if (packs.length) room.run.meta.cardPacks = packs
-            else delete room.run.meta.cardPacks
-          }
-          room.run.setup ??= null
-          room.run.lastStand = room.run.lastStand == null ? room.lastStand : room.run.lastStand === true
-          if (room.run.combat) {
-            room.run.combat.lastStand = room.run.combat.lastStand === true
-            if (room.run.combat.potionLimit !== 2 && room.run.combat.potionLimit !== 3) {
-              room.run.combat.potionLimit = room.run.ascension >= 4 ? 2 : 3
-            }
-            if (!Number.isInteger(room.run.combat.nextTriggerId)) room.run.combat.nextTriggerId = 0
-            for (const copy of [room.run.combat.pendingCardCopy, ...(room.concurrentCardCopies ?? [])]) {
-              if (copy && !Number.isInteger(copy.id)) copy.id = room.run.combat.nextTriggerId++
-            }
-            for (const scry of [room.run.combat.pendingRelicScry, ...(room.concurrentRelicScries ?? [])]) {
-              if (scry && !Number.isInteger(scry.id)) scry.id = room.run.combat.nextTriggerId++
-            }
-            for (const preview of Object.values(room.powerPreviews ?? {})) {
-              if (!Number.isInteger(preview.id)) preview.id = room.run.combat.nextTriggerId++
-            }
-            for (const choice of room.run.combat.pendingDieRelicChoices ?? []) {
-              if (!Number.isInteger(choice.id)) choice.id = room.run.combat.nextTriggerId++
-            }
-            // Older saves recorded only yes votes, so restore the quorum that
-            // was connected when saved rather than letting reconnect shrink it.
-            if (room.run.combat.phase === 'start') {
-              // Start-turn requirements are derived from the live board. Older
-              // saves may contain votes for effects that are deterministic now.
-              room.startTurnRequired = undefined
-              room.startTurnReady = undefined
-            }
-            if (room.run.combat.phase === 'player' && room.endTurnReady &&
-              Object.values(room.endTurnReady).every((ready) => ready === true)) {
-              room.endTurnReady = Object.fromEntries(room.run.combat.players
-                .filter((player) => !player.dead && connectedAtSave.has(player.id))
-                .map((player) => [player.id, room.endTurnReady[player.id] === true]))
-            }
-            if (room.run.combat.phase === 'player' && room.endTurnAbilities &&
-              !room.run.combat.endTurnProgress?.interactive) {
-              room.endTurnAbilities = undefined
-              room.endTurnPublicIds = undefined
-              room.endTurnOrders = undefined
-              room.endTurnOrder = undefined
-              room.endTurnReady = undefined
-            } else if (room.run.combat.endTurnProgress?.interactive) {
-              // Target ids are derived from the live board. Re-publish them
-              // after loading so older saved Loop prompts cannot retain their
-              // former Orb-and-enemy target encoding.
-              room.endTurnAbilities = undefined
-              room.endTurnPublicIds = undefined
-              room.endTurnOrders = undefined
-              room.endTurnOrder = undefined
-              room.run.combat = advanceDeterministicEndTurnChoices(room.run.combat)
-              if (room.run.combat.endTurnProgress?.interactive) publishEndTurnEffect(room)
-            }
-          }
-          const migratedRewards = revealRewardItems(migratePendingRelicRewardDraws(migrateLegacyBossRareRewards(room.run)))
-          if (migratedRewards !== room.run) {
-            room.run = migratedRewards
-            room.rewardChoices = undefined
-            room.rewardConfirmed = undefined
-          }
-          migrateLegacyCardPreviews(room)
-          const runNumber = Number(/^campaign-(\d+)$/.exec(room.run.campaign?.runId ?? '')?.[1])
-          const fallback = {
-            ...room.campaignProgress,
-            nextRunNumber: Number.isSafeInteger(runNumber)
-              ? Math.max(room.campaignProgress.nextRunNumber, runNumber)
-              : room.campaignProgress.nextRunNumber,
-          }
-          room.run.campaignProgress = parseCampaignProgress(room.run.campaignProgress, fallback)
-          if (room.run.phase === 'neow' && room.run.neow?.players) {
-            for (const progress of Object.values(room.run.neow.players)) {
-              if (!progress || typeof progress !== 'object') continue
-              if (typeof progress.redRewardPending !== 'boolean') progress.redRewardPending = Boolean(progress.redReward)
-              if (!Object.hasOwn(progress, 'pendingEffect')) progress.pendingEffect = null
-              if (!Object.hasOwn(progress, 'rewardKind')) progress.rewardKind = progress.reward?.kind ?? null
-              if (Array.isArray(progress.rewardQueue) && progress.rewardQueue.includes('curse')) {
-                progress.rewardQueue = progress.rewardQueue.map((entry) => entry === 'curse' ? { kind: 'curse' } : entry)
-              }
-            }
-            room.run = resumeNeow(room.run)
-          }
-        }
-        store.rooms.set(room.code, room)
-      }
-    }
-    const evidenced = new Set(store.statsRuns.map((run) => run.deckType).filter(Boolean))
-    const retained = store.deckTypes.filter((type) => !LEGACY_DECK_TYPES.has(type) ||
-      INITIAL_DECK_TYPES.includes(type) || evidenced.has(type))
-    if (retained.length !== store.deckTypes.length) {
-      store.deckTypes = retained
-      store.statsStateDirty = true
-    }
-    for (const run of store.statsRuns) {
-      if (run.deckType || !validSoloDeck(run)) continue
-      const type = INITIAL_DECK_CLASSIFICATIONS.get(deckHash(run))
-      if (!type?.startsWith(`${HERO_NAMES[run.character]} `)) continue
-      run.deckType = type
-      delete run.deckClassificationRetry
-      recordDeckClassification(store, run)
-    }
-  } catch (error) {
-    if (error?.code !== 'ENOENT' || existsSync(`${file}.leaderboard.json`) || existsSync(`${file}.leaderboard.log`) ||
-        existsSync(`${file}.stats.json`) || existsSync(`${file}.stats.log`) || existsSync(`${file}.mail.json`)) {
-      throw new Error(`Could not load room store: ${error instanceof Error ? error.message : String(error)}`)
-    }
-  }
-  // Its own file, written only when a letter changes: the main store is
-  // rewritten after every room action and must not carry the whole archive.
-  try { store.mail = restoreMail(JSON.parse(readFileSync(`${file}.mail.json`, 'utf8'))) } catch (error) {
-    if (error?.code !== 'ENOENT') throw new Error(`Could not load mail: ${error instanceof Error ? error.message : String(error)}`)
-  }
-  return store
-}
-
-export function saveStore(store) {
-  if (!store.file) return
-  mkdirSync(dirname(store.file), { recursive: true })
-  const temporary = `${store.file}.tmp`
-  const reconnectQuorums = Object.fromEntries([...store.reconnectQuorums].map(([code, quorum]) => [code, {
-    playerIds: [...quorum.playerIds], expiresAt: quorum.expiresAt,
-  }]))
-  const main = { version: 1, rooms: [...store.rooms.values()], deckTypes: store.deckTypes,
-    deckClassificationBudget: store.deckClassificationBudget, deckClassifierThreadId: store.deckClassifierThreadId,
-    deckClassifierRelease: store.deckClassifierRelease, profiles: store.profiles, reconnectQuorums,
-    coinsLaunchedAt: store.coinsLaunchedAt, coinGrants: store.coinGrants }
-  if (!existsSync(store.file) || store.leaderboardDirty) {
-    writeFileSync(temporary, JSON.stringify({ ...main, leaderboardRuns: store.leaderboardRuns }), { mode: 0o600 })
-    renameSync(temporary, store.file)
-  }
-  repairInterruptedJournals(store)
-  const archive = `${store.file}.leaderboard.json`
-  if (store.leaderboardDirty) {
-    const archiveTemporary = `${archive}.tmp`
-    writeFileSync(archiveTemporary, JSON.stringify(store.leaderboardRuns), { mode: 0o600 })
-    renameSync(archiveTemporary, archive)
-    store.leaderboardDirty = false
-    store.leaderboardChanges.clear()
-  } else if (store.leaderboardChanges.size) {
-    appendJournal(store, `${store.file}.leaderboard.log`, [...store.leaderboardChanges.values()])
-    store.leaderboardChanges.clear()
-  }
-  if (store.statsChanges.size) {
-    appendJournal(store, `${store.file}.stats.log`, [...store.statsChanges.values()])
-    store.statsChanges.clear()
-  }
-  if (store.statsStateDirty) {
-    const statsTemporary = `${store.file}.stats.json.tmp`
-    writeFileSync(statsTemporary, JSON.stringify({ deckTypes: store.deckTypes, deckClassificationBudget: store.deckClassificationBudget,
-      deckClassifierThreadId: store.deckClassifierThreadId, deckClassifierRelease: store.deckClassifierRelease }), { mode: 0o600 })
-    renameSync(statsTemporary, `${store.file}.stats.json`)
-    store.statsStateDirty = false
-  }
-  writeFileSync(temporary, JSON.stringify({ ...main, leaderboardArchive: true }), { mode: 0o600 })
-  renameSync(temporary, store.file)
-  // Last, and marked clean only once written: a save that fails anywhere
-  // before this leaves mail dirty, so a letter taken back after the failure
-  // is never left behind on disk.
-  if (store.mailDirty) {
-    const mailTemporary = `${store.file}.mail.json.tmp`
-    writeFileSync(mailTemporary, JSON.stringify(store.mail), { mode: 0o600 })
-    renameSync(mailTemporary, `${store.file}.mail.json`)
-    store.mailDirty = false
   }
 }
 
@@ -1824,45 +1547,6 @@ function refreshChoiceTargets(combat, choices) {
     ...choices,
     pendingDieRelicChoices: choices.pendingDieRelicChoices.map((choice) =>
       choice.enemyUid && !living.has(choice.enemyUid) ? { ...choice, enemyUid: null } : choice),
-  }
-}
-
-function deterministicDieRelicChoiceContext(combat, choice) {
-  const owner = combat?.players.find((player) => player.id === choice.playerId)
-  const ability = owner && chosenDieRelicAbilities(relicDef(choice.relicDefId))[choice.abilityIndex]
-  if (!owner || !ability) return null
-  const privateEffect = ability.effects.find((effect) =>
-    effect.kind === 'discard' || effect.kind === 'exhaustFromHand')
-  const required = privateEffect ? Math.min(privateEffect.amount, owner.hand.length) : 0
-  if (privateEffect && (ability.optional ? required > 0 : required > 1 || required === 1 && owner.hand.length !== 1)) {
-    return null
-  }
-  const selected = privateEffect && !ability.optional ? owner.hand.slice(0, required).map((card) => card.uid) : []
-  const skipped = ability.optional && selected.length === 0
-  const needsEnemy = !skipped && ability.effects.some((effect) => reachesEnemy(effect, owner))
-  const living = combat.enemies.filter((enemy) => !enemy.dead)
-  const enemyUid = living.some((enemy) => enemy.uid === choice.enemyUid)
-    ? choice.enemyUid : living.length === 1 ? living[0].uid : null
-  if (needsEnemy && !enemyUid) return null
-  return {
-    choiceId: choice.id,
-    enemyUid,
-    ...(privateEffect?.kind === 'discard' ? { discardUids: selected } : {}),
-    ...(privateEffect?.kind === 'exhaustFromHand' ? { exhaustUids: selected } : {}),
-  }
-}
-
-function dieRelicChoiceNeedsInput(combat, choice) {
-  return deterministicDieRelicChoiceContext(combat, choice) === null
-}
-
-function prioritizePendingTrigger(combat, predicate) {
-  const index = combat?.pendingTriggers?.findIndex(predicate) ?? -1
-  if (index < 0) return undefined
-  if (index === 0) return combat
-  return {
-    ...combat,
-    pendingTriggers: [combat.pendingTriggers[index], ...combat.pendingTriggers.filter((_trigger, candidate) => candidate !== index)],
   }
 }
 
@@ -4667,7 +4351,6 @@ function settleReward(room) {
  * end-turn discard orders can span an unbounded hand and are validated
  * separately against that hand.
  */
-export const UID_LIMIT = 32
 export const uidList = (value) =>
   Array.isArray(value)
     ? value.filter((item) => typeof item === 'string').slice(0, UID_LIMIT)
@@ -5231,19 +4914,11 @@ function dispatch(run, seat, action, lockedPreview) {
 
     case 'resolveDieRelicChoice': {
       if (!run.combat) fail('No die Relic choice is pending')
-      if (!Number.isInteger(action.choiceId)) fail('Die Relic choice id must be a whole number')
-      if (action.enemyUid !== undefined && action.enemyUid !== null && typeof action.enemyUid !== 'string') {
-        fail('Die Relic enemy must be a valid id')
-      }
-      const discardUids = uidList(action.discardUids)
-      const exhaustUids = uidList(action.exhaustUids)
-      for (const [label, original, sanitized] of [
-        ['Discard', action.discardUids, discardUids], ['Exhaust', action.exhaustUids, exhaustUids],
-      ]) if (original !== undefined && (!Array.isArray(original) || sanitized.length !== original.length)) {
-        fail(`${label} choices must be a list of card ids`)
-      }
+      const parsed = parseChoiceAction(action)
+      if (parsed.status !== 'valid') fail(parsed.status === 'invalid' ? parsed.error : 'Unknown action')
+      const { choiceId, discardUids, exhaustUids, enemyUid } = parsed.action
       const combat = resolvePendingDieRelicChoice(run.combat, seat.playerId, {
-        choiceId: action.choiceId, discardUids, exhaustUids, enemyUid: action.enemyUid ?? null,
+        choiceId, discardUids, exhaustUids, enemyUid: enemyUid ?? null,
       })
       if (combat === run.combat) fail('That die Relic choice is no longer legal')
       return { ...run, combat }
@@ -5251,17 +4926,12 @@ function dispatch(run, seat, action, lockedPreview) {
 
     // Slayer Pack: Heel Hook's draw/discard and Magnetism's return answer.
     case 'resolvePlayerChoice': {
-      if (!run.combat || !Number.isInteger(action.choiceId)) fail('No card choice is pending')
-      // Only the answer's own fields (and the transport's envelope) may arrive.
-      if (Object.keys(action).some((key) =>
-        !['kind', 'choiceId', 'draw', 'discardUid', 'count', 'type', 'requestId', 'preflight'].includes(key))) {
-        fail('A card choice answer carries only draw, discardUid or count')
-      }
-      if (action.draw !== undefined && typeof action.draw !== 'boolean') fail('Draw must be true or false')
-      if (action.discardUid !== undefined && typeof action.discardUid !== 'string') fail('Discard must be a card id')
-      if (action.count !== undefined && !Number.isSafeInteger(action.count)) fail('Count must be a whole number')
+      if (!run.combat) fail('No card choice is pending')
+      const parsed = parseChoiceAction(action)
+      if (parsed.status !== 'valid') fail(parsed.status === 'invalid' ? parsed.error : 'Unknown action')
+      const { choiceId, draw, discardUid, count } = parsed.action
       const combat = resolvePendingPlayerChoice(run.combat, seat.playerId, {
-        choiceId: action.choiceId, draw: action.draw, discardUid: action.discardUid, count: action.count,
+        choiceId, draw, discardUid, count,
       })
       if (combat === run.combat) fail('That card choice is no longer legal')
       return { ...run, combat }
@@ -5276,17 +4946,13 @@ function dispatch(run, seat, action, lockedPreview) {
 
     case 'resolveSlayerChoice': {
       if (!run.combat) fail('No Slayer Pack choice is pending')
-      if (action.enemyUid !== undefined && action.enemyUid !== null && typeof action.enemyUid !== 'string') {
-        fail('A Nightmare target must be an enemy id')
-      }
-      if (action.replace !== undefined && typeof action.replace !== 'boolean') fail('Replace must be true or false')
-      // Each answer names its choice, so a repeated or stale one cannot resolve the owner's next. An id is
-      // absent only for a choice saved before ids existed.
-      if (action.choiceId !== undefined && !Number.isSafeInteger(action.choiceId)) fail('The choice id must be a whole number')
+      const parsed = parseChoiceAction(action)
+      if (parsed.status !== 'valid') fail(parsed.status === 'invalid' ? parsed.error : 'Unknown action')
+      const { choiceId, enemyUid, replace } = parsed.action
       const combat = resolveSlayerChoice(run.combat, seat.playerId, {
-        ...(action.choiceId !== undefined ? { choiceId: action.choiceId } : {}),
-        ...(action.enemyUid !== undefined ? { enemyUid: action.enemyUid } : {}),
-        ...(action.replace !== undefined ? { replace: action.replace } : {}),
+        ...(choiceId !== undefined ? { choiceId } : {}),
+        ...(enemyUid !== undefined ? { enemyUid } : {}),
+        ...(replace !== undefined ? { replace } : {}),
       })
       if (combat === run.combat) fail('That choice is no longer legal')
       return { ...run, combat }
@@ -5846,412 +5512,4 @@ function publicEndTurnId(room, id) {
     .find(([, realId]) => realId === id)?.[0]
   if (!publicId) fail('End-turn ability mapping is stale')
   return publicId
-}
-
-function redactRun(run, viewerId, room) {
-  const viewerCharacter = run.players.find((player) => player.id === viewerId)?.character
-  const preparedCombat = run.roomState?.kind === 'event' ? run.roomState.preparedCombat : undefined
-  const preparedScry = preparedCombat ? startTurnScryPreview(preparedCombat) : undefined
-  const roomState = run.roomState?.kind === 'event'
-    ? {
-        kind: 'event',
-        card: structuredClone(run.roomState.card),
-        decisions: Object.fromEntries(Object.entries(run.roomState.decisions).map(([playerId, decision]) => [
-          playerId,
-          playerId === viewerId ? structuredClone(decision) : { optionIds: [...decision.optionIds] },
-        ])),
-        dieRolls: structuredClone(run.roomState.dieRolls),
-        rewardOffers: Object.fromEntries(Object.entries(run.roomState.rewardOffers ?? {}).map(([playerId, offers]) => [
-          playerId,
-          playerId === viewerId ? structuredClone(offers) : offers.map(() => []),
-        ])),
-        guardianGemOffers: Object.fromEntries(Object.entries(run.roomState.guardianGemOffers ?? {}).map(([playerId, offers]) => [
-          playerId,
-          playerId === viewerId ? structuredClone(offers) : offers.map(() => []),
-        ])),
-        itemOffers: structuredClone(run.roomState.itemOffers ?? {}),
-        pendingDecisions: viewerId && run.roomState.pendingDecisions?.[viewerId]
-          ? { [viewerId]: structuredClone(run.roomState.pendingDecisions[viewerId]) }
-          : {},
-        pendingRolls: viewerId && run.roomState.pendingRolls?.[viewerId]
-          ? { [viewerId]: structuredClone(run.roomState.pendingRolls[viewerId]) }
-          : {},
-        revealedCards: structuredClone(run.roomState.revealedCards ?? {}),
-        revealedCardDefs: structuredClone(run.roomState.revealedCardDefs ?? {}),
-        revealedRelics: structuredClone(run.roomState.revealedRelics ?? {}),
-        availableRewardSources: structuredClone(run.roomState.availableRewardSources),
-        partyOptionIds: structuredClone(run.roomState.partyOptionIds),
-        preparedStartTurnScryAbilities: preparedCombat ? startTurnScryAbilities(preparedCombat) : undefined,
-        preparedStartTurnScry: preparedScry ? {
-          ...preparedScry,
-          cards: preparedScry.playerId === viewerId ? structuredClone(preparedScry.cards) : null,
-        } : undefined,
-        preparedStartTurnCoordinatorId: preparedCombat
-          ? room.seats.find((seat) => seat.connected !== false && preparedCombat.players
-              .some((player) => player.id === seat.playerId && !player.dead))?.playerId ?? null
-          : undefined,
-        preparedCombat: run.roomState.preparedCombat
-          ? { players: run.roomState.preparedCombat.players.map((player) => ({
-              id: player.id,
-              hand: player.id === viewerId ? structuredClone(player.hand) : null,
-            })),
-            enemies: run.roomState.preparedCombat.enemies.map((enemy) => ({
-              uid: enemy.uid,
-              defId: enemy.defId,
-              row: enemy.row,
-              isBoss: enemy.isBoss,
-              ascension: enemy.ascension,
-              hp: enemy.hp,
-              maxHp: enemy.maxHp,
-              dead: enemy.dead,
-            })),
-            ...(run.roomState.preparedCombat.pendingHermitSetupLoads?.length ? {
-              pendingHermitSetupLoads: structuredClone(run.roomState.preparedCombat.pendingHermitSetupLoads),
-            } : {}),
-          }
-          : undefined,
-        pendingTrade: run.roomState.pendingTrade
-          ? viewerId === run.roomState.pendingTrade.actorId || viewerId === run.roomState.pendingTrade.targetId
-            ? {
-              ...structuredClone(run.roomState.pendingTrade),
-              decision: viewerId === run.roomState.pendingTrade.actorId
-                ? structuredClone(run.roomState.pendingTrade.decision)
-                : { optionIds: [...run.roomState.pendingTrade.decision.optionIds], targetPlayerId: run.roomState.pendingTrade.targetId },
-            }
-            : {
-                actorId: run.roomState.pendingTrade.actorId,
-                targetId: run.roomState.pendingTrade.targetId,
-                kind: run.roomState.pendingTrade.kind,
-                offeredId: '',
-                decision: { optionIds: [], targetPlayerId: run.roomState.pendingTrade.targetId },
-              }
-          : undefined,
-        labChoices: Object.fromEntries(Object.keys(run.roomState.labChoices ?? {}).map((playerId) => [playerId, playerId === viewerId ? structuredClone(run.roomState.labChoices[playerId]) : { optionIds: ['resolve'] }])),
-      }
-    : run.roomState?.kind === 'treasure' || run.roomState?.kind === 'elite'
-      ? {
-          ...structuredClone(run.roomState),
-          decisions: Object.fromEntries(Object.entries(run.roomState.decisions).map(([playerId, decision]) => [
-            playerId,
-            playerId === viewerId || typeof decision === 'number' ? decision : 'skip',
-          ])),
-        }
-      : run.roomState ? structuredClone(run.roomState) : null
-  return {
-    ascension: run.ascension,
-    chooseYourRelic: run.chooseYourRelic,
-    lastStand: run.lastStand,
-    meta: structuredClone(run.meta ?? { mode: 'standard', modifierIds: [] }),
-    setup: run.setup ? structuredClone(run.setup) : null,
-    act: run.act,
-    phase: run.phase,
-    // Dealt Blessing faces are public; card offers and the remaining shuffled
-    // deck stay private to the owner and authoritative table respectively.
-    neow: run.neow ? {
-      players: Object.fromEntries(Object.keys(run.neow.players).map((playerId) => [
-        playerId,
-        neowPreview(run, playerId, viewerId),
-      ])),
-    } : null,
-    pendingBossDefId: null,
-    pendingGuardianSockets: (run.pendingGuardianSockets ?? [])
-      .filter((pending, index) => run.phase === 'reward' ? pending.playerId === viewerId : index === 0)
-      .slice(0, 1)
-      .map((pending) => pending.playerId === viewerId ? structuredClone(pending) : { playerId: pending.playerId }),
-    // Public, unlike `pendingBossDefId`: setup rolls this act's boss in the open
-    // before anybody moves, and the map names it so decks can be built for it.
-    // The Ascension 13 SECOND Act III boss above stays hidden — that one is not
-    // rolled at the table, it is drawn when the first boss falls.
-    actBossDefId: run.actBossDefId ?? null,
-    canRerollDownfallSelfBoss: canRerollDownfallSelfBoss(run),
-    map: visibleMap(run),
-    // Public facts only: "Ann played Strike", "Turn 1 begins (die 3)".
-    log: run.log,
-    players: run.players.map((player) => redactPlayer(player, viewerId)),
-    combat: run.combat ? redactCombat(run.combat, viewerId) : null,
-    // Card rewards belong to their owner: teammates know a reward exists but
-    // never receive the offered cards or the server-side draw bookkeeping.
-    rewards: run.rewards.map((offer) => {
-      if (offer.playerId === viewerId) return { ...offer, potionQueue: offer.potionQueue?.map(() => null) }
-      const {
-        choices, cardSource, prismatic, upgraded, rareChoiceIndices, cardsDrawn, raresDrawn,
-        drawsReserved, prismaticSources, prismaticDraws, availableSources, guardianGems, potionQueue,
-        ...publicOffer
-      } = offer
-      return { ...publicOffer, choices: null, potionQueue: potionQueue?.map(() => null) }
-    }),
-    roomState,
-    courier: structuredClone(run.courier),
-    campaign: {
-      runId: run.campaign.runId,
-      bossesDefeated: run.campaign.bossesDefeated,
-      highestBossActDefeated: run.campaign.highestBossActDefeated,
-      ...(run.campaign.bossCoins ? { bossCoins: structuredClone(run.campaign.bossCoins) } : {}),
-      // A Catch Up joiner is owed only the bosses beaten after their hero arrived.
-      ...(viewerCharacter && run.campaign.joinedAfterBosses?.[viewerCharacter]
-        ? { joinedAfterBosses: { [viewerCharacter]: run.campaign.joinedAfterBosses[viewerCharacter] } } : {}),
-      keys: structuredClone(run.campaign.keys),
-      finalized: run.campaign.finalized,
-    },
-  }
-}
-
-function redactCombat(combat, viewerId) {
-  const progress = combat.startTurnProgress
-  const progressOwners = new Map(progress ? startTurnAbilities(combat)
-    .map((ability) => [ability.id, ability.playerId]) : [])
-  const startChoiceOwner = (choice) => progressOwners.get(choice.id) ?? combat.players.find((player) =>
-    choice.id.startsWith(`${player.id}/`) || choice.id.startsWith(`${combat.combatId}/${combat.turn}/${player.id}/`) ||
-    choice.id.startsWith(`facing:${player.id}`) || choice.id.startsWith(`guardian:${player.id}/`))?.id
-  const redactStartChoice = (choice) => ({
-    ...structuredClone(choice),
-    exhaustUids: startChoiceOwner(choice) === viewerId
-      ? structuredClone(choice.exhaustUids) : undefined,
-    trigger: startChoiceOwner(choice) === viewerId
-      ? structuredClone(choice.trigger) : undefined,
-  })
-  const visibleProgressChoices = progress?.choices?.map(redactStartChoice)
-  const viewerDieChoice = combat.pendingDieRelicChoices?.some((choice) =>
-    choice.playerId === viewerId && dieRelicChoiceNeedsInput(combat, choice))
-  const triggerCombat = viewerDieChoice
-    ? undefined : prioritizePendingTrigger(combat, (trigger) => trigger.playerId === viewerId)
-  const triggerPreview = triggerCombat && pendingTriggerAbility(triggerCombat)
-  return {
-    combatId: combat.combatId,
-    initialEnemyCount: initialEnemySlots(combat),
-    turn: combat.turn,
-    die: combat.die,
-    phase: combat.phase,
-    lastStand: combat.lastStand === true,
-    potionLimit: combat.potionLimit,
-    startTurnStage: combat.startTurnStage,
-    powerTriggersUsedThisTurn: combat.powerTriggersUsedThisTurn ?? [],
-    pendingTriggers: structuredClone(combat.pendingTriggers ?? []),
-    pendingTriggerAbility: triggerPreview?.playerId === viewerId ? structuredClone(triggerPreview) : null,
-    // Trigger ids are server allocators, not client state. Masking them also
-    // prevents private draw reactions from becoming a count side channel.
-    nextTriggerId: 0,
-    startTurnProgress: progress ? {
-      choices: visibleProgressChoices,
-      beforeDraw: progress.beforeDraw ? structuredClone(progress.beforeDraw) : undefined,
-      rollPending: progress.rollPending ? structuredClone(progress.rollPending) : undefined,
-      discard: progress.discard ? {
-        playerId: progress.discard.playerId,
-        sourceId: progress.discard.sourceId,
-        // Draw reactions can reveal the privately drawn card's type. The
-        // authoritative queue stays server-side until the owner discards.
-        pendingTriggers: [],
-      } : undefined,
-      forcedCard: progress.forcedCard ? {
-        playerId: progress.forcedCard.playerId,
-        cardUid: progress.forcedCard.playerId === viewerId ? progress.forcedCard.cardUid : null,
-        sourceCardId: progress.forcedCard.sourceCardId ?? 'mayhem',
-        sourceLabel: progress.forcedCard.sourceLabel,
-        exhaustNonPower: progress.forcedCard.exhaustNonPower === true,
-      } : undefined,
-    } : undefined,
-    pendingCardCopy: combat.pendingCardCopy ? {
-      id: combat.pendingCardCopy.playerId === viewerId ? combat.pendingCardCopy.id : 0,
-      playerId: combat.pendingCardCopy.playerId,
-      card: structuredClone(combat.pendingCardCopy.card),
-      energySpent: combat.pendingCardCopy.energySpent,
-      resumePhase: combat.pendingCardCopy.resumePhase,
-      forcedExhaust: combat.pendingCardCopy.forcedExhaust,
-      forcedChoices: combat.pendingCardCopy.forcedChoices?.map(redactStartChoice) ?? null,
-      deferredHavocs: structuredClone(combat.pendingCardCopy.deferredHavocs),
-      deferredTriggers: structuredClone(combat.pendingCardCopy.deferredTriggers ?? []),
-      sourceNames: structuredClone(combat.pendingCardCopy.sourceNames),
-      virtualOnly: combat.pendingCardCopy.virtualOnly === true,
-      queuedWeaves: combat.pendingCardCopy.playerId === viewerId
-        ? structuredClone(combat.pendingCardCopy.queuedWeaves ?? [])
-        : [],
-    } : undefined,
-    pendingDistilled: combat.pendingDistilled ? {
-      playerId: combat.pendingDistilled.playerId,
-      cards: combat.pendingDistilled.playerId === viewerId
-        ? structuredClone(combat.pendingDistilled.cards)
-        : null,
-    } : undefined,
-    pendingHermitSetupLoads: structuredClone(combat.pendingHermitSetupLoads ?? []),
-    pendingDieRelicChoices: structuredClone(combat.pendingDieRelicChoices ?? []),
-    pendingHermitChamberPlays: (combat.pendingHermitChamberPlays ?? []).map((pending) => ({
-      playerId: pending.playerId,
-      sourceCardId: pending.sourceCardId,
-      free: pending.free,
-      cardUids: pending.playerId === viewerId ? structuredClone(pending.cardUids) : [],
-      cardCount: pending.cardUids.length,
-    })),
-    pendingHermitStrengthRewards: structuredClone(combat.pendingHermitStrengthRewards ?? []),
-    // Slayer Pack: A window offers private hand cards, so only its owner sees it.
-    ...(combat.pendingCardPlayWindows?.some((window) => window.playerId === viewerId) ? {
-      pendingCardPlayWindows: structuredClone(combat.pendingCardPlayWindows
-        .filter((window) => window.playerId === viewerId)),
-    } : {}),
-    // Slayer Pack: public: who owes which choice, never the cards it reveals.
-    pendingPlayerChoices: structuredClone(combat.pendingPlayerChoices ?? []),
-    // Slayer Pack: the revealed rare reward is its owner's alone.
-    ...(combat.pendingSlayerChoices?.length ? {
-      pendingSlayerChoices: combat.pendingSlayerChoices.map((choice) => choice.kind === 'ritualDagger'
-        ? { ...choice, revealed: choice.playerId === viewerId ? choice.revealed : null }
-        : structuredClone(choice)),
-    } : {}),
-    pendingPlunderSwitches: structuredClone(combat.pendingPlunderSwitches ?? []),
-    pendingRelicScry: combat.pendingRelicScry ? {
-      id: combat.pendingRelicScry.playerId === viewerId ? combat.pendingRelicScry.id : 0,
-      playerId: combat.pendingRelicScry.playerId,
-      relicIndex: combat.pendingRelicScry.relicIndex,
-      cards: combat.pendingRelicScry.playerId === viewerId
-        ? structuredClone(combat.pendingRelicScry.cards)
-        : null,
-    } : undefined,
-    playedCardsThisTurn: structuredClone(combat.playedCardsThisTurn ?? []),
-    viewerStanceChangedThisTurn: combat.stanceChangedThisTurn.includes(viewerId),
-    presentationEvents: (combat.presentationEvents ?? []).map((event) => ({
-      seq: event.seq,
-      kind: event.kind,
-      actorId: event.actorId,
-      sourceId: event.sourceId,
-      enemyIds: [...event.enemyIds],
-      playerIds: [...event.playerIds],
-      ...(event.enemyRow === undefined ? {} : { enemyRow: event.enemyRow }),
-      // Public per-enemy damage of a staged skin's attack (its hits show the hero's share, a Slime Command its own).
-      ...(event.enemyHpLoss === undefined ? {} : { enemyHpLoss: { ...event.enemyHpLoss } }),
-      ...(event.kind === 'card' ? {
-        upgraded: event.upgraded,
-        copied: event.copied,
-        energy: event.energy,
-        ...(event.mode === undefined ? {} : { mode: event.mode }),
-        ...(event.resolvedType === undefined ? {} : { resolvedType: event.resolvedType }),
-      } : {}),
-      ...(event.kind === 'slime' ? {
-        slimeUid: event.slimeUid,
-        upgraded: event.upgraded,
-        animationIndex: event.animationIndex,
-      } : {}),
-      ...(event.kind === 'orb' ? { orb: event.orb } : {}),
-      ...(event.kind === 'turn' ? { effect: event.effect, actorTargeted: event.actorTargeted } : {}),
-    })),
-    // Pending summons are public telegraphed enemy-card effects; the shuffled
-    // Summons deck itself remains server-only.
-    pendingSummons: structuredClone(combat.pendingSummons ?? []),
-    log: combat.log,
-    // Enemies carry nothing secret: hit points, tokens and the cube's position
-    // are all printed on the card and face up on the table.
-    enemies: combat.enemies.map(({ poisonSources, ...enemy }) => enemy),
-    players: combat.players.map((player) => redactPlayer(player, viewerId)),
-  }
-}
-
-/**
- * What one seat may see of a player.
- *
- * An ALLOWLIST, deliberately. The obvious way to write this is to destructure
- * the secrets out and spread the rest — but then every field added to `Player`
- * later is published by default, and the failure is silent. Listing what goes
- * out means a new field is invisible until someone decides it is public, which
- * is the safe direction to fail in.
- */
-function redactPlayer(player, viewerId) {
-  const mine = player.id === viewerId
-  return {
-    id: player.id,
-    name: player.name,
-    character: player.character,
-    ...(isSkinOf(player.character, player.skin) ? { skin: player.skin } : {}),
-    row: player.row,
-    hp: player.hp,
-    maxHp: player.maxHp,
-    block: player.block,
-    energy: player.energy,
-    gold: player.gold,
-    strength: player.strength,
-    strengthLossAtEndOfTurn: player.strengthLossAtEndOfTurn,
-    vulnerable: player.vulnerable,
-    weak: player.weak,
-    drawLocked: player.drawLocked === true,
-    lostHpThisCombat: player.lostHpThisCombat === true,
-    hpLostThisRound: player.hpLostThisRound ?? 0,
-    ...(player.lostHpLastRound ? { lostHpLastRound: true } : {}),
-    hpLossLimitThisRound: player.hpLossLimitThisRound,
-    freeCardsThisTurn: player.freeCardsThisTurn ?? 0,
-    nextCardCost: player.nextCardCost ?? null,
-    enemyNextCardCost: player.enemyNextCardCost ?? null,
-    freeAttacksThisTurn: player.freeAttacksThisTurn ?? 0,
-    cardPlayLocked: player.cardPlayLocked === true,
-    doubledAttacksThisTurn: player.doubledAttacksThisTurn ?? 0,
-    tripledAttacksThisTurn: player.tripledAttacksThisTurn ?? 0,
-    doubledCardsThisTurn: player.doubledCardsThisTurn ?? 0,
-    doubledSkillsThisTurn: player.doubledSkillsThisTurn ?? 0,
-    retainCardsThisTurn: player.retainCardsThisTurn ?? 0,
-    cardsPlayedThisTurn: player.cardsPlayedThisTurn ?? 0,
-    attacksPlayedThisTurn: player.attacksPlayedThisTurn ?? 0,
-    powerPlayedThisTurn: player.powerPlayedThisTurn === true,
-    shuffledThisCombat: player.shuffledThisCombat === true,
-    facingEnemyUid: player.facingEnemyUid ?? null,
-    damageDealtZeroThisTurn: player.damageDealtZeroThisTurn === true,
-    shivs: player.shivs,
-    shivDamageBonus: player.shivDamageBonus ?? 0,
-    cardBlockBonus: player.cardBlockBonus ?? 0,
-    hitPoison: player.hitPoison ?? 0,
-    starterStrikeDamageBonus: player.starterStrikeDamageBonus ?? 0,
-    clawCubesGainedThisCombat: player.clawCubesGainedThisCombat ?? 0,
-    starterDefendBlockBonus: player.starterDefendBlockBonus ?? 0,
-    miracles: player.miracles,
-    stance: player.stance,
-    wrathAttackDamageBonus: player.wrathAttackDamageBonus ?? 0,
-    orbs: player.orbs,
-    orbEvokeBonus: player.orbEvokeBonus ?? 0,
-    darkOrbEvokeBonus: player.darkOrbEvokeBonus ?? 0,
-    orbEndTurnBonus: player.orbEndTurnBonus ?? 0,
-    lightningEndTurnBonus: player.lightningEndTurnBonus ?? 0,
-    damageStats: structuredClone(player.damageStats),
-    freeGemCardsThisTurn: player.freeGemCardsThisTurn ?? 0,
-    freePowersThisTurn: player.freePowersThisTurn ?? 0,
-    nextPowerOrSlimeDiscount: player.nextPowerOrSlimeDiscount,
-    nextAttackRapidFire: player.nextAttackRapidFire ?? 0,
-    energySpentThisTurn: player.energySpentThisTurn ?? 0,
-    spentTwoEnergyOnCardThisTurn: player.spentTwoEnergyOnCardThisTurn === true,
-    heat: player.heat ?? 0,
-    soulburn: player.soulburn ?? 0,
-    soulburnUsedThisTurn: player.soulburnUsedThisTurn === true,
-    nextSoulburnDamageBonus: player.nextSoulburnDamageBonus ?? 0,
-    exhaustNextCardAfterUid: player.exhaustNextCardAfterUid,
-    guardianMode: player.guardianMode ?? null,
-    vigor: player.vigor ?? 0,
-    vigorSpentThisTurn: player.vigorSpentThisTurn ?? 0,
-    guardianModeLocked: player.guardianModeLocked === true,
-    slimes: structuredClone(player.slimes ?? []),
-    lootChests: player.lootChests ?? 0,
-    dead: player.dead,
-    // Face up on the table.
-    discard: player.discard,
-    exhaust: player.exhaust,
-    powers: player.powers,
-    relics: mine ? player.relics : player.relics.map(({
-      guardianGemGroups: _gems,
-      pendingRewardDraws: _draws,
-      pendingRewardIndices: _rewards,
-      ...relic
-    }) => relic),
-    potions: player.potions,
-    chamberSlots: player.chamberSlots ?? 0,
-    chamberCount: player.chamber?.length ?? 0,
-    // Sizes are public — you can see how big a stack is. The owner may inspect
-    // their draw pile as a set, so keep it in a stable non-pile order rather
-    // than leaking the authoritative shuffled order.
-    handCount: player.hand.length,
-    drawCount: player.draw.length,
-    deckCount: player.deck.length,
-    tradableDeckCount: player.deck.filter((card) => card.defId !== 'ascenders_bane').length,
-    // Face-down reward stacks, secret even from their owner until drawn.
-    cardRewardCount: player.cardRewards.length,
-    rareRewardCount: player.rareRewards.length,
-    // Yours alone. Hands are ordered; draw piles are sorted only to erase the
-    // authoritative top-to-bottom order before they reach the client.
-    hand: mine ? player.hand : null,
-    draw: mine ? [...player.draw].sort((left, right) =>
-      left.defId.localeCompare(right.defId) || left.uid.localeCompare(right.uid)) : null,
-    chamber: mine ? player.chamber ?? [] : null,
-    deck: mine ? player.deck : null,
-  }
 }

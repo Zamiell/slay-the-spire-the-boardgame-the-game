@@ -5,6 +5,7 @@ import { spawn } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import ts from 'typescript'
 import { createRoomServer } from './room-server.mjs'
 import { createStore, saveStore } from './lib/rooms.mjs'
 import {
@@ -520,17 +521,30 @@ check('the client, deploy archive and service unit agree with the server', () =>
   const archived = [...archiveCommand.matchAll(/\b(?:scripts|src|infra)\/[\w./-]+/g)].map((match) => match[0])
   const root = new URL('../', import.meta.url)
   const seen = new Set()
+  const packages = new Set()
   const walk = (file) => {
     if (seen.has(file)) return
     seen.add(file)
     const location = new URL(file, root)
-    for (const match of readFileSync(location, 'utf8').matchAll(/(?:from\s+|import\s+)['"](\.[^'"]+\.(?:mjs|ts))['"]/g)) {
-      walk(new URL(match[1], location).pathname.slice(root.pathname.length))
+    const source = ts.createSourceFile(file, readFileSync(location, 'utf8'), ts.ScriptTarget.Latest, true)
+    const visit = node => {
+     const specifier = ts.isImportDeclaration(node) && !node.importClause?.isTypeOnly ? node.moduleSpecifier
+       : ts.isExportDeclaration(node) && !node.isTypeOnly ? node.moduleSpecifier
+         : ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword ? node.arguments[0] : undefined
+     if (specifier && ts.isStringLiteral(specifier)) {
+       const name = specifier.text
+       if (name.startsWith('.')) walk(new URL(name, location).pathname.slice(root.pathname.length))
+       else if (!name.startsWith('node:')) packages.add(name.split('/').slice(0, name.startsWith('@') ? 2 : 1).join('/'))
+     }
+     ts.forEachChild(node, visit)
     }
+    visit(source)
   }
   walk('scripts/room-server.mjs')
   const missing = [...seen].filter((file) => !archived.some((entry) => file === entry || file.startsWith(entry + '/')))
   assert(missing.length === 0, `the server release archive omits: ${missing.join(', ')}`)
+  for (const name of packages) assert(deploy.includes(`cp -aL "$root/node_modules/${name}" "$candidate/node_modules/${name}"`),
+   `the server release omits runtime package ${name}`)
   const unit = readFileSync(new URL('../infra/systemd/sts-room-server.service', import.meta.url), 'utf8')
   assert(unit.includes('EnvironmentFile=-%h/.config/slay-the-spire-server/mail.env'), 'the service cannot load the mail admin token')
   assert(existsSync(new URL('./mail-admin.mjs', import.meta.url)), 'the admin CLI is missing')

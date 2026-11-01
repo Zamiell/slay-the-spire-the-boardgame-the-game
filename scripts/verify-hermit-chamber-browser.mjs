@@ -4,6 +4,7 @@ import { chromium } from './lib/profile-browser.mjs'
 import { createServer } from 'vite'
 import { createRun } from '../src/game/run.ts'
 import { createCombat } from '../src/game/combat.ts'
+import { pickUpCard, confirmCardPlay } from './lib/card-interactions.mjs'
 
 const out = 'artifacts/hermit-chamber-audit'
 mkdirSync(out, { recursive: true })
@@ -59,18 +60,27 @@ try {
       await load(1, defId)
       const card = page.locator('.hand .card--chamber-drawn')
       if (defId === 'hermit_snapshot') assert.match(await card.getAttribute('aria-label'), /Gain Block equal to the damage dealt/)
-      await card.click()
+      await pickUpCard(page, card)
+      await page.locator('.enemy:not(.enemy--dead) .enemy__hit-area').first().hover()
+      await page.locator('.card-interaction[data-stage="aiming"]').waitFor()
       await page.waitForTimeout(100)
       assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.players[0].chamber.length), 1,
         'Clicking a Chamber attack must wait for a target even with one enemy')
       assert.equal(await card.getAttribute('aria-pressed'), 'true')
-      assert(await card.evaluate(e => e.getBoundingClientRect().bottom <=
-        document.querySelector('.app-shell').getBoundingClientRect().bottom + 1), `${name}: selected Chamber card is clipped`)
+      const lifted = page.locator('.card-interaction:is([data-stage="dragging"], [data-stage="aiming"]) .card-interaction__card')
+      assert(await lifted.evaluate(e => {
+        const box = e.getBoundingClientRect()
+        return box.left >= 0 && box.top >= 0 && box.right <= innerWidth &&
+          box.bottom <= Math.min(innerHeight, document.querySelector('.app-shell').getBoundingClientRect().bottom) + 1
+      }), `${name}: lifted Chamber card is clipped`)
       await page.screenshot({ path: `${out}/${name}-${defId}-target.png` })
-      await card.click() // Cancel without spending energy or moving the card.
+      await page.keyboard.press('Escape')
+      await lifted.waitFor({ state: 'detached' })
       assert.equal(await card.getAttribute('aria-pressed'), 'false')
-      await card.click()
-      await page.locator('.enemy:not(.enemy--dead) .enemy__head').first().click()
+      assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.players[0].energy), 3)
+      assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.players[0].chamber.length), 1)
+      await pickUpCard(page, card)
+      await confirmCardPlay(page, page.locator('.enemy:not(.enemy--dead) .enemy__hit-area').first())
       await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.players[0].chamber.length === 0)
       assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.enemies[0].hp), 40 - damage)
       if (defId === 'hermit_snapshot') {
@@ -108,39 +118,43 @@ try {
       ]
       window.__STS_DEBUG__.setRun(run)
     })
-    await page.locator('.hand .card--chamber-drawn').first().click()
-    const loadChoice = page.getByRole('dialog', { name: 'Choose up to 2 to Load' })
+    await pickUpCard(page, page.locator('.hand .card--chamber-drawn').first())
+    await confirmCardPlay(page)
+    const loadChoice = page.getByRole('dialog', { name: 'Choose up to 2 to Load', exact: true })
     await loadChoice.getByRole('button', { name: /^Defend,/ }).click()
     await loadChoice.getByRole('button', { name: /^Strike,/ }).click()
     await loadChoice.getByRole('button', { name: 'Load 2 cards' }).click()
-    assert.deepEqual(await page.locator('.prompt__mode').allTextContents(), ['Snapshot', 'Defend'],
+    const replacement = page.getByRole('dialog').filter({ hasText: 'Choose a Chamber card to discard and make room.' })
+    await replacement.waitFor()
+    assert.deepEqual(await replacement.locator('.hand-discard__hand .card').evaluateAll(cards =>
+      cards.map(card => card.dataset.cardName)), ['Snapshot', 'Defend'],
       `${name}: the played Chamber card cannot be replaced after it leaves the Chamber`)
     await page.screenshot({ path: `${out}/${name}-covet-load-replacement.png` })
-    await page.getByRole('button', { name: 'Snapshot', exact: true }).click()
+    await replacement.getByRole('button', { name: /^Snapshot,/ }).click()
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.players[0].chamber
       .some(card => card.uid === 'second'))
     assert.deepEqual(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.players[0].chamber
       .map(card => card.uid)), ['second', 'first'])
-    await load(1, 'hermit_pistol_whip')
+    await load(2, 'hermit_pistol_whip')
     await page.evaluate(() => {
       const run = structuredClone(window.__STS_DEBUG__.getRun())
       run.combat.players[0].hand = [{ uid: 'load-target', defId: 'hermit_defend', upgraded: false }]
       window.__STS_DEBUG__.setRun(run)
     })
-    await page.locator('.hand .card--chamber-drawn').click()
-    const targetLoadChoice = page.getByRole('dialog', { name: 'Choose 1 to Load' })
+    await page.locator('.hand .card--chamber-drawn').focus()
+    await page.keyboard.press('Enter')
+    const targetLoadChoice = page.getByRole('dialog', { name: 'Choose 1 to Load', exact: true })
     await targetLoadChoice.getByRole('button', { name: /^Defend,/ }).click()
     await targetLoadChoice.getByRole('button', { name: 'Load 1 card' }).click()
     await targetLoadChoice.waitFor({ state: 'hidden' })
-    assert.equal(await page.locator('.prompt').innerText(), 'Choose an enemy',
-      `${name}: confirmed Load must prompt for the remaining enemy target`)
-    await page.locator('.enemy:not(.enemy--dead) .enemy__head').first().click()
+    await page.getByText('Select an enemy', { exact: true }).waitFor()
+    assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.players[0].chamber[0]?.uid), 'card',
+      `${name}: confirming Load must not commit before choosing the remaining enemy target`)
+    await page.locator('.enemy:not(.enemy--dead) .enemy__hit-area').first().click()
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.players[0].chamber[0]?.uid === 'load-target')
     await load(1, 'hermit_tracking_shots')
-    await page.locator('.hand .card--chamber-drawn').click()
-    assert.equal(await page.locator('.prompt').innerText(), 'Choose an enemy',
-      `${name}: a Chamber card cannot Load itself again`)
-    await page.locator('.enemy:not(.enemy--dead) .enemy__head').first().click()
+    await pickUpCard(page, page.locator('.hand .card--chamber-drawn'))
+    await confirmCardPlay(page, page.locator('.enemy:not(.enemy--dead) .enemy__hit-area').first())
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat.players[0].chamber.length === 0)
     await load(1, 'hermit_strike')
     await page.evaluate(() => {
@@ -148,7 +162,8 @@ try {
       run.combat.players[0].hand = [{ uid: 'tracking-hand', defId: 'hermit_tracking_shots', upgraded: false }]
       window.__STS_DEBUG__.setRun(run)
     })
-    await page.locator('.hand .card[data-card-name="Tracking Shots"]').click()
+    await page.locator('.hand .card[data-card-name="Tracking Shots"]').focus()
+    await page.keyboard.press('Enter')
     assert.match(await page.locator('.prompt').innerText(), /Load Tracking Shots after playing it\?/,
       `${name}: a hand-played Tracking Shots must still offer Load self`)
 

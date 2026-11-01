@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useLayoutEffect, useState } from 'react'
 import { pendingRelicEligibleCards, previewTinyHouseRewardCard } from '../game/run.ts'
 import type { PendingGuardianSocket, PendingRelicPreview, PotionRewardDecision } from '../game/run.ts'
 import type { ActionOutcome } from '../multiplayer/useRoomSession.ts'
@@ -8,6 +8,12 @@ import type { CardInstance, Player } from '../game/types.ts'
 import { LootChoice, PotionLootChoices } from './RewardScreen.tsx'
 import { CardRewardIcon, CardRewardPicker } from './CardRewardPicker.tsx'
 import { CardPicker, PickerConfirmButton } from './CardPicker.tsx'
+import { useActionLifecycle } from './actions/useActionLifecycle.ts'
+import { sequenceActions } from './actions/action-delivery.ts'
+import type { RoomActionContext } from './actions/useRoomAction.ts'
+import { RoomActionStatus } from './actions/RoomActionStatus.tsx'
+import { roomActionScope } from './actions/room-action.ts'
+import { RewardChoiceScreen } from './RewardChoiceScreen.tsx'
 
 type Props = {
   pending: PendingRelicPreview
@@ -17,21 +23,53 @@ type Props = {
   onPotion: (decision: PotionRewardDecision) => void | Promise<ActionOutcome>
   onRewardChoice: (reward: number, choice: number) => void | Promise<ActionOutcome>
   onResolve: (cardUids: string[], rewardIndices: number[]) => void | Promise<ActionOutcome>
+  delivery?: RoomActionContext
 }
 
 const CARD_COUNTS: Record<string, number> = {
   war_paint: 1, whetstone: 1, astrolabe: 3, empty_cage: 2, pandoras_box: 3, tiny_house: 1,
 }
 
-export function RelicResolvePanel({ pending, player, potion, ascension, onPotion, onRewardChoice, onResolve }: Props) {
+type Submission = {
+  reward?: number
+  choice?: number
+  previous: number[]
+  resolving?: boolean
+  potion?: { id: Props['potion']; inventory: string }
+}
+
+export function RelicResolvePanel({ pending, player, potion, ascension, onPotion, onRewardChoice, onResolve, delivery }: Props) {
   const [cards, setCards] = useState<string[]>([])
   const [selectedCardUids, setSelectedCardUids] = useState<string[]>([])
   const [rewards, setRewards] = useState<number[]>(() => Object.assign([], pending.rewardIndices))
-  const [rewardChoicePending, setRewardChoicePending] = useState(false)
-  const actionPendingRef = useRef(false)
-  const [resolving, setResolving] = useState(false)
+  const [operation, setOperation] = useState<'reward' | 'resolve'>('resolve')
   const [activeReward, setActiveReward] = useState<number | null>(() =>
     ['enchiridion', 'downfall_enchiridion'].includes(pending.relicId) && pending.rewardIndices?.[0] === undefined ? 0 : null)
+  const rewardKey = JSON.stringify(pending.rewardIndices ?? {})
+  useLayoutEffect(() => setRewards(current => Object.assign([...current], pending.rewardIndices)), [rewardKey])
+  const restore = (submission: Submission, authoritative = pending) => {
+    if (submission.reward !== undefined && authoritative.rewardIndices?.[submission.reward] !== submission.choice) {
+      setRewards(Object.assign([...submission.previous], authoritative.rewardIndices))
+      setActiveReward(submission.reward)
+    }
+  }
+  const lifecycle = useActionLifecycle<Submission, { pending: PendingRelicPreview; potion: Props['potion']; inventory: string }>({
+    scope: `${delivery ? roomActionScope(delivery.snapshot) : player.id}/${pending.id ?? pending.relicId}`,
+    board: { pending, potion, inventory: JSON.stringify(player.potions) },
+    refresh: delivery?.refresh, version: delivery?.snapshot.version, awaitCommit: Boolean(delivery),
+    committed: (submission, current) => !submission.resolving &&
+      (submission.reward === undefined || current.pending.rewardIndices?.[submission.reward] === submission.choice) &&
+      (!submission.potion || current.potion !== submission.potion.id || current.inventory !== submission.potion.inventory),
+    reconciled: (submission, committed, current) => { if (!committed) restore(submission, current.pending) },
+  })
+  const resolving = lifecycle.busy
+  const rewardChoicePending = lifecycle.busy && operation === 'reward'
+  const submit = (submission: Omit<Submission, 'previous'>, steps: (() => void | Promise<ActionOutcome>)[]) => {
+    const payload = { ...submission, previous: [...rewards] }
+    return lifecycle.submit(payload, current => sequenceActions(steps, current), true, outcome => {
+      if (outcome.status !== 'accepted') restore(payload, outcome.snapshot?.pendingRelic ?? pending)
+    })
+  }
   const isTinyHouse = pending.relicId === 'tiny_house'
   const tinyHouseRewardIndex = isTinyHouse ? rewards[0] : undefined
   const tinyHouseRewardDefId = tinyHouseRewardIndex !== undefined && tinyHouseRewardIndex >= 0
@@ -47,77 +85,49 @@ export function RelicResolvePanel({ pending, player, potion, ascension, onPotion
   const rewardReady = (pending.rewardChoices ?? []).every((_choice, index) => rewards[index] !== undefined)
   const verb = pending.relicId === 'pandoras_box' ? 'Transform'
     : pending.relicId === 'empty_cage' ? 'Remove' : 'Upgrade'
-  const clearPending = () => {
-    actionPendingRef.current = false
-    setRewardChoicePending(false)
-    setResolving(false)
-  }
   const chooseReward = (reward: number, choice: number) => {
-    if (actionPendingRef.current) return
-    actionPendingRef.current = true
+    if (lifecycle.locked()) return
     const next = [...rewards]
     next[reward] = choice
     setRewards(next)
-    const outcome = onRewardChoice(reward, choice)
-    if (outcome) {
-      setRewardChoicePending(true)
-      void outcome.then((result) => {
-        const acknowledged = result.snapshot?.pendingRelic?.rewardIndices?.[reward] === choice
-        if (!acknowledged && result.status !== 'accepted') {
-          setRewards((current) => { const restored = [...current]; delete restored[reward]; return restored })
-          clearPending()
-          setActiveReward(reward)
-        }
-      }, () => {
-        setRewards((current) => { const restored = [...current]; delete restored[reward]; return restored })
-        clearPending()
-        setActiveReward(reward)
-      })
-    } else queueMicrotask(clearPending)
+    setOperation('reward')
     setActiveReward(null)
-    if (!isTinyHouse && cards.length === count && (pending.rewardChoices ?? []).every((_choices, index) => next[index] !== undefined)) onResolve(cards, next)
+    const resolving = !isTinyHouse && cards.length === count &&
+      (pending.rewardChoices ?? []).every((_choices, index) => next[index] !== undefined)
+    submit({ reward, choice, resolving }, [
+      () => onRewardChoice(reward, choice),
+      ...(resolving ? [() => onResolve(cards, next)] : []),
+    ])
   }
   const choosePotion = (decision: PotionRewardDecision) => {
-    if (actionPendingRef.current) return
-    actionPendingRef.current = true
-    setResolving(true)
-    const outcome = onPotion(decision)
-    if (outcome) void outcome.then(clearPending, clearPending)
-    else queueMicrotask(clearPending)
+    if (lifecycle.locked()) return
+    setOperation('resolve')
+    submit({ potion: { id: potion, inventory: JSON.stringify(player.potions) } }, [() => onPotion(decision)])
   }
   const skipTinyHouseLoot = () => {
-    if (actionPendingRef.current) return
-    const skipPotion = () => {
-      if (typeof potion !== 'string') return clearPending()
-      const outcome = onPotion({ kind: 'skipAll' })
-      if (outcome) void outcome.then(clearPending, clearPending)
-      else queueMicrotask(clearPending)
-    }
+    if (lifecycle.locked()) return
     const reward = (pending.rewardChoices ?? []).findIndex((_choices, index) => rewards[index] === undefined)
     if (reward < 0) return choosePotion({ kind: 'skipAll' })
-    actionPendingRef.current = true
-    setResolving(true)
-    const outcome = onRewardChoice(reward, -1)
-    if (outcome) void outcome.then((result) => {
-      const acknowledged = result.snapshot?.pendingRelic?.rewardIndices?.[reward] === -1
-      if (acknowledged || result.status === 'accepted') skipPotion()
-      else clearPending()
-    }, clearPending)
-    else queueMicrotask(skipPotion)
+    setOperation('resolve')
+    submit({ reward, choice: -1, ...(typeof potion === 'string'
+      ? { potion: { id: potion, inventory: JSON.stringify(player.potions) } } : {}) }, [
+      () => onRewardChoice(reward, -1),
+      ...(typeof potion === 'string' ? [() => onPotion({ kind: 'skipAll' })] : []),
+    ])
   }
   const resolveRelic = (cardUids: string[], rewardIndices: number[]) => {
-    if (actionPendingRef.current) return
-    actionPendingRef.current = true
-    setResolving(true)
-    const outcome = onResolve(cardUids, rewardIndices)
-    if (outcome) void outcome.then((result) => {
-      if (result.status !== 'accepted') clearPending()
-    }, clearPending)
-    else queueMicrotask(clearPending)
+    if (lifecycle.locked()) return
+    setOperation('resolve')
+    submit({ resolving: true }, [() => onResolve(cardUids, rewardIndices)])
   }
   const rewardIsRare = (reward: number) => pending.relicId === 'enchiridion' || pending.relicId === 'forbidden_fruit' && reward === 1
   const isPandora = pending.relicId === 'pandoras_box'
   const remaining = count - cards.length
+  if (lifecycle.phase === 'unknown' || lifecycle.phase === 'accepted') return <RewardChoiceScreen
+    title={`Resolve ${relicDef(pending.relicId).name}`} choiceKey="relic-delivery">
+    {delivery ? <RoomActionStatus uncertain={lifecycle.phase === 'unknown'} onResync={delivery.onResync} />
+      : <p role="status">Delivery could not be confirmed. Reconnect before trying again.</p>}
+  </RewardChoiceScreen>
   if (isPandora && count > 0) return <CardPicker
     cards={eligible.filter((card) => !cards.includes(card.uid))}
     verb="Transform"

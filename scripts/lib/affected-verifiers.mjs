@@ -83,6 +83,8 @@ const focusedUiOwners = ownerMap([
       'verify-start-turn-resync-browser.mjs', 'verify-post-roll-item-browser.mjs']]),
   ...['room-action.ts', 'useRoomAction.ts', 'RoomActionStatus.tsx', 'room-action-status.css'].map(file =>
     [`src/ui/actions/${file}`, ['verify-noncombat-actions-browser.mjs', 'verify-boss-relic-picker-browser.mjs']]),
+  ...['neow-choice.ts', 'setup-choice.ts'].map(file =>
+    [`src/ui/actions/${file}`, ['verify-noncombat-actions-browser.mjs', 'verify-neow-viewport-browser.mjs']]),
   ...['src/ui/campfire-choice.ts', 'src/ui/CampfireCardPicker.tsx'].map(file =>
     [file, ['verify-noncombat-actions-browser.mjs', 'verify-card-picker-browser.mjs']]),
   ['src/ui/combat-screen/usePowerController.ts', ['verify-guardian-card-browser.mjs',
@@ -113,7 +115,10 @@ const focusedUiOwners = ownerMap([
     .map(file => [file, ['verify-button-borders-browser.mjs']]),
   ['src/ui/useButtonShortcut.ts', ['verify-keyboard-browser.mjs', 'verify-card-picker-browser.mjs']],
   ['src/ui/CardPicker.tsx', ['verify-card-picker-browser.mjs', 'verify-merchant-overflow-browser.mjs', 'verify-wing-focus-browser.mjs']],
-  ['src/ui/RelicResolvePanel.tsx', ['verify-card-picker-browser.mjs', 'verify-wing-focus-browser.mjs']],
+  ['src/ui/RelicResolvePanel.tsx', ['verify-card-picker-browser.mjs', 'verify-wing-focus-browser.mjs',
+    'verify-noncombat-actions-browser.mjs', 'verify-tiny-house-browser.mjs']],
+  ['src/ui/NeowScreen.tsx', ['verify-noncombat-actions-browser.mjs', 'verify-neow-viewport-browser.mjs']],
+  ['src/ui/QuickSetupScreen.tsx', ['verify-noncombat-actions-browser.mjs']],
   ['src/ui/styles/hand.css', ['verify-card-block-preview-browser.mjs']],
   ['src/ui/styles/combat.css', ['verify-sever-soul-browser.mjs', 'verify-row-target-browser.mjs',
     'verify-soulburn-time-warp-browser.mjs']],

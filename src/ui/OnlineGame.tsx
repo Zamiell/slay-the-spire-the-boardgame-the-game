@@ -969,7 +969,8 @@ export function OnlineGame({ onLocal, settings, onSettings }: Props) {
           </select>
         </label>
       </section> : null}
-      {snapshot.pendingRelic && viewer?.deck ? <RelicResolvePanel key={`${snapshot.pendingRelic.id}:${JSON.stringify(snapshot.pendingRelic.rewardIndices ?? {})}`}
+      {snapshot.pendingRelic && viewer?.deck ? <RelicResolvePanel key={`${snapshot.you.playerId}:${snapshot.pendingRelic.id}`}
+        delivery={{ snapshot, refresh: room.refreshEpoch, onResync: room.resync }}
         pending={snapshot.pendingRelic} player={playerForUi(viewer)}
         potion={run.rewards.find((offer) => offer.playerId === snapshot.you.playerId)?.potion}
         ascension={run.ascension}
@@ -993,6 +994,7 @@ export function OnlineGame({ onLocal, settings, onSettings }: Props) {
         {relicDef(snapshot.pendingRelicStatus.relicId).name}.
       </section> : null}
       {run.phase === 'neow' && run.neow ? <NeowScreen
+        delivery={{ snapshot, refresh: room.refreshEpoch, onResync: room.resync }}
         players={run.players}
         progress={run.neow.players}
         viewerId={snapshot.you.playerId}
@@ -1015,7 +1017,7 @@ export function OnlineGame({ onLocal, settings, onSettings }: Props) {
           // Translated at the boundary between the two contracts rather than in
           // NeowScreen, which is shared with the local shell and whose array the
           // engine reads directly.
-          room.act({ kind: 'neow', stage: 'reveal', sources: sources.length ? sources : undefined })
+          return room.act({ kind: 'neow', stage: 'reveal', sources: sources.length ? sources : undefined })
         }}
         onReward={(_playerId, choice, stage) => room.act({ kind: 'neow', stage, choice })}
         onEffect={(_playerId, gain, decision) => room.act({ kind: 'neow', stage: 'effect', gain, cardUids: decision.cardUids ?? [] })}
@@ -1025,6 +1027,7 @@ export function OnlineGame({ onLocal, settings, onSettings }: Props) {
         onArmCardGain={morph.armGain}
       /> : null}
       {run.phase === 'setup' && run.setup && !pendingAcquisition ? <QuickSetupScreen
+        delivery={{ snapshot, refresh: room.refreshEpoch, onResync: room.resync }}
         setup={run.setup}
         players={run.players.map(playerForUi)}
         currentStep={currentQuickSetupStep(run.setup)}

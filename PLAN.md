@@ -3,7 +3,7 @@
 This plan records the remaining opportunities from the repository-wide architectural
 audit following commit `b7d3bf9a`. The objective is stronger ownership boundaries,
 consistent behavior, and reproducible verification, not smaller files for their
-own sake. All items below are planned, not implemented.
+own sake. Progress and validation evidence are recorded with each item.
 
 ## Recommended sequence
 
@@ -28,17 +28,28 @@ These screens still maintain separate pending-request and retry logic. Some path
 clear or rearm after uncertain delivery rather than waiting for authoritative
 evidence.
 
-- [ ] Inventory each operation's local and online completion semantics.
-- [ ] Reuse the shared lifecycle with operation-specific confirmation evidence.
-- [ ] Preserve immediate duplicate-submission locks, scope fencing, and draft
+- [x] Inventory each operation's local and online completion semantics.
+- [x] Reuse the shared lifecycle with operation-specific confirmation evidence.
+- [x] Preserve immediate duplicate-submission locks, scope fencing, and draft
   restoration after definitive refusal.
-- [ ] Keep uncertain mutations locked until authoritative evidence or a causally
+- [x] Keep uncertain mutations locked until authoritative evidence or a causally
   later successful refresh resolves them.
-- [ ] Replace automatic retries that could repeat an unresolved mutation.
+- [x] Replace automatic retries that could repeat an unresolved mutation.
 
 **Completion criteria:** Focused cases cover accepted, refused, reconciled, and
 unknown outcomes; stale replies; partial multi-step operations; restoration; and
 local callbacks. Promise completion alone must not be treated as proof of delivery.
+
+**Implemented:** Neow, relic acquisition, and Quick Start/Catch Up now use the
+shared lifecycle. Dependent relic actions execute in order and stop on uncertainty.
+Relic drafts survive authoritative reward updates without remounting an in-flight
+controller. Automatic setup no longer retries an uncertain action on a timer.
+
+**Evidence:** Type checking and noncombat/combat lifecycle property checks pass.
+New setup, Tiny House, and Neow recovery cases pass on desktop and horizontal phone;
+existing Tiny House, Neow viewport, and loot integration checks pass. The Tiny House
+resume regression now explicitly verifies the intended whole-loot rewind before
+reacquisition. The combined final gate and visual review remain tracked below.
 
 ## 2. Type the internal room model and complete client action types
 

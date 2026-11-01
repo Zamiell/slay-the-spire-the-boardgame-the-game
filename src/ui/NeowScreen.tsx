@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { assetPath, characterHeroArt } from '../game/assets.ts'
 import { playerVisualId } from '../game/skins.ts'
@@ -14,6 +14,13 @@ import { CardPicker } from './CardPicker.tsx'
 import { IconValue } from './Icon.tsx'
 import { ItemLootChoice } from './RewardScreen.tsx'
 import { potionLimit } from '../game/acquisition.ts'
+import type { ActionOutcome } from '../protocol/room.ts'
+import { useActionLifecycle } from './actions/useActionLifecycle.ts'
+import type { RoomActionContext } from './actions/useRoomAction.ts'
+import { RoomActionStatus } from './actions/RoomActionStatus.tsx'
+import { roomActionScope } from './actions/room-action.ts'
+import { neowDecisionKey } from './actions/neow-choice.ts'
+import { RewardChoiceScreen } from './RewardChoiceScreen.tsx'
 
 type NeowUiPlayer = Pick<Player, 'id' | 'name' | 'character' | 'hp' | 'maxHp' | 'gold' | 'potions' | 'relics'> & {
   deck: CardInstance[] | null
@@ -35,10 +42,11 @@ type Props = {
   disabledMessage?: string
   ascension: number
   onViewer?: (playerId: string) => void
-  onReveal: (playerId: string, stage: 'red' | 'reward', sources: RewardSource[]) => void | Promise<unknown>
-  onReward: (playerId: string, choice: number | null | PotionRewardDecision, stage: 'red' | 'reward') => void | Promise<unknown>
-  onEffect: (playerId: string, gain: boolean, decision: NeowDecision) => void | Promise<unknown>
-  onChoose: (playerId: string, optionIndex: number, decision: NeowDecision) => void | Promise<unknown>
+  onReveal: (playerId: string, stage: 'red' | 'reward', sources: RewardSource[]) => void | Promise<ActionOutcome>
+  onReward: (playerId: string, choice: number | null | PotionRewardDecision, stage: 'red' | 'reward') => void | Promise<ActionOutcome>
+  onEffect: (playerId: string, gain: boolean, decision: NeowDecision) => void | Promise<ActionOutcome>
+  onChoose: (playerId: string, optionIndex: number, decision: NeowDecision) => void | Promise<ActionOutcome>
+  delivery?: RoomActionContext
   /** Arms the next deck change to play as a reveal, for a card gained without ever being shown (a random Rare). */
   onArmCardGain?: () => void
 }
@@ -117,15 +125,21 @@ function OfferChoice({ offer, player, players, ascension, enabled, status, title
     uidPrefix="neow-offer" onChoose={onResolve} onSkip={() => onResolve(null)} />
 }
 
-export function NeowScreen({ players, progress, viewerId, ascension, enabled = true, selectionDialogsActive = true, disabledMessage, onViewer, onReveal, onReward, onEffect, onChoose, onArmCardGain }: Props) {
+export function NeowScreen({ players, progress, viewerId, ascension, enabled = true, selectionDialogsActive = true, disabledMessage, onViewer, onReveal, onReward, onEffect, onChoose, onArmCardGain, delivery }: Props) {
   const participants = players.filter((player) => progress[player.id])
   const viewerParticipates = participants.some((player) => player.id === viewerId)
   const viewer = participants.find((player) => player.id === viewerId) ?? participants[0]
   const viewerProgress = viewer ? progress[viewer.id] : undefined
   const [selectedCards, setSelectedCards] = useState<string[]>([])
   const [selectedSources, setSelectedSources] = useState<RewardSource[]>([])
-  const [submitting, setSubmitting] = useState(false)
-  const submittingRef = useRef(false)
+  const lifecycle = useActionLifecycle<string, typeof viewerProgress>({
+    scope: delivery ? roomActionScope(delivery.snapshot) : `neow/${viewerId}`,
+    board: viewerProgress, refresh: delivery?.refresh, version: delivery?.snapshot.version,
+    awaitCommit: Boolean(delivery),
+    committed: (before, current) => neowDecisionKey(current) !== before,
+    reconciled: () => {},
+  })
+  const submitting = lifecycle.busy
   const pendingEffectKey = viewerProgress?.pendingEffect ? JSON.stringify(viewerProgress.pendingEffect) : ''
   const deckKey = viewer?.deck?.map((card) => card.uid).join(',') ?? ''
   const availableSourcesKey = viewerProgress?.availableSources?.join(',') ?? ''
@@ -156,15 +170,16 @@ export function NeowScreen({ players, progress, viewerId, ascension, enabled = t
       : effect ? `${effect.kind} ${effect.count} card${effect.count === 1 ? '' : 's'}` : ''
   const canAct = enabled && !submitting
   const itemOffer = viewerParticipates && (currentOffer?.kind === 'potion' || currentOffer?.kind === 'relic')
-  const submit = (action: () => void | Promise<unknown>) => {
-    if (submittingRef.current) return
-    submittingRef.current = true
-    setSubmitting(true)
-    void Promise.resolve().then(action).finally(() => {
-      submittingRef.current = false
-      setSubmitting(false)
-    })
+  const submit = (action: () => void | Promise<ActionOutcome>) => {
+    if (!enabled || lifecycle.locked()) return
+    lifecycle.submit(neowDecisionKey(viewerProgress), action, true)
   }
+
+  if (selectionDialogsActive && (lifecycle.phase === 'unknown' || lifecycle.phase === 'accepted')) return <RewardChoiceScreen
+    title={blessingName} choiceKey="neow-delivery">
+    {delivery ? <RoomActionStatus uncertain={lifecycle.phase === 'unknown'} onResync={delivery.onResync} />
+      : <p role="status">Delivery could not be confirmed. Reconnect before trying again.</p>}
+  </RewardChoiceScreen>
 
   return <section className={`neow-screen${heartsBoon ? ' neow-screen--heart' : ''}`} aria-labelledby="neow-title">
     <img className={`neow-screen__neow${heartsBoon ? ' neow-screen__neow--heart' : ''}`}

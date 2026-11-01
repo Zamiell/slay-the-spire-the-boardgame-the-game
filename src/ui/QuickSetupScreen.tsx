@@ -5,6 +5,11 @@ import { availableTransformRewards, canUpgradeCard } from '../game/run.ts'
 import type { CardInstance, Player } from '../game/types.ts'
 import type { ActionOutcome } from '../multiplayer/useRoomSession.ts'
 import { Card } from './Card.tsx'
+import { useActionLifecycle } from './actions/useActionLifecycle.ts'
+import { RoomActionStatus } from './actions/RoomActionStatus.tsx'
+import type { RoomActionContext } from './actions/useRoomAction.ts'
+import { roomActionScope } from './actions/room-action.ts'
+import { setupStepKey } from './actions/setup-choice.ts'
 
 type QuickSetup = Readonly<{
   kind: 'quick-start' | 'catch-up'
@@ -24,6 +29,7 @@ type Props = Readonly<{
   transformAvailable?: boolean
   disabledMessage?: string
   onAdvance: (cardUids?: string[]) => void | Promise<ActionOutcome>
+  delivery?: RoomActionContext
 }>
 
 const STEP_LABELS: Record<QuickStartStep['kind'], string> = {
@@ -50,7 +56,7 @@ function selectableCards(player: Player | undefined, kind: QuickStartStep['kind'
 }
 
 export function QuickSetupScreen({ setup, players, currentStep, enabled = true, transformAvailable,
-  disabledMessage, onAdvance }: Props) {
+  disabledMessage, onAdvance, delivery }: Props) {
   const titleId = useId()
   const activePlayerId = setup.playerIds[setup.playerIndex]
   const activePlayer = players.find((player) => player.id === activePlayerId)
@@ -63,41 +69,35 @@ export function QuickSetupScreen({ setup, players, currentStep, enabled = true, 
   )
   const [selectedUid, setSelectedUid] = useState<string | null>(null)
   const submittedAutomaticStep = useRef('')
-  const [automaticRetry, setAutomaticRetry] = useState(0)
-  useEffect(() => setSelectedUid(null), [setup.rowIndex, setup.repeatIndex, setup.playerIndex, setup.die?.value, setup.die?.effectIndex])
+  const [retryRequired, setRetryRequired] = useState(false)
+  const automaticStep = setupStepKey(setup)
+  useEffect(() => { setSelectedUid(null); setRetryRequired(false) }, [automaticStep])
+  const lifecycle = useActionLifecycle<string, typeof setup>({
+    scope: delivery ? roomActionScope(delivery.snapshot) : `setup/${setup.kind}/${setup.targetAct}`,
+    board: setup, refresh: delivery?.refresh, version: delivery?.snapshot.version,
+    awaitCommit: Boolean(delivery),
+    committed: (step, current) => setupStepKey(current) !== step,
+    reconciled: (_step, committed) => { if (!committed) setRetryRequired(true) },
+  })
+  const advance = (cardUids?: string[]) => {
+    if (!enabled || lifecycle.locked()) return
+    setRetryRequired(false)
+    lifecycle.submit(automaticStep, () => onAdvance(cardUids), true, outcome => {
+      const next = outcome.snapshot?.run
+      if (outcome.status !== 'accepted' && (!next ||
+        next.phase === 'setup' && setupStepKey(next.setup) === automaticStep)) setRetryRequired(true)
+    })
+  }
 
   const selectionRequired = selectionKind !== undefined && eligible.length > 0 &&
     (selectionKind !== 'transform' || (transformAvailable ?? Boolean(activePlayer &&
       availableTransformRewards(activePlayer) > 0)))
-  const automaticStep = `${setup.rowIndex}/${setup.repeatIndex}/${setup.playerIndex}/${setup.die?.value ?? ''}/${setup.die?.effectIndex ?? ''}`
   useEffect(() => {
-    if (!enabled) {
-      submittedAutomaticStep.current = ''
-      return
-    }
-    if (!currentStep || selectionRequired || submittedAutomaticStep.current === automaticStep) return
+    if (!enabled || lifecycle.locked() || retryRequired || !currentStep || selectionRequired ||
+      submittedAutomaticStep.current === automaticStep) return
     submittedAutomaticStep.current = automaticStep
-    const pending = onAdvance()
-    if (!pending) return
-    let timer = 0
-    const rearm = (outcome?: ActionOutcome) => {
-      if (submittedAutomaticStep.current !== automaticStep) return
-      if (outcome?.status === 'accepted') return
-      const next = outcome?.snapshot?.run
-      const nextSetup = next?.setup
-      const nextStep = nextSetup
-        ? `${nextSetup.rowIndex}/${nextSetup.repeatIndex}/${nextSetup.playerIndex}/${nextSetup.die?.value ?? ''}/${nextSetup.die?.effectIndex ?? ''}`
-        : ''
-      if (next && (next.phase !== 'setup' || nextStep !== automaticStep)) return
-      timer = window.setTimeout(() => {
-        if (submittedAutomaticStep.current !== automaticStep) return
-        submittedAutomaticStep.current = ''
-        setAutomaticRetry((attempt) => attempt + 1)
-      }, 250)
-    }
-    void pending.then(rearm, () => rearm())
-    return () => window.clearTimeout(timer)
-  }, [automaticRetry, automaticStep, currentStep, enabled, selectionRequired])
+    advance()
+  }, [automaticStep, currentStep, enabled, selectionRequired, lifecycle.busy, retryRequired])
   const stepLabel = currentStep ? STEP_LABELS[currentStep.kind] : 'Setup complete'
   const quantity = currentStep?.kind === 'gold' ? ` · ${currentStep.count} Gold`
     : currentStep && currentStep.count > 1 ? ` · ${setup.repeatIndex + 1} of ${currentStep.count}` : ''
@@ -117,16 +117,16 @@ export function QuickSetupScreen({ setup, players, currentStep, enabled = true, 
       <span> · effect {setup.die.effectIndex + 1}</span>
     </p> : null}
 
-    {selectionKind && enabled ? <fieldset className="quick-setup__selection">
+    {selectionKind && enabled ? <fieldset className="quick-setup__selection" disabled={lifecycle.busy}>
       <legend>{STEP_LABELS[selectionKind]}{activePlayer ? ` for ${activePlayer.name}` : ''}</legend>
       {eligible.length > 0
         ? <div className="quick-setup__cards">
             {eligible.map((card) => <Card
               key={card.uid}
               card={card}
-              playable={enabled}
+              playable={enabled && !lifecycle.busy}
               selected={selectedUid === card.uid}
-              onClick={() => setSelectedUid((current) => current === card.uid ? null : card.uid)}
+              onClick={() => { if (!lifecycle.locked()) setSelectedUid((current) => current === card.uid ? null : card.uid) }}
             />)}
           </div>
         : <p className="quick-setup__empty" role="status">No eligible card. Continue to resolve this reward as a no-op.</p>}
@@ -135,11 +135,17 @@ export function QuickSetupScreen({ setup, players, currentStep, enabled = true, 
     {selectionRequired ? <button
       type="button"
       className="quick-setup__advance"
-      disabled={!enabled || selectedUid === null}
-      onClick={() => onAdvance(selectedUid ? [selectedUid] : [])}
+      disabled={!enabled || lifecycle.busy || selectedUid === null}
+      onClick={() => advance(selectedUid ? [selectedUid] : [])}
     >
       Confirm
-    </button> : enabled ? <p className="quick-setup__empty" role="status">Resolving automatically…</p> : null}
+    </button> : enabled && retryRequired ? <button type="button" className="quick-setup__advance"
+      disabled={lifecycle.busy} onClick={() => advance()}>Retry setup step</button>
+      : enabled ? <p className="quick-setup__empty" role="status">Resolving automatically…</p> : null}
+    {lifecycle.phase === 'unknown' || lifecycle.phase === 'accepted'
+      ? delivery ? <RoomActionStatus uncertain={lifecycle.phase === 'unknown'} onResync={delivery.onResync} />
+        : <p role="status">Delivery could not be confirmed. Reconnect before trying again.</p>
+      : null}
     {!enabled && disabledMessage ? <p className="quick-setup__empty" role="status">{disabledMessage}</p> : null}
   </section>
 }

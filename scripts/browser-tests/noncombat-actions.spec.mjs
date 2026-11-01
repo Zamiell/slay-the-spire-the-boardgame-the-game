@@ -11,13 +11,17 @@ function fixture(phase) {
   const other = joinRoom(room, { name: 'Bo', character: 'silent' })
   room.phase = 'run'
   room.run = createRun(47, room.seats.map(seat => ({ id: seat.playerId, name: seat.name, character: seat.character })))
-  room.run.neow = null
-  room.run.phase = 'map'
-  if (phase === 'campfire') {
+  if (phase !== 'neow') room.run.neow = null
+  room.run.phase = phase === 'neow' ? 'neow' : 'map'
+  if (phase === 'setup') {
+    room.run.phase = 'setup'
+    room.run.setup = { kind: 'quick-start', targetAct: 2, playerIds: [seat.playerId], rowIndex: 1,
+      repeatIndex: 0, playerIndex: 0, die: null }
+  } else if (phase === 'campfire') {
     const id = room.run.map.rows[0][0]
     room.run.map.rooms[id].kind = 'campfire'
     room.run = enterRoom(room.run, id)
-  } else {
+  } else if (phase !== 'neow') {
     room.run.phase = 'reward'
     room.run.rewardDestination = 'map'
     room.run.rewards = room.seats.map(seat => ({
@@ -43,10 +47,12 @@ async function mount(page, appURL, room, seat, mode) {
   })
   await page.goto(`${appURL}/__noncombat-fixture`)
   await page.evaluate(async ({ snapshot, players, mode }) => {
-    const [React, DOM, campfire, reward, local, scope] = await Promise.all([
+    const [React, DOM, campfire, reward, local, scope, setup, relic, meta, neow] = await Promise.all([
       import('/@id/react'), import('/@id/react-dom/client'),
       import('/src/ui/OnlineCampfireScreen.tsx'), import('/src/ui/OnlineRewardScreen.tsx'),
       import('/src/ui/CampfireScreen.tsx'), import('/src/ui/actions/room-action.ts'),
+      import('/src/ui/QuickSetupScreen.tsx'), import('/src/ui/RelicResolvePanel.tsx'), import('/src/game/meta.ts'),
+      import('/src/ui/NeowScreen.tsx'),
       import('/src/ui/styles.css'), import('/src/ui/chrome.css'),
     ])
     const h = React.createElement ?? React.default.createElement
@@ -70,7 +76,32 @@ async function mount(page, appURL, room, seat, mode) {
           api.update(api.refreshResult.snapshot, api.refreshResult.refresh)
           return true
         } }
-      if (mode === 'local-campfire') {
+      if (mode === 'neow') {
+        root.render(h(neow.NeowScreen, { key: props.key, players: run.players, progress: run.neow.players,
+          viewerId: viewer, ascension: run.ascension, delivery: props,
+          onReveal: (_player, _stage, sources) => onAction({ kind: 'neow', stage: 'reveal', sources }),
+          onReward: (_player, choice, stage) => onAction({ kind: 'neow', stage, choice }),
+          onEffect: (_player, gain, decision) => onAction({ kind: 'neow', stage: 'effect', gain, ...decision }),
+          onChoose: (_player, optionIndex, decision) => onAction({ kind: 'neow', stage: 'option', optionIndex, ...decision }),
+        }))
+      } else if (mode === 'setup') {
+        root.render(run.phase === 'setup' ? h(setup.QuickSetupScreen, {
+          key: props.key, setup: run.setup, players: run.players,
+          currentStep: meta.currentQuickSetupStep(run.setup), delivery: props,
+          onAdvance: cardUids => onAction({ kind: 'setupStep', cardUids }),
+        }) : h('p', { role: 'status' }, 'Setup advanced'))
+      } else if (mode === 'relic') {
+        root.render(snapshot.pendingRelic ? h(relic.RelicResolvePanel, {
+          key: `${props.key}/${snapshot.pendingRelic.id}`, pending: snapshot.pendingRelic,
+          player: run.players.find(player => player.id === viewer), ascension: run.ascension, delivery: props,
+          potion: run.rewards.find(offer => offer.playerId === viewer)?.potion,
+          onRewardChoice: (reward, choice) => onAction({ kind: 'choosePendingRelicReward',
+            pendingRelicId: snapshot.pendingRelic.id, reward, choice }),
+          onPotion: decision => onAction({ ...decision, kind: 'potionReward', choice: decision.kind }),
+          onResolve: (cardUids, rewardIndices) => onAction({ kind: 'resolvePendingRelic',
+            pendingRelicId: snapshot.pendingRelic.id, cardUids, rewardIndices }),
+        }) : h('p', { role: 'status' }, 'Relic resolved'))
+      } else if (mode === 'local-campfire') {
         root.render(h(local.CampfireScreen, { players: [players[0]], onResolve: choices => {
           api.calls.push({ action: { kind: 'campfire', choices }, viewer })
         } }))
@@ -221,4 +252,59 @@ test('rewards: changing viewer fences delayed replies and unsent batch actions',
   assert.equal((await calls(page))[1].action.kind, 'goldReward')
   await page.evaluate(() => window.noncombat.reject(1))
   await expect(page.getByRole('button', { name: 'Check room state' })).toBeVisible()
+})
+
+test('setup: an uncertain automatic step never rearms before a successful refresh', async ({ page, appURL }) => {
+  const { room, seat } = fixture('setup')
+  await mount(page, appURL, room, seat, 'setup')
+  await expect.poll(async () => (await calls(page)).length).toBe(1)
+  await reply(page, 0, { status: 'unknown', refreshAttempt: 1 })
+  await expect(page.getByRole('button', { name: 'Check room state' })).toBeVisible()
+  await page.waitForTimeout(600)
+  assert.equal((await calls(page)).length, 1, 'the former automatic retry interval must not resend')
+  await update(page, snapshotFor(room, seat.token), 2)
+  await page.getByRole('button', { name: 'Retry setup step' }).click()
+  await expect.poll(async () => (await calls(page)).length).toBe(2)
+  await commit(page, room, seat, 1)
+  await expect(page.getByRole('status')).toHaveText('Setup advanced')
+})
+
+test('Tiny House: uncertain reward choice cannot skip its Potion or resolve the relic', async ({ page, appURL }) => {
+  const { room, seat } = fixture('reward')
+  room.run.players[0].relics.push({ defId: 'tiny_house', pending: true, pendingId: 12, spent: false })
+  Object.assign(room.run.rewards[0], { gold: false, relic: false, cardReward: false, potionQueue: undefined })
+  await mount(page, appURL, room, seat, 'relic')
+  await page.getByRole('button', { name: 'Skip', exact: true }).click()
+  await reply(page, 0, { status: 'unknown', refreshAttempt: 1 })
+  await expect(page.getByRole('button', { name: 'Check room state' })).toBeVisible()
+  assert.deepEqual((await calls(page)).map(call => call.action.kind), ['choosePendingRelicReward'])
+  const snapshot = apply(room, seat.token, (await calls(page))[0].action).snapshot
+  await update(page, snapshot, 2)
+  await page.getByRole('button', { name: 'Skip', exact: true }).click()
+  await expect.poll(async () => (await calls(page)).length).toBe(2)
+  assert.equal((await calls(page))[1].action.kind, 'potionReward')
+  await commit(page, room, seat, 1)
+  await expect(page.getByRole('dialog', { name: 'Choose a card to upgrade' })).toBeVisible()
+  assert.equal((await calls(page)).length, 2)
+})
+
+test('Neow: an uncertain card reward stays locked until authoritative recovery', async ({ page, appURL }) => {
+  const { room, seat } = fixture('neow')
+  Object.assign(room.run.neow.players[seat.playerId], {
+    redRewardPending: true, redReward: { kind: 'card', choices: ['anger', 'cleave'], cardsDrawn: [], raresDrawn: [] },
+    pendingEffect: null,
+  })
+  await mount(page, appURL, room, seat, 'neow')
+  await page.locator('.reward-screen--card-choice .card').first().evaluate(card => { card.click(); card.click() })
+  await expect.poll(async () => (await calls(page)).length).toBe(1)
+  await reply(page, 0, { status: 'unknown', refreshAttempt: 1 })
+  await expect(page.getByRole('button', { name: 'Check room state' })).toBeVisible()
+  await update(page, snapshotFor(room, seat.token), 1)
+  await expect(page.getByRole('button', { name: 'Check room state' })).toBeVisible()
+  assert.equal((await calls(page)).length, 1)
+  await update(page, snapshotFor(room, seat.token), 2)
+  await page.locator('.reward-screen--card-choice .card').first().click()
+  await expect.poll(async () => (await calls(page)).length).toBe(2)
+  await reply(page, 1, { status: 'refused' })
+  await expect(page.locator('.reward-screen--card-choice .card').first()).toBeVisible()
 })

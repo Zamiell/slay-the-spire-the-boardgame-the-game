@@ -4,6 +4,9 @@ import { createRng } from '../src/game/rng.ts'
 import { campfireCards, campfireOptions, selectCampfireCard } from '../src/ui/campfire-choice.ts'
 import { roomActionCommitted, sendRoomActions } from '../src/ui/actions/room-action.ts'
 import { transitionAction } from '../src/ui/actions/action-lifecycle.ts'
+import { sequenceActions } from '../src/ui/actions/action-delivery.ts'
+import { neowDecisionKey } from '../src/ui/actions/neow-choice.ts'
+import { setupStepKey } from '../src/ui/actions/setup-choice.ts'
 
 const player = createPlayer(createRng(47), 'p1', 'Ironclad', 'ironclad', 0)
 player.hp = 1
@@ -93,4 +96,20 @@ await sendRoomActions(batch.actions, async () => { calls++; return { status: 'ac
 assert.equal(calls, 1, 'scope changes cancel unsent actions, not just stale response handling')
 const failure = new Error('delivery uncertain')
 await assert.rejects(sendRoomActions(batch.actions, async () => { throw failure }, () => true), error => error === failure)
+const localSequence = []
+sequenceActions([() => { localSequence.push('choice') }, () => { localSequence.push('resolve') }], () => true)
+assert.deepEqual(localSequence, ['choice', 'resolve'], 'local state updaters retain their synchronous ordering')
+for (const status of ['unknown', 'refused', 'reconciled']) {
+  const steps = []
+  await sequenceActions([async () => { steps.push('choice'); return { status } },
+    () => { steps.push('resolve') }], () => true)
+  assert.deepEqual(steps, ['choice'], 'unconfirmed relic choices must not trigger dependent mutations')
+}
+assert.throws(() => sequenceActions([() => { throw failure }], () => true), error => error === failure)
+const progress = { redRewardPending: true, redReward: null, blueOption: null, pendingEffect: null,
+  rewardKind: null, reward: null, done: false }
+assert.equal(neowDecisionKey(progress), neowDecisionKey({ ...progress, availableSources: ['silent'] }))
+assert.notEqual(neowDecisionKey(progress), neowDecisionKey({ ...progress, redRewardPending: false }))
+const setup = { rowIndex: 1, repeatIndex: 0, playerIndex: 0, die: null }
+assert.notEqual(setupStepKey(setup), setupStepKey({ ...setup, repeatIndex: 1 }))
 console.log('PASS noncombat workflows: campfire parity, accepted/unknown evidence, and partial-batch safety')

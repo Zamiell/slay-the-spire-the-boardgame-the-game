@@ -1213,7 +1213,7 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
           onChange={updateCombat}
         /></div><CourierPanel players={run.combat.players} viewerId={viewerId} ascension={run.ascension} offer={run.courier.offer} onResolve={(decision, payments = {}, discardPotionId) => setRun((current) => decideCourier(current, current.courier.offer?.playerId ?? viewerId, decision, payments, discardPotionId))} /></>
       ) : null}
-      {pendingPreview ? <RelicResolvePanel key={`${pendingPreview.id}:${JSON.stringify(pendingPreview.rewardIndices ?? {})}`}
+      {pendingPreview ? <RelicResolvePanel key={`${viewerId}:${pendingPreview.id}`}
         pending={pendingPreview}
         player={viewer!} potion={run.rewards.find((offer) => offer.playerId === viewerId)?.potion}
         ascension={run.ascension}

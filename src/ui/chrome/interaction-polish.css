@@ -17,7 +17,7 @@
   -webkit-tap-highlight-color: transparent;
 }
 /* The chest owns its silhouette focus highlight; its transparent hit box must stay invisible. */
-:root :is(button, summary):not(.card, .enemy, .room, .compendium-card, .power, .pile, .map-drawing__button, .ribbon-back, .treasure-open):focus-visible {
+:root :is(button, summary):not(.card, .enemy, .room, .compendium-card, .power, .pile, .map-drawing__button, .ribbon-back, .treasure-open, .treasure-skip):focus-visible {
   transition-duration: var(--ui-hover);
   outline: 2px solid var(--ui-focus);
   outline-offset: -4px;

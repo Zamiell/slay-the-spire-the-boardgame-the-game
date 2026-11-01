@@ -200,7 +200,8 @@ try {
     await stage(makeRoom('treasure'))
     await shot('treasure-closed', page.getByRole('button', { name: 'Open treasure chest', exact: true }))
     await page.getByRole('button', { name: 'Open treasure chest', exact: true }).click()
-    await page.waitForTimeout(1700)
+    await page.waitForFunction(() => document.querySelector('.treasure-stage')?.dataset.skipReady === 'true')
+    await page.waitForTimeout(550)
     await shot('treasure-opened', page.locator('[data-treasure-slot]').first())
     const reward = postNeowRun(47, seats)
     Object.assign(reward, { phase: 'reward', rewardDestination: 'map',

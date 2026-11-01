@@ -1,6 +1,7 @@
 /* Scene assets were extracted from the supplied recording, including its black void. */
 .app-shell:has(.treasure-stage)::before { background: #000; }
 .sts-scope .treasure-stage {
+  --treasure-expo: linear(0, .5 10%, .75 20%, .875 30%, .9375 40%, .96875 50%, .984375 60%, 1);
   display: block;
   position: relative;
   isolation: isolate;
@@ -21,11 +22,10 @@
   position: absolute;
   left: 50%;
   bottom: 0;
-  width: min(100cqw, 135cqh);
+  width: min(100cqw, 150cqh);
   aspect-ratio: 3 / 2;
   transform: translateX(-50%);
 }
-.sts-scope .treasure-stage[data-opened='true'] .treasure-scene { width: min(100cqw, 150cqh); }
 .sts-scope .treasure-ground, .sts-scope .treasure-chest {
   position: absolute;
   inset: 0;
@@ -34,7 +34,8 @@
   object-fit: contain;
   pointer-events: none;
 }
-.sts-scope .treasure-stage[data-opened='true'] :is(.treasure-ground, .treasure-chest) { filter: brightness(0.65); }
+.sts-scope .treasure-stage[data-opened='true'] .treasure-chest { filter: brightness(0.5); }
+.sts-scope .treasure-stage[data-opening='true'] .treasure-chest { animation: treasure-dim 400ms linear both; }
 .sts-scope .treasure-stage .room-banner {
   position: absolute;
   top: 12%;
@@ -63,6 +64,9 @@
   color: #f6edcb;
   text-shadow: 2px 2px 0 #51462f, -1px -1px 0 #51462f;
 }
+.sts-scope .treasure-stage[data-opening='true'] .room-banner {
+  animation: treasure-banner-in 400ms cubic-bezier(.175,.885,.32,1.275) both;
+}
 .sts-scope .treasure-open {
   position: absolute;
   left: 22%; top: 23%; width: 63%; height: 70%;
@@ -88,7 +92,13 @@
   pointer-events: none;
 }
 .sts-scope .treasure-offer { flex: none; text-align: center; }
+.sts-scope .treasure-stage[data-opening='true'] .treasure-offer {
+  animation: treasure-reveal 600ms cubic-bezier(.175,.885,.32,1.275) both;
+  animation-delay: calc(300ms + var(--relic-delay));
+}
 .sts-scope .treasure-offer__relic {
+  position: relative;
+  isolation: isolate;
   display: grid; place-items: center;
   width: clamp(56px, 15cqh, 144px); height: clamp(56px, 15cqh, 144px); margin: auto;
   padding: 8px; border: 0; background: none; cursor: pointer; pointer-events: auto;
@@ -96,11 +106,36 @@
 .sts-scope .treasure-offer__relic .item-icon-image {
   width: 100%; height: 100%; object-fit: contain;
   filter: drop-shadow(0 3px 4px #0009);
-  animation: treasure-reveal 500ms ease-out both;
-  animation-delay: calc(350ms + var(--relic-delay));
+  transform: none;
+  scale: 1;
+  transition: scale 400ms var(--treasure-expo);
 }
-.sts-scope .treasure-offer__relic:is(:hover, :focus-visible):not([aria-disabled='true']) .item-icon-image { filter: drop-shadow(0 0 8px #f0b40099) brightness(1.12); }
+.sts-scope .treasure-offer__relic:not([data-taken])::before {
+  content: '';
+  position: absolute;
+  inset: -10%;
+  z-index: -1;
+  pointer-events: none;
+  background: repeating-conic-gradient(from 6deg, transparent 0deg 12deg, #ffc94a99 15deg, transparent 18deg 30deg);
+  mask-image: radial-gradient(ellipse, #000 10%, #0008 33%, transparent 65%);
+  animation: treasure-glow 2s ease-in-out infinite alternate;
+}
+.sts-scope .treasure-offer__relic:focus-visible:not(:disabled, [aria-disabled='true']) .item-icon-image {
+  scale: 1.05; transition-duration: 50ms; transition-timing-function: linear;
+}
+@media (hover: hover) {
+  .sts-scope .treasure-offer__relic:hover:not(:disabled, [aria-disabled='true']) .item-icon-image {
+    scale: 1.05; transition-duration: 50ms; transition-timing-function: linear;
+  }
+}
+.sts-scope .treasure-offer__relic:is(:active, [data-ui-pressed]):not(:disabled, [aria-disabled='true']) .item-icon-image {
+  scale: .95;
+  transition-duration: 400ms;
+  transition-timing-function: var(--treasure-expo);
+}
+.sts-scope .treasure-offer__relic[data-released]:not(:active, [data-ui-pressed]) .item-icon-image { scale: 1; transition-duration: 50ms; }
 .sts-scope .treasure-offer__relic:focus-visible { outline: 2px solid #b0e5e8; border-radius: 50%; }
+.sts-scope .treasure-offer__relic:disabled { opacity: 1; pointer-events: none; }
 .sts-scope .treasure-offer__relic[aria-disabled='true'] { cursor: default; }
 .sts-scope .treasure-offer__relic[data-taken='true'] { pointer-events: none; }
 .sts-scope .treasure-offer small { color: var(--claim-color); font-size: 12px; text-shadow: 0 2px 3px #000; }
@@ -118,8 +153,13 @@
   padding: 0;
   margin: 0;
 }
+.sts-scope .treasure-stage[data-skip-ready='false'] .treasure-actions { visibility: hidden; }
+.sts-scope .treasure-stage[data-opening='true'][data-skip-ready='true'] .treasure-actions {
+  animation: treasure-skip-in 500ms var(--treasure-expo) both;
+}
 .sts-scope .treasure-actions .treasure-skip {
-  position: static;
+  position: relative;
+  isolation: isolate;
   display: grid;
   place-items: center;
   width: clamp(8rem, 17cqw, 18rem);
@@ -131,7 +171,7 @@
   border: 0;
   border-radius: 0;
   clip-path: none;
-  background: url('/assets/ui/treasure-skip.svg') center / 100% 100% no-repeat;
+  background: none;
   box-shadow: none;
   color: #fff6e2;
   font: 700 clamp(1rem, 4cqh, 2.4rem) 'Kreon', Georgia, serif;
@@ -139,6 +179,42 @@
   paint-order: stroke fill;
   text-shadow: 0 3px 0 #442018;
 }
+.sts-scope .treasure-actions .treasure-skip::before,
+.sts-scope .treasure-actions .treasure-skip::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transition: scale 500ms var(--treasure-expo), filter 50ms linear, opacity 50ms linear;
+}
+.sts-scope .treasure-actions .treasure-skip::before {
+  z-index: -1;
+  background: url('/assets/ui/treasure-skip.svg') center / 100% 100% no-repeat;
+}
+.sts-scope .treasure-actions .treasure-skip::after {
+  z-index: -2;
+  background: #ffcc00;
+  mask: url('/assets/ui/treasure-skip.svg') center / 100% 100% no-repeat;
+  scale: 1.02;
+  animation: treasure-skip-pulse 500ms linear infinite alternate;
+}
+.sts-scope .treasure-skip > span { transition: scale 500ms var(--treasure-expo); pointer-events: none; }
+.sts-scope .treasure-actions .treasure-skip:focus-visible { outline: none; }
+.sts-scope .treasure-actions .treasure-skip:is(:hover, :focus-visible):not(:disabled) {
+  color: #fff6e2; filter: none; transform: none;
+}
+.sts-scope .treasure-actions .treasure-skip:is(:hover, :focus-visible):not(:disabled)::before {
+  scale: 1.05; filter: brightness(1.4); transition-duration: 50ms;
+}
+.sts-scope .treasure-actions .treasure-skip:is(:hover, :focus-visible):not(:disabled)::after {
+  scale: 1.07; opacity: 1; animation: none; transition-duration: 50ms;
+}
+.sts-scope .treasure-skip:is(:hover, :focus-visible):not(:disabled) > span { scale: 1.05; transition-duration: 50ms; }
+.sts-scope .treasure-actions .treasure-skip:is(:active, [data-ui-pressed]):not(:disabled)::before {
+  scale: .95; filter: brightness(.5) saturate(.8); transition-duration: 500ms, 250ms;
+}
+.sts-scope .treasure-actions .treasure-skip:is(:active, [data-ui-pressed]):not(:disabled)::after { opacity: 0; animation: none; }
+.sts-scope .treasure-skip:is(:active, [data-ui-pressed]):not(:disabled) > span { scale: .95; transition-duration: 500ms; }
 .sts-scope .treasure-actions > button:not(.treasure-skip) { min-width: 0; min-height: 44px; }
 .sts-scope .treasure-status {
   position: absolute; bottom: 0.6rem; left: 50%; transform: translateX(-50%);
@@ -146,14 +222,26 @@
 }
 .sts-scope .treasure-coins { position: absolute; inset: 0; z-index: 3; pointer-events: none; overflow: hidden; }
 .sts-scope .treasure-coins img {
-  position: absolute; left: 54%; top: 58%; width: 23px; height: 23px;
-  animation: treasure-coin 1200ms ease-out both; animation-delay: var(--coin-delay);
+  position: absolute; left: 50%; top: 52%; width: clamp(12px, 3cqh, 30px); height: auto;
+  animation: treasure-coin 1900ms linear both; animation-delay: var(--coin-delay);
 }
 @keyframes treasure-coin {
-  0% { opacity: 0; transform: translate(0, 0) scale(.5); }
-  15% { opacity: 1; }
-  55% { opacity: 1; transform: translate(var(--coin-x), var(--coin-y)) rotate(140deg); }
-  100% { opacity: 0; transform: translate(calc(var(--coin-x) * 1.3), 90px) rotate(300deg) scale(.5); }
+  0% { opacity: 0; transform: translate(0, 0) rotate(0deg) scale(.5); animation-timing-function: ease-out; }
+  8% { opacity: 1; }
+  40% { opacity: 1; transform: translate(var(--coin-x), var(--coin-y)) rotate(calc(var(--coin-turn) * .4)) rotateY(160deg); animation-timing-function: ease-in; }
+  85% { opacity: .8; }
+  100% { opacity: 0; transform: translate(calc(var(--coin-x) * 1.6), 25cqh) rotate(var(--coin-turn)) rotateY(400deg) scale(.7); }
+}
+.sts-scope .treasure-opening-flash {
+  position: absolute; left: 15%; top: 48%; width: 75%; height: 8%;
+  z-index: 2; pointer-events: none;
+  background: #fff6cf;
+  clip-path: polygon(0 40%, 38% 30%, 25% 0, 49% 30%, 62% 4%, 58% 40%, 100% 65%, 62% 60%, 75% 100%, 50% 67%, 37% 95%, 40% 62%);
+  animation: treasure-flash 220ms ease-out both;
+}
+.sts-scope .treasure-opening-flash::after {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse, #ffe49a, transparent 65%);
 }
 .sts-scope .treasure-claims, .sts-scope.treasure-claims {
   position: fixed;
@@ -185,7 +273,13 @@
 }
 .sts-scope .treasure-claim__relic { position: absolute; animation: treasure-held 1400ms linear both; }
 .sts-scope .treasure-claim__relic .item-icon-image { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 0 10px #ffdc79); }
-@keyframes treasure-reveal { from { opacity: 0; transform: translateY(100px) scale(.3); } to { opacity: 1; transform: none; } }
+@keyframes treasure-reveal { from { opacity: 0; translate: 0 16cqh; } to { opacity: 1; translate: 0 0; } }
+@keyframes treasure-banner-in { from { opacity: 0; translate: 0 5cqh; } to { opacity: 1; translate: 0 0; } }
+@keyframes treasure-dim { from { filter: brightness(1); } to { filter: brightness(.5); } }
+@keyframes treasure-flash { from { opacity: .9; scale: .6 1; } to { opacity: 0; scale: 1.15 .1; } }
+@keyframes treasure-glow { from { opacity: .45; rotate: -4deg; } to { opacity: .85; rotate: 4deg; } }
+@keyframes treasure-skip-in { from { translate: 35cqw 0; opacity: 0; } to { translate: 0 0; opacity: 1; } }
+@keyframes treasure-skip-pulse { from { opacity: .25; } to { opacity: .75; } }
 @keyframes treasure-grab {
   0% { opacity: 0; transform: translate(var(--reach-x), var(--reach-y)); }
   30%, 52% { opacity: 1; transform: translate(0, 0); }
@@ -201,12 +295,20 @@
   .sts-scope .treasure-offer .item-icon-image { animation: none; }
 }
 :root[data-reduced-motion='true'] .sts-scope .treasure-offer .item-icon-image { animation: none; }
+.sts-scope .treasure-stage[data-reduced-motion='true'] :is(.treasure-offer, .room-banner, .treasure-actions),
+.sts-scope .treasure-stage[data-reduced-motion='true'] .treasure-offer__relic::before,
+.sts-scope .treasure-stage[data-reduced-motion='true'] .treasure-skip::after { animation: none; }
+:root .sts-scope .treasure-stage[data-reduced-motion='true'] .treasure-offer .item-icon-image,
+:root .sts-scope .treasure-stage[data-reduced-motion='true'] .treasure-skip::before,
+:root .sts-scope .treasure-stage[data-reduced-motion='true'] .treasure-skip::after,
+:root .sts-scope .treasure-stage[data-reduced-motion='true'] .treasure-skip > span { scale: 1; transition: none; }
 .sts-scope .treasure-departure {
   position: fixed;
   background: #000;
   animation: treasure-depart 1400ms linear both;
 }
-.sts-scope .treasure-departure > img { position: fixed; object-fit: contain; filter: brightness(0.65); }
+.sts-scope .treasure-departure > img { position: fixed; object-fit: contain; }
+.sts-scope .treasure-departure > img:last-child { filter: brightness(0.5); }
 .sts-scope .treasure-claim-source { position: absolute; transform: translate(-50%, -50%); animation: treasure-source 1400ms linear both; }
 .sts-scope .treasure-claim-source .item-icon-image { width: 100%; height: 100%; object-fit: contain; }
 @keyframes treasure-source { 0%, 27% { opacity: 1; } 30%, 100% { opacity: 0; } }

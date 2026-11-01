@@ -85,7 +85,7 @@ try {
           ? await page.addStyleTag({ content: '#root { height: calc(100dvh - 160px); }' }) : null
         await page.locator('.treasure-chest').waitFor()
         await page.getByRole('button', { name: 'Open treasure chest', exact: true }).click()
-        await page.waitForTimeout(1700)
+        await page.waitForTimeout(3100)
         await page.mouse.move(5,5)
         await page.screenshot({ path: `${output}/${engineName}-${name}-before-pick.png` })
         for (const label of ['Skip', '◆ Skip for Sapphire Key']) {
@@ -161,6 +161,7 @@ try {
           const fresh = fixture()
           await page.evaluate((run) => window.__STS_DEBUG__.setRun(run), fresh)
           await page.getByRole('button', { name: 'Open treasure chest', exact: true }).click()
+          await page.waitForFunction(() => document.querySelector('.treasure-stage')?.dataset.revealReady === 'true')
           await page.locator('[data-treasure-slot="0"]').hover()
           assert.equal(await page.locator('.treasure-claim').count(), 0, 'Hover must only show details, never play a reach')
           await page.evaluate((run) => window.__STS_DEBUG__.setRun(run), chooseRelicReward(fresh, 'p2', 0))

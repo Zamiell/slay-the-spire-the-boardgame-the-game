@@ -86,7 +86,7 @@ export function TreasureEffects({ room, players, runId, resolved }: {
     const resize = new ResizeObserver(measure)
     const stage = document.querySelector('.treasure-stage')
     if (stage) {
-      observer.observe(stage, { childList: true, subtree: true })
+      observer.observe(stage, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-reveal-ready'] })
       resize.observe(stage)
     }
     window.addEventListener('resize', measure)

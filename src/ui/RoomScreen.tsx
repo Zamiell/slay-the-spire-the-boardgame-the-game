@@ -593,8 +593,25 @@ function RelicRoomScreen({
   const reducedMotion = useReducedEffects();
   const openingId = useId();
   const keyboardOpening = useRef(false);
+  const pointerOpening = useRef(false);
   const [opened, setOpened] = useState(Object.keys(room.decisions).length > 0);
   const [playOpening, setPlayOpening] = useState(false);
+  const [revealReady, setRevealReady] = useState(false);
+  const [skipReady, setSkipReady] = useState(false);
+  const offerCount = room.sharedOffers?.length ?? room.playerIds.length;
+  useEffect(() => {
+    if (!opened) return;
+    if (reducedMotion || !playOpening) {
+      setRevealReady(true);
+      setSkipReady(true);
+      if (reducedMotion) setPlayOpening(false);
+      return;
+    }
+    // Relics enable on their actual entrance completion; Skip follows the 2.5s reveal beat.
+    const skip = window.setTimeout(() => setSkipReady(true), 2500);
+    const finish = window.setTimeout(() => setPlayOpening(false), 3000);
+    return () => { window.clearTimeout(skip); window.clearTimeout(finish); };
+  }, [opened, playOpening, reducedMotion]);
   const player =
     players.find((candidate) => candidate.id === viewerId) ?? players[0]!;
   const relic = room.offers[player.id];
@@ -637,8 +654,8 @@ function RelicRoomScreen({
   }, [automaticSkip, automaticSkipKey, automaticSkipRetry, player.id]);
   const firstAction = useRef<HTMLButtonElement>(null);
   useEffect(() => {
-    if (decided === undefined && (!opened || keyboardOpening.current)) firstAction.current?.focus();
-  }, [decided, firstSharedOffer, player.id, relic, opened]);
+    if (decided === undefined && opened && revealReady && keyboardOpening.current) firstAction.current?.focus();
+  }, [decided, firstSharedOffer, player.id, relic, opened, revealReady]);
   if (room.kind === "elite") return <section className="reward-screen reward-screen--loot" aria-label="Elite loot">
     <h2 className="reward-screen__title">Loot!</h2>
     <div className="reward-screen__players"><div className="reward-screen__player">
@@ -654,6 +671,10 @@ function RelicRoomScreen({
     <section
       className="room-stage treasure-stage"
       data-opened={opened}
+      data-opening={playOpening && !reducedMotion}
+      data-reveal-ready={revealReady}
+      data-skip-ready={skipReady}
+      data-reduced-motion={reducedMotion}
       aria-label={opened ? undefined : "Treasure room"}
       aria-labelledby={opened ? "treasure-title" : undefined}
       aria-describedby={opened ? "treasure-description" : undefined}
@@ -669,10 +690,24 @@ function RelicRoomScreen({
         </p>
       </div> : null}
         {[...new Set(players.flatMap((seat) => [treasureHandPath(playerVisualId(seat)), treasureHandPath(playerVisualId(seat), true)]))].map((href) => <link key={href} rel="preload" as="image" href={href} />)}
+        {["chest-open.webp", "chest-opening.webp", "banner.webp", "coin.webp"].map((file) => <link key={file} rel="preload" as="image"
+          href={`${assetPath(`noncombat/treasure/${file}`)}${file === "chest-opening.webp" ? `?opening=${encodeURIComponent(openingId)}` : ""}`} />)}
+        <link rel="preload" as="image" href={assetPath("ui/treasure-skip.svg")} />
         <img className="treasure-ground" src={assetPath("noncombat/treasure/background.webp")} alt="" />
         <img className="treasure-chest" src={`${assetPath(`noncombat/treasure/${!opened ? "chest-closed" : reducedMotion || !playOpening ? "chest-open" : "chest-opening"}.webp`)}${playOpening && !reducedMotion ? `?opening=${encodeURIComponent(openingId)}` : ""}`} alt="A vine-covered treasure chest" />
-        {!opened ? <button className="treasure-open" type="button" ref={firstAction} onClick={(event) => { keyboardOpening.current = event.detail === 0; setPlayOpening(true); setOpened(true); }}>Open treasure chest</button> : null}
-        {opened && playOpening && !reducedMotion ? <div className="treasure-coins" aria-hidden="true">{Array.from({ length: 22 }, (_, index) => <img key={index} src={assetPath("noncombat/treasure/coin.webp")} alt="" style={{ "--coin-x": `${Math.sin(index * 2.4) * 190}px`, "--coin-y": `${-100 - index % 5 * 24}px`, "--coin-delay": `${100 + index % 7 * 65}ms` } as CSSProperties} />)}</div> : null}
+        {!opened ? <button className="treasure-open" type="button" ref={firstAction}
+          onPointerDown={() => { pointerOpening.current = true; }}
+          onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") pointerOpening.current = false; }}
+          onClick={(event) => {
+            keyboardOpening.current = event.detail === 0 && !pointerOpening.current;
+            pointerOpening.current = false;
+            setPlayOpening(true);
+            setOpened(true);
+          }}>Open treasure chest</button> : null}
+        {opened && playOpening && !reducedMotion ? <>
+          <div className="treasure-opening-flash" aria-hidden="true" />
+          <div className="treasure-coins" aria-hidden="true">{Array.from({ length: 38 }, (_, index) => <img key={index} src={assetPath("noncombat/treasure/coin.webp")} alt="" style={{ "--coin-x": `${Math.sin(index * 2.4) * 23}cqh`, "--coin-y": `${-13 - index % 5 * 4}cqh`, "--coin-delay": `${140 + index % 9 * 55}ms`, "--coin-turn": `${index % 2 ? -540 : 540}deg` } as CSSProperties} />)}</div>
+        </> : null}
         {opened ? <div className="treasure-offers" aria-label={room.sharedOffers ? "Shared relic choices" : "Party relics"}>
           {(room.sharedOffers ?? room.playerIds.map((id) => room.offers[id])).map((id, index) => {
             const ownerId = room.playerIds[index]!;
@@ -682,13 +717,25 @@ function RelicRoomScreen({
             const owner = players.find((candidate) => candidate.id === (claimedBy ?? ownerId));
             const unavailable = room.sharedOffers ? Boolean(claimedBy) : room.decisions[ownerId] !== undefined;
             const canTake = Boolean(id) && decided === undefined && !unavailable && Boolean(room.sharedOffers || ownerId === player.id);
-            return <div className="treasure-offer" key={`${index}-${id}`} style={{ "--relic-delay": `${index * 100}ms`, "--claim-color": treasurePlayerColor(index) } as CSSProperties}>
+            return <div className="treasure-offer" key={`${index}-${id}`}
+              onAnimationEnd={(event) => {
+                if (event.target === event.currentTarget && event.animationName === "treasure-reveal" && index === offerCount - 1) setRevealReady(true);
+              }}
+              style={{ "--relic-delay": `${index * 80}ms`, "--claim-color": treasurePlayerColor(index) } as CSSProperties}>
               {id && !claimedBy ? <PotionTooltipAnchor key={id} id={id} name={relicDef(id).name} text={relicDef(id).text} kindLabel="Relic" confirmLabel={canTake ? "take this relic" : undefined} hoverable>
                 <button type="button" ref={canTake && (room.sharedOffers ? index === firstSharedOffer : true) ? firstAction : undefined}
                   data-treasure-slot={room.sharedOffers ? index : ownerId} className="treasure-offer__relic"
                   aria-label={`${!room.sharedOffers && ownerId === player.id ? "Take relic — " : ""}${relicDef(id).name}. ${relicDef(id).text}`}
                   aria-disabled={!canTake}
-                  onClick={() => { if (canTake) onRelic(player.id, room.sharedOffers ? index : "take"); }}>
+                  disabled={!revealReady}
+                  onPointerEnter={(event) => { delete event.currentTarget.dataset.released; }}
+                  onPointerLeave={(event) => { delete event.currentTarget.dataset.released; }}
+                  onPointerDown={(event) => { delete event.currentTarget.dataset.released; }}
+                  onPointerUp={(event) => { event.currentTarget.dataset.released = "true"; }}
+                  onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") delete event.currentTarget.dataset.released; }}
+                  onKeyUp={(event) => { if (event.key === "Enter" || event.key === " ") event.currentTarget.dataset.released = "true"; }}
+                  onBlur={(event) => { delete event.currentTarget.dataset.released; }}
+                  onClick={() => { if (canTake && revealReady) onRelic(player.id, room.sharedOffers ? index : "take"); }}>
                   <ItemImage kind="relic" id={id} />
                 </button>
               </PotionTooltipAnchor> : claimedBy ? <span className="treasure-offer__relic" data-treasure-slot={room.sharedOffers ? index : ownerId} data-taken="true" aria-hidden="true" /> : <span className="treasure-offer__empty">✦</span>}
@@ -701,7 +748,7 @@ function RelicRoomScreen({
         {canChooseSapphire ? (
           <button
             type="button"
-            disabled={!fullReward || decided !== undefined}
+            disabled={!skipReady || !fullReward || decided !== undefined}
             onClick={() => onRelic(player.id, "sapphire")}
           >
             ◆ Skip for Sapphire Key
@@ -711,10 +758,10 @@ function RelicRoomScreen({
           ref={room.sharedOffers ? firstSharedOffer < 0 ? firstAction : undefined : !relic ? firstAction : undefined}
           type="button"
           className="room-proceed treasure-skip"
-          disabled={decided !== undefined}
+          disabled={!skipReady || decided !== undefined}
           onClick={() => onRelic(player.id, "skip")}
         >
-          Skip
+          <span>Skip</span>
         </button> : <p role="status">No Relic or Sapphire choice remains · skipping automatically…</p>}
       </div> : null}
       {decided !== undefined ? (

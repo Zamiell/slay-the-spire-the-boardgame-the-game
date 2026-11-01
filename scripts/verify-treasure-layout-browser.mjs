@@ -39,13 +39,17 @@ try {
     }
     const activate = async control => phone ? control.tap() : control.click()
     const readRun = () => page.evaluate(() => window.__STS_DEBUG__.getRun())
-    await page.keyboard.press('Tab')
+    await page.mouse.move(0, 0)
     await stage(fixture())
     assert.equal(await page.locator('.treasure-stage h2').count(), 0, 'the closed scene must not show a reward banner')
     assert.equal(await page.locator('.treasure-offers, .treasure-actions').count(), 0)
     await page.locator('.treasure-chest').evaluate(image => image.decode())
     await page.screenshot({ path: `${output}/${screen}-closed.png` })
     const chest = page.getByRole('button', { name: 'Open treasure chest', exact: true })
+    assert.equal(await chest.evaluate(button => button === document.activeElement), false,
+      'arrival must not pre-highlight the chest before the pointer or keyboard reaches it')
+    assert.equal(await page.locator('.treasure-chest').evaluate(image => getComputedStyle(image).filter), 'none')
+    const closedScene = await page.locator('.treasure-scene').boundingBox()
     const checkChestHighlight = async state => {
       const style = await chest.evaluate(button => {
         const css = getComputedStyle(button)
@@ -60,7 +64,9 @@ try {
       assert.match(style.highlight, /drop-shadow/, `${screen}/${state}: highlight the chest silhouette instead`)
       return style
     }
-    assert((await checkChestHighlight('arrival')).focused, 'keyboard arrival must retain visible focus')
+    await page.keyboard.press('Tab')
+    await chest.focus()
+    assert((await checkChestHighlight('keyboard')).focused, 'keyboard navigation must retain visible focus')
     await page.waitForTimeout(300)
     if (!phone) {
       await chest.hover()
@@ -81,7 +87,32 @@ try {
     const beforeOpen = await readRun()
     await activate(page.getByRole('button', { name: 'Open treasure chest', exact: true }))
     await page.getByRole('heading', { name: "What's Inside?", exact: true }).waitFor()
-    await page.waitForTimeout(1700)
+    assert.deepEqual(await page.locator('.treasure-scene').boundingBox(), closedScene,
+      'opening must not resize the chest or move its base')
+    assert.equal(await page.locator('.treasure-stage').getAttribute('data-skip-ready'), 'false')
+    assert.equal(await page.locator('.treasure-skip').isEnabled(), false, 'Skip must not interrupt the reveal')
+    assert.equal(await page.locator('.treasure-opening-flash').count(), 1)
+    const bannerMotion = await page.locator('.room-banner').evaluate(banner => {
+      const animation = banner.getAnimations().find(animation => animation.animationName === 'treasure-banner-in')
+      const previousTime = animation.currentTime
+      animation.pause()
+      const positions = [0, 300, 400].map(time => {
+        animation.currentTime = time
+        return { y: banner.getBoundingClientRect().y, opacity: Number(getComputedStyle(banner).opacity) }
+      })
+      animation.currentTime = previousTime
+      animation.play()
+      return positions
+    })
+    assert(bannerMotion[0].y > bannerMotion[2].y && bannerMotion[1].y < bannerMotion[2].y,
+      'the banner must rise with a settling overshoot, not just appear')
+    assert.equal(bannerMotion[0].opacity, 0)
+    await page.waitForTimeout(1100)
+    await page.screenshot({ path: `${output}/${screen}-opening.png` })
+    assert.equal(await page.locator('.treasure-stage').getAttribute('data-reveal-ready'), 'true')
+    assert.equal(await page.locator('.treasure-stage').getAttribute('data-skip-ready'), 'false')
+    await page.waitForFunction(() => document.querySelector('.treasure-stage')?.dataset.skipReady === 'true')
+    await page.waitForTimeout(550)
     assert.deepEqual(await readRun(), beforeOpen, 'opening the chest is presentation, not an item claim')
     assert.equal(await page.locator('.potion-tip:visible').count(), 0, 'pointer opening must not automatically show relic help')
     assert.equal(await page.getByRole('button', { name: 'Take relic', exact: true }).count(), 0)
@@ -103,11 +134,13 @@ try {
         bannerAbove: banner.bottom < relic.top,
         skipRight: skip.left > relic.right && skip.top > relic.bottom,
         fits: skip.right <= innerWidth && skip.bottom <= innerHeight && skip.top >= box.top,
-        arrow: getComputedStyle(stage.querySelector('.treasure-skip')).backgroundImage,
+        arrow: getComputedStyle(stage.querySelector('.treasure-skip'), '::before').backgroundImage,
       }
     })
     assert(layout.centered && layout.bannerAbove && layout.skipRight && layout.fits, JSON.stringify(layout))
     assert.match(layout.arrow, /treasure-skip\.svg/)
+    assert.equal(await skip.evaluate(button => getComputedStyle(button, '::after').animationDuration), '0.5s',
+      'the Skip outline must breathe through a one-second down/up cycle')
     await page.evaluate(() => document.fonts.ready)
     const titleAlignment = await page.locator('#treasure-title').evaluate(title => {
       const banner = title.parentElement.getBoundingClientRect()
@@ -136,8 +169,44 @@ try {
     assert(Math.abs(titleAlignment.dx) <= 2 && Math.abs(titleAlignment.dy) <= 2 && titleAlignment.fits,
       `${screen}: title ink must be centered on the parchment writing face, not its tails: ${JSON.stringify(titleAlignment)}`)
     await page.screenshot({ path: `${output}/${screen}-opened.png` })
+    const relicBounds = await relic.boundingBox()
     if (phone) await relic.tap()
-    else await relic.hover()
+    else {
+      await relic.locator('.item-icon-image').evaluate(image => {
+        image.addEventListener('transitionrun', event => {
+          if (event.propertyName !== 'scale') return
+          const animation = image.getAnimations().find(animation => animation.transitionProperty === 'scale')
+          animation.pause()
+          image.hoverTween = animation
+        }, { once: true })
+      })
+      await relic.hover()
+      await page.waitForFunction(() => document.querySelector('[data-treasure-slot] .item-icon-image')?.hoverTween)
+      const hover = await relic.locator('.item-icon-image').evaluate(image => {
+        const animation = image.hoverTween
+        const duration = animation.effect.getTiming().duration
+        const widths = [0, duration / 2, duration].map(time => {
+          animation.currentTime = time
+          return image.getBoundingClientRect().width
+        })
+        animation.finish()
+        return { duration, widths }
+      })
+      assert.equal(hover.duration, 50)
+      assert(hover.widths[0] < hover.widths[1] && hover.widths[1] < hover.widths[2])
+      assert(Math.abs(hover.widths[2] / hover.widths[0] - 1.05) < .001)
+      assert.equal(await relic.locator('.item-icon-image').evaluate(image => getComputedStyle(image).transform), 'none',
+        'the generic potion-belt scale/lift must not stack with the treasure tween')
+      assert.deepEqual(await relic.boundingBox(), relicBounds, 'relic hover must not move its hit target')
+      await page.mouse.down()
+      await page.waitForTimeout(450)
+      assert.equal(await relic.locator('.item-icon-image').evaluate(image => getComputedStyle(image).scale), '0.95')
+      await page.mouse.move(0, 0)
+      await page.mouse.up()
+      await page.waitForTimeout(450)
+      assert.equal(await relic.locator('.item-icon-image').evaluate(image => getComputedStyle(image).scale), '1')
+      await relic.hover()
+    }
     const tip = page.locator('.potion-tip:visible')
     await tip.waitFor()
     assert((await tip.innerText()).includes(relicDef('war_paint').name))
@@ -146,6 +215,23 @@ try {
     if (phone) await page.keyboard.press('Escape')
     else await page.mouse.move(0, 0)
     await tip.waitFor({ state: 'detached' })
+    if (!phone) {
+      const bounds = await skip.boundingBox()
+      await skip.hover()
+      await page.waitForTimeout(80)
+      assert.equal(await skip.evaluate(button => getComputedStyle(button, '::before').scale), '1.05')
+      assert.equal(await skip.evaluate(button => getComputedStyle(button, '::before').filter), 'brightness(1.4)')
+      assert.equal(await skip.evaluate(button => getComputedStyle(button).filter), 'none',
+        'generic Proceed brightness must not stack with the arrow image feedback')
+      assert.deepEqual(await skip.boundingBox(), bounds, 'Skip feedback must not move the hit target')
+      await page.screenshot({ path: `${output}/${screen}-skip-hover.png` })
+      await page.mouse.down()
+      await page.waitForTimeout(550)
+      assert.equal(await skip.evaluate(button => getComputedStyle(button, '::before').scale), '0.95')
+      await page.mouse.move(0, 0)
+      await page.mouse.up()
+      assert.deepEqual(await readRun(), beforeOpen, 'canceling a Skip press must not leave the room')
+    }
     await activate(skip)
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().phase === 'map')
 
@@ -154,6 +240,7 @@ try {
     await page.waitForTimeout(1700)
     const beforeTake = await readRun()
     const offer = page.locator('[data-treasure-slot="p1"]')
+    const offeredBounds = await offer.boundingBox()
     if (phone) {
       await offer.tap()
       assert.deepEqual(await readRun(), beforeTake, 'the first touch must still only inspect')
@@ -161,6 +248,10 @@ try {
     } else await offer.click()
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().phase === 'map')
     assert((await readRun()).players[0].relics.some(relic => relic.defId === 'vajra'))
+    const claimBounds = await page.locator('.treasure-claim-source').boundingBox()
+    assert(Math.abs(claimBounds.x + claimBounds.width / 2 - offeredBounds.x - offeredBounds.width / 2) <= 2 &&
+      Math.abs(claimBounds.y + claimBounds.height / 2 - offeredBounds.y - offeredBounds.height / 2) <= 2,
+    `pickup must start at the settled relic: ${JSON.stringify({ offeredBounds, claimBounds })}`)
     await page.locator('.treasure-departure').waitFor()
     await page.locator('.treasure-claim').waitFor({ state: 'detached' })
     assert.equal(await page.locator('.treasure-departure').count(), 0, 'pickup must finish before the next room')
@@ -169,14 +260,42 @@ try {
     await page.getByRole('button', { name: 'Open treasure chest', exact: true }).focus()
     await page.keyboard.press('Enter')
     await page.getByRole('heading', { name: "What's Inside?", exact: true }).waitFor()
+    await page.waitForFunction(() => document.querySelector('[data-treasure-slot="p1"]') === document.activeElement)
     assert(await page.locator('[data-treasure-slot="p1"]').evaluate(element => element === document.activeElement),
       'keyboard opening must focus the available relic')
     await page.locator('.potion-tip:visible').waitFor()
-    await page.waitForTimeout(1700)
+    await page.waitForFunction(() => document.querySelector('.treasure-stage')?.dataset.skipReady === 'true')
+    await page.waitForTimeout(550)
     await page.keyboard.press('Escape')
     await activate(page.getByRole('button', { name: '◆ Skip for Sapphire Key', exact: true }))
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().phase === 'map')
     assert.equal((await readRun()).campaign.keys.sapphire, true)
+    if (phone) {
+      await stage(fixture())
+      await chest.dispatchEvent('pointerdown', { pointerType: 'touch' })
+      await chest.dispatchEvent('click', { detail: 0 })
+      await page.waitForFunction(() => document.querySelector('.treasure-stage')?.dataset.revealReady === 'true')
+      assert.equal(await page.locator('.potion-tip:visible').count(), 0,
+        'a touch-generated zero-detail click must not become keyboard focus after the reveal')
+    }
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    // The in-game setting also applies on phones, where OS animation preferences can be overridden.
+    await page.evaluate(() => { document.documentElement.dataset.reducedMotion = 'true' })
+    await stage(fixture())
+    await activate(chest)
+    await page.waitForFunction(() => document.querySelector('.treasure-stage')?.dataset.skipReady === 'true')
+    assert.equal(await page.locator('.treasure-opening-flash, .treasure-coins').count(), 0)
+    assert.equal(await page.locator('.room-banner').evaluate(element => element.getAnimations().length), 0)
+    assert.equal(await page.locator('.treasure-skip').evaluate(element =>
+      getComputedStyle(element, '::after').animationName), 'none')
+    if (!phone) {
+      await relic.hover()
+      assert.equal(await relic.locator('.item-icon-image').evaluate(image => getComputedStyle(image).scale), '1')
+      await skip.hover()
+      assert.equal(await skip.evaluate(button => getComputedStyle(button, '::before').scale), '1')
+      assert(await skip.evaluate(button => parseFloat(getComputedStyle(button, '::before').transitionDuration) <= 0.001),
+        'reduced-motion feedback must be effectively instantaneous')
+    }
     assert.deepEqual(errors, [])
     console.log(`PASS ${screen}: closed/open layout, pointer help, relic claim, Skip, keyboard and Sapphire choice`)
     const video = page.video()

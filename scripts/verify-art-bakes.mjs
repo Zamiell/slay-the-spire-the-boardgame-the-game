@@ -9,6 +9,7 @@ import { spawnSync } from 'node:child_process'
 import { join } from 'node:path'
 import { SKIN_IDS } from '../src/game/skins.ts'
 import { scratchDir } from './lib/test-skins.mjs'
+import { requireArtToolchain } from './lib/art-toolchain.mjs'
 import { SKIN_CARD_FACES } from '../src/game/skin-card-faces.ts'
 import { suite, check, assert, assertDeepEqual, assertEqual, report } from './lib/harness.mjs'
 import {
@@ -48,6 +49,7 @@ import {
   skinConfigs,
 } from './lib/asset-inventory.mjs'
 
+requireArtToolchain()
 suite('art bakes')
 
 check('Chromium idle companions preserve alpha, colour, frame timing and their source hashes', () => {

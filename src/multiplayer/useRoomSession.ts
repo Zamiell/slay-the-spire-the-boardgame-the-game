@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { DailyModifierId, RunMetaOptions } from '../game/meta.ts'
 import type { CharacterId } from '../game/types.ts'
 import type { ActionOutcome, RoomSnapshot } from '../protocol/room.ts'
+import type { RoomDecisionAction } from '../protocol/decisions.ts'
 import { RoomCredentialsSchema } from '../protocol/actions.ts'
 import type { RoomCredentials } from '../protocol/actions.ts'
 import { is } from 'valibot'
@@ -701,6 +702,7 @@ export function useRoomSession() {
   const start = useCallback((campaign: 'base' | 'downfall', preventDuplicateCardRewards = false) =>
     enqueue('start', { campaign, preventDuplicateCardRewards }), [enqueue])
   const act = useCallback((action: object) => enqueue('action', { action }), [enqueue])
+  const decide: (action: RoomDecisionAction) => Promise<ActionOutcome> = act
   const sendVoiceSignal = useCallback((to: string, signal: VoiceSignal['signal']) => {
     if (socket.current?.readyState !== WebSocket.OPEN) return false
     socket.current.send(JSON.stringify({ type: 'voice', to, signal }))
@@ -793,6 +795,7 @@ export function useRoomSession() {
     start,
     selectCampaign,
     act,
+    decide,
     sendVoiceSignal,
     onVoiceSignal,
     loadVoiceIceServers,

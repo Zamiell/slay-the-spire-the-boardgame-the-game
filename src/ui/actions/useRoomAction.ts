@@ -12,7 +12,7 @@ export type RoomActionContext = {
 export function useRoomAction({ snapshot, refresh, onAction, onRestore }: {
   snapshot: RoomSnapshot
   refresh: number
-  onAction: (action: object) => Promise<ActionOutcome>
+  onAction: (action: NoncombatAction) => Promise<ActionOutcome>
   onRestore?: (actions: readonly NoncombatAction[]) => void
 }) {
   const lifecycle = useActionLifecycle<RoomActionSubmission, RoomSnapshot>({

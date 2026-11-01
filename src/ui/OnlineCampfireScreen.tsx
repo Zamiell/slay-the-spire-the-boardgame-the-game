@@ -10,6 +10,7 @@ import type { CampfirePicker } from './campfire-choice.ts'
 import { useRoomAction } from './actions/useRoomAction.ts'
 import type { RoomActionContext } from './actions/useRoomAction.ts'
 import { RoomActionStatus } from './actions/RoomActionStatus.tsx'
+import type { NoncombatAction } from '../protocol/decisions.ts'
 import { Icon } from './Icon.tsx'
 import { CampfireScene } from './CampfireScene.tsx'
 import { playerVisualId } from '../game/skins.ts'
@@ -21,7 +22,7 @@ type Props = RoomActionContext & {
   saved?: Decision
   decided: string[]
   seats: PublicSeat[]
-  onAction: (action: object) => Promise<ActionOutcome>
+  onAction: (action: NoncombatAction) => Promise<ActionOutcome>
   rubyAvailable?: boolean
   restAllowed?: boolean
   ruleset?: RuleSet

@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true
+  },
+  "include": [
+    "src/server",
+    "src/protocol",
+    "scripts/type-tests",
+    "scripts/lib/rooms/campfire.mjs",
+    "scripts/lib/rooms/merchant.mjs",
+    "scripts/lib/rooms/rewards.mjs",
+    "scripts/lib/rooms/errors.mjs"
+  ]
+}

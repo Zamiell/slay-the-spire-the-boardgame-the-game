@@ -13,10 +13,11 @@
     "dev:rooms": "node scripts/room-server.mjs",
     "dev:assistant": "node scripts/live-run.mjs serve",
     "play": "pnpm dev",
-    "build": "tsc -b && vite build",
+    "build": "pnpm typecheck && vite build",
     "preview": "vite preview --host 0.0.0.0",
     "verify": "node scripts/verify-all.mjs",
     "verify:changed": "node scripts/verify-all.mjs --changed",
+    "verify:art": "node scripts/art-audit.mjs",
     "verify:browser": "node --experimental-strip-types scripts/verify-browser.mjs",
     "verify:ui-fixtures": "playwright test --config scripts/playwright.config.mjs",
     "verify:webmcp": "node --experimental-strip-types scripts/verify-webmcp-browser.mjs",
@@ -34,7 +35,7 @@
     "sync:icons": "node scripts/sync-icons.mjs",
     "sync:enemy-art": "node scripts/sync-enemy-art.mjs",
     "sync:combat-video": "python3 scripts/animation/encode-safari.py",
-    "typecheck": "tsc -b"
+    "typecheck": "tsc -b && tsc -p tsconfig.server.json"
   },
   "dependencies": {
     "@floating-ui/react": "0.27.20",

@@ -78,8 +78,8 @@ curl -L https://contentiongames.com/_images/STS_KS_Rulebook.pdf \
   -o docs/reference/STS_KS_Rulebook.pdf
 ```
 
-On Debian or Ubuntu: `apt install ffmpeg webp`. Each sync script checks for what it
-needs and tells you what is missing rather than failing halfway through.
+These commands cover optional scan extraction, not byte-exact animation rebakes.
+The artwork audit toolchain below must be used for committed generated artwork.
 
 Run `pnpm sync:assets` only to refresh the bundled scans and official HUD symbols or add the
 eleven optional local Act I reference crops described in [ATTRIBUTION.md](ATTRIBUTION.md).
@@ -96,7 +96,42 @@ eleven optional local Act I reference crops described in [ATTRIBUTION.md](ATTRIB
 
 ## Verification
 
-The asset verifier requires Python 3 and Pillow for pixel-level transparency checks.
+The asset verifier requires Python, Pillow, NumPy, WebP, and FFmpeg. Byte-exact
+animation checks additionally require the compatible versions recorded in
+`infra/art-toolchain.json`; arbitrary pip wheels may bundle a different WebP codec.
+
+```bash
+node scripts/art-audit.mjs --check-toolchain
+node scripts/art-audit.mjs --container                    # rootless Podman
+node scripts/art-audit.mjs --container --runtime=docker   # Docker alternative
+```
+
+The container uses an immutable Ubuntu image and dated Ubuntu package snapshot.
+It runs the six image/media audit suites with the checkout mounted read-only and
+network access disabled. Run `pnpm install --frozen-lockfile` first: the mounted
+checkout supplies the Node dependencies. The canonical image targets Linux AMD64;
+other architectures need container emulation. No repository sources or artwork
+are uploaded or included in the image.
+
+The built image can also run the existing Python bake commands documented in
+`scripts/animation/README.md`. For an intentional rebake, mount the checkout
+writable when invoking that image directly; the audit wrapper deliberately does
+not offer a writable mode.
+
+On an Ubuntu 26.04 audit machine, the native equivalent used by CI is:
+
+```bash
+snapshot=$(node -p "require('./infra/art-toolchain.json').aptSnapshot")
+sudo apt-get update --snapshot "$snapshot"
+sudo apt-get install -y --no-install-recommends --snapshot "$snapshot" ffmpeg python3-numpy python3-pil webp
+node scripts/art-audit.mjs --check-toolchain
+pnpm verify:art
+```
+
+If preflight reports a mismatch, use the container rather than regenerating
+committed assets with different codecs. Updating the toolchain is an intentional
+change: update the manifest, verify byte-exact output, and review any necessary
+asset changes separately.
 
 ```bash
 pnpm verify              # every scripts/verify-*.mjs, headless
@@ -114,8 +149,10 @@ run fails on any console error, page error or failed request.
 and browser. Browser checks are opt-in local tools; CI runs the production build and affected
 non-browser checks.
 
-There is no test framework. Each check is a plain Node program that imports the engine
-directly (Node 24 strips TypeScript types on import) and exits non-zero on failure. This
+Engine and server checks are plain Node programs that import the engine directly.
+Compatible browser suites use Playwright Test through the shared silent fixtures,
+with standalone `verify-*-browser.mjs` entrypoints retained. Node 24 strips
+TypeScript types on import, and checks exit non-zero on failure. This
 keeps the engine importable from playtests, the server, and the browser without a build
 step — at the cost of requiring **erasable-only TypeScript** in `src/`: no `enum`, no
 `namespace`, no constructor parameter properties.

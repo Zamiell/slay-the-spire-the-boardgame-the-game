@@ -63,17 +63,29 @@ Type checking currently covers `src`, while server `.mjs` handlers remain
 unchecked. Client action submission accepts `object`, and protocol schemas cover
 selected action families.
 
-- [ ] Define the internal room/store shapes separately from public snapshots.
-- [ ] Introduce typed client action builders or a discriminated action union.
-- [ ] Incrementally check server handlers using those contracts.
-- [ ] Reuse existing protocol schemas where their semantics match.
-- [ ] Preserve legacy coercion, error ordering, and compatibility where they are
+- [x] Define the internal room/store shapes separately from public snapshots.
+- [x] Introduce typed client action builders or a discriminated action union.
+- [x] Incrementally check server handlers using those contracts.
+- [x] Reuse existing protocol schemas where their semantics match.
+- [x] Preserve legacy coercion, error ordering, and compatibility where they are
   intentional.
 
 **Completion criteria:** Checked handlers and clients agree on action fields.
 Runtime validation, authorization, hidden-information projection, rollback, and
 settlement ordering remain authoritative on the server. Types must not replace
 those checks or require a wholesale server rewrite.
+
+**Implemented:** A private room/seat/store core and canonical noncombat decision
+contracts now connect the browser's typed `decide` API to checked campfire,
+merchant, and reward handlers. `pnpm typecheck` and production builds check this
+server slice as well as `src`. Negative compile fixtures reject incomplete
+payments, missing Potion recipients, invalid reward choices, and public seats used
+as private identities. The remaining combat transport stays on its existing
+compatibility path; this is the planned incremental boundary, not a claim that
+the entire JavaScript server has become TypeScript.
+
+**Evidence:** Both compiler projects, 488 room checks, and protocol checks pass.
+Runtime validation, errors, and transaction behavior remain covered.
 
 ## 3. Separate replay, persistence, and validation responsibilities
 
@@ -108,15 +120,26 @@ Some artwork checks compare regenerated encoded bytes. Arbitrary Pillow wheels
 and codec versions can produce different bytes even when source artwork has not
 changed, while CI uses distribution-provided tooling.
 
-- [ ] Provide a documented, reproducible environment for asset audits and baking.
-- [ ] Record the relevant Python, Pillow, NumPy, WebP, and FFmpeg toolchain.
-- [ ] Check compatibility before starting expensive byte-exact audits.
-- [ ] Use the same supported toolchain locally and in CI.
-- [ ] Distinguish toolchain incompatibility from genuinely stale artwork.
+- [x] Provide a documented, reproducible environment for asset audits and baking.
+- [x] Record the relevant Python, Pillow, NumPy, WebP, and FFmpeg toolchain.
+- [x] Check compatibility before starting expensive byte-exact audits.
+- [x] Use the same supported toolchain locally and in CI.
+- [x] Distinguish toolchain incompatibility from genuinely stale artwork.
 
 **Completion criteria:** A documented clean setup reproduces committed assets and
 passes their audits without ad hoc dependency reconstruction. Do not rebake
 unrelated assets merely to accommodate a different local encoder.
+
+**Implemented:** `infra/art-toolchain.json` pins immutable Ubuntu and Node images,
+a dated APT snapshot, and codec versions. `scripts/art-audit.mjs` provides native
+preflight and isolated Podman/Docker audits. Container audits have no network
+access and mount the checkout read-only. CI installs from the same package
+snapshot and reads the Node version from the manifest. README documents setup and
+intentional toolchain upgrades.
+
+**Evidence:** The container builds and its preflight passes. All six image/media
+audit suites passed in that environment: five in the initial run, then the asset
+inventory after adding its missing Git dependency. No artwork was regenerated.
 
 ## 5. Give online combat an explicitly partial view model
 

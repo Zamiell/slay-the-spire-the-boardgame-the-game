@@ -1,0 +1,15 @@
+{
+  "baseImage": "docker.io/library/ubuntu@sha256:157dc3d6e4a3e4f2c68d12df9df9ed6e808b59af6d4c3757b432b4f519916725",
+  "nodeImage": "docker.io/library/node@sha256:e5a8dee7bc1e6a215d224a7ef8206f7e77271bc3cabd5febf2beafac0674f174",
+  "platform": "linux/amd64",
+  "aptSnapshot": "20261101T000000Z",
+  "versions": {
+    "node": "24.19.0",
+    "python": "3.14.4",
+    "pillow": "12.1.1",
+    "numpy": "2.3.5",
+    "webp": "1.5.0",
+    "cwebp": "1.5.0",
+    "ffmpeg": "8.0.1"
+  }
+}

@@ -22,16 +22,23 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - id: art_toolchain
+        run: echo "node=$(node -p "require('./infra/art-toolchain.json').versions.node")" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 24
+          node-version: ${{ steps.art_toolchain.outputs.node }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       # The art bake audits (verify-art-bakes.mjs) probe Ogg audio with ffprobe
       # and batch-decode the committed PNG/WebP inventory with ffmpeg. Neither
       # binary is guaranteed on a fresh hosted runner, so install the package
       # explicitly alongside the Python and WebP tooling used by the pixel audits.
-      - run: sudo apt-get update && sudo apt-get install -y ffmpeg python3-numpy python3-pil webp
+      - name: Install the pinned artwork audit toolchain
+        run: |
+          snapshot=$(node -p "require('./infra/art-toolchain.json').aptSnapshot")
+          sudo apt-get update --snapshot "$snapshot" -o APT::Update::Error-Mode=any
+          sudo apt-get install -y --no-install-recommends --snapshot "$snapshot" ffmpeg python3-numpy python3-pil webp
+          node scripts/art-audit.mjs --check-toolchain
       - run: pnpm build
       - name: Run affected non-browser checks
         env:

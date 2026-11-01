@@ -1,14 +1,6 @@
 import type { ActionOutcome, RoomSnapshot } from '../../protocol/room.ts'
-import type { CampfireDecision, RewardSource } from '../../game/run.ts'
-
-export type NoncombatAction =
-  | { kind: 'campfire'; choices: Record<string, CampfireDecision> }
-  | { kind: 'cardReward'; choice: number | null | 'reveal'; sources?: RewardSource[] }
-  | { kind: 'goldReward'; gain?: boolean }
-  | { kind: 'potionReward'; choice: 'gain' | 'skip' | 'skipAll' | 'pass' | 'replace'; playerId?: string; potionId?: string }
-  | { kind: 'relicReward'; choice: 'gain' | 'skip' }
-  | { kind: 'bossRelicReward'; choice: 'gain' | 'skip'; relicId?: string }
-  | { kind: 'transformReward'; cardUid: string | null }
+import type { NoncombatAction } from '../../protocol/decisions.ts'
+export type { NoncombatAction } from '../../protocol/decisions.ts'
 
 export type RoomActionSubmission = { actions: readonly NoncombatAction[]; before: RoomSnapshot }
 

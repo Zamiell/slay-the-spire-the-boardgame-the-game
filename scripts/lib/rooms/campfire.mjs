@@ -12,6 +12,11 @@ import { cardIsCurse } from '../../../src/game/cards.ts'
  * the party back to the map: applied immediately, the first seat to click
  * would heal alone and drag everyone out of the room.
  */
+/**
+ * @param {import('../../../src/server/room-state.ts').ActiveRoom} room
+ * @param {import('../../../src/server/room-state.ts').RoomSeat} seat
+ * @param {import('../../../src/protocol/decisions.ts').CampfireAction} action
+ */
 export function campfire(room, seat, action) {
   const run = room.run
   if (run.phase !== 'room') fail('The party is not in a room')
@@ -75,11 +80,13 @@ export function campfire(room, seat, action) {
  * both when a choice arrives and when a player drops, because a drop can be
  * the thing that completes the table.
  */
+/** @param {import('../../../src/server/room-state.ts').RoomState} room */
 export function settleCampfire(room) {
   const run = room.run
   if (!run || run.phase !== 'room') return null
   if (currentRoom(run.map)?.kind !== 'campfire') return null
-  if (!room.campfireChoices) return null
+  const choices = room.campfireChoices
+  if (!choices) return null
   // With nobody connected there is no table to un-hold: resolving here would
   // apply whatever partial choices happened to be in, and the players who had
   // not answered would reconnect to find their rest spent.
@@ -93,11 +100,11 @@ export function settleCampfire(room) {
     // Ruby and ordinary Campfire choices are simultaneous physical decisions.
     // A disconnected seat reconnects to its pending choice; it is never an
     // implicit skip or abstention.
-    return !room.campfireChoices[other.playerId]
+    return !choices[other.playerId]
   })
   if (undecided.length > 0) return undecided.map((other) => other.playerId)
 
-  const next = resolveCampfire(run, room.campfireChoices)
+  const next = resolveCampfire(run, choices)
   if (next !== run) {
     room.campfireChoices = undefined
     room.run = next

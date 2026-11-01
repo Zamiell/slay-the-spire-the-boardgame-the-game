@@ -13,12 +13,13 @@ import { useRoomAction } from './actions/useRoomAction.ts'
 import type { RoomActionContext } from './actions/useRoomAction.ts'
 import type { NoncombatAction } from './actions/room-action.ts'
 import { RoomActionStatus } from './actions/RoomActionStatus.tsx'
+import { potionRewardAction } from '../protocol/decisions.ts'
 
 type Props = RoomActionContext & {
   run: VisibleRun
   viewerId: string
   waitingForTeammate?: boolean
-  onAction: (action: object) => Promise<ActionOutcome>
+  onAction: (action: NoncombatAction) => Promise<ActionOutcome>
 }
 
 export function OnlineRewardScreen({ run, viewerId, waitingForTeammate = false, onAction, snapshot, refresh, onResync }: Props) {
@@ -134,7 +135,7 @@ export function OnlineRewardScreen({ run, viewerId, waitingForTeammate = false, 
     <div className="reward-screen__players"><div className="reward-screen__player">
       {offer.gold ? <LootChoice sound="gold" disabled={lootPending} onClick={() => dispatchLoot([{ kind: 'goldReward' }])} icon={<img src={assetPath('icons/gold.png')} alt="" />}>{offer.gold} Gold</LootChoice> : null}
       {typeof offer.potion === 'string' ? <PotionLootChoices potionId={offer.potion} player={player} ascension={run.ascension} disabled={lootPending}
-        onChoose={(decision) => dispatchLoot([{ ...decision, kind: 'potionReward', choice: decision.kind }])} /> : null}
+        onChoose={(decision) => dispatchLoot([potionRewardAction(decision)])} /> : null}
       {typeof offer.relic === 'string' ? <ItemLootChoice kind="relic" id={offer.relic} disabled={lootPending}
         confirmLabel="claim this relic" onClick={() => dispatchLoot([{ kind: 'relicReward', choice: 'gain' }])} /> : null}
       {Array.isArray(offer.bossRelics) && offer.bossRelics.length > 1 ? <LootChoice disabled={lootPending}

@@ -4,7 +4,16 @@ import {
   resolveBossRelicReward, resolvePotionReward, resolveTransformReward, resolveCardRewards,
 } from '../../../src/game/state.ts'
 
+/** @typedef {import('../../../src/server/room-state.ts').RoomState} Room */
+/** @typedef {import('../../../src/server/room-state.ts').ActiveRoom} ActiveRoom */
+/** @typedef {import('../../../src/server/room-state.ts').RoomSeat} Seat */
+/** @typedef {import('../../../src/server/room-state.ts').RoomSettlement} Settlement */
+/** @typedef {import('../../../src/protocol/decisions.ts').RelicRewardAction} RelicAction */
+/** @typedef {import('../../../src/protocol/decisions.ts').CardRewardAction} CardAction */
+/** @typedef {import('../../../src/protocol/decisions.ts').TransformRewardAction} TransformAction */
+
 /** Skip every disconnected seat's reward stages deterministically. */
+/** @param {Room} room */
 export function settleDisconnectedRewards(room) {
   for (const seat of room.seats.filter((candidate) => candidate.connected === false)) {
     for (;;) {
@@ -38,7 +47,9 @@ export function settleDisconnectedRewards(room) {
   }
 }
 
+/** @param {{ settlePendingRelics: Settlement; settleForcedCards: Settlement }} callbacks */
 export function createRewardActions({ settlePendingRelics, settleForcedCards }) {
+  /** @param {ActiveRoom} room @param {Seat} seat @param {RelicAction} action */
   function relicReward(room, seat, action) {
     if (room.run?.phase === 'reward' && action.choice !== undefined) {
       if (!['gain', 'skip'].includes(action.choice)) fail('Choose gain or skip for the Relic reward')
@@ -51,6 +62,7 @@ export function createRewardActions({ settlePendingRelics, settleForcedCards }) 
       return { changed: true }
     }
     if (action.playerId !== undefined && action.playerId !== seat.playerId) fail('Choose only your own relic')
+    if (action.decision === undefined) fail('That relic choice is not legal')
     const next = chooseRelicReward(room.run, seat.playerId, action.decision)
     if (next === room.run) fail('That relic choice is not legal')
     room.run = next
@@ -59,6 +71,7 @@ export function createRewardActions({ settlePendingRelics, settleForcedCards }) 
     return { changed: true }
   }
 
+  /** @param {ActiveRoom} room @param {Seat} seat @param {CardAction} action */
   function cardReward(room, seat, action) {
     const run = room.run
     if (run.phase !== 'reward') fail('The party is not choosing rewards')
@@ -88,6 +101,7 @@ export function createRewardActions({ settlePendingRelics, settleForcedCards }) 
     return { changed: true }
   }
 
+  /** @param {ActiveRoom} room @param {Seat} seat @param {TransformAction} action */
   function transformReward(room, seat, action) {
     const run = room.run
     if (run.phase !== 'reward') fail('The party is not choosing rewards')
@@ -106,6 +120,7 @@ export function createRewardActions({ settlePendingRelics, settleForcedCards }) 
   }
 
   /** Drain reward choices saved by the former party-wide confirmation flow. */
+  /** @param {Room} room */
   function settleReward(room) {
     const run = room.run
     if (!run || run.phase !== 'reward' || !room.rewardChoices) return null
@@ -123,6 +138,11 @@ export function createRewardActions({ settlePendingRelics, settleForcedCards }) 
   return { relicReward, cardReward, transformReward, settleReward }
 }
 
+/**
+ * @param {import('../../../src/game/run.ts').RunState} run
+ * @param {Seat} seat
+ * @param {import('../../../src/protocol/decisions.ts').LootAction} action
+ */
 export function resolveLootAction(run, seat, action) {
   switch (action.kind) {
     case 'goldReward':
@@ -132,6 +152,7 @@ export function resolveLootAction(run, seat, action) {
       if (run.phase !== 'reward') fail('The party is not choosing rewards')
       const offer = run.rewards.find((candidate) => candidate.playerId === seat.playerId)
       if (!offer || offer.potion === false) fail('This seat has no Potion reward')
+      /** @type {import('../../../src/game/run.ts').PotionRewardDecision | null} */
       const decision = action.choice === 'skip' ? { kind: 'skip' }
         : action.choice === 'skipAll' ? { kind: 'skipAll' }
         : action.choice === 'gain' ? { kind: 'gain' }

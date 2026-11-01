@@ -3,7 +3,8 @@
 import { existsSync, mkdirSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
-import { dirname, join, resolve } from 'node:path'
+import { basename, dirname, join, resolve } from 'node:path'
+import { stabilizeUpgradeText } from './lib/stabilize-upgrade-text.mjs'
 import { cardImagePath, cardThumbPath } from '../src/game/assets.ts'
 import { GUARDIAN_CARD_DEFS, GUARDIAN_PHYSICAL_CARDS } from '../src/game/downfall/guardian.ts'
 import { HERMIT_CARD_DEFS, HERMIT_PHYSICAL_CARDS } from '../src/game/downfall/hermit.ts'
@@ -94,6 +95,7 @@ function outputPath(job, thumbnail) {
 }
 
 let written = 0
+const writtenKeys = new Set()
 for (const job of jobs) {
   const source = job.guid === '7f7cc9'
     ? join(root, 'tmp/downfall-reference/content-sheets/colorless.jpg')
@@ -113,7 +115,9 @@ for (const job of jobs) {
     ], { encoding: 'utf8' })
     if (result.status !== 0) throw new Error(result.stderr || `could not write ${output}`)
     written++
+    writtenKeys.add(basename(output, '.webp'))
   }
 }
 
 console.log(`Downfall card assets ready (${seen.size} cards, ${jobs.length} faces, ${written} files written).`)
+stabilizeUpgradeText(writtenKeys)

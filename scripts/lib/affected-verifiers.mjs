@@ -207,6 +207,9 @@ const focusedUiOwners = ownerMap([
   ['src/ui/styles/title-menu.css', ['verify-run-replay-browser.mjs', 'verify-replay-controls-browser.mjs', 'verify-title-menu-browser.mjs']],
 ])
 const focusedOnlyUiOwners = ownerMap([
+  ...['data/card-upgrade-layouts.json', 'scripts/art/stabilize-upgrade-text.py',
+    'scripts/art/verify-upgrade-text.py', 'scripts/lib/stabilize-upgrade-text.mjs']
+    .map(file => [file, ['verify-upgrade-text.mjs', 'verify-upgrade-text-browser.mjs', 'verify-assets.mjs']]),
   ...['src/ui/CardInspectionDialog.tsx', 'src/ui/CardInspectionProvider.tsx', 'src/ui/card-inspection-context.ts']
     .map(file => [file, ['verify-deck-inspection-browser.mjs', 'verify-card-context-inspection-browser.mjs']]),
   ...['src/ui/CombatDie.tsx', 'src/ui/combat-die-breakdown.ts', 'src/ui/styles/combat-die.css']
@@ -250,7 +253,9 @@ const focusedOnlyUiOwners = ownerMap([
   ['scripts/art/campfire-sitters.py', ['verify-assets.mjs', 'verify-art-scenes-browser.mjs']],
   ...['scripts/art/normalize-card-text.py', 'scripts/art/normalize-inflame-text.py']
     .map(file => [file, ['verify-assets.mjs', 'verify-card-rendering-browser.mjs']]),
-  ['scripts/sync-card-assets.mjs', ['verify-assets.mjs', 'verify-card-rendering-browser.mjs']],
+  ['scripts/sync-card-assets.mjs', ['verify-assets.mjs', 'verify-card-rendering-browser.mjs', 'verify-upgrade-text.mjs']],
+  ['scripts/sync-downfall-card-assets.mjs', ['verify-assets.mjs', 'verify-downfall-card-audit.mjs',
+    'verify-upgrade-text.mjs', 'verify-upgrade-text-browser.mjs']],
   ['scripts/art/export-kratos-menu.py', ['verify-assets.mjs', 'verify-skin-browser.mjs']],
   ['scripts/art/export-kratos-noncombat.py', ['verify-assets.mjs', 'verify-merchant-overflow-browser.mjs', 'verify-treasure-animation-browser.mjs']],
   ['scripts/calibrate-hero-head.py', ['verify-hero-potions-browser.mjs', 'verify-art-bakes.mjs']],

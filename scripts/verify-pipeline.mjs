@@ -21,6 +21,11 @@ const includesEvery = (actual, expected, context) => {
 }
 
 suite('verification pipeline')
+check('upgrade text normalization selects focused layout and image coverage', () => {
+  for (const file of ['data/card-upgrade-layouts.json', 'scripts/art/stabilize-upgrade-text.py',
+    'scripts/lib/stabilize-upgrade-text.mjs'])
+    includesEvery(affected(file), ['verify-upgrade-text.mjs', 'verify-upgrade-text-browser.mjs', 'verify-assets.mjs'], file)
+})
 check('shared interface polish selects its focused interaction coverage', () => {
   for (const file of ['src/ui/chrome/interaction-polish.css', 'src/ui/useControlPress.ts', 'src/ui/StartMenu.tsx', 'src/ui/SettingsDialog.tsx'])
     assert(affected(file).includes('verify-ui-polish-browser.mjs'), `${file}: missing UI polish coverage`)

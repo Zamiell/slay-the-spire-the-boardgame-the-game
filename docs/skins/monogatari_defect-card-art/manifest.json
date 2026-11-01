@@ -3792,15 +3792,15 @@
    ],
    "original": {
     "path": "public/assets/cards/defect__normal__claw-claw-pack+.webp",
-    "sha256": "08d6e26d4bbd78c0ae639937170bb4754d8437d4e17620cf977f774288bacd8e"
+    "sha256": "0c4b821ffc526ea5c35674c7bf73841abe1e1094a6e308252312cb89516c7feb"
    },
    "output": {
     "path": "public/assets/skin-cards/monogatari_defect/defect__normal__claw-claw-pack+.webp",
-    "sha256": "5cafa191a5f050b962460f66c1afa3b52e07863da7595261e8c6dfb70b9f24e0"
+    "sha256": "530b13fa352338d287dcff9316bd7aad6f48ec88dae9740017d071b545a374af"
    },
    "preencodeOutsideMaskMaxDiff": 0,
-   "postencodeOutsideMaskRMS": 1.3717903447779094,
-   "postencodeOutsideMaskMaxDiff": 28
+   "postencodeOutsideMaskRMS": 1.3429083990581314,
+   "postencodeOutsideMaskMaxDiff": 18
   },
   {
    "key": "defect__normal__claw-claw-pack+",
@@ -3811,14 +3811,14 @@
    ],
    "original": {
     "path": "public/assets/cards-sm/defect__normal__claw-claw-pack+.webp",
-    "sha256": "5bb0ff734a4c139c52ac0e8e704a82928220226fa8f6b047ea22845f3a646f0f"
+    "sha256": "7fbbec0e508c97b4f899c664ddba8cd5b79cd7237f18b76ee276fa7de1309f56"
    },
    "output": {
     "path": "public/assets/skin-cards-sm/monogatari_defect/defect__normal__claw-claw-pack+.webp",
-    "sha256": "9cf4e4c54910e4328d690eaed265264be3f6c5f83b9cfa6f9374699b9d099b83"
+    "sha256": "3410b75e387895c08f567f8cd704678511919bdbd521642a10d0c8087d982a25"
    },
    "preencodeOutsideMaskMaxDiff": 0,
-   "postencodeOutsideMaskRMS": 1.5723036831390829,
+   "postencodeOutsideMaskRMS": 1.5649161697666853,
    "postencodeOutsideMaskMaxDiff": 17
   },
   {
@@ -4248,15 +4248,15 @@
    ],
    "original": {
     "path": "public/assets/cards/defect__normal__force-field+.webp",
-    "sha256": "a5ed2e461216c972a69d23257b67c3f53323f9d5b7bff42af20c154848927b96"
+    "sha256": "100bedc98d53537c3a94f7dadf6657dde5ca155960277fa3a1b8e416d51fc83b"
    },
    "output": {
     "path": "public/assets/skin-cards/monogatari_defect/defect__normal__force-field+.webp",
-    "sha256": "e0cc7192d925ad0ef721bf0ab6c009919e8c3c093183b51c971df61d747d7ddd"
+    "sha256": "55d5590b8f2f49748280c99a4faaba5f9215be4b3086f3dca861b2e131cb0c82"
    },
    "preencodeOutsideMaskMaxDiff": 0,
-   "postencodeOutsideMaskRMS": 1.4257546147132676,
-   "postencodeOutsideMaskMaxDiff": 19
+   "postencodeOutsideMaskRMS": 1.3438049784900044,
+   "postencodeOutsideMaskMaxDiff": 18
   },
   {
    "key": "defect__normal__force-field+",
@@ -4267,15 +4267,15 @@
    ],
    "original": {
     "path": "public/assets/cards-sm/defect__normal__force-field+.webp",
-    "sha256": "ac4a292f707116a8fb924ca6853499b71d30bfe809e78d82c167d30f31e2b80f"
+    "sha256": "0aa77932eb8fe616516d03ad0d4c448c991e15685fb7e2496dcabb8ae8f85cc5"
    },
    "output": {
     "path": "public/assets/skin-cards-sm/monogatari_defect/defect__normal__force-field+.webp",
-    "sha256": "24dbd77f14ad95e240595271511ebc1aff5c3e372de7014912b75b6675a0142b"
+    "sha256": "633577128b35cb6ceec74ae2bf9552c4d11517ab20031c5dff0c8d85e1146c98"
    },
    "preencodeOutsideMaskMaxDiff": 0,
-   "postencodeOutsideMaskRMS": 1.5928327353856881,
-   "postencodeOutsideMaskMaxDiff": 19
+   "postencodeOutsideMaskRMS": 1.5675506018248722,
+   "postencodeOutsideMaskMaxDiff": 16
   },
   {
    "key": "defect__normal__tempest",
@@ -6718,15 +6718,15 @@
    ],
    "original": {
     "path": "public/assets/cards/defect__normal__recycle.webp",
-    "sha256": "d1f13c22d0eb89f9be4fa0a66692eabf845da321bc47b60393a5aaa32ccc5a2a"
+    "sha256": "657886b221eedd7b0718e93343527d7fb41b4c1fef8ac7d85d9def2d44b07de3"
    },
    "output": {
     "path": "public/assets/skin-cards/monogatari_defect/defect__normal__recycle.webp",
-    "sha256": "ba8b49d0242b8f4e382e58c18156e5de8a8470453646cabb1a42a18ab6099f65"
+    "sha256": "fe2966712168788bcfcf2267ceb8a2362b90e2ef86feab6d90a01f33dde09f57"
    },
    "preencodeOutsideMaskMaxDiff": 0,
-   "postencodeOutsideMaskRMS": 1.4372930938267843,
-   "postencodeOutsideMaskMaxDiff": 35
+   "postencodeOutsideMaskRMS": 1.3458704870334992,
+   "postencodeOutsideMaskMaxDiff": 27
   },
   {
    "key": "defect__normal__recycle",
@@ -6737,15 +6737,15 @@
    ],
    "original": {
     "path": "public/assets/cards-sm/defect__normal__recycle.webp",
-    "sha256": "a8b0f74a6ba735dd4071daeca0ad9560682025fb533c38ba91abdffaa029507a"
+    "sha256": "10d2ac5b204440e15a401417df899f792df28ea9b9ad35ca7e7965c31b331b2f"
    },
    "output": {
     "path": "public/assets/skin-cards-sm/monogatari_defect/defect__normal__recycle.webp",
-    "sha256": "149a2cec9dfb7775f1e250894ea9ec4acd3c56a7a4a99406a798a5d0e342e577"
+    "sha256": "5e0df4ebe26eb1cb27174335fdad76fefe514b5559f578391d6088dc21f19382"
    },
    "preencodeOutsideMaskMaxDiff": 0,
-   "postencodeOutsideMaskRMS": 1.651923557540002,
-   "postencodeOutsideMaskMaxDiff": 34
+   "postencodeOutsideMaskRMS": 1.6388245065756746,
+   "postencodeOutsideMaskMaxDiff": 32
   },
   {
    "key": "defect__normal__recycle+",

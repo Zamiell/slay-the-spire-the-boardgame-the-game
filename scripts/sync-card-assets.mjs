@@ -17,6 +17,7 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join, resolve } from 'node:path'
 import { spawn, spawnSync } from 'node:child_process'
 import { webpSize } from './lib/webp-size.mjs'
+import { stabilizeUpgradeText } from './lib/stabilize-upgrade-text.mjs'
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const outRoot = join(repoRoot, 'public/assets/cards')
@@ -258,3 +259,4 @@ if (written.length > 0) {
 }
 for (const error of errors.slice(0, 10)) console.error(`  ✗ ${error.key}: ${error.error}`)
 if (errors.length > 0) process.exit(1)
+stabilizeUpgradeText(written.map(result => result.key))

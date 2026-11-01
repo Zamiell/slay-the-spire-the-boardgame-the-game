@@ -130,6 +130,78 @@ check('incoming damage includes Wrath before enemies and cannot spend the same B
   assertEqual(previewIncomingDamage(state).get('p1').damage, 1, 'leaving Wrath removes only its self-damage')
 })
 
+check('incoming includes every printed damaging hand card and shares Block with enemy attacks', () => {
+  for (const id of ['burn', 'decay', 'pain']) {
+    const state = incoming([player({ hand: [instance(id)] })], [enemy({ defId: 'jaw_worm' })], { die: 6 })
+    const before = structuredClone(state)
+    assertEqual(previewIncomingDamage(state).get('p1').damage, 1, id)
+    assertEqual(enemyTurn(endPlayerTurn(state)).players[0].hp, 9, id)
+    assertDeepEqual(state, before)
+  }
+  const state = incoming([player({ block: 1, hand: [instance('burn'), instance('burn'), instance('decay')] })],
+    [enemy({ defId: 'small_slime' })])
+  const before = structuredClone(state)
+  assertDeepEqual(previewIncomingDamage(state).get('p1'), { damage: 3, wastedBlock: 0 })
+  assertEqual(enemyTurn(endPlayerTurn(state)).players[0].hp, 7)
+  assertDeepEqual(state, before)
+  state.players[0].discard.push(...state.players[0].hand)
+  state.players[0].hand = []
+  assertEqual(previewIncomingDamage(state).get('p1').damage, 0, 'cards outside the hand do not hurt')
+})
+
+check('hand HP loss bypasses Block, obeys hand-size conditions, and is not capped at remaining HP', () => {
+  const state = incoming([player({ hp: 1, block: 5, hand: [instance('pain'), instance('pain')] })],
+    [enemy({ defId: 'jaw_worm' })], { die: 6 })
+  assertDeepEqual(previewIncomingDamage(state).get('p1'), { damage: 2, wastedBlock: 5 })
+  state.players[0].hand.push(instance('strike_ironclad'))
+  assertDeepEqual(previewIncomingDamage(state).get('p1'), { damage: 0, wastedBlock: 5 })
+  state.players[0].hand = [instance('pain')]
+  state.players[0].hp = 10
+  const actual = enemyTurn(endPlayerTurn(state))
+  assertEqual(actual.players[0].hp, 9)
+  assertEqual(actual.players[0].block, 5)
+})
+
+check('hand effects follow remaining order, including Frost, Block loss and earlier Ethereal Exhausts', () => {
+  const burn = instance('burn')
+  const shame = instance('shame')
+  const state = incoming([player({ hand: [burn, shame], orbs: ['frost', null, null] })],
+    [enemy({ defId: 'jaw_worm' })], { die: 6 })
+  assertDeepEqual(previewIncomingDamage(state).get('p1'), { damage: 0, wastedBlock: 0, frostBlock: 1 })
+  state.endTurnProgress = { order: [`p1/card:${burn.uid}`, 'p1/orb:0', `p1/card:${shame.uid}`] }
+  assertDeepEqual(previewIncomingDamage(state).get('p1'), { damage: 1, wastedBlock: 0, frostBlock: 1 })
+  state.endTurnProgress.order = ['p1/orb:0', `p1/card:${shame.uid}`, `p1/card:${burn.uid}`]
+  assertDeepEqual(previewIncomingDamage(state).get('p1'), { damage: 1, wastedBlock: 0, frostBlock: 1 })
+  state.endTurnProgress.order = []
+  assertDeepEqual(previewIncomingDamage(state).get('p1'), { damage: 0, wastedBlock: 0 }, 'resolved cards must not be counted again')
+  const pain = instance('pain')
+  const daze = instance('daze')
+  state.players[0].hand = [pain, daze, instance('strike_ironclad')]
+  state.endTurnProgress.order = [`p1/card:${pain.uid}`, `p1/card:${daze.uid}`]
+  assertEqual(previewIncomingDamage(state).get('p1').damage, 0)
+  state.endTurnProgress.order.reverse()
+  assertEqual(previewIncomingDamage(state).get('p1').damage, 1, 'earlier Exhaust makes Pain active')
+})
+
+check('hand forecasts respect enemy Burn and Slimed modifiers, each owner, and lethal Poison', () => {
+  const state = incoming([
+    player({ hand: [instance('burn')], hp: 100, maxHp: 100 }),
+    player({ id: 'p2', row: 1, hand: [instance('slimed'), instance('slimed')], block: 20, hp: 100, maxHp: 100 }),
+  ], [enemy({ uid: 'inferno', defId: 'downfall_inferno', isBoss: true, ascension: 10, hp: 100, maxHp: 100 }),
+    enemy({ uid: 'witch', defId: 'downfall_witch', isBoss: true, hp: 100, maxHp: 100 })])
+  const before = structuredClone(state)
+  const withCards = previewIncomingDamage(state)
+  const empty = structuredClone(state)
+  empty.players.forEach(player => { player.hand = [] })
+  const withoutCards = previewIncomingDamage(empty)
+  assertEqual(withCards.get('p1').damage - withoutCards.get('p1').damage, 2, 'Inferno increases Burn damage')
+  assertEqual(withCards.get('p2').damage - withoutCards.get('p2').damage, 2, 'Slimed HP loss bypasses Block')
+  assertDeepEqual(state, before)
+  state.enemies.forEach(enemy => { enemy.hp = 1; enemy.poison = 1 })
+  assertEqual(previewIncomingDamage(state).get('p1').damage, 0, 'combat ends before hand effects')
+  assertEqual(previewIncomingDamage(state).get('p2').damage, 0)
+})
+
 check('incoming damage uses Weak, Vulnerable and Strength for the whole multi-hit action', () => {
   const state = incoming([player({ hp: 100, maxHp: 100, vulnerable: 1, block: 2 })], [
     enemy({ uid: 'plant', defId: 'snake_plant', strength: 1, weak: 1 }),

@@ -21,6 +21,10 @@ const includesEvery = (actual, expected, context) => {
 }
 
 suite('verification pipeline')
+check('hand end-turn rules select incoming-damage browser coverage', () => {
+  for (const file of ['src/game/combat/queries.ts', 'src/game/combat/end-turn.ts', 'src/game/combat/enemy-turn.ts'])
+    assert(affected(file).includes('verify-incoming-damage-browser.mjs'), `${file}: missing hand-damage forecast coverage`)
+})
 check('treasure presentation and touch help select focused regression coverage', () => {
   for (const file of ['src/ui/RoomScreen.tsx', 'src/ui/TreasureEffects.tsx', 'src/ui/chrome/treasure.css',
     'public/assets/ui/treasure-skip.svg'])

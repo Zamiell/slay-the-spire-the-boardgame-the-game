@@ -31,7 +31,8 @@ const focusedEngineOwners = ownerMap([
   ...['src/game/relics.ts', 'src/game/run/rooms.ts', 'src/game/run/encounters.ts']
     .map(file => [file, ['verify-relic-refresh-browser.mjs']]),
   ['src/game/combat/enemy-turn.ts', ['verify-incoming-damage-browser.mjs']],
-  ['src/game/combat/end-turn.ts', ['verify-retain-selection-browser.mjs']],
+  ['src/game/combat/end-turn.ts', ['verify-retain-selection-browser.mjs', 'verify-incoming-damage-browser.mjs']],
+  ['src/game/combat/queries.ts', ['verify-incoming-damage-browser.mjs']],
   ['src/game/combat/preview.ts', ['verify-card-block-preview-browser.mjs']],
   ['src/game/types.ts', ['verify-skins.mjs']],
   // The registry: registering a skin extends every verifier below (they iterate SKINS), so a registry change reruns them all.

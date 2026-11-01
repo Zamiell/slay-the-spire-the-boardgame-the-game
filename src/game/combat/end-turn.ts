@@ -67,6 +67,7 @@ import {
 import {
   amountOf, cardHasRetain, conditionIsActive, discardOrderNeedsChoice, effectIsActive, mandatoryCardPlayWindowOwners,
   mandatoryChoicePending,
+  handEndTurnRules, handEndTurnEffectApplies,
 } from './queries.ts'
 import type {
   CombatState,
@@ -260,24 +261,18 @@ function refreshEndTurnTargets(state: CombatState, order: EndTurnOrder): EndTurn
 function resolveHandEndTurn(state: CombatState, player: Player, uid: string): void {
   const held = player.hand.find((card) => card.uid === uid)
   if (!held) return
-  const def = faceOf(cardDef(held.defId), held.upgraded)
-  const fireBreathing = held.defId === 'burn'
-    ? livingEnemies(state).flatMap((enemy) => enemyAbilities(enemyDef(enemy.defId, enemy.ascension)))
-      .find((ability) => ability.kind === 'fireBreathing')
-    : undefined
+  const { definition: def, effects, exhaust, exhaustOnDeath } = handEndTurnRules(state, held)
   const presentations = new Set<TurnEffectPresentation>()
   const publishPresentations = () => {
     for (const effect of presentations) {
       publishTurnEffect(state, player.id, def.id, effect, { actorTargeted: true })
     }
   }
-  for (const effect of def.handEndOfTurn ?? []) {
-    if ('handSizeAtMost' in effect && effect.handSizeAtMost !== undefined &&
-      player.hand.length > effect.handSizeAtMost) continue
+  for (const effect of effects) {
+    if (!handEndTurnEffectApplies(effect, player)) continue
     if (effect.kind === 'damage') {
       const block = player.block
-      const amount = fireBreathing?.kind === 'fireBreathing' ? fireBreathing.burnDamage : effect.amount
-      const outcome = damagePlayer(state, player, amount)
+      const outcome = damagePlayer(state, player, effect.amount)
       const lost = outcome.hpLost
       const blocked = block - player.block
       if (lost > 0 || blocked > 0) presentations.add('damage')
@@ -310,14 +305,14 @@ function resolveHandEndTurn(state: CombatState, player: Player, uid: string): vo
     }
     if (player.dead) {
       state.log = [...state.log, `${player.name} has fallen`]
-      if (!fireBreathing) {
+      if (!exhaustOnDeath) {
         publishPresentations()
         return
       }
       break
     }
   }
-  if (!def.ethereal && !fireBreathing) {
+  if (!exhaust) {
     publishPresentations()
     return
   }

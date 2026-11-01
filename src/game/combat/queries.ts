@@ -10,7 +10,7 @@
 import { adjacentEnemies, findPlayer, livingEnemies, playersInRowOf, resolveEnemyTargets } from './board.ts'
 import type { CardPlayWindow, CombatState, CopySource, CountablePlayer, EvokeChoice, PendingPlayerChoice, PlayContext } from './types.ts'
 import { cardCost, cardDef, faceOf, isStarterStrikeOrDefend } from '../cards.ts'
-import type { Amount, CardDef, Condition, CountOf, Effect } from '../cards.ts'
+import type { Amount, CardDef, Condition, CountOf, Effect, HandEndOfTurnEffect } from '../cards.ts'
 import { actionsForEnemy, enemyAbilities, enemyDef } from '../enemies.ts'
 import { CAPS } from '../types.ts'
 import type { CardInstance, Enemy, GuardianMode, OrbType, Player } from '../types.ts'
@@ -22,6 +22,25 @@ const GUARDIAN_UPGRADED_ROW_CARDS = new Set(['guardian_roll_attack', 'guardian_v
 const GUARDIAN_ATTACK_MODE_ROW_CARDS = new Set([
   'guardian_guardian_whirl', 'guardian_giga_beam',
 ])
+
+/** Printed hand effects and enemy modifiers, shared by resolution and forecasting. */
+export function handEndTurnRules(state: CombatState, held: CardInstance) {
+  const definition = faceOf(cardDef(held.defId), held.upgraded)
+  const fireBreathing = held.defId === 'burn'
+    ? livingEnemies(state).flatMap(enemy => enemyAbilities(enemyDef(enemy.defId, enemy.ascension)))
+      .find(ability => ability.kind === 'fireBreathing')
+    : undefined
+  const effects = (definition.handEndOfTurn ?? []).map(effect =>
+    effect.kind === 'damage' && fireBreathing?.kind === 'fireBreathing'
+      ? { ...effect, amount: fireBreathing.burnDamage } : effect)
+  return { definition, effects, exhaust: Boolean(definition.ethereal || fireBreathing),
+    exhaustOnDeath: Boolean(fireBreathing) }
+}
+
+export function handEndTurnEffectApplies(effect: HandEndOfTurnEffect, player: Pick<Player, 'hand'>): boolean {
+  return !('handSizeAtMost' in effect) || effect.handSizeAtMost === undefined ||
+    player.hand.length <= effect.handSizeAtMost
+}
 
 export function effectiveCombatCardDef(def: CardDef, guardianMode?: GuardianMode | null): CardDef {
   const effective: CardDef = def.guardianVariableType && guardianMode === 'defense'

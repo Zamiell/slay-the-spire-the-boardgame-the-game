@@ -16,7 +16,7 @@ import type { EnemyAction } from '../enemies.ts'
 import { CARDS } from '../cards.ts'
 import { shuffle } from '../rng.ts'
 import type { Enemy, Player } from '../types.ts'
-import { mandatoryChoicePending } from './queries.ts'
+import { handEndTurnRules, handEndTurnEffectApplies, mandatoryChoicePending } from './queries.ts'
 
 const CURSE_CARDS = Object.values(CARDS)
   .filter((card) => card.owner === 'curse' && card.id !== 'ascenders_bane')
@@ -102,7 +102,7 @@ function resolveEnemyTurn(state: CombatState, receiveAttack: typeof damagePlayer
 }
 
 /**
- * Project Poison, Frost, Wrath and current enemy attacks, before HP-loss prevention or
+ * Project Poison, Frost, Wrath, hand effects and current enemy attacks, before HP-loss prevention or
  * other end-of-turn effects. Use the real enemy action order and targeting, but
  * don't stop at lethal damage or consume Buffer/Fairy effects.
  */
@@ -137,6 +137,30 @@ export function previewIncomingDamage(state: CombatState): ReadonlyMap<string, I
     })
     if (player.stance === 'wrath') endEffects.set(`${player.id}/wrath`, () => {
       if (!player.dead) receiveDamage(probe, player, 1)
+    })
+    for (const held of player.hand) endEffects.set(`${player.id}/card:${held.uid}`, () => {
+      if (player.dead || !player.hand.some(card => card.uid === held.uid)) return
+      const rules = handEndTurnRules(probe, held)
+      for (const effect of rules.effects) {
+        if (!handEndTurnEffectApplies(effect, player)) continue
+        if (effect.kind === 'damage') receiveDamage(probe, player, effect.amount)
+        else if (effect.kind === 'loseHp') incoming.set(player.id, incoming.get(player.id)! + Math.max(0, effect.amount))
+        else if (effect.kind === 'loseBlock') player.block -= Math.min(player.block, effect.amount)
+      }
+      // Hand size can change before a later conditional curse, without forecasting Exhaust-triggered draws.
+      if (rules.exhaust) {
+        player.hand = player.hand.filter(card => card.uid !== held.uid)
+        player.exhaust.push(held)
+      }
+    })
+    for (const enemy of probe.enemies) endEffects.set(`${player.id}/downfall-slimed:${enemy.uid}`, () => {
+      if (player.dead || enemy.dead) return
+      const slimed = enemyAbilities(enemyDef(enemy.defId, enemy.ascension))
+        .find(ability => ability.kind === 'slimedHandHpLoss')
+      if (slimed?.kind === 'slimedHandHpLoss') {
+        const loss = player.hand.filter(card => card.defId === 'slimed').length * slimed.amount
+        incoming.set(player.id, incoming.get(player.id)! + loss)
+      }
     })
   }
   // Chosen Loop repeats stay separate until the remaining Orb choices are made.

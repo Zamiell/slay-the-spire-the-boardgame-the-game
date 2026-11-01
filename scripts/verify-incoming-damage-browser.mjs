@@ -16,7 +16,8 @@ try {
     ['desktop', { width: 1440, height: 900 }, false],
     ['horizontal-phone', { width: 844, height: 390 }, true],
   ]) {
-    const page = await browser.newPage({ viewport, hasTouch: phone, isMobile: phone })
+    const page = await browser.newPage({ viewport, hasTouch: phone, isMobile: phone,
+      recordVideo: { dir: output, size: viewport } })
     const errors = []
     page.on('pageerror', error => errors.push(error.message))
     await page.goto(`http://127.0.0.1:${server.httpServer.address().port}`)
@@ -48,7 +49,8 @@ try {
     const tip = page.locator('.potion-tip').filter({ hasText: 'incoming unblocked damage 2' })
     await tip.waitFor()
     assert.match(await tip.innerText(), /current 1 Block/)
-    assert.match(await tip.innerText(), /Other end-of-turn effects and HP-loss prevention/)
+    assert.match(await tip.innerText(), /Exhaust-triggered draws/)
+    assert.match(await tip.innerText(), /HP-loss prevention/)
     assert.equal(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun())), before,
       'reading incoming damage must not mutate combat or advance RNG')
     assert(await counter.evaluate(counter => {
@@ -146,8 +148,8 @@ try {
     else { await page.mouse.move(2, 2); await counter.hover() }
     const wrathTip = page.locator('.potion-tip').filter({ hasText: 'incoming unblocked damage 1' })
     await wrathTip.waitFor()
-    assert.match(await wrathTip.innerText(), /Wrath adds 1 damage before enemy attacks/)
-    assert.match(await wrathTip.innerText(), /Block absorbs 0 of it/)
+    assert.match(await wrathTip.innerText(), /Wrath adds 1 blockable damage before enemy attacks/)
+    assert.match(await wrathTip.innerText(), /Block is shared/)
     await page.screenshot({ path: `${output}/${screen}-wrath.png` })
     await page.evaluate(() => {
       const run = structuredClone(window.__STS_DEBUG__.getRun())
@@ -155,7 +157,7 @@ try {
       window.__STS_DEBUG__.setRun(run)
     })
     await page.waitForFunction(() => document.querySelector('.seat__incoming-damage')?.textContent === 'Incoming: 0')
-    assert.match(await page.locator('.potion-tip').innerText(), /Block absorbs 1 of it/)
+    assert.match(await page.locator('.potion-tip').innerText(), /current 1 Block/)
     await page.keyboard.press('Escape')
     await page.evaluate(() => {
       const run = structuredClone(window.__STS_DEBUG__.getRun())
@@ -231,8 +233,53 @@ try {
     await page.waitForFunction(() => document.querySelector('.row--viewer .seat__incoming-damage')?.textContent === 'Incoming: 0')
     assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().combat.phase), 'start',
       'the preview must update before the remaining start-turn choices resolve')
+    await page.evaluate(run => {
+      run.combat.die = 6
+      run.combat.enemies = [{ ...run.combat.enemies[0], defId: 'jaw_worm', strength: 0, weak: 0 }]
+      Object.assign(run.combat.players[0], { block: 0, powers: [], hand: [{ uid: 'burn', defId: 'burn', upgraded: false }] })
+      window.__STS_DEBUG__.setRun(run)
+    }, next)
+    await counter.getByText('Incoming: 1', { exact: true }).waitFor()
+    const beforeBurnHelp = await page.evaluate(() => window.__STS_DEBUG__.getRun())
+    await counter.focus()
+    const handTip = page.locator('.potion-tip').filter({ hasText: 'hand effects such as Burn' })
+    await handTip.waitFor()
+    assert.match(await handTip.innerText(), /direct HP loss bypasses Block/)
+    assert.deepEqual(await page.evaluate(() => window.__STS_DEBUG__.getRun()), beforeBurnHelp)
+    await page.screenshot({ path: `${output}/${screen}-burn.png` })
+    await page.keyboard.press('Escape')
+    await page.evaluate(() => {
+      const run = structuredClone(window.__STS_DEBUG__.getRun())
+      run.combat.players[0].orbs = ['frost', null, null]
+      window.__STS_DEBUG__.setRun(run)
+    })
+    await counter.getByText('Incoming: 0', { exact: true }).waitFor()
+    await page.evaluate(() => {
+      const run = structuredClone(window.__STS_DEBUG__.getRun())
+      run.combat.players[0].hand.push({ uid: 'decay', defId: 'decay', upgraded: false })
+      window.__STS_DEBUG__.setRun(run)
+    })
+    await counter.getByText('Incoming: 1', { exact: true }).waitFor()
+    await page.evaluate(() => {
+      const run = structuredClone(window.__STS_DEBUG__.getRun())
+      run.combat.players[0].hand = [{ uid: 'pain', defId: 'pain', upgraded: false }]
+      run.combat.players[0].block = 5
+      run.combat.players[0].orbs = [null, null, null]
+      window.__STS_DEBUG__.setRun(run)
+    })
+    await counter.getByText('Incoming: 1 (+5)', { exact: true }).waitFor()
+    await page.screenshot({ path: `${output}/${screen}-pain.png` })
+    await page.evaluate(() => {
+      const run = structuredClone(window.__STS_DEBUG__.getRun())
+      run.combat.players[0].hand.push(...[0, 1].map(index => ({ uid: `strike-${index}`, defId: 'strike_watcher', upgraded: false })))
+      window.__STS_DEBUG__.setRun(run)
+    })
+    await counter.getByText('Incoming: 0 (+5)', { exact: true }).waitFor()
     assert.deepEqual(errors, [])
+    const video = page.video()
     await page.close()
+    await video.saveAs(`${output}/${screen}.webm`)
+    await video.delete()
     console.log(`PASS ${screen}: incoming damage, live Block/debuff updates, tooltip and party targets`)
   }
 } finally {

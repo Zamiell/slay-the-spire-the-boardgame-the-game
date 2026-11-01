@@ -22,8 +22,8 @@ try {
     ['desktop', { width: 1440, height: 900 }, false],
     ['horizontal-phone', { width: 844, height: 390 }, true],
   ]) {
-    const page = await browser.newPage({ viewport, hasTouch: phone, isMobile: phone })
-    await page.addInitScript(() => localStorage.setItem('sts-game-settings', JSON.stringify({ reducedMotion: true })))
+    const page = await browser.newPage({ viewport, hasTouch: phone, isMobile: phone,
+      recordVideo: { dir: output, size: viewport } })
     const errors = []
     page.on('pageerror', error => errors.push(error.message))
     await page.goto(`http://127.0.0.1:${server.httpServer.address().port}`)
@@ -31,24 +31,57 @@ try {
       await page.getByRole('button', { name, exact: true }).click()
     await page.waitForFunction(() => window.__STS_DEBUG__?.getRun().phase === 'neow')
     const stage = async run => {
+      await page.locator('.treasure-claim').waitFor({ state: 'detached' })
       await page.evaluate(run => window.__STS_DEBUG__.setRun({ ...run, phase: 'map', roomState: null }), run)
       await page.locator('.treasure-stage').waitFor({ state: 'detached' })
       await page.evaluate(run => window.__STS_DEBUG__.setRun(run), run)
       await page.getByRole('button', { name: 'Open treasure chest', exact: true }).waitFor()
-      await page.mouse.move(0, 0)
-      await page.evaluate(() => document.activeElement?.blur())
     }
     const activate = async control => phone ? control.tap() : control.click()
     const readRun = () => page.evaluate(() => window.__STS_DEBUG__.getRun())
+    await page.keyboard.press('Tab')
     await stage(fixture())
     assert.equal(await page.locator('.treasure-stage h2').count(), 0, 'the closed scene must not show a reward banner')
     assert.equal(await page.locator('.treasure-offers, .treasure-actions').count(), 0)
     await page.locator('.treasure-chest').evaluate(image => image.decode())
     await page.screenshot({ path: `${output}/${screen}-closed.png` })
+    const chest = page.getByRole('button', { name: 'Open treasure chest', exact: true })
+    const checkChestHighlight = async state => {
+      const style = await chest.evaluate(button => {
+        const css = getComputedStyle(button)
+        const image = getComputedStyle(document.querySelector('.treasure-chest'))
+        return { outline: css.outlineStyle, border: css.borderTopWidth, shadow: css.boxShadow,
+          background: css.backgroundColor, highlight: image.filter, focused: button.matches(':focus-visible') }
+      })
+      assert.equal(style.outline, 'none', `${screen}/${state}: the chest hit target must not draw a rectangular focus ring`)
+      assert.equal(style.border, '0px')
+      assert.equal(style.shadow, 'none')
+      assert.equal(style.background, 'rgba(0, 0, 0, 0)')
+      assert.match(style.highlight, /drop-shadow/, `${screen}/${state}: highlight the chest silhouette instead`)
+      return style
+    }
+    assert((await checkChestHighlight('arrival')).focused, 'keyboard arrival must retain visible focus')
+    await page.waitForTimeout(300)
+    if (!phone) {
+      await chest.hover()
+      await page.screenshot({ path: `${output}/${screen}-hover.png` })
+      await checkChestHighlight('hover')
+      await page.mouse.down()
+      await page.waitForTimeout(250)
+      await page.screenshot({ path: `${output}/${screen}-pressed.png` })
+      await checkChestHighlight('press')
+      await page.mouse.move(0, 0)
+      await page.mouse.up()
+      assert.equal(await page.locator('.treasure-stage').getAttribute('data-opened'), 'false',
+        'canceling a chest press must not open it')
+      assert.equal(await page.locator('.treasure-chest').evaluate(image => getComputedStyle(image).filter), 'none',
+        'pointer departure must remove the silhouette highlight')
+      await page.screenshot({ path: `${output}/${screen}-idle.png` })
+    }
     const beforeOpen = await readRun()
     await activate(page.getByRole('button', { name: 'Open treasure chest', exact: true }))
     await page.getByRole('heading', { name: "What's Inside?", exact: true }).waitFor()
-    await page.waitForTimeout(200)
+    await page.waitForTimeout(1700)
     assert.deepEqual(await readRun(), beforeOpen, 'opening the chest is presentation, not an item claim')
     assert.equal(await page.locator('.potion-tip:visible').count(), 0, 'pointer opening must not automatically show relic help')
     assert.equal(await page.getByRole('button', { name: 'Take relic', exact: true }).count(), 0)
@@ -91,6 +124,7 @@ try {
 
     await stage(fixture('vajra'))
     await activate(page.getByRole('button', { name: 'Open treasure chest', exact: true }))
+    await page.waitForTimeout(1700)
     const beforeTake = await readRun()
     const offer = page.locator('[data-treasure-slot="p1"]')
     if (phone) {
@@ -100,6 +134,9 @@ try {
     } else await offer.click()
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().phase === 'map')
     assert((await readRun()).players[0].relics.some(relic => relic.defId === 'vajra'))
+    await page.locator('.treasure-departure').waitFor()
+    await page.locator('.treasure-claim').waitFor({ state: 'detached' })
+    assert.equal(await page.locator('.treasure-departure').count(), 0, 'pickup must finish before the next room')
 
     await stage(fixture('anchor', true))
     await page.getByRole('button', { name: 'Open treasure chest', exact: true }).focus()
@@ -108,13 +145,17 @@ try {
     assert(await page.locator('[data-treasure-slot="p1"]').evaluate(element => element === document.activeElement),
       'keyboard opening must focus the available relic')
     await page.locator('.potion-tip:visible').waitFor()
+    await page.waitForTimeout(1700)
     await page.keyboard.press('Escape')
     await activate(page.getByRole('button', { name: '◆ Skip for Sapphire Key', exact: true }))
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().phase === 'map')
     assert.equal((await readRun()).campaign.keys.sapphire, true)
     assert.deepEqual(errors, [])
     console.log(`PASS ${screen}: closed/open layout, pointer help, relic claim, Skip, keyboard and Sapphire choice`)
+    const video = page.video()
     await page.close()
+    await video.saveAs(`${output}/${screen}.webm`)
+    await video.delete()
   }
 } finally {
   await browser.close()

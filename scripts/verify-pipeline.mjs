@@ -35,6 +35,8 @@ check('upgrade text normalization selects focused layout and image coverage', ()
 check('shared interface polish selects its focused interaction coverage', () => {
   for (const file of ['src/ui/chrome/interaction-polish.css', 'src/ui/useControlPress.ts', 'src/ui/StartMenu.tsx', 'src/ui/SettingsDialog.tsx'])
     assert(affected(file).includes('verify-ui-polish-browser.mjs'), `${file}: missing UI polish coverage`)
+  assert(affected('src/ui/chrome/interaction-polish.css').includes('verify-treasure-layout-browser.mjs'),
+    'shared focus styles must exercise the chest silhouette regression')
 })
 check('shared tooltip changes select the focused browser suite and native-title audit', () => {
   for (const file of ['src/ui/Tooltip.tsx', 'src/ui/Card.tsx', 'src/ui/App.tsx', 'src/ui/chrome/tooltip-panels.css'])

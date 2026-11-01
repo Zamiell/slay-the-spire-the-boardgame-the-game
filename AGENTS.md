@@ -18,12 +18,13 @@ Do not add or retain portrait-phone, portrait-tablet, square, or arbitrary viewp
 
 Before pushing `master`, require `node scripts/verify-all.mjs --changed=origin/master --lane=light --jobs=4` to pass with no retries, then wait for every GitHub `Build and test` job to finish successfully.
 
-## Fast local verification
+## Fast local iteration
 
 - Do not run `scripts/verify-browser.mjs` or the whole browser lane during normal implementation or review. That file is a legacy umbrella and is opt-in only when the user explicitly requests it.
 - Start with `node scripts/verify-all.mjs --changed=HEAD --lane=light --list` and `node scripts/verify-all.mjs --changed=HEAD --lane=browser --list`, then run the light lane plus only the focused browser verifiers that own the changed behavior.
 - If a regression is covered only by the legacy umbrella, extract it into a focused `verify-*-browser.mjs` script before relying on it. Focused local validation should finish in about a minute, not block iteration for 10-15 minutes.
 - A baseline failure is maintenance debt: fix the product or the test, and leave a focused regression check. Do not waive it as pre-existing and do not rerun the entire umbrella merely to classify it.
+- These focused commands are the iteration loop, not the UI completion gate below.
 
 ## Silent browser testing
 
@@ -31,6 +32,15 @@ Before pushing `master`, require `node scripts/verify-all.mjs --changed=origin/m
 - Use `scripts/lib/profile-browser.mjs` for returning-player fixtures, or `scripts/lib/silent-browser.mjs` for fresh-profile fixtures. Do not launch Playwright directly.
 - Keep both HTML media and Web Audio output muted, including in headed browsers. Sound-specific tests may exercise playback and volume controls internally, but must never produce audible output.
 - Never mute the system, change the user's audio settings, or alter the user's running browser to silence a test. Apply muting only to the isolated automation session.
+
+## UI completion and visual review
+
+- Before finishing any UI change, fully test the affected flow, not just its final static layout. Cover arrival, idle, hover, keyboard focus, press, touch confirmation, transitions, tooltips, dismissal, and departure where applicable on desktop and horizontal phone.
+- Record videos with normal animations enabled for both screen classes, and inspect the recordings (including transition frames), alongside screenshots. Always run the complete `scripts/verify-ui-polish-browser.mjs` screen sweep to review the rest of the interface; do not claim that a focused check covers every screen.
+- Preserve real arrival focus and pointer state in regression captures. Do not blur controls, move the pointer away, or disable animations merely to make a capture look clean. Capture deliberately changed interaction states separately.
+- Add automated assertions for discovered visual defects, including computed styles and geometry when relevant. Videos are review evidence, not an automatic guarantee of visual correctness; inspect them before claiming completion.
+- When matching STS2, compare the affected states with the supplied screenshots and local reference behavior. Preserve accessibility and board-game rules, and disclose any remaining artwork or behavior differences rather than claiming unverified pixel-perfect parity.
+- Before completion, run the full light lane (`node scripts/verify-all.mjs --lane=light --jobs=4`), type checking, the complete UI screen sweep, and all focused verifiers for the changed behavior. Report any blocked or unexamined coverage explicitly. The legacy browser umbrella remains opt-in as described above.
 
 ## WebMCP campaign runbook
 

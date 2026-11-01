@@ -55,12 +55,17 @@ try {
     ['horizontal-phone', { width: 844, height: 390 }, true],
   ]) {
     if (onlyScreen && screen !== onlyScreen) continue
-    const page = await browser.newPage({ viewport, hasTouch: phone, isMobile: phone })
+    const page = await browser.newPage({ viewport, hasTouch: phone, isMobile: phone,
+      recordVideo: { dir: output, size: viewport } })
     page.setDefaultTimeout(15_000)
     await page.addInitScript(profile => localStorage.setItem('sts-profile', JSON.stringify(profile)), profile)
     const errors = []
     page.on('pageerror', error => errors.push(error.message))
     const shot = async (name, control) => {
+      if (!capture) {
+        await page.evaluate(() => document.fonts.ready)
+        await page.screenshot({ path: join(output, `${screen}-${name}-arrival.jpg`), type: 'jpeg', quality: 82 })
+      }
       await page.mouse.move(1, 1)
       await page.evaluate(() => document.activeElement?.blur())
       if (control) {
@@ -71,8 +76,8 @@ try {
       await page.evaluate(() => document.fonts.ready)
       await page.waitForTimeout(capture ? 600 : 100)
       const file = `${screen}-${name}.jpg`
-      if (capture && retained({ screen, name }))
-        await page.screenshot({ path: join(output, file), type: 'jpeg', quality: 82, animations: 'disabled' })
+      if (retained({ screen, name }))
+        await page.screenshot({ path: join(output, file), type: 'jpeg', quality: 82 })
       captures.push({ screen, name, file, interaction: phone ? 'keyboard focus' : 'mouse hover' })
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `${screen}/${name}: page overflows`)
     }
@@ -192,6 +197,11 @@ try {
     await shot('campfire', page.locator('.campfire__choices button').first())
     await stage(makeRoom('event'))
     await shot('event', page.locator('.event-options button:not(:disabled)').first())
+    await stage(makeRoom('treasure'))
+    await shot('treasure-closed', page.getByRole('button', { name: 'Open treasure chest', exact: true }))
+    await page.getByRole('button', { name: 'Open treasure chest', exact: true }).click()
+    await page.waitForTimeout(1700)
+    await shot('treasure-opened', page.locator('[data-treasure-slot]').first())
     const reward = postNeowRun(47, seats)
     Object.assign(reward, { phase: 'reward', rewardDestination: 'map',
       rewards: [{ playerId: 'p1', cardReward: true, choices: null, upgraded: false,
@@ -231,7 +241,10 @@ try {
     }
     assert.deepEqual(errors, [], `${screen}: uncaught browser errors`)
     console.log(`PASS ${screen}: ${captures.filter(capture => capture.screen === screen).length} UI surfaces`)
+    const video = page.video()
     await page.close()
+    await video.saveAs(join(output, `${screen}.webm`))
+    await video.delete()
   }
   let published = captures.filter(retained)
   if (capture === 'after' && !onlyScreen) {

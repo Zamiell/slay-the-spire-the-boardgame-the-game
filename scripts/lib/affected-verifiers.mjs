@@ -67,7 +67,7 @@ const focusedUiOwners = ownerMap([
   ['src/ui/PotionIcon.tsx', ['verify-treasure-animation-browser.mjs', 'verify-orb-tooltips-browser.mjs',
     'verify-resource-tooltips-browser.mjs']],
   ['src/ui/chrome/back-buttons.css', ['verify-back-buttons-browser.mjs']],
-  ['src/ui/chrome/interaction-polish.css', ['verify-ui-polish-browser.mjs']],
+  ['src/ui/chrome/interaction-polish.css', ['verify-ui-polish-browser.mjs', 'verify-treasure-layout-browser.mjs']],
   ['src/ui/useControlPress.ts', ['verify-ui-polish-browser.mjs']],
   ...['src/ui/Tooltip.tsx', 'src/ui/chrome/tooltip-panels.css']
     .map(file => [file, ['verify-tooltips-browser.mjs']]),

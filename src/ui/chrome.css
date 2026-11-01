@@ -58,7 +58,7 @@
 @import './chrome/combat-relic-actions.css';
 @import './chrome/die-relic-choices.css';
 @import './chrome/framed-screens.css';
-@import './chrome/campfire.css';
+@import './CampfireScreen.css';
 @import './chrome/reward-screen.css';
 @import './chrome/room-stages.css';
 @import './chrome/merchant-arrival.css';

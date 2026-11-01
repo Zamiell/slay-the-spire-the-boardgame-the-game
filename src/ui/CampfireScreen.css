@@ -1,5 +1,63 @@
+/* Shared by local and online Campfire screens. Theme keys and accessibility
+   policies remain shared; this file owns the scene, layout, and feedback. */
+.campfire {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.campfire h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  letter-spacing: 0.12em;
+}
+
+.campfire__player {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  align-items: center;
+  border-radius: 6px;
+}
+
+.campfire__name {
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+}
+
+.campfire__name-row,
+.campfire__turn-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.campfire__name-row { flex-wrap: wrap; }
+
+.campfire__choices {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.campfire__choice-status {
+  display: grid;
+  min-height: 6.5rem;
+  margin: 0;
+  padding: 1rem 2rem;
+  place-items: center;
+  color: var(--gold);
+  font-size: 1.15rem;
+  text-align: center;
+  text-shadow: 2px 2px #000;
+}
+
 /* One camp painting with each hero's seated sprite on its logs (CampfireScene).
    The prompt floats over the scene instead of moving the party when a card picker opens. */
+
 .sts-scope .campfire {
   position: relative;
   isolation: isolate;
@@ -24,6 +82,7 @@
 }
 
 /* Sized like `background-size: cover` so seat percentages stay on the painted logs at every aspect ratio. */
+
 .sts-scope .campfire__scene {
   position: absolute;
   top: 50%;
@@ -44,6 +103,7 @@
 /* A sprite canvas is 1408x1808 with the hips at (704, 848) (scripts/art/campfire-sitters.py). A human hero's 620 canvas px
    from seat to crown match 380 camp px, so the canvas spans 380 / 620 * 1408 / 3840 = 22.47% of the camp's width.
    Right-log heroes are mirrored to face the fire. */
+
 .sts-scope .campfire__sitter {
   position: absolute;
   width: calc(22.47% * var(--seat-scale, 1));
@@ -70,6 +130,7 @@
 
 /* The fire itself: the campfire heading's flame icon, given a slow flicker so
    the screen is never completely still. */
+
 .sts-scope .campfire h2 .icon {
   filter: drop-shadow(0 0 1.2rem rgb(255 150 50 / 0.8));
   animation: campfire-flicker 2.4s ease-in-out infinite;
@@ -111,6 +172,7 @@
 }
 
 /* Rest and Smith are the decision of the screen; they get the size to say so. */
+
 .sts-scope .campfire__choices button {
   flex-direction: column;
   gap: 0.15rem;
@@ -131,86 +193,15 @@
 
 .sts-scope .campfire__choices button > strong { font-size: 1rem; }
 
-.sts-scope .campfire__deck {
-  --card-width: clamp(7rem, 10vw, 9.5rem);
-  display: flex;
-  flex-wrap: nowrap;
-  justify-content: safe center;
-  max-width: 100%;
-  max-height: none;
-  min-height: calc(var(--card-width) * var(--card-ratio, 1.395) + 1.2rem);
-  overflow: auto hidden;
-  padding: 0.55rem 0.55rem 0.8rem;
-  background: rgb(10 12 12 / 0.52);
-  overscroll-behavior-inline: contain;
-}
-
-.sts-scope .campfire__prompt .campfire__deck {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, var(--card-width));
-  justify-content: center;
-  overflow: visible;
-}
-
-/* Smith and Peace Pipe turn the choice cloud into the game's full card picker. */
-.sts-scope .campfire__prompt:has(.campfire__deck) {
-  width: min(76rem, calc(100% - 2rem));
-  max-height: calc(100% - 2rem);
-}
-
-/* Card choice replaces the seated scene in the original game. Give that picker
-   the scene's height, wrap complete cards, and keep only its one outer scroll. */
-.sts-scope .campfire:has(.campfire__deck) {
-  min-height: calc(100dvh - 5rem);
-}
-
-.sts-scope .campfire__prompt:has(.campfire__deck) .campfire__choices button {
-  flex-direction: row;
-  min-width: 7rem;
-  min-height: 2.5rem;
-  padding: 0.25rem 0.55rem;
-}
-
-.sts-scope .campfire__prompt:has(.campfire__deck) .campfire__choices button > img { display: none; }
-
-@media (max-height: 600px) {
-  .sts-scope .campfire__prompt:has(.campfire__deck) h2 {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-  }
-
-}
-
-@media (max-height: 600px) and (min-width: 701px) {
-  .sts-scope .campfire__prompt:has(.campfire__deck) .campfire__name {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-  }
-}
-
-@media (max-width: 700px) {
-  .sts-scope .campfire:has(.campfire__deck) .campfire__prompt {
-    top: 3.5rem;
-    max-height: calc(100% - 8rem);
-  }
-
-}
-
 @media (max-width: 700px) {
   .sts-scope .campfire__prompt { top: 3.5rem; width: calc(100% - 0.5rem); max-height: min(58vh, calc(100% - 5rem)); }
   .sts-scope .campfire__choices { flex-wrap: wrap; justify-content: center; }
   .sts-scope .campfire__choices button { min-width: 7rem; min-height: 5.4rem; }
   .sts-scope .campfire__choices button > img { width: 5rem; height: 2.8rem; }
-  .sts-scope .campfire__deck { --card-width: clamp(6.5rem, 31vw, 8rem); justify-content: flex-start; }
 }
 
 @media (max-height: 520px) {
-  .sts-scope .campfire:not(:has(.campfire__deck)) .campfire__prompt {
+  .sts-scope .campfire .campfire__prompt {
     top: 0.25rem;
     display: flex;
     align-items: center;
@@ -218,38 +209,72 @@
     width: calc(100% - 1rem);
     padding: 0.25rem 0.5rem;
   }
-  .sts-scope .campfire:not(:has(.campfire__deck)) .campfire__prompt h2 {
+  .sts-scope .campfire .campfire__prompt h2 {
     font-size: 1rem;
     letter-spacing: 0.04em;
     white-space: nowrap;
   }
-  .sts-scope .campfire:not(:has(.campfire__deck)) .campfire__prompt h2 small { display: none; }
-  .sts-scope .campfire:not(:has(.campfire__deck)) .campfire__player {
+  .sts-scope .campfire .campfire__prompt h2 small { display: none; }
+  .sts-scope .campfire .campfire__player {
     flex: 1;
     flex-direction: row;
     justify-content: space-evenly;
     gap: 0.5rem;
     min-width: 0;
   }
-  .sts-scope .campfire:not(:has(.campfire__deck)) .campfire__name-row { flex-wrap: nowrap; }
-  .sts-scope .campfire:not(:has(.campfire__deck)) .campfire__name {
+  .sts-scope .campfire .campfire__name-row { flex-wrap: nowrap; }
+  .sts-scope .campfire .campfire__name {
     max-width: 8rem;
     overflow-wrap: anywhere;
     font-size: 0.8rem;
     letter-spacing: 0.02em;
   }
-  .sts-scope .campfire:not(:has(.campfire__deck)) .campfire__choices { flex-wrap: nowrap; }
-  .sts-scope .campfire:not(:has(.campfire__deck)) .campfire__choices button {
+  .sts-scope .campfire .campfire__choices { flex-wrap: nowrap; }
+  .sts-scope .campfire .campfire__choices button {
     flex-direction: column;
     gap: 0;
     min-width: 5.5rem;
     min-height: 2.75rem;
     padding: 0.25rem;
   }
-  .sts-scope .campfire:not(:has(.campfire__deck)) .campfire__choices button > img { display: none; }
-  .sts-scope .campfire:not(:has(.campfire__deck)) .campfire__choice-status {
+  .sts-scope .campfire .campfire__choices button > img { display: none; }
+  .sts-scope .campfire .campfire__choice-status {
     min-height: 2.75rem;
     padding: 0.25rem;
     font-size: 0.8rem;
   }
+}
+
+.sts-scope .campfire__choices button:not(:disabled, [aria-disabled='true']) {
+  transition: filter var(--ui-release) var(--ui-ease-out), box-shadow var(--ui-release) var(--ui-ease-out),
+    border-color var(--ui-release) var(--ui-ease-out);
+}
+
+.sts-scope .campfire__choices button:focus-visible:not(:disabled, [aria-disabled='true']) {
+  --bevel-color: #b6e4ef;
+  border-color: #b6e4ef;
+  box-shadow: inset 0 0 0 2px rgb(161 221 239 / 0.5), inset 0 0 1.2rem rgb(135 206 235 / 0.14);
+}
+
+.sts-scope .campfire__choices button:is(:active, [data-ui-pressed]):not(:disabled, [aria-disabled='true']) {
+  box-shadow: inset 0 3px 8px rgb(0 0 0 / 0.65);
+  filter: brightness(0.9);
+}
+
+.campfire__choices button > img {
+  transition: scale var(--ui-release) var(--ui-ease-back), filter var(--ui-release) var(--ui-ease-out);
+}
+
+.campfire__choices button:focus-visible:not(:disabled) > img { scale: 1.1; filter: brightness(1.12); }
+
+.campfire__choices button:is(:active, [data-ui-pressed]):not(:disabled) > img { scale: 0.9; transition-duration: var(--ui-press); }
+
+@media (hover: hover) and (pointer: fine) {
+  .sts-scope .campfire__choices button:hover:not(:disabled, [aria-disabled='true']) {
+    --bevel-color: #b6e4ef;
+    border-color: #b6e4ef;
+    box-shadow: inset 0 0 0 2px rgb(161 221 239 / 0.5), inset 0 0 1.2rem rgb(135 206 235 / 0.14);
+    transition-duration: var(--ui-hover);
+  }
+  .campfire__choices button:hover:not(:disabled) > img { scale: 1.1; filter: brightness(1.12); }
 }

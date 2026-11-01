@@ -59,7 +59,7 @@ check('resuming Tiny House does not grant Gold twice', () => assertEqual(goldRes
 const loot = await page.locator('.reward-screen--loot').evaluate((screen) => ({
   rows: [...screen.querySelectorAll('.loot-choice')].map((row) => row.textContent?.trim()),
   goldRows: [...screen.querySelectorAll('.loot-choice')].filter((row) => row.textContent?.includes('Gold')).length,
-  deckCards: screen.querySelectorAll('.campfire__deck .card, .card-picker__grid .card').length,
+  deckCards: screen.querySelectorAll('.card-picker__grid .card').length,
   overflow: screen.scrollWidth > screen.clientWidth + 1,
 }))
 check('Tiny House first reuses the compact Loot panel', () => {

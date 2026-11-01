@@ -135,14 +135,6 @@
 .merchant-potion-dialog header span { color: var(--trim-lit); letter-spacing: 0.12em; text-transform: uppercase; }
 .merchant-removal-dialog header h2,
 .merchant-potion-dialog header h2 { margin: 0.2rem 0 0; }
-.merchant-removal-dialog .campfire__deck {
-  max-height: min(58vh, 34rem);
-  /* No bottom padding and no fade: the confirm key below is in normal flow, not
-     sticky, so it never lands on a card — reserving room for it just cost the one
-     dialog whose job is reading card faces 56px of deck. A mask cannot tell
-     whether the deck actually overflows either, so it ghosted a short deck's last
-     row for nothing. */
-}
 .merchant-removal-dialog__confirm,
 .merchant-potion-dialog__confirm { justify-self: center; min-width: 16rem; }
 .merchant-potion-dialog .merchant-potion-discard { width: min(38rem, 100%); margin: 0 auto; }

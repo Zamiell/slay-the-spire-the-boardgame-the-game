@@ -120,21 +120,6 @@
 .sts-scope .reward-screen__unrevealed > button { justify-content: flex-start; }
 .sts-scope .reward-screen__unrevealed > .muted { text-align: center; }
 
-/* The removal picker laid the whole deck out in one non-wrapping row, so past
-   about eight cards the rest scrolled off behind a horizontal scroller —
-   reachable, but nothing on screen said so. */
-.merchant-removal-dialog .campfire__deck {
-  display: grid;
-  /* The floor is a legibility floor: at `8rem` a wider window packed in more
-     columns and made every card SMALLER, taking the rules text under 9px in the
-     one dialog whose whole job is reading a card face. */
-  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
-  gap: var(--item-gap);
-  overflow: hidden auto;
-}
-
-.merchant-removal-dialog .campfire__deck > .card { width: 100%; }
-
 /* Post-combat rewards use the game's small hanging sheet, not a normal app
    panel. The shell stays barely visible as the combat HUD behind the dimmer. */
 .app-shell:has(> .reward-screen):not(:has(.reward-screen--card-choice)) > .app-shell__header {

@@ -45,7 +45,7 @@
 }
 
 /* The full-bleed bands (the HUD in chrome/run-header.css, the map in
-   chrome/map.css, the campfire in chrome/campfire.css) size themselves
+   chrome/map.css, the campfire in CampfireScreen.css) size themselves
    with `100vw` so they reach the window edge rather than stopping at the
    shell's 1400px column. `100vw` counts the classic scrollbar gutter, though,
    so on Windows and Linux each of them overhangs the page by ~15px the moment

@@ -152,26 +152,24 @@
 .settings-volume input:active::-webkit-slider-thumb { scale: 0.95; }
 
 /* Reward and event rows respond as a unit without expanding into their neighbours. */
-.sts-scope :is(.loot-choice, .event-options button, .campfire__choices button):not(:disabled, [aria-disabled='true']) {
+.sts-scope :is(.loot-choice, .event-options button):not(:disabled, [aria-disabled='true']) {
   transition: filter var(--ui-release) var(--ui-ease-out), box-shadow var(--ui-release) var(--ui-ease-out),
     border-color var(--ui-release) var(--ui-ease-out);
 }
-.sts-scope :is(.loot-choice, .event-options button, .campfire__choices button):focus-visible:not(:disabled, [aria-disabled='true']) {
+.sts-scope :is(.loot-choice, .event-options button):focus-visible:not(:disabled, [aria-disabled='true']) {
   --bevel-color: #b6e4ef;
   border-color: #b6e4ef;
   box-shadow: inset 0 0 0 2px rgb(161 221 239 / 0.5), inset 0 0 1.2rem rgb(135 206 235 / 0.14);
 }
-.sts-scope :is(.loot-choice, .event-options button, .campfire__choices button):is(:active, [data-ui-pressed]):not(:disabled, [aria-disabled='true']) {
+.sts-scope :is(.loot-choice, .event-options button):is(:active, [data-ui-pressed]):not(:disabled, [aria-disabled='true']) {
   box-shadow: inset 0 3px 8px rgb(0 0 0 / 0.65);
   filter: brightness(0.9);
 }
-.loot-choice__icon, .campfire__choices button > img {
+.loot-choice__icon {
   transition: scale var(--ui-release) var(--ui-ease-back), filter var(--ui-release) var(--ui-ease-out);
 }
-.loot-choice:focus-visible .loot-choice__icon,
-.campfire__choices button:focus-visible:not(:disabled) > img { scale: 1.1; filter: brightness(1.12); }
-.loot-choice:is(:active, [data-ui-pressed]):not(:disabled) .loot-choice__icon,
-.campfire__choices button:is(:active, [data-ui-pressed]):not(:disabled) > img { scale: 0.9; transition-duration: var(--ui-press); }
+.loot-choice:focus-visible .loot-choice__icon { scale: 1.1; filter: brightness(1.12); }
+.loot-choice:is(:active, [data-ui-pressed]):not(:disabled) .loot-choice__icon { scale: 0.9; transition-duration: var(--ui-press); }
 .event-options button > strong { transition: translate var(--ui-release) var(--ui-ease-out); }
 .event-options button:focus-visible:not(:disabled) > strong { translate: 4px 0; }
 
@@ -216,14 +214,13 @@ dialog[open] > :is(.settings-dialog__panel, .choice-modal__panel, .map-peek__pan
     border-left-color: var(--ui-focus);
     transition-duration: var(--ui-hover);
   }
-  .sts-scope :is(.loot-choice, .event-options button, .campfire__choices button):hover:not(:disabled, [aria-disabled='true']) {
+  .sts-scope :is(.loot-choice, .event-options button):hover:not(:disabled, [aria-disabled='true']) {
     --bevel-color: #b6e4ef;
     border-color: #b6e4ef;
     box-shadow: inset 0 0 0 2px rgb(161 221 239 / 0.5), inset 0 0 1.2rem rgb(135 206 235 / 0.14);
     transition-duration: var(--ui-hover);
   }
-  .loot-choice:hover:not(:disabled) .loot-choice__icon,
-  .campfire__choices button:hover:not(:disabled) > img { scale: 1.1; filter: brightness(1.12); }
+  .loot-choice:hover:not(:disabled) .loot-choice__icon { scale: 1.1; filter: brightness(1.12); }
   .event-options button:hover:not(:disabled) > strong { translate: 4px 0; }
 }
 

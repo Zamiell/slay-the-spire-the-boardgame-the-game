@@ -311,7 +311,7 @@ check('shared frontend changes use cores plus named visual owners', () => {
     assert(affectedBrowser(sheet).includes('verify-button-borders-browser.mjs'))
   }
   for (const file of ['src/game/assets.ts', 'src/ui/CampfireScene.tsx', 'src/ui/CampfireScreen.tsx', 'src/ui/OnlineCampfireScreen.tsx',
-    'src/ui/chrome/campfire.css', 'public/assets/noncombat/campfire/sitters/kratos.webp']) {
+    'src/ui/CampfireScreen.css', 'public/assets/noncombat/campfire/sitters/kratos.webp']) {
     includesEvery(affectedBrowser(file), ['verify-art-scenes-browser.mjs'], `${file} campfire scene`)
   }
   for (const sheet of ['src/ui/chrome.css', 'src/ui/chrome/keys.css']) {

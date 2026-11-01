@@ -254,14 +254,27 @@ Both stylesheet trees deliberately depend on import order, and several surfaces
 have rules in both trees. The recently fixed hover override demonstrates the
 maintenance cost of competing ownership.
 
-- [ ] Consolidate one surface at a time under a clear owner.
-- [ ] Keep theme and interaction defaults below component-specific rules.
-- [ ] Remove superseded overrides after confirming their intended behavior.
-- [ ] Preserve intentional accessibility, reduced-motion, and responsive overrides.
+- [x] Consolidate one surface at a time under a clear owner.
+- [x] Keep theme and interaction defaults below component-specific rules.
+- [x] Remove superseded overrides after confirming their intended behavior.
+- [x] Preserve intentional accessibility, reduced-motion, and responsive overrides.
 
 **Completion criteria:** Each migrated surface has an understandable cascade and
 retains its arrival, hover, focus, press, touch, transition, and dismissal behavior.
 Do not perform a global stylesheet rewrite.
+
+**Implemented:** `CampfireScreen.css` now owns local/online campfire layout, scene,
+responsive treatment, and interaction feedback. The competing base/theme partials
+are removed, along with obsolete inline-deck rules left behind by the shared
+CardPicker migration. Theme keys and cross-component accessibility policies remain
+intentionally shared; low-priority interaction defaults remain layered.
+
+**Evidence:** Before/after computed-style comparisons are identical on desktop
+and horizontal phone for idle, hover, keyboard focus, press, chosen, disabled,
+game/OS reduced motion, and forced colors. Campfire scene, local/online action,
+shared picker, hover overflow, and Tiny House suites pass. Screenshots were
+reviewed, and the complete light lane passes 92/92 in the compatible toolchain.
+The combined recorded UI sweep remains part of final delivery.
 
 ## 9. Make verifier ownership and output resources explicit
 

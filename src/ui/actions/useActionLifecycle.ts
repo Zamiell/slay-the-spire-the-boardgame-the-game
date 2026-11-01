@@ -8,6 +8,8 @@ type Options<Payload, Board> = {
   scope: string
   board: Board
   refresh?: number
+  version?: number
+  awaitCommit?: boolean
   lockRef?: { current: boolean }
   committed: (payload: Payload, board: Board) => boolean
   reconciled: (payload: Payload, committed: boolean, board: Board) => void
@@ -25,14 +27,14 @@ export function useActionLifecycle<Payload, Board>(options: Options<Payload, Boa
   const sequence = useRef(0)
   const scope = useRef(options.scope)
   const mounted = useRef(true)
-  const [busy, setBusy] = useState(false)
+  const [phase, setPhase] = useState<ActionLifecycle<Payload, Board>['kind']>('idle')
   const completion = useRef<((outcome: ActionOutcome) => void) | undefined>(undefined)
 
   function apply(event: ActionEvent<Payload, Board, ActionOutcome>) {
     const result = transitionAction(machine.current, event)
     machine.current = result.state
     if (latest.current.lockRef) latest.current.lockRef.current = result.state.kind !== 'idle'
-    setBusy(result.state.kind !== 'idle')
+    setPhase(result.state.kind)
     return result.resolution
   }
 
@@ -51,6 +53,7 @@ export function useActionLifecycle<Payload, Board>(options: Options<Payload, Boa
     if (current.kind === 'idle') return
     finish(apply({
       type: 'observe', board: latest.current.board, latestRefresh: latest.current.refresh,
+      version: latest.current.version,
       committed: latest.current.committed(current.payload, latest.current.board),
     }))
   }
@@ -71,11 +74,11 @@ export function useActionLifecycle<Payload, Board>(options: Options<Payload, Boa
       completion.current = undefined
       apply({ type: 'reset' })
     } else observe()
-  }, [options.scope, options.board, options.refresh])
+  }, [options.scope, options.board, options.refresh, options.version])
 
   function submit(
     payload: Payload,
-    send: () => void | Promise<ActionOutcome | void>,
+    send: (isCurrent: () => boolean) => void | Promise<ActionOutcome | void>,
     online: boolean,
     onOutcome?: (outcome: ActionOutcome) => void,
   ) {
@@ -83,21 +86,24 @@ export function useActionLifecycle<Payload, Board>(options: Options<Payload, Boa
     const id = ++sequence.current
     const submittedScope = latest.current.scope
     completion.current = onOutcome
-    apply({ type: 'start', id, payload, mode: online ? 'online' : 'local', board: latest.current.board })
+    apply({ type: 'start', id, payload, mode: online ? 'online' : 'local', board: latest.current.board,
+      awaitCommit: latest.current.awaitCommit })
+    const isCurrent = () => mounted.current && latest.current.scope === submittedScope &&
+      machine.current.kind !== 'idle' && machine.current.id === id
     const receive = (outcome?: ActionOutcome) => {
-      if (!mounted.current || latest.current.scope !== submittedScope ||
-        machine.current.kind === 'idle' || machine.current.id !== id) return
+      if (!isCurrent()) return
       finish(apply(outcome
-        ? { type: 'reply', id, outcome, latestRefresh: latest.current.refresh }
+        ? { type: 'reply', id, outcome, latestRefresh: latest.current.refresh,
+            commitVersion: latest.current.version === undefined ? undefined : outcome.snapshot?.version }
         : { type: 'failed', id, latestRefresh: latest.current.refresh }))
       // A REST render may have arrived before its action callback.
       observe()
     }
     if (online) {
-      void deliverAction(send, receive, () => receive())
+      void deliverAction(() => send(isCurrent), receive, () => receive())
     } else {
       try {
-        send()
+        send(isCurrent)
       } catch (error) {
         completion.current = undefined
         apply({ type: 'reset' })
@@ -107,5 +113,5 @@ export function useActionLifecycle<Payload, Board>(options: Options<Payload, Boa
     return true
   }
 
-  return { busy, locked: () => machine.current.kind !== 'idle', submit }
+  return { busy: phase !== 'idle', phase, locked: () => machine.current.kind !== 'idle', submit }
 }

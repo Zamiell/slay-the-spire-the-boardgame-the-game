@@ -11,7 +11,7 @@ import {
   restorePowerSelection, transitionPowerSelection,
 } from './power-selection.ts'
 import type { PowerSelection, PowerSelectionEvent } from './power-selection.ts'
-import { useActionLifecycle } from './useActionLifecycle.ts'
+import { useActionLifecycle } from '../actions/useActionLifecycle.ts'
 import { useScopedSelection } from './useScopedSelection.ts'
 
 type Options = Pick<CombatScreenProps, 'state' | 'viewerId' | 'onAction' | 'onChange' |

@@ -8,7 +8,7 @@ import { relicSubmissionCommitted } from './action-evidence.ts'
 import type { RelicSubmissionEvidence } from './action-evidence.ts'
 import { reconcileRelicSelection, relicUsable, restoreRelicSelection, toggleRelicCard } from './relic-selection.ts'
 import type { RelicSelection } from './relic-selection.ts'
-import { useActionLifecycle } from './useActionLifecycle.ts'
+import { useActionLifecycle } from '../actions/useActionLifecycle.ts'
 import { useScopedSelection } from './useScopedSelection.ts'
 import { gainedShivs } from './card-play-requirements.ts'
 

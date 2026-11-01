@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import fc from 'fast-check'
-import { transitionAction } from '../src/ui/combat-screen/action-lifecycle.ts'
+import { transitionAction } from '../src/ui/actions/action-lifecycle.ts'
 import { transitionPotionSelection } from '../src/ui/combat-screen/potion-selection.ts'
 
 const event = fc.record({

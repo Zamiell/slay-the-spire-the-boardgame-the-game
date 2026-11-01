@@ -72,12 +72,19 @@ const focusedUiOwners = ownerMap([
     'verify-deck-inspection-browser.mjs', 'verify-incoming-damage-browser.mjs']],
   ['src/ui/RoomBanner.tsx', ['verify-treasure-layout-browser.mjs', 'verify-event-panels-browser.mjs',
     'verify-unavailable-event-browser.mjs']],
-  ...['action-delivery.ts', 'action-evidence.ts', 'action-lifecycle.ts', 'combat-resync.ts',
-    'potion-selection.ts', 'power-selection.ts', 'useActionLifecycle.ts', 'usePotionController.ts',
+  ...['action-evidence.ts', 'combat-resync.ts',
+    'potion-selection.ts', 'power-selection.ts', 'usePotionController.ts',
     'selection-scope.ts', 'useScopedSelection.ts']
     .map(file => [`src/ui/combat-screen/${file}`, ['verify-card-choices-browser.mjs',
       'verify-single-enemy-targets-browser.mjs', 'verify-post-roll-item-browser.mjs',
       'verify-start-turn-resync-browser.mjs', 'verify-slayer-powers-browser.mjs']]),
+  ...['action-delivery.ts', 'action-lifecycle.ts', 'useActionLifecycle.ts'].map(file =>
+    [`src/ui/actions/${file}`, ['verify-noncombat-actions-browser.mjs', 'verify-card-choices-browser.mjs',
+      'verify-start-turn-resync-browser.mjs', 'verify-post-roll-item-browser.mjs']]),
+  ...['room-action.ts', 'useRoomAction.ts', 'RoomActionStatus.tsx', 'room-action-status.css'].map(file =>
+    [`src/ui/actions/${file}`, ['verify-noncombat-actions-browser.mjs', 'verify-boss-relic-picker-browser.mjs']]),
+  ...['src/ui/campfire-choice.ts', 'src/ui/CampfireCardPicker.tsx'].map(file =>
+    [file, ['verify-noncombat-actions-browser.mjs', 'verify-card-picker-browser.mjs']]),
   ['src/ui/combat-screen/usePowerController.ts', ['verify-guardian-card-browser.mjs',
     'verify-hermit-chamber-browser.mjs', 'verify-slayer-discard-and-orbs-browser.mjs',
     'verify-start-turn-resync-browser.mjs']],
@@ -97,7 +104,7 @@ const focusedUiOwners = ownerMap([
     .map(file => [file, ['verify-hand-size-browser.mjs', ...(file.endsWith('/hand-layout.css')
       ? ['verify-card-interaction-browser.mjs', 'verify-start-turn-order-browser.mjs'] : [])]]),
   ...['src/ui/RewardScreen.tsx', 'src/ui/OnlineRewardScreen.tsx']
-    .map(file => [file, ['verify-gold-sfx-browser.mjs']]),
+    .map(file => [file, ['verify-gold-sfx-browser.mjs', 'verify-noncombat-actions-browser.mjs']]),
   ...['scripts/audio/generate-gold-sfx.py', 'public/assets/sfx/gold.wav']
     .map(file => [file, ['verify-assets.mjs', 'verify-gold-sfx-browser.mjs']]),
   ...['src/ui/MapDrawing.tsx', 'src/ui/styles/map-drawing.css', 'src/ui/MapOverlay.tsx']
@@ -135,7 +142,8 @@ const focusedUiOwners = ownerMap([
     'verify-combat-vfx-preload-browser.mjs', 'verify-tutorial-browser.mjs', 'verify-enemy-hover-browser.mjs', 'verify-skin-browser.mjs']],
   ['src/ui/CampfireScene.tsx', ['verify-art-scenes-browser.mjs', 'verify-skin-browser.mjs']],
   ['src/ui/campfire-seats.ts', ['verify-art-scenes-browser.mjs', 'verify-skin-browser.mjs']],
-  ['src/ui/CampfireScreen.tsx', ['verify-art-scenes-browser.mjs', 'verify-monogatari-skins-browser.mjs']],
+  ['src/ui/CampfireScreen.tsx', ['verify-art-scenes-browser.mjs', 'verify-monogatari-skins-browser.mjs',
+    'verify-noncombat-actions-browser.mjs']],
   ['src/ui/CompendiumScreen.tsx', ['verify-compendium-browser.mjs', 'verify-skin-browser.mjs', 'verify-skin-cards-browser.mjs']],
   ['src/ui/StatsScreen.tsx', ['verify-stats-browser.mjs', 'verify-skin-cards-browser.mjs']],
   ['src/ui/skin-context.tsx', ['verify-skin-cards-browser.mjs', 'verify-card-rendering-browser.mjs']],
@@ -207,7 +215,8 @@ const focusedUiOwners = ownerMap([
   ['src/ui/RelicChip.tsx', ['verify-courier-browser.mjs', 'verify-die-relic-browser.mjs']],
   ['src/ui/DieRelicChoices.tsx', ['verify-die-relic-browser.mjs']],
   ['src/ui/OnlineGame.tsx', ['verify-retain-selection-browser.mjs', 'verify-courier-browser.mjs', 'verify-skin-browser.mjs', 'verify-skin-cards-browser.mjs', 'verify-start-turn-resync-browser.mjs', 'verify-monogatari-online-browser.mjs']],
-  ['src/ui/OnlineCampfireScreen.tsx', ['verify-art-scenes-browser.mjs', 'verify-monogatari-online-browser.mjs']],
+  ['src/ui/OnlineCampfireScreen.tsx', ['verify-art-scenes-browser.mjs', 'verify-monogatari-online-browser.mjs',
+    'verify-noncombat-actions-browser.mjs']],
   ['src/ui/StartMenu.tsx', ['verify-run-replay-browser.mjs', 'verify-title-menu-browser.mjs', 'verify-tutorial-browser.mjs', 'verify-skin-browser.mjs', 'verify-ui-polish-browser.mjs']],
   ['src/ui/ProfileScreen.tsx', ['verify-skin-profile-browser.mjs', 'verify-account-browser.mjs', 'verify-wallet-sync-browser.mjs', 'verify-restricted-browser.mjs']],
   ['src/profile.ts', ['verify-account-browser.mjs', 'verify-restricted-browser.mjs', 'verify-ascension-sync-browser.mjs']],

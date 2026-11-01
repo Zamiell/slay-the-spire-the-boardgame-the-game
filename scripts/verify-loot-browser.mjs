@@ -477,24 +477,29 @@ try {
     const createRoot = ReactDomClient.createRoot ?? ReactDomClient.default.createRoot
     const root = createRoot(document.querySelector('#online-reward-test'))
     const run = {
-      act: 1, ascension: 0,
+      act: 1, ascension: 0, phase: 'reward', map: { position: 'loot-room' }, campaign: { runId: 'loot-fixture' },
       players: [{ id: 'p1', name: 'Ironclad', relics: [], potions: [], deck: [] }],
       rewards: [{ playerId: 'p1', cardReward: true, choices: ['anger', 'cleave', 'bash'], upgraded: false,
         gold: false, potion: false, relic: false, bossRelics: false }],
     }
+    const deliveryProps = run => ({
+      snapshot: { code: 'LOOT', you: { playerId: 'p1' }, run, campfireDecided: [] },
+      refresh: 0, onResync: async () => false,
+    })
     window.__ONLINE_REWARD_ACTIONS__ = []
     const onAction = (action) => {
       window.__ONLINE_REWARD_ACTIONS__.push(action)
       return new Promise((resolve) => { window.__RESOLVE_ONLINE_REWARD__ = resolve })
     }
-    window.__ACK_ONLINE_REWARD__ = () => root.render(createElement(OnlineRewardScreen, {
-      run: { ...run, rewards: [{ ...run.rewards[0], cardReward: false }] }, viewerId: 'p1',
-      onAction,
-    }))
+    window.__ACK_ONLINE_REWARD__ = () => {
+      const next = { ...run, rewards: [{ ...run.rewards[0], cardReward: false }] }
+      root.render(createElement(OnlineRewardScreen, { ...deliveryProps(next), run: next, viewerId: 'p1', onAction }))
+    }
     window.__SHOW_UNREVEALED_REWARD__ = () => {
       window.__ONLINE_REWARD_ACTIONS__ = []
-      root.render(createElement(OnlineRewardScreen, {
-        key: 'unrevealed', run: { ...run, rewards: [{ ...run.rewards[0], choices: null }] },
+      const next = { ...run, rewards: [{ ...run.rewards[0], choices: null }] }
+      root.render(createElement(OnlineRewardScreen, { ...deliveryProps(next),
+        key: 'unrevealed', run: next,
         viewerId: 'p1', onAction,
       }))
     }
@@ -519,19 +524,21 @@ try {
     }
     window.__SHOW_MULTI_LOOT__ = ({ full = true, potion = true } = {}) => {
       window.__ONLINE_REWARD_ACTIONS__ = []
-      root.render(createElement(OnlineRewardScreen, {
-        key: `multi-loot-${full}-${potion}`, run: { ...run,
+      const next = { ...run,
           players: [{ ...run.players[0], potions: full
             ? ['liquid_memories', 'fairy_in_a_bottle', 'distilled_chaos']
             : ['liquid_memories', 'fairy_in_a_bottle'] }],
           rewards: [{ ...run.rewards[0], cardReward: false, choices: null, gold: 8,
-            potion: potion ? 'distilled_chaos' : false, relic: 'anchor' }] },
+            potion: potion ? 'distilled_chaos' : false, relic: 'anchor' }] }
+      root.render(createElement(OnlineRewardScreen, { ...deliveryProps(next),
+        key: `multi-loot-${full}-${potion}`, run: next,
         viewerId: 'p1', onAction,
       }))
     }
     window.__SHOW_ONLINE_CAMPFIRE__ = () => {
       window.__ONLINE_REWARD_ACTIONS__ = []
       root.render(createElement('main', { className: 'app-shell app-shell--online sts-scope' }, createElement(OnlineCampfireScreen, {
+        ...deliveryProps({ ...run, phase: 'room' }),
         key: 'campfire', player: { id: 'p1', name: 'Ironclad', hp: 7, maxHp: 10, deck: [], relics: [] },
         decided: [], seats: [{ playerId: 'p1', name: 'Ironclad', character: 'ironclad', connected: true }],
         rubyAvailable: true, onAction,
@@ -550,6 +557,7 @@ try {
       }))
     }
     root.render(createElement(OnlineRewardScreen, {
+      ...deliveryProps(run),
       run, viewerId: 'p1',
       onAction,
     }))
@@ -642,8 +650,14 @@ try {
     skip.click()
     skip.click()
   })
-  assert.equal((await page.evaluate(() => window.__ONLINE_REWARD_ACTIONS__)).length, 3,
-    'double-clicking global Skip dispatched the three loot actions more than once')
+  assert.equal((await page.evaluate(() => window.__ONLINE_REWARD_ACTIONS__)).length, 1,
+    'double-clicking global Skip must start only one sequential batch')
+  for (const count of [2, 3]) {
+    await page.evaluate(() => window.__RESOLVE_ONLINE_REWARD__({ status: 'accepted' }))
+    await page.waitForFunction(count => window.__ONLINE_REWARD_ACTIONS__.length === count, count)
+  }
+  assert.deepEqual((await page.evaluate(() => window.__ONLINE_REWARD_ACTIONS__)).map(action => action.kind),
+    ['goldReward', 'potionReward', 'relicReward'], 'Skip must send each remaining loot action once, in order')
 
   const campfireStyles = await Promise.all(['styles.css', 'chrome.css'].map((file) =>
     page.addStyleTag({ url: `http://127.0.0.1:${address.port}/src/ui/${file}` })))

@@ -11,17 +11,17 @@ export function completedActionOutcome<Outcome extends DeliveryOutcome>(
   return outcome ?? { status: 'accepted' }
 }
 
-type Submission<Payload, Board> = { id: number; payload: Payload; board: Board }
+type Submission<Payload, Board> = { id: number; payload: Payload; board: Board; awaitCommit?: boolean }
 export type ActionLifecycle<Payload, Board> =
   | { kind: 'idle' }
   | Submission<Payload, Board> & { kind: 'pending'; mode: 'local' | 'online' }
-  | Submission<Payload, Board> & { kind: 'unknown'; mode: 'online'; refreshAttempt?: number }
+  | Submission<Payload, Board> & { kind: 'unknown' | 'accepted'; mode: 'online'; refreshAttempt?: number; commitVersion?: number }
 
 export type ActionEvent<Payload, Board, Outcome extends DeliveryOutcome> =
-  | { type: 'start'; id: number; payload: Payload; mode: 'local' | 'online'; board: Board }
-  | { type: 'reply'; id: number; outcome: Outcome; latestRefresh?: number }
+  | { type: 'start'; id: number; payload: Payload; mode: 'local' | 'online'; board: Board; awaitCommit?: boolean }
+  | { type: 'reply'; id: number; outcome: Outcome; latestRefresh?: number; commitVersion?: number }
   | { type: 'failed'; id: number; latestRefresh?: number }
-  | { type: 'observe'; board: Board; committed: boolean; latestRefresh?: number }
+  | { type: 'observe'; board: Board; committed: boolean; latestRefresh?: number; version?: number }
   | { type: 'reset' }
 
 export type ActionResolution<Payload, Outcome> =
@@ -43,7 +43,8 @@ export function transitionAction<Payload, Board, Outcome extends DeliveryOutcome
   const stay = { state }
   if (event.type === 'reset') return { state: { kind: 'idle' } }
   if (event.type === 'start') return state.kind !== 'idle' ? stay : {
-    state: { kind: 'pending', id: event.id, payload: event.payload, mode: event.mode, board: event.board },
+    state: { kind: 'pending', id: event.id, payload: event.payload, mode: event.mode, board: event.board,
+      awaitCommit: event.awaitCommit },
   }
   if (state.kind === 'idle') return stay
   if (event.type === 'reply' || event.type === 'failed') {
@@ -53,12 +54,21 @@ export function transitionAction<Payload, Board, Outcome extends DeliveryOutcome
         refreshAttempt: event.type === 'reply'
           ? event.outcome.refreshAttempt ?? event.latestRefresh : event.latestRefresh },
     }
+    if (state.awaitCommit && event.outcome.status === 'accepted') return {
+      state: { ...state, kind: 'accepted', mode: 'online', refreshAttempt: event.latestRefresh,
+        commitVersion: event.commitVersion },
+    }
     return { state: { kind: 'idle' }, resolution: { kind: 'outcome', payload: state.payload, outcome: event.outcome } }
   }
   if (state.mode === 'local' && event.board !== state.board) {
     return { state: { kind: 'idle' }, resolution: { kind: 'local', payload: state.payload } }
   }
-  if (state.kind !== 'unknown') return stay
+  if (state.kind !== 'unknown' && state.kind !== 'accepted') return stay
+  if (state.kind === 'accepted' && state.commitVersion !== undefined) {
+    return event.version !== undefined && event.version >= state.commitVersion
+      ? { state: { kind: 'idle' }, resolution: { kind: 'reconciled', payload: state.payload, committed: true } }
+      : stay
+  }
   const decision = unknownActionDecision(event.committed, state.refreshAttempt, event.latestRefresh)
   return decision === 'wait' ? stay : {
     state: { kind: 'idle' },

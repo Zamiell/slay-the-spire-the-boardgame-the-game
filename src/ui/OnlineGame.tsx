@@ -20,6 +20,7 @@ import { CampaignSelect } from './CampaignSelect.tsx'
 import { MapScreen } from './MapScreen.tsx'
 import { OnlineCampfireScreen } from './OnlineCampfireScreen.tsx'
 import { OnlineRewardScreen } from './OnlineRewardScreen.tsx'
+import { roomActionScope } from './actions/room-action.ts'
 import { OutsidePotionBar } from './OutsidePotionBar.tsx'
 import { PotionSlots } from './PotionSlots.tsx'
 import { RunSummary } from './RunSummary.tsx'
@@ -1036,6 +1037,7 @@ export function OnlineGame({ onLocal, settings, onSettings }: Props) {
       /> : null}
       {run.phase === 'reward' && !pendingAcquisition ? (
         <OnlineRewardScreen
+          key={roomActionScope(snapshot)} snapshot={snapshot} refresh={room.refreshEpoch} onResync={room.resync}
           run={run}
           viewerId={snapshot.you.playerId}
           waitingForTeammate={Boolean(snapshot.pendingTeammateAcquisitionPlayerId)}
@@ -1057,7 +1059,8 @@ export function OnlineGame({ onLocal, settings, onSettings }: Props) {
       ) : null}
       {run.phase === 'room' && roomKind === 'campfire' && viewer
         && !pendingAcquisition && !run.roomState ? (
-        <OnlineCampfireScreen player={viewer} saved={snapshot.campfireChoice} decided={snapshot.campfireDecided} seats={snapshot.seats.filter((seat) => !run.players.find((candidate) => candidate.id === seat.playerId)?.dead)} onAction={room.act}
+        <OnlineCampfireScreen key={roomActionScope(snapshot)} snapshot={snapshot} refresh={room.refreshEpoch} onResync={room.resync}
+          player={viewer} saved={snapshot.campfireChoice} decided={snapshot.campfireDecided} seats={snapshot.seats.filter((seat) => !run.players.find((candidate) => candidate.id === seat.playerId)?.dead)} onAction={room.act}
           rubyAvailable={snapshot.campaignProgress.actIV >= ACT_IV_UNLOCK_BOXES && !run.campaign.keys.ruby}
           restAllowed={!run.meta.modifierIds.includes('night_terrors')}
           ruleset={run.meta.ruleset} transformAvailable={snapshot.campfireTransformAvailable} />

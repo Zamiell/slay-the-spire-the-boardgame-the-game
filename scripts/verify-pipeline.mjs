@@ -35,6 +35,9 @@ check('extracted protocol and presentation modules retain focused coverage', () 
     ['verify-relic-refresh-browser.mjs', 'verify-post-roll-item-browser.mjs'], 'relic workflows')
   includesEvery(affected('src/ui/combat-screen/useScopedSelection.ts'),
     ['verify-card-choices-browser.mjs', 'verify-start-turn-resync-browser.mjs'], 'viewer-scoped drafts')
+  for (const file of ['src/ui/campfire-choice.ts', 'src/ui/CampfireCardPicker.tsx',
+    'src/ui/actions/useActionLifecycle.ts', 'src/ui/actions/useRoomAction.ts', 'src/ui/actions/room-action.ts'])
+    includesEvery(affected(file), ['verify-noncombat-actions-browser.mjs'], file)
 })
 check('Playwright fixture specs keep standalone verifier ownership', () => {
   for (const name of readdirSync(resolve(root, 'scripts/browser-tests'))
@@ -274,8 +277,9 @@ check('shared frontend changes use cores plus named visual owners', () => {
       'verify-enemy-layout-browser.mjs', 'verify-hover-overflow-browser.mjs', 'verify-enemy-attack-once-browser.mjs',
       'verify-combat-stage-scan-browser.mjs', 'verify-wing-and-throw-browser.mjs', 'verify-elite-signatures-browser.mjs',
       'verify-unload-shivs-browser.mjs', 'verify-boss-heavy-attacks-browser.mjs', 'verify-slime-hover-browser.mjs',
+      'verify-noncombat-actions-browser.mjs',
     ], sheet)
-    assertEqual(affectedBrowser(sheet).length, 28, `${sheet} selected an unrelated browser suite`)
+    assertEqual(affectedBrowser(sheet).length, 29, `${sheet} selected an unrelated browser suite`)
   }
   const hand = affectedBrowser('src/ui/styles/hand.css')
   includesEvery(hand, ['verify-browser.mjs', 'verify-noncombat-browser.mjs', 'verify-online-browser.mjs',
@@ -286,9 +290,9 @@ check('shared frontend changes use cores plus named visual owners', () => {
     'verify-row-target-browser.mjs', 'verify-wing-and-throw-browser.mjs', 'verify-elite-signatures-browser.mjs',
     'verify-card-damage-preview-browser.mjs', 'verify-unload-shivs-browser.mjs',
     'verify-boss-heavy-attacks-browser.mjs', 'verify-slime-hover-browser.mjs',
-    'verify-enemy-card-cube-browser.mjs'], 'hand stylesheet')
+    'verify-enemy-card-cube-browser.mjs', 'verify-noncombat-actions-browser.mjs'], 'hand stylesheet')
   assert(hand.includes('verify-card-block-preview-browser.mjs'))
-  assertEqual(hand.length, 35, 'hand stylesheet selected an unrelated browser suite')
+  assertEqual(hand.length, 36, 'hand stylesheet selected an unrelated browser suite')
   includesEvery(affectedBrowser('src/ui/styles/presentation-overlays.css'), [
     'verify-browser.mjs', 'verify-noncombat-browser.mjs', 'verify-online-browser.mjs',
     'verify-lightning-act2-browser.mjs',

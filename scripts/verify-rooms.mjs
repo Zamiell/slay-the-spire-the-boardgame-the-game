@@ -12150,6 +12150,21 @@ check('Merchant waits for every connected player and cannot proceed with pending
   assertEqual(room.run.phase, 'map')
 })
 
+check('extracted Merchant no-ops retain identities and publish a private snapshot at the transaction boundary', () => {
+  const { room, a, b } = atMerchantRoom()
+  const run = room.run
+  const players = run.players
+  const version = room.version
+  const result = apply(room, a.token, { kind: 'merchantResume' })
+  assertEqual(result.changed, false)
+  assertEqual(room.run, run)
+  assertEqual(room.run.players, players)
+  assertEqual(room.version, version)
+  assertEqual(result.snapshot.you.playerId, a.playerId)
+  assertEqual(result.snapshot.run.players.find(player => player.id === b.playerId).deck, null)
+  assert(Array.isArray(result.snapshot.run.players.find(player => player.id === a.playerId).deck))
+})
+
 check('Merchant rechecks a ready quorum when another player disconnects', () => {
   const { room, a, b } = atMerchantRoom()
   apply(room, a.token, { kind: 'merchantFinish' })

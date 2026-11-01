@@ -171,15 +171,26 @@ and online previews cannot accidentally simulate from invented state.
 The event screen maintains many independent draft fields and reset effects for
 payments, trades, rewards, recipients, and prepared choices.
 
-- [ ] Model drafts around the owning player and authoritative event stage.
-- [ ] Centralize selection, invalidation, cancellation, and restoration transitions.
-- [ ] Preserve combinations of simultaneous costs and choices rather than forcing
+- [x] Model drafts around the owning player and authoritative event stage.
+- [x] Centralize selection, invalidation, cancellation, and restoration transitions.
+- [x] Preserve combinations of simultaneous costs and choices rather than forcing
   them into an oversimplified exclusive state.
-- [ ] Separate draft transitions from event presentation.
+- [x] Separate draft transitions from event presentation.
 
 **Completion criteria:** Stage/player changes invalidate only the appropriate
 drafts; overlay reopening preserves valid work; refusal and reconnect restore
 valid choices; stale selections cannot carry into another event.
+
+**Implemented:** `event-draft.ts` owns typed draft transitions, and `useEventDraft`
+reconciles them before paint. Payment, item, card-reward, source-catalogue, trade,
+and prepared-combat scopes invalidate independently. Stale callbacks cannot edit a
+new owner or reveal. Recipient-dependent loot defaults initialize once and do not
+overwrite explicit choices when an overlay replays its effects.
+
+**Evidence:** Pure scope/cancellation regressions, UI helpers, and physical event
+rules pass. Event repeat/reconnect coverage now verifies unrelated-refresh
+preservation and new-instance reset, with recordings on both supported screens.
+Event panel and unavailable-event suites pass.
 
 ## 7. Give combat-stage presentation its own ownership boundary
 

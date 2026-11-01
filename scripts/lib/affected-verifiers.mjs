@@ -63,6 +63,9 @@ const focusedEngineOwners = ownerMap([
   ['src/game/run/rewards.ts', ['verify-loot-browser.mjs', 'verify-tiny-house-browser.mjs']],
 ])
 const focusedUiOwners = ownerMap([
+  ...['src/ui/event-draft.ts', 'src/ui/useEventDraft.ts'].map(file => [file, [
+    'verify-event-repeat-browser.mjs', 'verify-event-panels-browser.mjs', 'verify-unavailable-event-browser.mjs',
+  ]]),
   ...['src/http.ts', 'src/protocol/responses.ts'].map(file => [file, [
     'verify-account-browser.mjs', 'verify-mail-browser.mjs', 'verify-stats-browser.mjs',
     'verify-leaderboard-browser.mjs', 'verify-winning-decks-browser.mjs', 'verify-wallet-sync-browser.mjs',

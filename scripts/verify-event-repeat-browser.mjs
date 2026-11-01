@@ -20,8 +20,10 @@ const browser = await chromium.launch({ headless: true })
 try {
   await vite.listen()
   const origin = `http://localhost:${vite.httpServer.address().port}`
-  const a = await browser.newPage({ viewport: { width: 1440, height: 900 } })
-  const b = await browser.newPage({ viewport: { width: 844, height: 390 } })
+  const a = await browser.newPage({ viewport: { width: 1440, height: 900 },
+    recordVideo: { dir: out.pathname, size: { width: 1440, height: 900 } } })
+  const b = await browser.newPage({ viewport: { width: 844, height: 390 },
+    recordVideo: { dir: out.pathname, size: { width: 844, height: 390 } } })
   const errors = []
   for (const page of [a, b]) page.on('pageerror', error => errors.push(String(error)))
   for (const page of [a, b]) page.setDefaultTimeout(15_000)
@@ -47,6 +49,18 @@ try {
     instanceId: 'repeat-browser', act: 2, minAscension: 0, requiresColorlessUnlock: false }, decisions: {}, dieRolls: {} }
   room.version++
   rooms.publishRoom(saved.code)
+  await a.getByRole('button', { name: /\[Success\?\]/ }).click()
+  room.run.players[0].gold++
+  room.version++
+  rooms.publishRoom(saved.code)
+  await a.waitForFunction(gold =>
+    document.querySelector('.run-status [data-resource="gold"] .icon-value__number')?.textContent?.trim() === String(gold), room.run.players[0].gold)
+  assert.equal(await a.getByRole('button', { name: /\[Success\?\]/ }).getAttribute('aria-pressed'), 'true',
+    'an unrelated authoritative refresh erased the pending question')
+  room.run.roomState.card.instanceId = 'repeat-browser-next'
+  room.version++
+  rooms.publishRoom(saved.code)
+  await a.waitForFunction(() => document.querySelector('[data-event-option="success"]')?.getAttribute('aria-pressed') === 'false')
   await a.getByRole('button', { name: /\[Success\?\]/ }).click()
   await a.getByRole('button', { name: 'Confirm chosen questions →' }).click()
   await a.locator('.reward-screen__cards .card').first().click()
@@ -98,6 +112,12 @@ try {
       'private teammate reward', 'both players resume map'],
     hp: room.run.players.map(player => player.hp), teammate: teammate.code === saved.code }, null, 2))
   console.log('PASS Event repeat/reconnect browser; artifacts/event-repeat-browser/result.json')
+  for (const [page, screen] of [[a, 'desktop'], [b, 'horizontal-phone']]) {
+    const video = page.video()
+    await page.close()
+    await video.saveAs(new URL(`${screen}.webm`, out).pathname)
+    await video.delete()
+  }
 } finally {
   await browser.close()
   await vite.close()

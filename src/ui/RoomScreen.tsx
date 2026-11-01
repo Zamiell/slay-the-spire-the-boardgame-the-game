@@ -1,5 +1,6 @@
 import { RoomBanner } from "./RoomBanner.tsx";
-import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { useEventDraft } from "./useEventDraft.ts";
 import { createPortal } from "react-dom";
 import { motion } from "motion/react";
 import { CARDS, cardIsCurse } from "../game/cards.ts";
@@ -24,7 +25,6 @@ import { HandSelectionScreen } from "./combat-screen/HandSelectionScreen.tsx";
 import { CHARACTER_IDS } from "../game/types.ts";
 import type { Player } from "../game/types.ts";
 import type { EventEffect } from "../game/events.ts";
-import type { RewardSource } from "../game/run.ts";
 import { rewardSourceLabel } from "./reward-source.ts";
 import { PotionTooltipAnchor } from "./PotionIcon.tsx";
 import { useReducedEffects } from "./combat-screen/hooks.ts";
@@ -814,89 +814,63 @@ function EventScreen({
   // On mount: a child die's own unmount cleanup runs after its parent's, so
   // forgetting on the way out would be undone by the die it just unmounted.
   useEffect(() => { forgetShownRolls(); }, []);
-  const [cards, setCards] = useState<string[]>([]);
-  const [pickerCardUids, setPickerCardUids] = useState<string[]>([]);
-  const [tradeCardDraft, setTradeCardDraft] = useState({ stage: "", uid: "" });
-  const [relicId, setRelicId] = useState("");
-  const [potionIndexes, setPotionIndexes] = useState<number[]>([]);
-  const [goldPaymentSelected, setGoldPaymentSelected] = useState(false);
-  const [potionRecipientIds, setPotionRecipientIds] = useState<string[]>([]);
-  const [potionReplacementIds, setPotionReplacementIds] = useState<(string | null)[]>([]);
-  const [rewardItemChoices, setRewardItemChoices] = useState<('take' | 'skip' | '')[]>([]);
-  const [targetPlayerId, setTargetPlayerId] = useState("");
-  const [roomId, setRoomId] = useState("");
-  const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
-  const [rewardSources, setRewardSources] = useState<RewardSource[]>([]);
-  const [rareRewardSources, setRareRewardSources] = useState<RewardSource[]>([]);
-  const [guardianGemIds, setGuardianGemIds] = useState<string[]>([]);
-  const [preparedScryOrder, setPreparedScryOrder] = useState<string[]>([]);
-  const [preparedScryPicked, setPreparedScryPicked] = useState<string[]>([]);
+  const rewardOffers = room.rewardOffers?.[player.id];
+  const guardianGemOffers = room.guardianGemOffers?.[player.id] ?? [];
+  const itemOffers = room.itemOffers?.[player.id];
+  const pendingDecision = room.pendingDecisions?.[player.id];
+  const pendingTrade = room.pendingTrade;
+  const pendingTradeStage = pendingTrade
+    ? `${room.card.instanceId}/${pendingTrade.actorId}/${pendingTrade.targetId}/${pendingTrade.kind}/${pendingTrade.offeredId}`
+    : "";
+  const eventDraftStage = `${player.id}/${room.card.instanceId}`;
+  const itemDraftStage = `${eventDraftStage}/${JSON.stringify([itemOffers, pendingDecision?.rewardItemIds?.length ?? 0])}`;
+  const eventDraft = useEventDraft({
+    event: eventDraftStage,
+    items: itemDraftStage,
+    rewards: JSON.stringify([rewardOffers, guardianGemOffers, pendingDecision?.rewardIndexes?.length ?? 0]),
+    cardSources: (room.availableRewardSources?.card ?? []).join(","),
+    rareSources: (room.availableRewardSources?.rare ?? []).join(","),
+    trade: pendingTradeStage,
+    prepared: JSON.stringify([room.preparedCombat?.combatId, room.preparedCombat?.startTurnProgress?.choices,
+      room.preparedStartTurnScry?.id]),
+  }, { rewards: rewardOffers?.length ?? 0, potions: itemOffers?.filter(offer => offer.kind === 'potion').length ?? 0 });
+  const [cards, setCards] = eventDraft.field('cards');
+  const [pickerCardUids, setPickerCardUids] = eventDraft.field('pickerCardUids');
+  const [tradeCardUid, setTradeCardUid] = eventDraft.field('tradeCardUid');
+  const [relicId, setRelicId] = eventDraft.field('relicId');
+  const [potionIndexes, setPotionIndexes] = eventDraft.field('potionIndexes');
+  const [goldPaymentSelected, setGoldPaymentSelected] = eventDraft.field('goldPaymentSelected');
+  const [potionRecipientIds, setPotionRecipientIds] = eventDraft.field('potionRecipientIds');
+  const [potionReplacementIds, setPotionReplacementIds] = eventDraft.field('potionReplacementIds');
+  const [rewardItemChoices, setRewardItemChoices] = eventDraft.field('rewardItemChoices');
+  const [targetPlayerId, setTargetPlayerId] = eventDraft.field('targetPlayerId');
+  const [roomId, setRoomId] = eventDraft.field('roomId');
+  const [selectedOptions, setSelectedOptions] = eventDraft.field('selectedOptions');
+  const [rewardSources, setRewardSources] = eventDraft.field('rewardSources');
+  const [rareRewardSources, setRareRewardSources] = eventDraft.field('rareRewardSources');
+  const [guardianGemIds, setGuardianGemIds] = eventDraft.field('guardianGemIds');
+  const [preparedScryOrder, setPreparedScryOrder] = eventDraft.field('preparedScryOrder');
+  const [preparedScryPicked, setPreparedScryPicked] = eventDraft.field('preparedScryPicked');
+  const [rewardIndexes, setRewardIndexes] = eventDraft.field('rewardIndexes');
   const focusedEvent = useRef("");
   const focusedEventOption = useRef<HTMLButtonElement | null>(null);
   const focusedEventOptionId = useRef("");
   const eventOptions = useRef<HTMLDivElement>(null);
   const eventResolver = useRef<HTMLDivElement>(null);
-  // The Compendium overlay can replay effects; only a real Event-stage change clears its draft.
-  const draftStages = useRef<Record<string, string>>({});
-  const rewardOffers = room.rewardOffers?.[player.id];
-  const guardianGemOffers = room.guardianGemOffers?.[player.id] ?? [];
+  const focusedDraftStage = useRef("");
   const eventArt = { "--event-art": `url('${new URL(assetPath(`noncombat/events/${room.card.id}.webp`), window.location.href).href}')` } as CSSProperties;
-  const itemOffers = room.itemOffers?.[player.id];
-  const pendingTrade = room.pendingTrade;
-  const pendingTradeStage = pendingTrade
-    ? `${room.card.instanceId}/${pendingTrade.actorId}/${pendingTrade.targetId}/${pendingTrade.kind}/${pendingTrade.offeredId}`
-    : "";
-  const tradeCardUid = tradeCardDraft.stage === pendingTradeStage ? tradeCardDraft.uid : "";
-  const pendingDecision = room.pendingDecisions?.[player.id];
   const decided = room.decisions[player.id];
   const noAvailableChoices = eventCanSkip || !decided && !room.pendingDecisions?.[player.id] &&
     room.card.options.length > 0 && room.card.options.every(option => unavailableEventOptionIds.includes(option.id));
   const draftOptionIds = decided ? [] : pendingDecision?.optionIds ?? selectedOptions;
   const selectionOpen = draftOptionIds.length > 0;
-  const itemOfferStage = JSON.stringify([itemOffers, pendingDecision?.rewardItemIds?.length ?? 0]);
-  const rewardOfferStage = JSON.stringify([rewardOffers, guardianGemOffers, pendingDecision?.rewardIndexes?.length ?? 0]);
-  const [rewardIndexes, setRewardIndexes] = useState<number[]>(() =>
-    Array(room.rewardOffers?.[player.id]?.length ?? 0).fill(-2),
-  );
-  const eventDraftStage = `${player.id}/${room.card.instanceId}`;
   useEffect(() => {
-    if (draftStages.current.event === eventDraftStage) return;
-    draftStages.current.event = eventDraftStage;
+    if (focusedDraftStage.current === eventDraftStage) return;
+    focusedDraftStage.current = eventDraftStage;
     focusedEvent.current = "";
     focusedEventOption.current = null;
     focusedEventOptionId.current = "";
-    setCards([]);
-    setPickerCardUids([]);
-    setRelicId("");
-    setPotionIndexes([]);
-    setGoldPaymentSelected(false);
-    setPotionRecipientIds([]);
-    setPotionReplacementIds([]);
-    setRewardItemChoices([]);
-    setTargetPlayerId("");
-    setRoomId("");
-    setSelectedOptions([]);
-    setRewardSources([]);
-    setRareRewardSources([]);
   }, [eventDraftStage]);
-  const itemDraftStage = `${eventDraftStage}/${itemOfferStage}`;
-  useEffect(() => {
-    if (draftStages.current.item === itemDraftStage) return;
-    draftStages.current.item = itemDraftStage;
-    // A face-up Relic, or a Potion with a free slot waiting, is taken unless the
-    // player says otherwise; only a Potion that would overflow asks first.
-    setRewardItemChoices(defaultLootChoices(itemOffers ?? [],
-      offerHolderIds.map((id) => players.find((seat) => seat.id === id && !seat.dead)), lootFreeSlots));
-    setPotionRecipientIds(Array(itemOffers?.filter((offer) => offer.kind === 'potion').length ?? 0).fill(''));
-    setPotionReplacementIds(Array(itemOffers?.filter((offer) => offer.kind === 'potion').length ?? 0).fill(null));
-  }, [itemDraftStage]);
-  const rewardDraftStage = `${eventDraftStage}/${rewardOfferStage}`;
-  useEffect(() => {
-    if (draftStages.current.reward === rewardDraftStage) return;
-    draftStages.current.reward = rewardDraftStage;
-    setRewardIndexes(Array(rewardOffers?.length ?? 0).fill(-2));
-    setGuardianGemIds([]);
-  }, [rewardDraftStage]);
   const pendingDie = room.pendingRolls?.[player.id]?.at(-1);
   const latestDie = pendingDie ?? room.dieRolls[player.id]?.at(-1);
   const eventDie = latestDie ? <EventDie face={latestDie} rollKey={`${room.card.instanceId}/${player.id}/${room.dieRolls[player.id]?.length ?? 0}/${latestDie}`}
@@ -946,20 +920,6 @@ function EventScreen({
   );
   const availableCardSources = room.availableRewardSources?.card ?? [];
   const availableRareSources = room.availableRewardSources?.rare ?? [];
-  const availableCardSourcesKey = availableCardSources.join(",");
-  const availableRareSourcesKey = availableRareSources.join(",");
-  const cardSourcesDraftStage = `${eventDraftStage}/${availableCardSourcesKey}`;
-  const rareSourcesDraftStage = `${eventDraftStage}/${availableRareSourcesKey}`;
-  useEffect(() => {
-    if (draftStages.current.cardSources === cardSourcesDraftStage) return;
-    draftStages.current.cardSources = cardSourcesDraftStage;
-    setRewardSources([]);
-  }, [cardSourcesDraftStage]);
-  useEffect(() => {
-    if (draftStages.current.rareSources === rareSourcesDraftStage) return;
-    draftStages.current.rareSources = rareSourcesDraftStage;
-    setRareRewardSources([]);
-  }, [rareSourcesDraftStage]);
   const selectedChoiceEffects = effects;
   const selectedPrismaticReward = hasPrismaticShard && selectedChoiceEffects.some((effect) =>
     (effect.tag === "rare-reward" || effect.tag === "card-reward" && effect.source !== "colorless") && !effect.random,
@@ -1021,6 +981,11 @@ function EventScreen({
   });
   const offerHolderIds = (itemOffers ?? []).map((_offer, index) => lootHolderIds[(pendingDecision?.rewardItemKinds?.length ?? 0) + index] ?? player.id);
   const lootFreeSlots = freePotionSlots(players, (seat) => potionLimit(ascension, seat), player.id, lootHolderIds, pendingDecision);
+  // Recipients determine the defaults; initialize them once before the reveal is painted.
+  useLayoutEffect(() => {
+    eventDraft.initializeItems(defaultLootChoices(itemOffers ?? [],
+      offerHolderIds.map(id => players.find(seat => seat.id === id && !seat.dead)), lootFreeSlots));
+  }, [itemDraftStage]);
   const effectiveRoomId = pendingDecision?.roomId ?? roomId;
   const portalRow = eventMap?.position ? eventMap.rooms[eventMap.position]?.row ?? -1 : -1;
   const forwardRooms = eventMap ? Object.values(eventMap.rooms).filter((candidate) => candidate.row > portalRow) : [];
@@ -1052,17 +1017,7 @@ function EventScreen({
   const pickerCards = player.deck.filter((card) => card.defId !== "ascenders_bane" && cardPickerStep?.matches(card) &&
     (!room.revealedCards?.[player.id] || room.revealedCards[player.id]?.includes(card.uid)) && !cards.includes(card.uid) &&
     canFillCardSlots(player.deck.filter((candidate) => candidate.uid !== card.uid && !cards.includes(candidate.uid)), futurePickerSlots));
-  const clearChoiceDraft = () => {
-    setCards([]);
-    setRelicId("");
-    setPotionIndexes([]);
-    setGoldPaymentSelected(false);
-    setTargetPlayerId("");
-    setRoomId("");
-    setSelectedOptions([]);
-    setRewardSources([]);
-    setRareRewardSources([]);
-  };
+  const clearChoiceDraft = eventDraft.clearChoice;
   const selectedCardsInvalid = room.card.id === "ancient_writing" && draftOptionIds.includes("simplicity")
     ? draftCardSlots.some((matches) => !effectiveCardUids.some((uid) => {
         const card = player.deck.find((candidate) => candidate.uid === uid);
@@ -1168,15 +1123,15 @@ function EventScreen({
       verb="Trade"
       selectionLabel="1 card"
       selectedCardUids={tradeCardUid ? [tradeCardUid] : []}
-      onSelect={(uid) => setTradeCardDraft({ stage: pendingTradeStage, uid: tradeCardUid === uid ? "" : uid })}
-      onClear={() => setTradeCardDraft({ stage: pendingTradeStage, uid: "" })}
+      onSelect={(uid) => setTradeCardUid(tradeCardUid === uid ? "" : uid)}
+      onClear={() => setTradeCardUid("")}
       onBack={() => {
-        setTradeCardDraft({ stage: "", uid: "" });
+        setTradeCardUid("");
         submit(["reject_trade"]);
       }}
       onConfirm={() => {
         if (!tradeCardUid) return;
-        setTradeCardDraft({ stage: "", uid: "" });
+        setTradeCardUid("");
         submit(["accept_trade"], rewardSources, rewardIndexes, guardianGemIds, [tradeCardUid]);
       }}
       confirmLabel="Complete exchange"

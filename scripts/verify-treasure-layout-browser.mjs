@@ -108,6 +108,33 @@ try {
     })
     assert(layout.centered && layout.bannerAbove && layout.skipRight && layout.fits, JSON.stringify(layout))
     assert.match(layout.arrow, /treasure-skip\.svg/)
+    await page.evaluate(() => document.fonts.ready)
+    const titleAlignment = await page.locator('#treasure-title').evaluate(title => {
+      const banner = title.parentElement.getBoundingClientRect()
+      const range = document.createRange()
+      range.selectNodeContents(title)
+      const text = range.getBoundingClientRect()
+      const style = getComputedStyle(title)
+      const context = document.createElement('canvas').getContext('2d')
+      context.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`
+      const metrics = context.measureText(title.textContent)
+      const scaleY = text.height / (metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent)
+      const baseline = text.top + metrics.fontBoundingBoxAscent * scaleY
+      const inkTop = baseline - metrics.actualBoundingBoxAscent * scaleY
+      const inkBottom = baseline + metrics.actualBoundingBoxDescent * scaleY
+      const inkCenterX = text.left + (metrics.actualBoundingBoxRight - metrics.actualBoundingBoxLeft) / 2 *
+        text.width / metrics.width
+      // The 1509x260 artwork's central writing face spans y=0..160; the tails extend below it.
+      const faceCenterY = banner.top + banner.height * 80 / 260
+      return {
+        dx: inkCenterX - (banner.left + banner.width / 2),
+        dy: (inkTop + inkBottom) / 2 - faceCenterY,
+        fits: inkTop >= banner.top && inkBottom <= banner.top + banner.height * 160 / 260 &&
+          text.left >= banner.left + banner.width * 0.11 && text.right <= banner.right - banner.width * 0.11,
+      }
+    })
+    assert(Math.abs(titleAlignment.dx) <= 2 && Math.abs(titleAlignment.dy) <= 2 && titleAlignment.fits,
+      `${screen}: title ink must be centered on the parchment writing face, not its tails: ${JSON.stringify(titleAlignment)}`)
     await page.screenshot({ path: `${output}/${screen}-opened.png` })
     if (phone) await relic.tap()
     else await relic.hover()

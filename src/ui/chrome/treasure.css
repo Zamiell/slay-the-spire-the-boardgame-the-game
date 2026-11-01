@@ -51,7 +51,14 @@
   pointer-events: none;
 }
 .sts-scope .treasure-stage .room-banner h2 {
-  margin: 0 6% 2%;
+  position: absolute;
+  left: 50%;
+  /* The writing face is centered at y=80 in the 260px artwork; the tails sit below it. */
+  top: 30.8%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  line-height: 1;
+  white-space: nowrap;
   font-size: clamp(17px, 2cqw, 40px);
   color: #f6edcb;
   text-shadow: 2px 2px 0 #51462f, -1px -1px 0 #51462f;

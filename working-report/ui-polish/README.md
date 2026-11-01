@@ -19,7 +19,8 @@ than redesigning the board or replacing every screen's artwork.
   keyboard focus. Actual held touch presses and cancellation are verified
   separately. A still screenshot cannot show easing or transition duration.
 
-**[Open the changes-only before/after gallery](gallery.md).**
+**[Open the side-by-side HTML gallery](../index.html)** directly in a browser,
+or view the [Markdown gallery](gallery.md).
 
 ## What changed
 

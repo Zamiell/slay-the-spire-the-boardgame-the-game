@@ -4,6 +4,7 @@
 import { existsSync } from 'node:fs'
 import { dieIcon, iconPath, ICON_LABELS } from '../src/ui/icons.ts'
 import { handLayout } from '../src/ui/combat-screen/hand-layout.ts'
+import { fitStageScale } from '../src/ui/combat-screen/stage-layout.ts'
 import { cardArtPath, tierOf, cardImagePath, enemyCardImage, CARD_ART_ROOT, CARD_ASSET_ROOT } from '../src/game/assets.ts'
 import { ENEMIES, advanceCube, enemyDef } from '../src/game/enemies.ts'
 import { enemyCardCube } from '../src/ui/enemy-card-cube.ts'
@@ -566,6 +567,20 @@ check('the stage shrinks only as far as it has to', () => {
   assert(crowded[0] < MIN_STAGE_SCALE, 'extreme four-player crowds can fit below the ordinary floor')
   assert(crowded.every((scale, i) => i === 0 || scale > crowded[i - 1]), 'each cleared group restores scale')
   assertEqual(stageScaleFor(5, 1440, rem, 1), 1, 'one survivor restores the wanted size')
+})
+
+check('stage fitting reserves vertical space without defeating horizontal crowd limits', () => {
+  const scene = { actors: 2, enemies: 1, width: 1440, height: 400, rem: 16,
+    compact: false, hasSlimes: false, hasOrbs: false, hasTallEnemy: false }
+  const ordinary = fitStageScale(scene)
+  assert(fitStageScale({ ...scene, hasOrbs: true }) < ordinary, 'Orb clearance must affect the painted actors')
+  assert(fitStageScale({ ...scene, hasTallEnemy: true }) < ordinary, 'tall enemies must retain their readable gutters')
+  assert(fitStageScale({ ...scene, hasSlimes: true }) < ordinary, 'foreground Slimes need their own headroom')
+  const compact = fitStageScale({ ...scene, width: 844, height: 260, compact: true, hasTallEnemy: true })
+  assert(compact >= .25 && compact < ordinary)
+  const crowd = { ...scene, actors: 16, enemies: 12, width: 844, height: 900 }
+  assertEqual(fitStageScale(crowd), stageScaleFor(16, 844, 16, 12),
+    'ample height must not enlarge a horizontally constrained crowd')
 })
 
 // Slime Boss's cards register when its module loads. That happens here, after the sound-identity checks above built and

@@ -202,16 +202,30 @@ Event panel and unavailable-event suites pass.
 Combat presentation still mixes VFX scheduling, actor geometry, layout measurement,
 and gameplay interaction in the main screen.
 
-- [ ] Identify cohesive stage-layout and presentation responsibilities.
-- [ ] Build on the existing presentation-event lifecycle rather than replacing it.
-- [ ] Separate pure layout calculations from DOM measurement and rendering.
-- [ ] Keep contact timing, restoration cleanup, and reduced-motion behavior explicit.
-- [ ] Avoid an extracted component that merely receives dozens of unrelated props.
+- [x] Identify cohesive stage-layout and presentation responsibilities.
+- [x] Build on the existing presentation-event lifecycle rather than replacing it.
+- [x] Separate pure layout calculations from DOM measurement and rendering.
+- [x] Keep contact timing, restoration cleanup, and reduced-motion behavior explicit.
+- [x] Avoid an extracted component that merely receives dozens of unrelated props.
 
 **Completion criteria:** The new boundary owns its measurements and presentation
 lifecycle, without changing gameplay timing, action authority, hand interaction,
 or target selection. Recorded transition coverage must include restoration and
 both supported screen classes.
+
+**Implemented:** `useCombatStage` owns fitting, DOM measurements, scroll intent,
+restoration readiness, and native transition suspension. `stage-layout` supplies
+pure fitting math. `useCombatPresentation` owns the shared restoration-aware
+audio/VFX feed and stagger derivation. Character choreography and gameplay
+authority remain in their existing owners.
+
+**Evidence:** The affected light checks, both compiler projects, production build,
+reload restoration, hover overflow, and Chromium/WebKit target geometry and
+character sizing pass. Desktop/phone stage recording contact sheets were reviewed.
+Sizing now measures short-lived poses atomically rather than racing their removal,
+and verifies the actual supported WebM/MOV/WebP policy. Browser libraries were
+restored in an isolated container, with no host package installation. The remaining
+presentation matrix and combined final UI review are still part of the final gate.
 
 ## 8. Finish component-owned CSS consolidation
 

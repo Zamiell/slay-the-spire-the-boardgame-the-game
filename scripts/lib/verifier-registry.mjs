@@ -92,6 +92,13 @@ export const focusedEngineOwners = ownerMap([
 ])
 
 export const focusedUiOwners = ownerMap([
+  ...['src/ui/combat-screen/useCombatStage.ts', 'src/ui/combat-screen/stage-layout.ts'].map(file => [file, [
+    'verify-combat-layout-reload-browser.mjs', 'verify-combat-target-geometry-browser.mjs',
+    'verify-character-size-browser.mjs', 'verify-hover-overflow-browser.mjs',
+  ]]),
+  ['src/ui/combat-screen/useCombatPresentation.ts', [
+    'verify-skin-attack-browser.mjs', 'verify-combat-target-geometry-browser.mjs', 'verify-start-turn-resync-browser.mjs',
+  ]],
   ...['src/ui/event-draft.ts', 'src/ui/useEventDraft.ts'].map(file => [file, [
     'verify-event-repeat-browser.mjs', 'verify-event-panels-browser.mjs', 'verify-unavailable-event-browser.mjs',
   ]]),

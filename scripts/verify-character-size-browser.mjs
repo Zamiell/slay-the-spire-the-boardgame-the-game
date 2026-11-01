@@ -4,6 +4,7 @@ import { mkdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { createServer } from 'vite'
 import { chromium, webkit } from './lib/profile-browser.mjs'
+import webmSources from '../src/ui/combat-webm-sources.json' with { type: 'json' }
 
 const root = resolve(import.meta.dirname, '..')
 const output = resolve(root, 'artifacts/character-size')
@@ -17,7 +18,8 @@ const contexts = [
   ['desktop', { width: 1440, height: 900 }],
   ['horizontal-phone', { width: 844, height: 390 }],
 ]
-const engines = [['chromium', chromium], ['webkit', webkit]]
+const engines = process.argv.includes('--webkit-only')
+  ? [['webkit', webkit]] : [['chromium', chromium], ['webkit', webkit]]
 const server = await createServer({ root, logLevel: 'silent', server: { port: 0 } })
 await server.listen()
 const errors = []
@@ -83,9 +85,32 @@ async function waitForIdle(page) {
 async function retainsHighResolution(page, selector) {
   return page.locator(selector).first().evaluate(async (element) => {
     if (!(element instanceof HTMLVideoElement)) return element.naturalWidth >= 800
-    const source = new Image(); source.src = element.src.replace(/\.mov(?=\?|$)/, '.webp'); await source.decode()
+    const source = new Image()
+    source.src = element.src.replace('/rigged-webm/', '/rigged/').replace(/\.(?:mov|webm)(?=\?|$)/, '.webp')
+    await source.decode()
     return source.naturalWidth >= 800
   })
+}
+
+async function checkTransientScaling(page, selector, label) {
+  // Measure the short-lived pose in one task, before its completion timer can replace it.
+  const [base, scaled, restored] = await page.locator(selector).evaluateAll(elements => {
+    if (!elements.length) throw new Error('The transient pose ended before sizing could be measured.')
+    const combat = elements[0].closest('.combat')
+    for (const animation of combat.getAnimations({ subtree: true })) {
+      animation.pause()
+      animation.currentTime = 0
+    }
+    return [1, 1.25, 1].map(value => {
+      combat.style.setProperty('--stage-actor-width', `${10 * value}rem`)
+      return elements.map(element => {
+        const { width, height } = element.getBoundingClientRect()
+        return { width, height }
+      })
+    })
+  })
+  assertScaled(base, scaled, 1.25, label)
+  assertRestored(base, restored, label)
 }
 
 async function checkTransition(page, mode, label) {
@@ -93,11 +118,7 @@ async function checkTransition(page, mode, label) {
   const selector = `.seat__portrait > [data-guardian-transition="${direction}"]`
   await page.locator(selector).waitFor()
   await waitForImage(page, selector)
-  await setSize(page, 1)
-  const base = await measure(page, selector)
-  await setSize(page, 1.25)
-  assertScaled(base, await measure(page, selector), 1.25, `${label} transition`)
-  await setSize(page, 1)
+  await checkTransientScaling(page, selector, `${label} transition`)
 }
 
 async function checkHero(page, character, sourceId, heat, screen, browserName) {
@@ -113,13 +134,22 @@ async function checkHero(page, character, sourceId, heat, screen, browserName) {
   }, { character, heat })
   await page.waitForTimeout(100)
   await waitForIdle(page)
+  const capabilities = await page.evaluate(() => ({
+    vp9: document.createElement('video').canPlayType('video/webm; codecs="vp9"') !== '',
+    hevc: document.createElement('video').canPlayType('video/quicktime; codecs="hvc1"') !== '',
+    platform: navigator.platform,
+  }))
+  const desktopSafariVideo = browserName === 'webkit' && screen === 'desktop' &&
+    capabilities.platform.startsWith('Mac') && capabilities.hevc
   await setSize(page, screen === 'desktop' ? 2.5 : 1.25)
   await page.locator('.board').screenshot({ path: resolve(output, `${browserName}-${screen}-${character}-${heat}-resolution.png`) })
   if (character !== 'watcher') {
     const media = await page.locator(idleSelector).evaluate(element => ({ tag: element.tagName, src: element.src }))
-    const desktopSafariVideo = browserName === 'webkit' && screen === 'desktop'
-    assert.equal(media.tag, desktopSafariVideo ? 'VIDEO' : 'IMG', `${screen}/${character}: preferred media element`)
-    assert(media.src.endsWith(desktopSafariVideo ? '.mov' : '.webp'), `${screen}/${character}: preferred media source ${media.src}`)
+    const name = media.src.match(/\/([^/?]+)\.(?:webp|webm|mov)(?:\?|$)/)?.[1]
+    const chromiumVideo = browserName === 'chromium' && capabilities.vp9 && Object.hasOwn(webmSources, name ?? '')
+    assert.equal(media.tag, desktopSafariVideo || chromiumVideo ? 'VIDEO' : 'IMG', `${screen}/${character}: preferred media element`)
+    assert(media.src.endsWith(desktopSafariVideo ? '.mov' : chromiumVideo ? '.webm' : '.webp'),
+      `${screen}/${character}: preferred media source ${media.src}`)
   }
   await setSize(page, 1)
   const idleBase = await measure(page, idleSelector)
@@ -167,7 +197,7 @@ async function checkHero(page, character, sourceId, heat, screen, browserName) {
     await setSize(page, 1)
   }
 
-  if (browserName !== 'webkit' || screen !== 'desktop' || character !== 'defect') {
+  if (!desktopSafariVideo || character !== 'defect') {
     await page.waitForFunction((readyCount) => Number(document.querySelector('.board')?.dataset.characterAttackAssetsReady) >= readyCount, readyCount)
   }
   const seq = await page.evaluate((sourceId) => window.fixture.attack(sourceId), sourceId)
@@ -175,7 +205,7 @@ async function checkHero(page, character, sourceId, heat, screen, browserName) {
   await page.locator(attackRoot).waitFor()
   const poseSelector = `${attackRoot} .character-attack__pose > :is(img, video)`
   await waitForImage(page, poseSelector)
-  if (browserName === 'webkit' && screen === 'desktop' && character === 'defect') {
+  if (desktopSafariVideo && character === 'defect') {
     const media = await page.locator(poseSelector).evaluate(element => ({ tag: element.tagName, src: element.src }))
     assert.equal(media.tag, 'IMG', `${screen}/${character}: failed MOV preload must fall back to WebP`)
     assert(media.src.endsWith('/hero-defect-attack.webp'), `${screen}/${character}: wrong attack fallback ${media.src}`)
@@ -184,21 +214,10 @@ async function checkHero(page, character, sourceId, heat, screen, browserName) {
     assert.equal(await page.locator(`${attackRoot} .character-attack__pose--rig.is-fallback`).count(), 0,
       `${screen}/${character}: measured attack must use its decoded pose`)
   }
-  await setSize(page, 1)
-  const attackBase = await measure(page, poseSelector)
+  await checkTransientScaling(page, poseSelector, `${screen}/${character}/attack`)
   if (!['ironclad', 'watcher'].includes(character)) {
     assert(await retainsHighResolution(page, poseSelector),
       `${screen}/${character}: baked attacks must retain high-resolution detail`)
-  }
-  await setSize(page, 1.25)
-  assertScaled(attackBase, await measure(page, poseSelector), 1.25, `${screen}/${character}/attack`)
-  if (character === 'guardian') {
-    await page.locator('.board').screenshot({ path: resolve(output, `${browserName}-${screen}-guardian-attack-1.25.png`) })
-  }
-  await setSize(page, 1)
-  assertRestored(attackBase, await measure(page, poseSelector), `${screen}/${character}/attack`)
-  if (character === 'guardian') {
-    await page.locator('.board').screenshot({ path: resolve(output, `${browserName}-${screen}-guardian-attack-1.png`) })
   }
 
   await page.evaluate(({ character, heat }) => {

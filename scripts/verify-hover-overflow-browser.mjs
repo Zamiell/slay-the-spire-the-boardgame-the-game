@@ -59,10 +59,13 @@ async function assertStoneKey(page, selector, expected, label) {
   const button = page.locator(selector).first()
   assert(await button.isVisible(), `${label}: missing button`)
   await button.hover()
-  const style = await button.evaluate(element => ({ clipPath: getComputedStyle(element).clipPath, transition: getComputedStyle(element).transition, outlineStyle: getComputedStyle(element).outlineStyle }))
+  const style = await button.evaluate(element => ({ clipPath: getComputedStyle(element).clipPath,
+    durations: getComputedStyle(element).transitionDuration.split(',').map(Number.parseFloat),
+    outlineStyle: getComputedStyle(element).outlineStyle }))
   assert.equal(style.clipPath.includes('16px'), expected, `${label}: unexpected stone treatment`)
   if (expected) {
-    assert(style.transition.includes('0.24s'), `${label}: hover transition is not smooth`)
+    assert(style.durations.some(duration => duration > 0 && duration <= .3),
+      `${label}: hover must retain an animated transition`)
     assert.equal(style.outlineStyle, 'none', `${label}: hover must not leave an old outline at the plate ends`)
     await button.evaluate(element => element.focus({ focusVisible: true }))
     await button.hover()

@@ -2,8 +2,7 @@
 // played, what a seat is called, and how the log reads.
 //
 // No components here and no hooks, and no reaching for state that was not passed
-// in. `revealViewerRow` is the one that touches the DOM, because scrolling the
-// board to the seat you control is a measurement rather than a render.
+// in. DOM measurement and camera ownership live in useCombatStage.
 import type { CombatState } from '../../game/combat.ts'
 import { remainingRoundHpLoss } from '../../game/combat.ts'
 import { potionDef } from '../../game/relics.ts'
@@ -28,40 +27,6 @@ export function rowsOf(state: CombatState): number[] {
   for (const player of state.players) rows.add(player.row)
   for (const enemy of state.enemies) if (!enemy.isBoss) rows.add(enemy.row)
   return [...rows].sort((a, b) => b - a)
-}
-
-export function revealViewerRow(board: HTMLElement | null, row: HTMLElement | null) {
-  if (!board || !row) return
-  const boardBox = board.getBoundingClientRect()
-  const rowBox = row.getBoundingClientRect()
-  board.scrollTop += rowBox.top - boardBox.top - (board.clientHeight - rowBox.height) / 2
-  const seats = [...row.querySelectorAll<HTMLElement>('.row__seat')]
-  const partySeats = [...board.querySelectorAll<HTMLElement>('.row__seat')]
-    .filter((seat) => seat.querySelector('.seat'))
-  const enemies = [...row.querySelectorAll<HTMLElement>('.enemy')]
-  const bosses = [...board.querySelectorAll<HTMLElement>('.board__bosses .enemy:not(.enemy--dead)')]
-  let actors = [...seats, ...(enemies.length > 0 ? enemies : bosses)]
-  const span = (items: HTMLElement[]): [number, number] => {
-    const boxes = items.map((actor) => actor.getBoundingClientRect())
-    return [Math.min(...boxes.map((box) => box.left)), Math.max(...boxes.map((box) => box.right))]
-  }
-  const gutter = 8
-  if (actors.length > 0 && seats.length > 0) {
-    const [left, right] = span(actors)
-    if (right - left > board.clientWidth - gutter * 2) {
-      if (partySeats.length > 0) {
-        const [partyLeft, partyRight] = span(partySeats)
-        actors = partyRight - partyLeft <= board.clientWidth - gutter * 2 ? partySeats : seats
-      } else {
-        actors = seats
-      }
-    }
-  }
-  if (actors.length > 0) {
-    const [left, right] = span(actors)
-    const target = board.scrollLeft + left - boardBox.left - (board.clientWidth - (right - left)) / 2
-    board.scrollLeft = Math.max(0, Math.min(Math.max(0, board.scrollWidth - board.clientWidth), target))
-  }
 }
 
 /**

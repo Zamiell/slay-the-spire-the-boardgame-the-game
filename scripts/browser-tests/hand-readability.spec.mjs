@@ -1,13 +1,10 @@
 import { test } from '../lib/browser-test.mjs'
 import assert from 'node:assert/strict'
-import { mkdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 test.use({ appKey: import.meta.url })
 
-test('hand-readability', async ({ page, screen, phone, appURL }) => {
-  const out = resolve('artifacts/hand-readability')
-  mkdirSync(out, { recursive: true })
+test('hand-readability', async ({ page, screen, phone, appURL, artifacts: out }) => {
   await page.goto(appURL)
   await page.evaluate(async () => {
     const [R, D, { Card }, { CARDS }] = await Promise.all([

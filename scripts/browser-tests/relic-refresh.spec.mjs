@@ -1,15 +1,12 @@
 import { test, startStandardCampaign } from '../lib/browser-test.mjs'
 import assert from 'node:assert/strict'
-import { mkdirSync } from 'node:fs'
 import { postNeowRun } from '../lib/post-neow-run.mjs'
 import { enterRoom } from '../../src/game/run.ts'
 import { relicDef } from '../../src/game/relics.ts'
 
 test.use({ appKey: import.meta.url })
 
-test('relic-refresh', async ({ page, screen, phone, appURL }) => {
-  const output = 'artifacts/relic-refresh'
-  mkdirSync(output, { recursive: true })
+test('relic-refresh', async ({ page, screen, phone, appURL, artifacts: output }) => {
   const reusableIds = ['golden_eye', 'blue_candle', 'runic_pyramid', 'gambling_chip', 'the_abacus', 'toolbox']
   await startStandardCampaign(page, appURL)
   const run = postNeowRun(47, [{ id: 'p1', name: 'Watcher', character: 'watcher' }])

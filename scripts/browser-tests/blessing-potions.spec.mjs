@@ -1,13 +1,10 @@
 import { test } from '../lib/browser-test.mjs'
 import assert from 'node:assert/strict'
-import { mkdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 test.use({ appKey: import.meta.url })
 
-test('blessing-potions', async ({ page, screen, appURL }) => {
-  const out=resolve('artifacts/blessing-potions')
-  mkdirSync(out,{recursive:true})
+test('blessing-potions', async ({ page, screen, appURL, artifacts: out }) => {
   const errors=[]
   page.on('pageerror',e=>errors.push(String(e)))
   await page.goto(appURL)

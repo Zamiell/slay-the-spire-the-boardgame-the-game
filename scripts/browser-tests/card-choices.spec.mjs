@@ -1,14 +1,11 @@
 import { test, startStandardCampaign } from '../lib/browser-test.mjs'
 import assert from 'node:assert/strict'
-import { mkdirSync } from 'node:fs'
 import { postNeowRun } from '../lib/post-neow-run.mjs'
 import { enterRoom } from '../../src/game/run.ts'
 
 test.use({ appKey: import.meta.url, isMobile: false })
 
-test('card-choices', async ({ page, screen, viewport, phone, appURL }) => {
-  const output = 'artifacts/card-choices'
-  mkdirSync(output, { recursive: true })
+test('card-choices', async ({ page, screen, viewport, phone, appURL, artifacts: output }) => {
   const card = (uid, defId) => ({ uid, defId, upgraded: false })
   await startStandardCampaign(page, appURL)
   const run = postNeowRun(47, [{ id: 'p1', name: 'Ironclad', character: 'ironclad' }])

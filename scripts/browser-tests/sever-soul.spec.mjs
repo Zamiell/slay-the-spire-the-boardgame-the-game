@@ -1,22 +1,19 @@
 import { test as browserTest, startStandardCampaign } from '../lib/browser-test.mjs'
 import assert from 'node:assert/strict'
-import { mkdirSync } from 'node:fs'
 import { postNeowRun } from '../lib/post-neow-run.mjs'
 import { enterRoom } from '../../src/game/run.ts'
 import { CARDS, faceOf } from '../../src/game/cards.ts'
 import { pickUpCard, confirmCardPlay, dragCardTo } from '../lib/card-interactions.mjs'
 
 const test = browserTest.extend({
-  soul: async ({ page, screen, phone, appURL }, use) => {
-    await use(await setupSeverSoul({ page, screen, phone, appURL }))
+  soul: async ({ page, screen, phone, appURL, artifacts }, use) => {
+    await use(await setupSeverSoul({ page, screen, phone, appURL, artifacts }))
   },
 })
 
 test.use({ appKey: import.meta.url, reducedMotion: 'reduce' })
 
-async function setupSeverSoul({ page, screen, phone, appURL }) {
-  const output = 'artifacts/sever-soul'
-  mkdirSync(output, { recursive: true })
+async function setupSeverSoul({ page, screen, phone, appURL, artifacts: output }) {
   page.setDefaultTimeout(10_000)
   await startStandardCampaign(page, appURL)
   const run = postNeowRun(47, [{ id: 'p1', name: 'Ironclad', character: 'ironclad' }])

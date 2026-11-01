@@ -1,14 +1,11 @@
 import { test } from '../lib/browser-test.mjs'
 import assert from 'node:assert/strict'
-import { mkdirSync } from 'node:fs'
 import { postNeowRun } from '../lib/post-neow-run.mjs'
 import { enterRoom } from '../../src/game/run.ts'
 import { pickUpCard, confirmCardPlay } from '../lib/card-interactions.mjs'
 
-const output = 'artifacts/incoming-damage'
-mkdirSync(output, { recursive: true })
 
-test('incoming-damage', async ({ page, screen, phone, appURL }) => {
+test('incoming-damage', async ({ page, screen, phone, appURL, artifacts: output }) => {
   await page.goto(appURL)
   for (const name of ['Single Player', 'Standard', 'Embark', 'Start standard campaign']) {
     await page.getByRole('button', { name, exact: true }).click()

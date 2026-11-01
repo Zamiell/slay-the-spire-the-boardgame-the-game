@@ -1,6 +1,6 @@
 import { test, startStandardCampaign } from '../lib/browser-test.mjs'
 import assert from 'node:assert/strict'
-import { existsSync, mkdirSync } from 'node:fs'
+import { existsSync } from 'node:fs'
 import { postNeowRun } from '../lib/post-neow-run.mjs'
 import { enterRoom } from '../../src/game/run.ts'
 import { canActivateRelic } from '../../src/game/combat.ts'
@@ -10,9 +10,7 @@ import { pickUpCard, confirmCardPlay } from '../lib/card-interactions.mjs'
 
 test.use({ appKey: import.meta.url })
 
-test('relic-action-icons', async ({ page, screen, phone, appURL }) => {
-  const output = 'artifacts/relic-action-icons'
-  mkdirSync(output, { recursive: true })
+test('relic-action-icons', async ({ page, screen, phone, appURL, artifacts: output }) => {
   const ids = Object.keys(RELICS)
   for (const id of ids) assert(existsSync(`public${relicIconPath(id)}`), `${id}: missing relic icon`)
   const manualIds = ids.filter(id => id !== 'the_courier' && (RELICS[id].activation ||

@@ -1,14 +1,11 @@
 import { test, startStandardCampaign } from '../lib/browser-test.mjs'
 import assert from 'node:assert/strict'
-import { mkdirSync } from 'node:fs'
 import { postNeowRun } from '../lib/post-neow-run.mjs'
 import { enterRoom } from '../../src/game/run.ts'
 
 test.use({ appKey: import.meta.url, hasTouch: false, isMobile: false })
 
-test('card-tooltip', async ({ page, screen, appURL }) => {
-  const output = 'artifacts/card-tooltips'
-  mkdirSync(output, { recursive: true })
+test('card-tooltip', async ({ page, screen, appURL, artifacts: output }) => {
   await startStandardCampaign(page, appURL)
   const longCard = await page.evaluate(async () => {
     const [{ CARDS }, { cardKeywordTips }] = await Promise.all([

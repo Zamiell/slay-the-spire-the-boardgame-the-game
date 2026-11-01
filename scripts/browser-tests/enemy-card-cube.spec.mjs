@@ -1,15 +1,12 @@
 import { test, startStandardCampaign } from '../lib/browser-test.mjs'
 import assert from 'node:assert/strict'
-import { mkdirSync } from 'node:fs'
 import { postNeowRun } from '../lib/post-neow-run.mjs'
 import { enterRoom } from '../../src/game/run.ts'
 import { enemyDef } from '../../src/game/enemies.ts'
 
 test.use({ appKey: import.meta.url })
 
-test('enemy-card-cube', async ({ page, screen, phone, appURL }) => {
-  const output = 'artifacts/enemy-card-cube'
-  mkdirSync(output, { recursive: true })
+test('enemy-card-cube', async ({ page, screen, phone, appURL, artifacts: output }) => {
   await startStandardCampaign(page, appURL)
   const run = postNeowRun(47, [{ id: 'p1', name: 'Ironclad', character: 'ironclad' }])
   const room = run.map.rows[0][0]

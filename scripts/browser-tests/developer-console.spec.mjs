@@ -1,14 +1,11 @@
 import { test, startStandardCampaign } from '../lib/browser-test.mjs'
 import assert from 'node:assert/strict'
-import { mkdirSync } from 'node:fs'
 import { postNeowRun } from '../lib/post-neow-run.mjs'
 import { enterRoom } from '../../src/game/run.ts'
 
 test.use({ appKey: import.meta.url })
 
-test('developer-console', async ({ page, screen, appURL }) => {
-  const output = 'artifacts/developer-console'
-  mkdirSync(output, { recursive: true })
+test('developer-console', async ({ page, screen, appURL, artifacts: output }) => {
   let submissions = 0
   await page.route('**/api/leaderboard', route => {
     if (route.request().method() === 'POST') submissions++

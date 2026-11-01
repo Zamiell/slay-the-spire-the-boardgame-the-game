@@ -1,7 +1,10 @@
+import { fileURLToPath } from 'node:url'
+import { browserOutputDirectory } from './lib/verification-output.mjs'
+
 export default {
   testDir: './browser-tests',
   testMatch: '**/*.spec.mjs',
-  outputDir: '../artifacts/playwright',
+  outputDir: browserOutputDirectory(fileURLToPath(new URL('../', import.meta.url))),
   workers: 1,
   fullyParallel: false,
   retries: 0,

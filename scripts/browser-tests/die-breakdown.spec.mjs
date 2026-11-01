@@ -1,15 +1,12 @@
 import { test, startStandardCampaign } from '../lib/browser-test.mjs'
 import assert from 'node:assert/strict'
-import { mkdirSync } from 'node:fs'
 import { postNeowRun } from '../lib/post-neow-run.mjs'
 import { enterRoom } from '../../src/game/run.ts'
 import { createRelicInstance } from '../../src/game/relics.ts'
 
 test.use({ appKey: import.meta.url })
 
-test('die-breakdown', async ({ page, screen, phone, appURL }) => {
-  const output = 'artifacts/die-breakdown'
-  mkdirSync(output, { recursive: true })
+test('die-breakdown', async ({ page, screen, phone, appURL, artifacts: output }) => {
   await startStandardCampaign(page, appURL)
   const run = postNeowRun(47, [{ id: 'p1', name: 'Watcher', character: 'watcher' }])
   const room = run.map.rows[0][0]

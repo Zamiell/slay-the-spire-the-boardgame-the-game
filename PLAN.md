@@ -245,17 +245,32 @@ Verifier selection combines dependency analysis, source-text matching, and
 ownership tables. Tests also assert hard-coded suite counts. Builds and browser
 runs can compete for or overwrite shared output directories.
 
-- [ ] Define suite metadata for ownership, lane, and output/resource requirements.
-- [ ] Retain dependency inference and conservative fallback for unmapped changes.
-- [ ] Test required and excluded ownership relationships rather than relying on
+- [x] Define suite metadata for ownership, lane, and output/resource requirements.
+- [x] Retain dependency inference and conservative fallback for unmapped changes.
+- [x] Test required and excluded ownership relationships rather than relying on
   magic suite counts.
-- [ ] Isolate verification build outputs from production build outputs.
-- [ ] Preserve recordings and screenshots across independent suite invocations.
-- [ ] Retain standalone focused entrypoints and zero-retry behavior.
+- [x] Isolate verification build outputs from production build outputs.
+- [x] Preserve recordings and screenshots across independent suite invocations.
+- [x] Retain standalone focused entrypoints and zero-retry behavior.
 
 **Completion criteria:** Selection remains conservative and explainable, new suites
 do not require unrelated count updates, and independent verification cannot corrupt
 build outputs or erase another suite's evidence.
+
+**Implemented:** `verifier-registry.mjs` centralizes ownership and declares lanes,
+browser resources, and output policy. Unknown suites still use dependency/source
+inference and conservative fallback. Infrastructure has focused owners instead of
+accidentally selecting the legacy umbrella. Build verification uses a guarded,
+fresh scratch directory; production builds still own `dist`. Managed Playwright
+invocations have unique directories, and all their manual screenshots now use the
+shared `artifacts` fixture or `testInfo.outputPath()`. Specialized legacy suites
+retain their explicitly suite-owned output contracts.
+
+**Evidence:** The 31 pipeline checks cover ownership, fallback, resource lanes,
+and output safety without magic suite totals. Production and verification builds
+passed simultaneously with identical bundle names. Repeated standalone fixture
+runs retained both sets of screenshots and desktop/phone recordings; URL-based
+and extended-fixture capture cases also pass.
 
 ## 10. Share HTTP mechanics and response decoding
 

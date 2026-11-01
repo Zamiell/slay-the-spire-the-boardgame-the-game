@@ -149,6 +149,14 @@ run fails on any console error, page error or failed request.
 and browser. Browser checks are opt-in local tools; CI runs the production build and affected
 non-browser checks.
 
+Suite ownership, lanes, and output/resource requirements are declared in
+`scripts/lib/verifier-registry.mjs`. Dependency inference remains the fallback for
+unregistered checks. Managed Playwright recordings and screenshots live under
+`artifacts/verification/browser/<suite>/<run>/`; separate invocations retain their
+evidence. Legacy suites keep their explicitly owned artifact directories.
+`verify-build.mjs` builds into a fresh private directory and removes it afterward;
+use `pnpm build` to create the production `dist` used by preview and deployment.
+
 Engine and server checks are plain Node programs that import the engine directly.
 Compatible browser suites use Playwright Test through the shared silent fixtures,
 with standalone `verify-*-browser.mjs` entrypoints retained. Node 24 strips

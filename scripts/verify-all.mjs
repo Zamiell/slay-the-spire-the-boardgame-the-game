@@ -11,6 +11,7 @@ import { dirname, join } from 'node:path'
 import { spawn, spawnSync } from 'node:child_process'
 import { cpus } from 'node:os'
 import { affectedVerifiers, browserScript, changedPaths, gateArtBakes, mergeBase, needsTypecheck, requiresFullSuite } from './lib/affected-verifiers.mjs'
+import { verifierMetadata } from './lib/verifier-registry.mjs'
 
 const scriptsDir = dirname(fileURLToPath(import.meta.url))
 const args = process.argv.slice(2)
@@ -158,7 +159,10 @@ function runOnce(script) {
 // twice.
 const heavyQueue = []
 const lightQueue = []
-for (const script of scripts) (isBrowser(script) ? heavyQueue : lightQueue).push(script)
+for (const script of scripts) {
+  const metadata = verifierMetadata(script, join(scriptsDir, '..'), isBrowser(script) ? 'browser' : 'light')
+  ;(metadata.resources.includes('browser') ? heavyQueue : lightQueue).push(script)
+}
 const results = []
 
 const requestedHeavyJobs = explicitHeavyJobs ?? 1

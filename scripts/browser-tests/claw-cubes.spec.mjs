@@ -1,14 +1,11 @@
 import { test, startStandardCampaign } from '../lib/browser-test.mjs'
 import assert from 'node:assert/strict'
-import { mkdirSync } from 'node:fs'
 import { postNeowRun } from '../lib/post-neow-run.mjs'
 import { enterRoom } from '../../src/game/run.ts'
 
 test.use({ appKey: import.meta.url })
 
-test('claw-cubes', async ({ page, screen, phone, appURL }) => {
-  const output = 'artifacts/claw-cubes'
-  mkdirSync(output, { recursive: true })
+test('claw-cubes', async ({ page, screen, phone, appURL, artifacts: output }) => {
   await startStandardCampaign(page, appURL)
   const run = postNeowRun(47, [{ id: 'p1', name: 'Defect', character: 'defect' }])
   const room = run.map.rows[0][0]

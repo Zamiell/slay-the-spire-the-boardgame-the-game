@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { createServer } from 'vite'
 import { baseTest, silenceContext } from './silent-browser.mjs'
 import { seedReturningPlayer } from './profile-browser.mjs'
+import { mkdirSync } from 'node:fs'
 
 export { expect } from './silent-browser.mjs'
 
@@ -13,6 +14,10 @@ export async function startStandardCampaign(page, url) {
 }
 
 export const test = baseTest.extend({
+  artifacts: async ({}, use, info) => {
+    mkdirSync(info.outputDir, { recursive: true })
+    await use(info.outputDir)
+  },
   appKey: ['', { scope: 'worker', option: true }],
   context: async ({ context }, use) => {
     await silenceContext(context)

@@ -1,12 +1,9 @@
 import { test, startStandardCampaign } from '../lib/browser-test.mjs'
 import assert from 'node:assert/strict'
-import { mkdirSync } from 'node:fs'
 
 test.use({ appKey: import.meta.url, reducedMotion: "reduce" })
 
-test('joust', async ({ page, screen, phone, appURL }) => {
-  const output = 'artifacts/joust'
-  mkdirSync(output, { recursive: true })
+test('joust', async ({ page, screen, phone, appURL, artifacts: output }) => {
   page.setDefaultTimeout(10_000)
   await startStandardCampaign(page, appURL)
   const base = await page.evaluate(() => structuredClone(window.__STS_DEBUG__.getRun()))

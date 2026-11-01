@@ -1,15 +1,12 @@
 import { test, startStandardCampaign } from '../lib/browser-test.mjs'
 import assert from 'node:assert/strict'
-import { mkdirSync } from 'node:fs'
 import { createRun } from '../../src/game/run.ts'
 import { createCombat } from '../../src/game/combat.ts'
 import { pickUpCard, confirmCardPlay } from '../lib/card-interactions.mjs'
 
 test.use({ appKey: import.meta.url, reducedMotion: "reduce" })
 
-test('manual-end-turn', async ({ page, screen, phone, appURL }) => {
-  const output = 'artifacts/manual-end-turn'
-  mkdirSync(output, { recursive: true })
+test('manual-end-turn', async ({ page, screen, phone, appURL, artifacts: output }) => {
   page.setDefaultTimeout(10_000)
   await startStandardCampaign(page, appURL)
   const id = await page.evaluate(() => window.__STS_DEBUG__.getRun().players[0].id)

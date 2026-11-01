@@ -1,12 +1,10 @@
 import { test } from '../lib/browser-test.mjs'
 import assert from 'node:assert/strict'
-import { mkdirSync } from 'node:fs'
+import { resolve } from 'node:path'
 
 test.use({ appKey: import.meta.url, hasTouch: false, isMobile: false, reducedMotion: "reduce" })
 
-test('button-borders', async ({ page, screen, appURL }) => {
-  const output = new URL("../../artifacts/button-borders/", import.meta.url)
-  mkdirSync(output, { recursive: true })
+test('button-borders', async ({ page, screen, appURL, artifacts: output }) => {
   async function checkBorder(page, element, label) {
     const geometry = await element.evaluate(element => {
   const style = getComputedStyle(element)
@@ -14,7 +12,7 @@ test('button-borders', async ({ page, screen, appURL }) => {
   if (!cut) throw new Error(`Missing beveled silhouette: ${style.clipPath}`)
   return { cut: Number(cut[1]), percent: cut[2] === '%', border: parseFloat(style.borderTopWidth) || 2 }
     })
-    const png = await element.screenshot({ path: new URL(`${label}.png`, output).pathname })
+    const png = await element.screenshot({ path: resolve(output, `${label}.png`) })
     const colors = await page.evaluate(async ({ png, cut, percent, border }) => {
   const image = await createImageBitmap(await (await fetch(`data:image/png;base64,${png}`)).blob())
   const canvas = document.createElement('canvas')

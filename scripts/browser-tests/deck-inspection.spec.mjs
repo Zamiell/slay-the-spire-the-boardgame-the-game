@@ -1,12 +1,9 @@
 import { test, startStandardCampaign } from '../lib/browser-test.mjs'
 import assert from 'node:assert/strict'
-import { mkdirSync } from 'node:fs'
 
 test.use({ appKey: import.meta.url, reducedMotion: "reduce" })
 
-test('deck-inspection', async ({ page, screen, phone, appURL }) => {
-  const output = 'artifacts/deck-inspection'
-  mkdirSync(output, { recursive: true })
+test('deck-inspection', async ({ page, screen, phone, appURL, artifacts: output }) => {
   page.setDefaultTimeout(10_000)
   await startStandardCampaign(page, appURL)
   await page.evaluate(() => {

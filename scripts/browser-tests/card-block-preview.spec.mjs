@@ -1,6 +1,5 @@
 import { test, startStandardCampaign } from '../lib/browser-test.mjs'
 import assert from 'node:assert/strict'
-import { mkdirSync } from 'node:fs'
 import { createRun } from '../../src/game/run.ts'
 import { createCombat } from '../../src/game/combat.ts'
 import { createRng } from '../../src/game/rng.ts'
@@ -8,9 +7,7 @@ import { pickUpCard, confirmCardPlay } from '../lib/card-interactions.mjs'
 
 test.use({ appKey: import.meta.url })
 
-test('card-block-preview', async ({ page, screen, appURL }) => {
-  const output = 'artifacts/card-block-preview'
-  mkdirSync(output, { recursive: true })
+test('card-block-preview', async ({ page, screen, appURL, artifacts: output }) => {
   await startStandardCampaign(page, appURL)
   const run = createRun(47, [{ id: 'p1', name: 'Silent', character: 'silent' }])
   run.phase = 'combat'

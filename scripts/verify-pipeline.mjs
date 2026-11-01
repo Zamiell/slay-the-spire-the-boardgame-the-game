@@ -7,6 +7,8 @@ import {
   ART_BAKES, affectedVerifiers, artBakeInput, browserScript, changedPaths, gateArtBakes, drivesABrowser, mergeBase, needsTypecheck, ownerMap, requiresFullSuite,
 } from './lib/affected-verifiers.mjs'
 import { suite, check, assert, assertDeepEqual, assertEqual, assertThrows, report } from './lib/harness.mjs'
+import { fixtureSuites, focusedEngineOwners, focusedUiOwners, focusedOnlyUiOwners, verifierMetadata } from './lib/verifier-registry.mjs'
+import { browserOutputDirectory, checkedBuildOutput, createBuildOutput } from './lib/verification-output.mjs'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const scripts = readdirSync(resolve(root, 'scripts'))
@@ -21,6 +23,47 @@ const includesEvery = (actual, expected, context) => {
 }
 
 suite('verification pipeline')
+check('suite registry declares valid ownership, lanes, and output resources', () => {
+  for (const map of [focusedEngineOwners, focusedUiOwners, focusedOnlyUiOwners]) {
+    for (const [file, owners] of map) {
+      for (const owner of owners) assert(scripts.includes(owner), `${file}: unknown verifier ${owner}`)
+    }
+  }
+  assertEqual(verifierMetadata('verify-build.mjs', root).output, 'isolated-build')
+  for (const script of fixtureSuites(root)) {
+    const metadata = verifierMetadata(script, root)
+    assertEqual(metadata.lane, 'browser')
+    assertDeepEqual(metadata.resources, ['browser'])
+    assertEqual(metadata.output, 'invocation')
+  }
+  assertDeepEqual(affected('scripts/lib/verifier-registry.mjs'), ['verify-pipeline.mjs'])
+  includesEvery(affected('scripts/lib/browser-test.mjs'), fixtureSuites(root), 'shared fixture ownership')
+  assert(!affected('scripts/lib/browser-test.mjs').includes('verify-browser.mjs'),
+    'fixture infrastructure must not select the unrelated legacy umbrella')
+  includesEvery(affected('infra/art-toolchain.json'), ['verify-art-toolchain.mjs', 'verify-art-bakes.mjs'],
+    'codec changes require reproducibility checks')
+})
+check('verification outputs cannot overwrite production or earlier invocations', () => {
+  const project = mkdtempSync(resolve(tmpdir(), 'verification-outputs-'))
+  try {
+    const first = createBuildOutput(project)
+    const second = createBuildOutput(project)
+    assert(first !== second)
+    assertEqual(checkedBuildOutput(project, first), first)
+    writeFileSync(resolve(first, 'evidence'), 'keep')
+    assertThrows(() => checkedBuildOutput(project, first), 'fresh, empty directory')
+    assertThrows(() => checkedBuildOutput(project, project), 'fresh, empty directory')
+    assertEqual(readFileSync(resolve(first, 'evidence'), 'utf8'), 'keep')
+    const earlier = browserOutputDirectory(project, 'cards', 'run-one')
+    const later = browserOutputDirectory(project, 'cards', 'run-two')
+    assert(earlier !== later)
+    mkdirSync(earlier, { recursive: true })
+    writeFileSync(resolve(earlier, 'video.webm'), 'previous evidence')
+    mkdirSync(later, { recursive: true })
+    assertEqual(readFileSync(resolve(earlier, 'video.webm'), 'utf8'), 'previous evidence')
+    assertThrows(() => browserOutputDirectory(project, '../escape', 'run-one'), 'Invalid verification output identity')
+  } finally { rmSync(project, { recursive: true, force: true }) }
+})
 check('extracted protocol and presentation modules retain focused coverage', () => {
   for (const path of ['src/protocol/actions.ts', 'src/protocol/room.ts', 'src/server/player-projection.ts',
     'scripts/lib/rooms/projection.mjs', 'scripts/lib/rooms/store.mjs'])
@@ -279,7 +322,9 @@ check('shared frontend changes use cores plus named visual owners', () => {
       'verify-unload-shivs-browser.mjs', 'verify-boss-heavy-attacks-browser.mjs', 'verify-slime-hover-browser.mjs',
       'verify-noncombat-actions-browser.mjs',
     ], sheet)
-    assertEqual(affectedBrowser(sheet).length, 29, `${sheet} selected an unrelated browser suite`)
+    for (const unrelated of ['verify-wallet-sync-browser.mjs', 'verify-multiplayer-resume-browser.mjs']) {
+      assert(!affectedBrowser(sheet).includes(unrelated), `${sheet} selected unrelated network recovery`)
+    }
   }
   const hand = affectedBrowser('src/ui/styles/hand.css')
   includesEvery(hand, ['verify-browser.mjs', 'verify-noncombat-browser.mjs', 'verify-online-browser.mjs',
@@ -292,7 +337,9 @@ check('shared frontend changes use cores plus named visual owners', () => {
     'verify-boss-heavy-attacks-browser.mjs', 'verify-slime-hover-browser.mjs',
     'verify-enemy-card-cube-browser.mjs', 'verify-noncombat-actions-browser.mjs'], 'hand stylesheet')
   assert(hand.includes('verify-card-block-preview-browser.mjs'))
-  assertEqual(hand.length, 36, 'hand stylesheet selected an unrelated browser suite')
+  for (const unrelated of ['verify-wallet-sync-browser.mjs', 'verify-multiplayer-resume-browser.mjs']) {
+    assert(!hand.includes(unrelated), 'hand stylesheet selected unrelated network recovery')
+  }
   includesEvery(affectedBrowser('src/ui/styles/presentation-overlays.css'), [
     'verify-browser.mjs', 'verify-noncombat-browser.mjs', 'verify-online-browser.mjs',
     'verify-lightning-act2-browser.mjs',

@@ -1,10 +1,6 @@
 import { test } from '../lib/browser-test.mjs'
 import assert from 'node:assert/strict'
-import { mkdirSync } from 'node:fs'
-
-mkdirSync('artifacts/back-buttons', { recursive: true })
-
-test('back-buttons', async ({ page, screen, phone, appURL }) => {
+test('back-buttons', async ({ page, screen, phone, appURL, artifacts }) => {
   const noHelp = async button => {
     assert.equal(await button.getAttribute('data-keyword-help-id'), null)
     assert.equal(await button.getAttribute('title'), null)
@@ -55,7 +51,7 @@ test('back-buttons', async ({ page, screen, phone, appURL }) => {
     assert.equal(await button.locator('span').evaluate(element => getComputedStyle(element).translate), 'none',
       'the old arrow-only nudge must not stack with the full ribbon animation')
     assert.equal(await page.locator('.card-keyword-tips[data-open]').filter({ hasText: /^Back$/ }).count(), 0)
-    await page.screenshot({ path: `artifacts/back-buttons/${screen}-hover.png` })
+    await page.screenshot({ path: `${artifacts}/${screen}-hover.png` })
     if (!phone) {
       await page.mouse.down()
       await page.waitForTimeout(280)

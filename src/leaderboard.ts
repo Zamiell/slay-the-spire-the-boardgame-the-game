@@ -1,30 +1,20 @@
 import { savedProfile } from './profile.ts'
 import type { RunState } from './game/run.ts'
 import type { BossAct } from './game/coins.ts'
-import type { CardInstance, CharacterId } from './game/types.ts'
+import type { CharacterId } from './game/types.ts'
 import { resetRoomEndpoint, roomUrl } from './multiplayer/room-endpoint.ts'
 import { damageTotals } from './ui/run-summary-data.ts'
+import { decodeResponse, HttpResponseError, requestJson } from './http.ts'
+import type { DecodedResponse } from './http.ts'
+import { DailyLeaderboardReply, LeaderboardAcknowledgement, LeaderboardReply, WinningDecksReply } from './protocol/responses.ts'
 
 const INSTALLATION_KEY = 'sts-leaderboard-installation'
 const OUTBOX_KEY = 'sts-leaderboard-outbox'
 const REQUEST_TIMEOUT_MS = 5_000
 const AUTO_FLUSH = import.meta.env.PROD || import.meta.env.VITE_HOSTED_SESSION === 'true' || import.meta.env.VITE_LEADERBOARD === 'true'
 
-export type LeaderboardRow = {
-  character: CharacterId
-  characters?: CharacterId[]
-  ascension: number
-  runs: number
-  act3Runs: number
-  act3Wins: number
-  act3WinRate: number | null
-  averageDamagePerFight: number | null
-  averageDamageBlocked: number | null
-  averageFloorsCleared?: number | null
-  act4Wins: number
-}
-
-export type LeaderboardSnapshot = { totalRuns: number; rows: LeaderboardRow[] }
+export type LeaderboardSnapshot = DecodedResponse<typeof LeaderboardReply>
+export type LeaderboardRow = LeaderboardSnapshot['rows'][number]
 
 type LeaderboardSubmission = {
   id: string
@@ -125,11 +115,8 @@ async function flush() {
       let endpoint: string | undefined
       try {
         endpoint = await roomUrl('/api/leaderboard')
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify(run),
-          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        const response = await requestJson(endpoint, {
+          method: 'POST', body: run, timeoutMs: REQUEST_TIMEOUT_MS, failure: 'Leaderboard submission failed',
         })
         if (response.status === 409 && run.profileToken !== undefined) {
           const { profileToken: _, ...anonymous } = run
@@ -145,7 +132,8 @@ async function flush() {
           continue
         }
         if (!response.ok) throw new Error('Leaderboard submission failed')
-        const acknowledged = await response.json().catch(() => null) as { floorsClearedAccepted?: boolean; finalDeckAccepted?: boolean; profileAccepted?: boolean; dailyDateAccepted?: boolean; dailyCoinsAccepted?: boolean } | null
+        const acknowledged = decodeResponse(LeaderboardAcknowledgement, response.body,
+          'Leaderboard submission failed', response.status)
         // An older server would store a climb without its day, so it could never rank.
         if (run.floorsCleared !== undefined && acknowledged?.floorsClearedAccepted !== true ||
             run.dailyDate !== undefined && acknowledged?.dailyDateAccepted !== true ||
@@ -180,9 +168,9 @@ export async function loadLeaderboard(): Promise<LeaderboardSnapshot> {
     let endpoint: string | undefined
     try {
       endpoint = await roomUrl('/api/leaderboard')
-      const response = await fetch(endpoint, { cache: 'no-store', signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) })
-      if (!response.ok) throw new Error('Leaderboard unavailable')
-      return await response.json() as LeaderboardSnapshot
+      const response = await requestJson(endpoint, { cache: 'no-store', timeoutMs: REQUEST_TIMEOUT_MS, failure: 'Leaderboard unavailable' })
+      if (!response.ok) throw new HttpResponseError('Leaderboard unavailable', response.status)
+      return decodeResponse(LeaderboardReply, response.body, 'Leaderboard unavailable', response.status)
     } catch (error) {
       resetRoomEndpoint()
       if (attempt === 1) throw error
@@ -191,18 +179,8 @@ export async function loadLeaderboard(): Promise<LeaderboardSnapshot> {
   throw new Error('Leaderboard unavailable')
 }
 
-export type DailyClimbRow = {
-  rank: number
-  username: string
-  character: CharacterId
-  floorsCleared: number
-  /** 3 or more is a won climb; 4 also beat the Act IV boss. */
-  highestBossActDefeated: number
-  averageDamagePerFight: number | null
-  damageBlockedRate: number | null
-  cards: Omit<CardInstance, 'uid'>[]
-}
-export type DailyClimbBoard = { date: string; total: number; rows: DailyClimbRow[] }
+export type DailyClimbBoard = DecodedResponse<typeof DailyLeaderboardReply>
+export type DailyClimbRow = DailyClimbBoard['rows'][number]
 
 /** The server answered but declined: a 429 rate limit, a 404 from a server without the ranking, or a bad query. */
 export class DailyRankingRefused extends Error {
@@ -222,11 +200,11 @@ export async function loadDailyLeaderboard(date: string, characters: readonly Ch
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
       const endpoint = await roomUrl(`/api/leaderboard/daily?${query}`)
-      const response = await fetch(endpoint, { cache: 'no-store', signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) })
+      const response = await requestJson(endpoint, { cache: 'no-store', timeoutMs: REQUEST_TIMEOUT_MS, failure: 'Daily ranking unavailable' })
       // A rate limit or bad query is an answer from a live server; retrying only burns quota.
       if ([400, 404, 429].includes(response.status)) throw new DailyRankingRefused(response.status)
-      if (!response.ok) throw new Error('Daily ranking unavailable')
-      return await response.json() as DailyClimbBoard
+      if (!response.ok) throw new HttpResponseError('Daily ranking unavailable', response.status)
+      return decodeResponse(DailyLeaderboardReply, response.body, 'Daily ranking unavailable', response.status)
     } catch (error) {
       if (error instanceof DailyRankingRefused) throw error
       resetRoomEndpoint()
@@ -237,39 +215,23 @@ export async function loadDailyLeaderboard(date: string, characters: readonly Ch
 }
 
 export type WinningDeckSort = 'character' | 'ascension' | 'cardCount' | 'username' | 'recordedAt'
-export type WinningDeck = {
-  id: string
-  character: CharacterId
-  characters?: CharacterId[]
-  ascension: number
-  cardCount: number
-  username: string
-  recordedAt: number
-  cards: Omit<CardInstance, 'uid'>[]
-}
-export type WinningDeckPage = { total: number; rows: WinningDeck[]; nextCursor: string | null }
+export type WinningDeckPage = DecodedResponse<typeof WinningDecksReply>
+export type WinningDeck = WinningDeckPage['rows'][number]
 
 export async function loadWinningDecks(params: URLSearchParams, signal: AbortSignal): Promise<WinningDeckPage> {
   for (let attempt = 0; attempt < 2; attempt += 1) {
-    let endpoint: string | undefined
-    const controller = new AbortController()
-    const abort = () => controller.abort()
-    if (signal.aborted) abort()
-    else signal.addEventListener('abort', abort, { once: true })
-    const timeout = setTimeout(abort, REQUEST_TIMEOUT_MS)
     try {
-      endpoint = await roomUrl(`/api/leaderboard/decks?${params}`)
-      const response = await fetch(endpoint, { cache: 'no-store', signal: controller.signal })
-      if (response.status === 404) throw new Error('Winning decks will be available after the archive server updates. Please try again shortly.')
-      if (!response.ok) throw new Error('Could not load winning decks. Please try again.')
-      return await response.json() as WinningDeckPage
+      const failure = 'Could not load winning decks. Please try again.'
+      const response = await requestJson(() => roomUrl(`/api/leaderboard/decks?${params}`), {
+        cache: 'no-store', signal, timeoutMs: REQUEST_TIMEOUT_MS, failure,
+      })
+      if (response.status === 404) throw new HttpResponseError('Winning decks will be available after the archive server updates. Please try again shortly.', response.status)
+      if (!response.ok) throw new HttpResponseError(failure, response.status)
+      return decodeResponse(WinningDecksReply, response.body, failure, response.status)
     } catch (error) {
       if (signal.aborted) throw error
       resetRoomEndpoint()
       if (attempt === 1) throw error
-    } finally {
-      clearTimeout(timeout)
-      signal.removeEventListener('abort', abort)
     }
   }
   throw new Error('Could not load winning decks.')

@@ -1,21 +1,17 @@
 import { savedProfile, type Profile } from './profile.ts'
 import { resetRoomEndpoint, roomUrl } from './multiplayer/room-endpoint.ts'
+import { decodeResponse, HttpResponseError, requestJson, responseMessage } from './http.ts'
+import type { DecodedResponse } from './http.ts'
+import { MailboxReply, MailDeskReply } from './protocol/responses.ts'
 
 const REQUEST_TIMEOUT_MS = 8_000
 /** Matches the room server's limit in scripts/lib/mail.mjs. */
 export const MAX_LETTER_LENGTH = 2_000
 
-export type Letter = { id: string; from: 'player' | 'developer'; body: string; at: number }
-export type Mailbox = { letters: Letter[]; unread: number; personalUnread: number; admin: boolean }
-export type MailThread = {
-  username: string
-  unread: number
-  lastAt: number
-  lastFrom?: Letter['from']
-  preview?: string
-  letters?: Letter[]
-}
-export type MailDesk = { threads: MailThread[]; unread: number }
+export type Letter = DecodedResponse<typeof MailboxReply>['letters'][number]
+export type Mailbox = DecodedResponse<typeof MailboxReply> & { personalUnread: number }
+export type MailThread = DecodedResponse<typeof MailDeskReply>['threads'][number]
+export type MailDesk = DecodedResponse<typeof MailDeskReply>
 
 /**
  * Only a hosted build polls on its own. A local build's `/api` is a dev proxy
@@ -24,36 +20,32 @@ export type MailDesk = { threads: MailThread[]; unread: number }
  */
 export const MAIL_POLLING = import.meta.env.VITE_HOSTED_SESSION === 'true' || import.meta.env.VITE_MAIL === 'true'
 
-type Reply = { status: number; body: Record<string, unknown> }
+type Reply = { status: number; body: unknown }
 
 async function post(path: string, body: Record<string, unknown>): Promise<Reply> {
   try {
-    const response = await fetch(await roomUrl(path), {
-      method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(body), signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    return await requestJson(await roomUrl(path), {
+      method: 'POST', body, timeoutMs: REQUEST_TIMEOUT_MS,
+      failure: 'The post office is closed right now. Try again later.',
     })
-    return { status: response.status, body: await response.json().catch(() => ({})) }
-  } catch {
+  } catch (cause) {
     resetRoomEndpoint()
-    throw new Error('The post office is closed right now. Try again later.')
+    throw new Error('The post office is closed right now. Try again later.', { cause })
   }
 }
 
 function mailbox({ status, body }: Reply): Mailbox {
-  if (status < 200 || status >= 300) throw new Error(typeof body.error === 'string' ? body.error : 'The letter could not be delivered.')
-  const unread = Number(body.unread) || 0
-  const personalUnread = Number(body.personalUnread)
-  return {
-    letters: Array.isArray(body.letters) ? body.letters as Letter[] : [],
-    unread,
-    personalUnread: Number.isFinite(personalUnread) ? personalUnread : unread,
-    admin: body.admin === true,
-  }
+  const failure = 'The letter could not be delivered.'
+  if (status < 200 || status >= 300) throw new HttpResponseError(responseMessage(body, failure), status)
+  const parsed = decodeResponse(MailboxReply, body, failure, status)
+  // Older servers have one unread count, rather than a separate personal count.
+  return { ...parsed, personalUnread: parsed.personalUnread ?? parsed.unread }
 }
 
 function desk({ status, body }: Reply): MailDesk {
-  if (status < 200 || status >= 300) throw new Error(typeof body.error === 'string' ? body.error : 'The server mail could not be opened.')
-  return { threads: Array.isArray(body.threads) ? body.threads as MailThread[] : [], unread: Number(body.unread) || 0 }
+  const failure = 'The server mail could not be opened.'
+  if (status < 200 || status >= 300) throw new HttpResponseError(responseMessage(body, failure), status)
+  return decodeResponse(MailDeskReply, body, failure, status)
 }
 
 function profile(): Profile {
@@ -70,7 +62,8 @@ export async function sendLetter(body: string): Promise<Mailbox> {
   const sent = await post('/api/mail/send', { token: profile().token, body })
   // A server that has lost this browser's name (a reset store, another host) cannot
   // re-claim it without the password, which this browser never keeps.
-  if (sent.status === 409 && sent.body.code === 'profile') throw new Error('This server does not know your account. Log out from your profile, then create it again or log in.')
+  if (sent.status === 409 && sent.body && typeof sent.body === 'object' &&
+    'code' in sent.body && sent.body.code === 'profile') throw new Error('This server does not know your account. Log out from your profile, then create it again or log in.')
   return mailbox(sent)
 }
 

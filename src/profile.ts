@@ -1,6 +1,9 @@
 import { resetRoomEndpoint, roomUrl } from './multiplayer/room-endpoint.ts'
 import type { Wallet } from './wallet.ts'
 import type { BossCoinAward } from './game/coins.ts'
+import { decodeResponse, HttpResponseError, requestJson, responseMessage } from './http.ts'
+import type { DecodedResponse, ResponseSchema } from './http.ts'
+import { AscensionReply, LoginReply, ProfileClaimReply, ProfileStatsReply, StandingReply, WalletReplySchema } from './protocol/responses.ts'
 
 export type WalletCredit = { runKey: string; awards: BossCoinAward[]; joinedAfter: number }
 export type WalletMigration = { id: string; wallet: Wallet }
@@ -8,14 +11,14 @@ export type WalletMigration = { id: string; wallet: Wallet }
 export type WalletPurchase = { pack: string } | { skin: string }
 export type WalletReply = { wallet: Wallet; purchase?: { ok: boolean; reason?: string } }
 export const syncProfileWallet = (profile: Profile, migration: WalletMigration | undefined, credits: WalletCredit[], purchase?: WalletPurchase) =>
-  post<WalletReply | { registered: false }>('/api/profile/wallet', { token: profile.token, migration, credits, ...purchase }, 'Could not sync your coins. Please try again.')
+  post('/api/profile/wallet', { token: profile.token, migration, credits, ...purchase }, 'Could not sync your coins. Please try again.', WalletReplySchema)
     .then((reply) => {
       if ('registered' in reply) throw new Error('Your account is not registered on this server. Please log in again.')
       return reply
     })
 
 export const syncProfileAscension = (profile: Profile, highestAscension: number) =>
-  post<{ highestAscension: number }>('/api/profile/ascension', { token: profile.token, highestAscension }, 'Could not sync your Ascension. Please try again.')
+  post('/api/profile/ascension', { token: profile.token, highestAscension }, 'Could not sync your Ascension. Please try again.', AscensionReply)
 
 /** Where the signed-in profile is stored; other modules listen for it in `storage` events. */
 export const PROFILE_KEY = 'sts-profile'
@@ -33,16 +36,7 @@ export const MAX_PASSWORD_LENGTH = 128
 /** `secured` is set once the account has a password; older profiles are asked for one on the next visit. */
 export type Profile = { username: string; token: string; secured?: true }
 
-export type ProfileStats = {
-  runs: number
-  act3Wins: number
-  act4Wins: number
-  bestFloors: number
-  bestAscensionWon: number | null
-  dailyClimbs: number
-  firstRunAt: number | null
-  heroes: { character: string; runs: number; wins: number }[]
-}
+export type ProfileStats = DecodedResponse<typeof ProfileStatsReply>
 
 /** Usernames compare like the server compares them. */
 export const normalizeUsername = (username: string): string => username.normalize('NFKC').trim().toLowerCase()
@@ -99,24 +93,19 @@ export function onProfileChange(listener: () => void) {
 }
 
 // One retry on a network failure; a 4xx answer is final and its message is shown to the player.
-async function post<T>(path: string, body: Record<string, unknown>, failure: string): Promise<T> {
+async function post<Schema extends ResponseSchema>(
+  path: string, body: Record<string, unknown>, failure: string, schema: Schema,
+): Promise<DecodedResponse<Schema>> {
   let lastError: unknown
   for (let attempt = 0; attempt < 2; attempt += 1) {
-    let status: number | undefined
     try {
-      const response = await fetch(await roomUrl(path), {
-        method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(body), signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      const reply = await requestJson(await roomUrl(path), {
+        method: 'POST', body, timeoutMs: REQUEST_TIMEOUT_MS, failure,
       })
-      status = response.status
-      const reply = await response.json().catch((error: unknown) => {
-        // Proxies can return an empty body or HTML when the account server is down.
-        if (error instanceof SyntaxError) throw new Error(failure, { cause: error })
-        throw error
-      })
-      if (!response.ok) throw new Error(reply.error ?? failure)
-      return reply as T
+      if (!reply.ok) throw new HttpResponseError(responseMessage(reply.body, failure), reply.status)
+      return decodeResponse(schema, reply.body, failure, reply.status)
     } catch (error) {
+      const status = error instanceof HttpResponseError ? error.status : undefined
       const terminal = status !== undefined && status >= 400 && status < 500
       resetRoomEndpoint()
       if (terminal) throw error
@@ -130,7 +119,7 @@ const UNREACHABLE = 'The Spire is out of reach. Please try again.'
 
 /** Creates a new account, or gives an existing name-only profile its first password. */
 async function claim(username: string, token: string, password: string): Promise<Profile> {
-  const reply = await post<{ username: string }>('/api/profile', { username, token, password }, 'Could not save your account. Please try again.')
+  const reply = await post('/api/profile', { username, token, password }, 'Could not save your account. Please try again.', ProfileClaimReply)
   const profile: Profile = { username: reply.username, token, secured: true }
   saveProfile(profile)
   return profile
@@ -152,7 +141,7 @@ export function registerProfile(username: string, password: string): Promise<Pro
 export const secureProfile = (profile: Profile, password: string) => claim(profile.username, profile.token, password)
 
 export async function logIn(username: string, password: string): Promise<Profile> {
-  const reply = await post<{ username: string; token: string; restricted?: true }>('/api/login', { username, password }, UNREACHABLE)
+  const reply = await post('/api/login', { username, password }, UNREACHABLE, LoginReply)
   setRestricted(reply.restricted === true)
   const profile: Profile = { username: reply.username, token: reply.token, secured: true }
   saveProfile(profile)
@@ -164,7 +153,7 @@ export async function checkStanding() {
   const profile = savedProfile()
   if (!profile || !ACCOUNT_SERVER) return
   try {
-    const { restricted } = await post<{ restricted: boolean }>('/api/profile/status', { token: profile.token }, UNREACHABLE)
+    const { restricted } = await post('/api/profile/status', { token: profile.token }, UNREACHABLE, StandingReply)
     // The answer is about the account asked; a different one may have signed in meanwhile.
     if (savedProfile()?.token === profile.token) setRestricted(restricted)
   } catch { /* The next visit asks again. */ }
@@ -181,4 +170,4 @@ export function logOut() {
 }
 
 export const loadProfileStats = (profile: Profile) =>
-  post<ProfileStats>('/api/profile/stats', { token: profile.token }, 'Could not open your record. Please try again.')
+  post('/api/profile/stats', { token: profile.token }, 'Could not open your record. Please try again.', ProfileStatsReply)

@@ -256,15 +256,28 @@ build outputs or erase another suite's evidence.
 These clients independently handle timeouts, JSON parsing, endpoint resets, and
 errors.
 
-- [ ] Share request mechanics and typed response decoders.
-- [ ] Preserve caller cancellation and distinguish it from timeouts.
-- [ ] Keep endpoint-reset and malformed-response handling consistent.
-- [ ] Retain domain-specific messages, outboxes, and account-change fencing.
-- [ ] Specify retry policy per operation, especially for mutations.
+- [x] Share request mechanics and typed response decoders.
+- [x] Preserve caller cancellation and distinguish it from timeouts.
+- [x] Keep endpoint-reset and malformed-response handling consistent.
+- [x] Retain domain-specific messages, outboxes, and account-change fencing.
+- [x] Specify retry policy per operation, especially for mutations.
 
 **Completion criteria:** Transport failures and invalid responses are explicit,
 while existing operation-specific retry and idempotency guarantees are preserved.
 Do not apply a blanket retry policy to every request.
+
+**Implemented:** `src/http.ts` owns one request attempt, JSON parsing, cancellation,
+deadline cleanup, and response errors. `src/protocol/responses.ts` supplies typed
+decoders used by profile, mailbox, stats, and leaderboard clients. Retry decisions
+remain in their existing domain owners; mutation transport never retries itself.
+Malformed successful responses fail explicitly, while non-JSON refusals retain
+their HTTP classification. Wallet catalogue normalization preserves valid balances
+when a newer server knows additional packs or skins.
+
+**Evidence:** HTTP contract/deadline cases and compiler checks pass, as do account,
+mailbox, stats, leaderboard, winning-deck, and wallet browser checks. Integration
+coverage also exposed and fixed mouse-opened card-collection focus restoration,
+without changing keyboard-shortcut return focus.
 
 ## Boundaries to preserve
 

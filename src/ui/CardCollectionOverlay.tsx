@@ -34,7 +34,10 @@ export function CardCollectionOverlay({
       className={triggerClassName} data-pile={dataPile}
       aria-label={`${label}, ${cards.length} card${cards.length === 1 ? '' : 's'}`}
       aria-keyshortcuts={shortcut?.toUpperCase()}
-      onClick={() => setOpen(true)}>{children}</button>}</Tooltip>
+      onClick={event => {
+        if (event.detail > 0) event.currentTarget.focus({ preventScroll: true })
+        setOpen(true)
+      }}>{children}</button>}</Tooltip>
     <CardCollectionDialog cards={cards} label={label} open={open} ordered={ordered} shortcut={shortcut}
       inspectable={inspectable}
       stanceChangedThisTurn={stanceChangedThisTurn}

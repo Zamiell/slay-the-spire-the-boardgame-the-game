@@ -173,7 +173,8 @@ try {
       await screenshot(`${label.replaceAll(' ', '-').toLowerCase()}-${screen}`)
       await back.click()
       await viewer.waitFor({ state: 'hidden' })
-      assert(await trigger.evaluate(e => e === document.activeElement))
+      assert(await trigger.evaluate(e => e === document.activeElement),
+        `${screen}/${label}: focus returned to ${await page.evaluate(() => document.activeElement?.outerHTML.slice(0, 250))}`)
     }
   }
   assert.deepEqual(errors, [])

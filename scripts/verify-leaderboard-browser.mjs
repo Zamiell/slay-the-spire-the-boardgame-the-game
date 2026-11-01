@@ -140,13 +140,13 @@ try {
   check('clicking a selected hero disables that filter', () => {
     assertEqual(toggledRows, 2)
   })
-  await page.getByLabel('Ascension').selectOption('2')
+  await page.locator('.leaderboard').getByRole('combobox', { name: 'Ascension', exact: true }).selectOption('2')
   const missingAscensionRows = await page.locator('tbody tr').count()
   check('character and ascension filters compose without stale rows', () => {
     assertEqual(missingAscensionRows, 0)
   })
   await page.getByText('No runs yet').waitFor()
-  await page.getByLabel('Ascension').selectOption('all')
+  await page.locator('.leaderboard').getByRole('combobox', { name: 'Ascension', exact: true }).selectOption('all')
 
   await page.setViewportSize({ width: 844, height: 390 })
   await page.getByRole('button', { name: 'All heroes' }).click()

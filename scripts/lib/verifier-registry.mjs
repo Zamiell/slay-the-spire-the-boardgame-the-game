@@ -364,6 +364,12 @@ export const focusedOnlyUiOwners = ownerMap([
   ['src/ui/chrome/courier.css', ['verify-courier-browser.mjs']],
   ['src/ui/PowerRow.tsx', ['verify-power-hover-browser.mjs']],
   ['src/ui/run-log.ts', ['verify-run-replay-browser.mjs', 'verify-replay-controls-browser.mjs', 'verify-live-run-browser.mjs']],
+  ...['codec', 'controls', 'history', 'player', 'recorder', 'storage'].map(name =>
+    [`src/ui/run-log/${name}.ts`, ['verify-run-log-codec.mjs', 'verify-run-replay-browser.mjs',
+      'verify-replay-controls-browser.mjs', 'verify-live-run-browser.mjs']]),
+  ...['solo-save', 'run-state-validation'].map(name =>
+    [`src/ui/${name}.ts`, ['verify-run-log-codec.mjs', 'verify-solo-resume-browser.mjs',
+      'verify-room-resume-browser.mjs', 'verify-run-replay-browser.mjs']]),
   // Nothing imports the admin CLI, so without this it would count as uncovered and select every verifier.
   ['scripts/mail-admin.mjs', ['verify-mail.mjs']],
   ...['src/ui/ReplayBar.tsx', 'src/ui/run-replay.ts', 'src/ui/styles/replay-bar.css']

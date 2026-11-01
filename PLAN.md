@@ -98,16 +98,31 @@ The run-log module combines IndexedDB storage, patch generation, state validatio
 DOM recording, replay execution, and assistant history. Solo-save validation lives
 separately inside the application shell.
 
-- [ ] Extract a pure replay codec for patches, normalization, and validation.
-- [ ] Separate persistence from DOM recording and playback.
-- [ ] Give assistant history a clear interface to recorded transitions.
-- [ ] Share structural validators and versioned migrations where appropriate.
-- [ ] Keep strict imported-replay policies distinct from tolerant legacy-save
+- [x] Extract a pure replay codec for patches, normalization, and validation.
+- [x] Separate persistence from DOM recording and playback.
+- [x] Give assistant history a clear interface to recorded transitions.
+- [x] Share structural validators and versioned migrations where appropriate.
+- [x] Keep strict imported-replay policies distinct from tolerant legacy-save
   recovery.
 
 **Completion criteria:** Existing saves and replays remain compatible; deterministic
 state reconstruction, validation limits, malformed-input handling, persistence
 ordering, and recording/restoration boundaries retain focused coverage.
+
+**Implemented:** The stable run-log facade now delegates to a pure codec, ordered
+IndexedDB storage, read-only recorded-history access, DOM controls, recorder, and
+player. Selector parsing is an explicit browser capability, not a hidden codec
+dependency. Solo-save recovery, ownership checks, checkpoint matching, and legacy
+Daily migration no longer live in App. Shared phase validation does not weaken the
+strict replay import budgets or impose them on recoverable local journals.
+Asynchronous IndexedDB open failures now refuse recording rather than falsely
+acknowledging durable storage.
+
+**Evidence:** Both compiler projects, affected light checks, pure patch properties,
+malformed/legacy import cases, replay controls, complete recorded-history access,
+solo resume, and whole-room resume pass. Browser coverage explicitly checks
+asynchronous storage refusal. Architecture checks prevent browser services from
+entering the codec and shared structural validator.
 
 ## 4. Make asset verification reproducible
 
@@ -224,8 +239,9 @@ reload restoration, hover overflow, and Chromium/WebKit target geometry and
 character sizing pass. Desktop/phone stage recording contact sheets were reviewed.
 Sizing now measures short-lived poses atomically rather than racing their removal,
 and verifies the actual supported WebM/MOV/WebP policy. Browser libraries were
-restored in an isolated container, with no host package installation. The remaining
-presentation matrix and combined final UI review are still part of the final gate.
+restored in an isolated container, with no host package installation. The complete
+skin-attack presentation matrix and start-turn restoration checks also pass.
+The combined final UI review remains part of the final gate.
 
 ## 8. Finish component-owned CSS consolidation
 

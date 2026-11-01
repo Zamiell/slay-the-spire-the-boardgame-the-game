@@ -1010,7 +1010,26 @@ try {
     } finally { await loopReplay.context.close() }
   }
 
-  console.log('✓ run replay: desktop drag and phone upload validation, Time Eater transition, live cursor, input guard, pause menu, log download')
+  const unavailableStorage = await open({ width: 1440, height: 900 })
+  try {
+    const started = await unavailableStorage.page.evaluate(async () => {
+      const { createRun } = await import('/src/game/run.ts')
+      const { startRunLog } = await import('/src/ui/run-log.ts')
+      Object.defineProperty(indexedDB, 'open', { configurable: true, value: () => {
+        const request = new EventTarget()
+        request.error = new DOMException('Recording storage denied.', 'UnknownError')
+        queueMicrotask(() => request.dispatchEvent(new Event('error')))
+        return request
+      } })
+      try {
+        return await startRunLog(createRun(1, [{ id: 'p1', name: 'Ironclad', character: 'ironclad' }]))
+      } finally { delete indexedDB.open }
+    })
+    assert.equal(started, false, 'An asynchronous IndexedDB failure must not acknowledge durable recording')
+    assert.deepEqual(unavailableStorage.errors, [])
+  } finally { await unavailableStorage.context.close() }
+
+  console.log('✓ run replay: desktop drag and phone upload validation, Time Eater transition, live cursor, input guard, pause menu, log download, storage refusal')
 } finally {
   if (desktop) await desktop.page.evaluate(() => {
     window.__REPLAY_GUARD__?.controller.abort()

@@ -116,6 +116,20 @@ const show = (file) => relative(repoRoot, file)
 
 suite('architecture')
 
+check('replay codec and recoverable-state validation remain independent of browser services', () => {
+  const pure = ['ui/run-log/codec.ts', 'ui/run-state-validation.ts'].map(file => join(srcRoot, file))
+  for (const file of pure) {
+    for (const specifier of importsOf(file)) {
+      const target = resolveLocal(file, specifier)
+      assert(target && (within(join(srcRoot, 'game'), target) || pure.includes(target)),
+        `${show(file)} depends on a browser service: ${specifier}`)
+    }
+    const source = stripComments(readFileSync(file, 'utf8'), file)
+    assert(!/\b(?:document|window|localStorage|indexedDB)\b/.test(source),
+      `${show(file)} must receive browser-specific validation as an explicit capability`)
+  }
+})
+
 check('browser automation cannot bypass the silent launcher', () => {
   const scriptsRoot = join(repoRoot, 'scripts')
   const violations = []

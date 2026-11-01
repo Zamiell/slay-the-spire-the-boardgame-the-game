@@ -92,6 +92,12 @@ export const focusedEngineOwners = ownerMap([
 ])
 
 export const focusedUiOwners = ownerMap([
+  ...['src/protocol/combat-query.ts', 'src/ui/combat-screen/online-view.ts',
+    'src/ui/combat-screen/useCombatQueries.ts'].map(file => [file, [
+    'verify-combat-view.mjs', 'verify-card-play.mjs', 'verify-card-damage-preview.mjs', 'verify-room-server.mjs',
+    'verify-combat-view-browser.mjs', 'verify-guardian-online-start-choice-browser.mjs',
+    'verify-start-turn-party-browser.mjs', 'verify-card-damage-preview-browser.mjs',
+  ]]),
   ...['src/ui/combat-screen/useCombatStage.ts', 'src/ui/combat-screen/stage-layout.ts'].map(file => [file, [
     'verify-combat-layout-reload-browser.mjs', 'verify-combat-target-geometry-browser.mjs',
     'verify-character-size-browser.mjs', 'verify-hover-overflow-browser.mjs',

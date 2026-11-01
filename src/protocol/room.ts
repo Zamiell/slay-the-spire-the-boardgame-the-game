@@ -53,6 +53,7 @@ export type VisiblePlayer = Pick<Player,
   handCount: number
   cardRewardCount: number
   rareRewardCount: number
+  transformAvailable?: boolean
 }
 
 export type VisibleCombat = {
@@ -121,6 +122,7 @@ export type VisibleCombat = {
   pendingSlayerChoices?: CombatState['pendingSlayerChoices']
   playedCardsThisTurn: PlayedCard[]
   viewerStanceChangedThisTurn?: boolean
+  viewerDiscardedThisTurn?: boolean
   presentationEvents: CombatPresentationEvent[]
   pendingSummons: {
     sourceUid: string

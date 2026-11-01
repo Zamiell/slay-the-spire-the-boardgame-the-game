@@ -1,6 +1,6 @@
 import { cardDef, faceOf } from '../game/cards.ts'
 import type { Effect, TargetScope } from '../game/cards.ts'
-import type { CombatState } from '../game/combat.ts'
+import type { CombatView } from '../game/combat.ts'
 import { dieRelicEffectsForParty } from '../game/combat/effects.ts'
 import { effectiveCombatCardDef } from '../game/combat/queries.ts'
 import { enemyLabel } from '../game/combat/board.ts'
@@ -58,7 +58,7 @@ export function effectsForDie(effects: readonly Effect[], face: DieFace): Effect
 }
 
 /** A public rules reference, not a simulated turn: no RNG, effects, or private piles are consumed. */
-export function combatDieBreakdown(state: CombatState, viewerId: string): { face: DieFace; entries: DieBreakdownEntry[] }[] {
+export function combatDieBreakdown(state: CombatView, viewerId: string): { face: DieFace; entries: DieBreakdownEntry[] }[] {
   const living = state.players.filter(player => !player.dead)
   const enemies = state.enemies.filter(enemy => !enemy.dead)
   const variableEnemies = enemies.filter(enemy =>

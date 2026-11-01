@@ -1,7 +1,8 @@
+import type { CombatView } from '../../game/combat/view.ts'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import type { CardInstance } from '../../game/types.ts'
-import type { CombatState } from '../../game/combat.ts'
+
 import { followPose } from './card-interaction.ts'
 import type { CardPose, Point } from './card-interaction.ts'
 import { cardInputActive, cardInputStage, startCardInput, transitionCardInput } from './card-input-state.ts'
@@ -34,7 +35,7 @@ type VisualSession = Session & { stage: ReturnType<typeof cardInputStage> }
 
 type Options = {
   context: string
-  combat: CombatState
+  combat: CombatView
   reducedMotion: boolean
   canUse: (card: CardInstance, source: CardSource) => boolean
   targetAt: (point: Point, pickup: CardPickup) => string | null

@@ -11,7 +11,7 @@ import { characterAttackContactMs, isHermitAttack, stagedAttackOfEvent, splitAtt
   SLIME_SPAWN_ANIMATION_MS, SLIME_SPAWN_CONTACT_MS } from './vfx.tsx'
 import { cardDef } from '../../game/cards.ts'
 import { playerVisualId } from '../../game/skins.ts'
-import type { CombatPresentationEvent, CombatState } from '../../game/combat.ts'
+import type { CombatPresentationEvent, CombatView } from '../../game/combat.ts'
 import { drawnCardUids } from '../board-signals.ts'
 import { ANIMATION_SOUND_VOLUMES, animationSfxRecipe, type AnimationSound, cardSfxRecipe, potionSfxRecipe, shivSfxRecipe } from '../combat-sfx.ts'
 import { playCombatSound, playSoundEffect } from '../sfx.ts'
@@ -26,7 +26,7 @@ const stagedSound = (element: HTMLElement | SVGElement): AnimationSound | undefi
 }
 
 /** How long a staged attack keeps hitting after its first hit; the last target falls after it. */
-const stagedAttackSpanMs = (state: CombatState, event: CombatPresentationEvent): number | undefined => {
+const stagedAttackSpanMs = (state: CombatView, event: CombatPresentationEvent): number | undefined => {
   const hits = stagedAttackOfEvent(state, event)?.hits
   return hits && hits.at(-1)!.ms - hits[0]!.ms
 }
@@ -34,7 +34,7 @@ const stagedAttackSpanMs = (state: CombatState, event: CombatPresentationEvent):
 export type TargetContactDeadline = { at: number; throughSeq: number }
 
 function slimeAnimationDelays(
-  state: CombatState,
+  state: CombatView,
   events: readonly CombatPresentationEvent[],
   queueEnd: Map<string, number>,
 ): Map<number, number> {
@@ -62,7 +62,7 @@ function slimeAnimationDelays(
 }
 
 function updateTargetContactDeadlines(
-  state: CombatState,
+  state: CombatView,
   events: readonly CombatPresentationEvent[],
   queueEnd: Map<string, number>,
   deadlines: Map<string, TargetContactDeadline>,
@@ -139,7 +139,7 @@ export function useCardHints(): boolean {
 
 /** Keeps overlapping HP-loss bursts until each impact finishes. */
 export function useStruck(
-  state: CombatState,
+  state: CombatView,
   authoritativeRestoration?: number,
   authoritativeConnected?: boolean,
   reducedEffects = false,
@@ -252,13 +252,13 @@ export function useStruck(
 }
 
 export function useCombatSoundEffects(
-  state: CombatState,
+  state: CombatView,
   viewerId: string,
   animateOpeningHand: boolean,
   authoritativeRestoration?: number,
   authoritativeConnected?: boolean,
 ) {
-  const previous = useRef<CombatState | null>(null)
+  const previous = useRef<CombatView | null>(null)
   const previousViewer = useRef(viewerId)
   const previousRestoration = useRef(authoritativeRestoration)
   const previousConnected = useRef(authoritativeConnected)
@@ -275,7 +275,7 @@ export function useCombatSoundEffects(
 
     const viewer = state.players.find((player) => player.id === viewerId)
     if (!before) {
-      if (animateOpeningHand && viewer?.hand.length) playSoundEffect('draw')
+      if (animateOpeningHand && viewer?.hand?.length) playSoundEffect('draw')
       return
     }
     if (restored || state.phase === 'won' || state.phase === 'lost') return
@@ -287,7 +287,7 @@ export function useCombatSoundEffects(
       playSoundEffect('heal')
     }
     const priorViewer = before.players.find((player) => player.id === viewerId)
-    if (!actionPresented && viewer && priorViewer && drawnCardUids(priorViewer.hand, viewer.hand).length > 0) {
+    if (!actionPresented && viewer?.hand && priorViewer?.hand && drawnCardUids(priorViewer.hand, viewer.hand).length > 0) {
       playSoundEffect('draw')
     }
     if (!actionPresented && state.players.some((player) =>
@@ -299,7 +299,7 @@ export function useCombatSoundEffects(
 
 /** Actors that crossed from alive to dead during this mounted combat. */
 export function useFalling(
-  state: CombatState,
+  state: CombatView,
   authoritativeRestoration?: number,
   authoritativeConnected?: boolean,
   reducedEffects = false,
@@ -389,7 +389,7 @@ export function useFalling(
 
 /** Only actions witnessed live animate; mounted and restored history is a baseline. */
 export function usePresentationEvents(
-  state: CombatState,
+  state: CombatView,
   authoritativeRestoration?: number,
   authoritativeConnected?: boolean,
   reducedEffects = false,
@@ -552,7 +552,7 @@ export function usePresentationEvents(
 }
 
 export function usePersonalCombatSoundEffects(
-  state: CombatState,
+  state: CombatView,
   events: readonly CombatPresentationEvent[],
   authoritativeRestoration?: number,
   authoritativeConnected?: boolean,

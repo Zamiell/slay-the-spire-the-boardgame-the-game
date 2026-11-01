@@ -16,15 +16,20 @@ import type { CardInstance, GuardianMode, OrbType } from '../../game/types.ts'
 import type { ActionOutcome } from '../../multiplayer/useRoomSession.ts'
 import type { cardMotionDestination } from '../board-signals.ts'
 import type { VfxRecipe } from '../combat-vfx.ts'
+import type { CombatView } from '../../game/combat/view.ts'
+import type { CombatQueryResult } from '../../game/combat/preview-queries.ts'
+import type { CombatQueryRequest } from '../../protocol/combat-query.ts'
 
 export type CombatScreenProps = {
-  state: CombatState
+  state: CombatView
   act: number
   /** The seat this client controls. Everyone sees the same board. */
   viewerId: string
   onChange?: (next: CombatState) => void
   /** Fulfilled void acknowledges completion; reject or return unknown for uncertain delivery. */
   onAction?: (action: Record<string, unknown>) => void | Promise<ActionOutcome | void>
+  /** Read-only room calculations are bound to the exact rendered combat version. */
+  onQuery?: (request: CombatQueryRequest, signal: AbortSignal) => Promise<CombatQueryResult>
   autoAdvance?: boolean
   selectionDialogsActive?: boolean
   courierUsedBy?: string[]

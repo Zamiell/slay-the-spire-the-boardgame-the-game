@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import type { CombatState } from '../game/combat.ts'
+import type { CombatView } from '../game/combat.ts'
 import { relicIconPath } from '../game/assets.ts'
 import { effectText } from './Card.tsx'
 import { combatDieBreakdown } from './combat-die-breakdown.ts'
@@ -8,7 +8,7 @@ import { enemyDieActionText } from './EnemyCard.tsx'
 import { Icon, dieIcon } from './Icon.tsx'
 import './styles/combat-die.css'
 
-export function CombatDie({ state, viewerId }: { state: CombatState; viewerId: string }) {
+export function CombatDie({ state, viewerId }: { state: CombatView; viewerId: string }) {
   const [open, setOpen] = useState(false)
   const dialog = useRef<HTMLDialogElement>(null)
   const trigger = useRef<HTMLButtonElement>(null)

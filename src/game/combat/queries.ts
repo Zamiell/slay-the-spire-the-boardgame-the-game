@@ -1,3 +1,4 @@
+import { combatActor, combatTurnFact, UnknownCombatInformation, type CombatActor, type CombatView } from './view.ts'
 // What the rules say before anything moves.
 //
 // What a card costs on this board, whether its printed condition holds, what
@@ -8,12 +9,12 @@
 // state, so a UI can call them to grey out a card or count a prompt without
 // risking a half-resolved play.
 import { adjacentEnemies, findPlayer, livingEnemies, playersInRowOf, resolveEnemyTargets } from './board.ts'
-import type { CardPlayWindow, CombatState, CopySource, CountablePlayer, EvokeChoice, PendingPlayerChoice, PlayContext } from './types.ts'
+import type { CardPlayWindow, CopySource, CountablePlayer, EvokeChoice, PendingPlayerChoice, PlayContext } from './types.ts'
 import { cardCost, cardDef, faceOf, isStarterStrikeOrDefend } from '../cards.ts'
 import type { Amount, CardDef, Condition, CountOf, Effect, HandEndOfTurnEffect } from '../cards.ts'
 import { actionsForEnemy, enemyAbilities, enemyDef } from '../enemies.ts'
 import { CAPS } from '../types.ts'
-import type { CardInstance, Enemy, GuardianMode, OrbType, Player } from '../types.ts'
+import type { CardInstance, Enemy, GuardianMode, OrbType } from '../types.ts'
 import { previewSlimeCommand, slimeDef } from '../downfall/slime-boss.ts'
 import type { SlimeBossEffect } from '../downfall/slime-boss.ts'
 
@@ -23,8 +24,15 @@ const GUARDIAN_ATTACK_MODE_ROW_CARDS = new Set([
   'guardian_guardian_whirl', 'guardian_giga_beam',
 ])
 
+export function stageChamberCard<P extends CombatActor>(player: P, card: CardInstance, free = false) {
+  const stagedCard = { ...card, hermitDeadOn: true, ...(free ? { freeThisTurn: true } : {}) }
+  return { card: stagedCard, player: { ...player,
+    chamber: player.chamber.filter(held => held.uid !== card.uid), hand: [...player.hand, stagedCard],
+  } }
+}
+
 /** Printed hand effects and enemy modifiers, shared by resolution and forecasting. */
-export function handEndTurnRules(state: CombatState, held: CardInstance) {
+export function handEndTurnRules(state: CombatView, held: CardInstance) {
   const definition = faceOf(cardDef(held.defId), held.upgraded)
   const fireBreathing = held.defId === 'burn'
     ? livingEnemies(state).flatMap(enemy => enemyAbilities(enemyDef(enemy.defId, enemy.ascension)))
@@ -37,7 +45,7 @@ export function handEndTurnRules(state: CombatState, held: CardInstance) {
     exhaustOnDeath: Boolean(fireBreathing) }
 }
 
-export function handEndTurnEffectApplies(effect: HandEndOfTurnEffect, player: Pick<Player, 'hand'>): boolean {
+export function handEndTurnEffectApplies(effect: HandEndOfTurnEffect, player: Pick<CombatActor, 'hand'>): boolean {
   return !('handSizeAtMost' in effect) || effect.handSizeAtMost === undefined ||
     player.hand.length <= effect.handSizeAtMost
 }
@@ -58,7 +66,7 @@ export function cardReferencesGuardianMode(def: CardDef, attachedGemId?: string)
     attachedGemId !== undefined && cardReferencesGuardianMode(cardDef(attachedGemId))
 }
 
-export function timeWarpLimit(state: CombatState): number {
+export function timeWarpLimit(state: CombatView): number {
   const eater = state.enemies.find((enemy) => !enemy.dead &&
     enemyAbilities(enemyDef(enemy.defId, enemy.ascension)).some((ability) => ability.kind === 'timeWarp'))
   const warp = eater && enemyAbilities(enemyDef(eater.defId, eater.ascension))
@@ -68,7 +76,7 @@ export function timeWarpLimit(state: CombatState): number {
     : Number.POSITIVE_INFINITY
 }
 
-export function reachedTimeWarpLimit(state: CombatState, player: Player): boolean {
+export function reachedTimeWarpLimit(state: CombatView, player: CombatActor): boolean {
   return (player.cardsPlayedThisTurn ?? 0) >= timeWarpLimit(state)
 }
 
@@ -76,13 +84,13 @@ export function reachedTimeWarpLimit(state: CombatState, player: Player): boolea
  * Slayer Pack: the card-given choices a living player still owes. A choice whose owner
  * died (Last Stand) or left the combat is declined by `defaultPendingPlayerChoice` and blocks nothing.
  */
-export function owedPlayerChoices(state: Pick<CombatState, 'pendingPlayerChoices' | 'players'>): PendingPlayerChoice[] {
+export function owedPlayerChoices(state: Pick<CombatView, 'pendingPlayerChoices' | 'players'>): PendingPlayerChoice[] {
   return (state.pendingPlayerChoices ?? []).filter((choice) =>
     state.players.some((player) => player.id === choice.playerId && !player.dead))
 }
 
 /** Mandatory Downfall choices freeze every voluntary combat action until resolved. */
-export function mandatoryChoicePending(state: CombatState | null | undefined, allowHermitChamberPlay = false): boolean {
+export function mandatoryChoicePending(state: CombatView | null | undefined, allowHermitChamberPlay = false): boolean {
   if (!state) return false
   return (state.pendingPlunderSwitches?.length ?? 0) > 0 ||
     (state.pendingDieRelicChoices?.length ?? 0) > 0 ||
@@ -98,7 +106,7 @@ export function mandatoryChoicePending(state: CombatState | null | undefined, al
 
 /** The card-play window this player is resolving now: their newest open one. */
 export function activeCardPlayWindow(
-  state: Pick<CombatState, 'pendingCardPlayWindows'>,
+  state: Pick<CombatView, 'pendingCardPlayWindows'>,
   playerId: string,
 ): CardPlayWindow | undefined {
   const windows = state.pendingCardPlayWindows ?? []
@@ -116,8 +124,8 @@ export function activeCardPlayWindow(
  * board can never supply.
  */
 export function cardPlayWindowCardPlayable(
-  state: CombatState,
-  player: Player,
+  state: CombatView,
+  player: CombatActor,
   card: CardInstance,
   cost: number,
 ): boolean {
@@ -136,17 +144,19 @@ export function cardPlayWindowCardPlayable(
  * costs 0, so Energy never decides it. Like any mandatory choice, this holds
  * the Player Turn open.
  */
-export function mandatoryCardPlayWindowOwners(state: CombatState): string[] {
+export function mandatoryCardPlayWindowOwners(state: CombatView): string[] {
   return state.players.filter((player) => {
     const live = activeCardPlayWindow(state, player.id)
-    return live !== undefined && !live.optional && !player.dead &&
-      player.hand.some((card) => live.cardUids.includes(card.uid) &&
-        cardPlayWindowCardPlayable(state, player, card, live.cost))
+    if (!live || live.optional || player.dead) return false
+    const actor = combatActor(state, player.id)
+    if (!actor) throw new UnknownCombatInformation('A card-play window requires visible cards for its owner.')
+    return actor.hand.some((card) => live.cardUids.includes(card.uid) &&
+      cardPlayWindowCardPlayable(state, actor, card, live.cost))
   }).map((player) => player.id)
 }
 
 /** A printed active Power may be used anywhere in the Player Turn, but not mid-step. */
-export function activePowerWindow(state: Pick<CombatState, 'phase' | 'startTurnProgress'>): boolean {
+export function activePowerWindow(state: Pick<CombatView, 'phase' | 'startTurnProgress'>): boolean {
   if (state.phase === 'player' || state.phase === 'discard') return true
   return state.phase === 'start' && !state.startTurnProgress?.beforeDraw &&
     !state.startTurnProgress?.rollPending && !state.startTurnProgress?.pauseAfterDraw &&
@@ -162,7 +172,7 @@ export function cardHasRetain(player: { powers?: readonly CardInstance[] }, card
 }
 
 /** Whether ordering these discarded cards changes a later top-card effect. */
-export function discardOrderNeedsChoice(player: Player, discarding: readonly CardInstance[]): boolean {
+export function discardOrderNeedsChoice(player: CombatActor, discarding: readonly CardInstance[]): boolean {
   if (discarding.length <= 1) return false
   const owned = [player.hand, player.draw, player.discard, player.exhaust, player.powers, player.chamber].flat()
   const readers = owned.map((card) => {
@@ -190,7 +200,7 @@ export function discardOrderNeedsChoice(player: Player, discarding: readonly Car
 }
 
 /** Power Beam may pull one Power from either private pile, but never its source card. */
-export function guardianPowerBeamCards(player: Player, sourceCardUid?: string): CardInstance[] {
+export function guardianPowerBeamCards(player: CombatActor, sourceCardUid?: string): CardInstance[] {
   return [...player.hand.filter((card) => card.uid !== sourceCardUid), ...player.discard]
     .filter((card) => faceOf(cardDef(card.defId), card.upgraded).type === 'power')
 }
@@ -208,7 +218,7 @@ export function guardianGemForCard(
 /** The Energy actually charged for a card on this player's current board. */
 export function playCost(
   def: CardDef,
-  player: Pick<Player, 'powers' | 'relics' | 'lostHpThisCombat' | 'freeCardsThisTurn' | 'nextCardCost' | 'enemyNextCardCost' | 'freeAttacksThisTurn' | 'freeGemCardsThisTurn' | 'freePowersThisTurn' | 'nextPowerOrSlimeDiscount' | 'spentTwoEnergyOnCardThisTurn' | 'exhaust' | 'heat' | 'chamber' | 'attacksPlayedThisTurn' | 'guardianMode'> & { hand: readonly CardInstance[] | null },
+  player: Pick<CombatActor, 'powers' | 'relics' | 'lostHpThisCombat' | 'freeCardsThisTurn' | 'nextCardCost' | 'enemyNextCardCost' | 'freeAttacksThisTurn' | 'freeGemCardsThisTurn' | 'freePowersThisTurn' | 'nextPowerOrSlimeDiscount' | 'spentTwoEnergyOnCardThisTurn' | 'exhaust' | 'heat' | 'chamber' | 'attacksPlayedThisTurn' | 'guardianMode'> & { hand: readonly CardInstance[] },
   card?: Pick<CardInstance, 'freeThisTurn' | 'costReductionThisTurn' | 'stasisRetained' | 'hermitDeadOn' | 'playWindowCost'>,
 ): number | 'X' {
   // Slayer Pack: An open card-play window charges exactly its own cost.
@@ -225,9 +235,9 @@ export function playCost(
   const cost = player.nextCardCost ?? cardCost(def, player.powers, player.lostHpThisCombat)
   if (cost === 'X') return cost
   const retainDiscount = def.retainCostReduction
-    ? (player.hand ?? []).filter((held) => cardHasRetain(player, held)).length : 0
+    ? player.hand.filter((held) => cardHasRetain(player, held)).length : 0
   const tackleDiscount = def.tackleCostReduction
-    ? Math.max(0, (player.hand ?? []).filter((held) => cardDef(held.defId).name.includes('Tackle')).length - 1) : 0
+    ? Math.max(0, player.hand.filter((held) => cardDef(held.defId).name.includes('Tackle')).length - 1) : 0
   const nextDiscount = def.type === 'power' || def.type === 'slime' ? player.nextPowerOrSlimeDiscount : undefined
   if (nextDiscount === 'free') return 0
   if (def.hermit?.costZeroWhenDeadOn && card?.hermitDeadOn) return 0
@@ -236,17 +246,17 @@ export function playCost(
       faceOf(cardDef(held.defId), held.upgraded), player.guardianMode,
     ).type === 'attack').length
     : def.hermit?.costReductionBy === 'starterCards'
-      ? [...(player.hand ?? []), ...player.chamber].filter((held) => ['Strike', 'Defend'].includes(cardDef(held.defId).name) && cardDef(held.defId).rarity === 'starter').length
+      ? [...player.hand, ...player.chamber].filter((held) => ['Strike', 'Defend'].includes(cardDef(held.defId).name) && cardDef(held.defId).rarity === 'starter').length
       : def.hermit?.costReductionBy === 'attacksPlayed' ? player.attacksPlayedThisTurn
         : def.hermit?.costReductionBy === 'curses'
-          ? [...(player.hand ?? []), ...player.chamber].filter((held) => faceOf(cardDef(held.defId), held.upgraded).type === 'curse').length : 0
+          ? [...player.hand, ...player.chamber].filter((held) => faceOf(cardDef(held.defId), held.upgraded).type === 'curse').length : 0
   if (def.id === 'hermit_strike' && player.powers.some((power) => power.defId === 'hermit_maintenance')) return 0
   return Math.max(0, cost - (card?.costReductionThisTurn ?? 0) - retainDiscount - tackleDiscount - hermitDiscount - (nextDiscount ?? 0) -
     (def.exhaustCostReduction ?? 0) * (player.exhaust?.length ?? 0) - (def.heatCostReduction ?? 0) * (player.heat ?? 0))
 }
 
 /** The largest legal X on this board, including card-specific physical limits. */
-export function maximumXEnergy(def: CardDef, actor: Player): number {
+export function maximumXEnergy(def: CardDef, actor: CombatActor): number {
   if (def.id !== 'slime_boss_divide_conquer') return actor.energy
   const command = def.effects.find((effect) =>
     (effect as unknown as SlimeBossEffect).kind === 'commandSlime') as unknown as
@@ -260,8 +270,8 @@ export function maximumXEnergy(def: CardDef, actor: Player): number {
 /** Whether this card can resolve its selected-Slime clauses for this Slime. */
 export function slimeChoiceIsAvailable(
   def: CardDef,
-  state: CombatState,
-  actor: Player,
+  state: CombatView,
+  actor: CombatActor,
   slimeUid: string,
   energySpent = 0,
 ): boolean {
@@ -395,8 +405,8 @@ export function overflowShivCount(state: { players: readonly { shivs: number }[]
  */
 function holds(
   condition: Condition,
-  state: CombatState,
-  actor: Player,
+  state: CombatView,
+  actor: CombatActor,
   /** The enemy this clause is landing on, for conditions that read the target. */
   target?: Enemy,
 ): boolean {
@@ -429,9 +439,9 @@ function holds(
     case 'notInStance':
       return actor.stance !== condition.stance
     case 'discardedThisTurn':
-      return state.discardedThisTurn.includes(actor.id)
+      return combatTurnFact(state, actor.id, 'discardedThisTurn')
     case 'stanceChangedThisTurn':
-      return state.stanceChangedThisTurn.includes(actor.id)
+      return combatTurnFact(state, actor.id, 'stanceChangedThisTurn')
     case 'targetFullHp':
       return target?.hp === target?.maxHp
     case 'firstTurnOfCombat':
@@ -502,8 +512,8 @@ function holds(
 
 export function conditionIsActive(
   condition: Condition,
-  state: CombatState,
-  actor: Player,
+  state: CombatView,
+  actor: CombatActor,
   context?: Pick<PlayContext, 'drewSkill' | 'sourceRetainedLastTurn' | 'enemyUid'>,
   target?: Enemy,
 ): boolean {
@@ -528,7 +538,7 @@ export function persistentEffectOf<K extends Effect['kind']>(
 }
 
 /** Slayer Pack: Whether an active Power's printed precondition (Infernal Blade) allows using it now. */
-export function powerActivationAllowed(def: CardDef, state: CombatState, actor: Player): boolean {
+export function powerActivationAllowed(def: CardDef, state: CombatView, actor: CombatActor): boolean {
   return !def.activationCondition || holds(def.activationCondition, state, actor)
 }
 
@@ -539,9 +549,9 @@ export function powerActivationAllowed(def: CardDef, state: CombatState, actor: 
  * reach every row; Last Stand redirects an empty row). Flame Barrier and Caltrops.
  */
 export function attackIconsAgainst(
-  state: CombatState,
+  state: CombatView,
   enemy: Enemy,
-  player: Pick<Player, 'id' | 'facingEnemyUid'>,
+  player: Pick<CombatActor, 'id' | 'facingEnemyUid'>,
 ): number {
   const targetsRow = playersInRowOf(state, enemy).some((candidate) => candidate.id === player.id)
   return actionsForEnemy(enemy, state.die).reduce((total, action) => {
@@ -558,7 +568,7 @@ export function attackIconsAgainst(
  * another Metamorphosis) costs what it was played for (author FAQ).
  */
 export function metamorphosisCost(
-  player: Pick<Player, 'powers'>,
+  player: Pick<CombatActor, 'powers'>,
   powerUid: string | undefined,
   upgraded: boolean,
 ): number | undefined {
@@ -594,8 +604,8 @@ export function metamorphosisPlayEffects(copied: CardDef): Effect[] {
 /** Whether a conditional printed clause applies to the current board. */
 export function effectIsActive(
   effect: Effect,
-  state: CombatState,
-  actor: Player,
+  state: CombatView,
+  actor: CombatActor,
   context?: Pick<PlayContext, 'drewSkill' | 'sourceRetainedLastTurn' | 'enemyUid'>,
 ): boolean {
   return !effect.when || conditionIsActive(effect.when, state, actor, context)
@@ -604,8 +614,8 @@ export function effectIsActive(
 /** Whether the card's printed play restriction currently allows it. */
 export function cardPlayConditionMet(
   def: CardDef,
-  state: CombatState,
-  actor: Player,
+  state: CombatView,
+  actor: CombatActor,
   drawCount = actor.draw.length,
   sourceInHand = true,
 ): boolean {
@@ -624,8 +634,8 @@ export function cardPlayConditionMet(
 /** Whether a card can resolve at all before Energy and player choices are considered. */
 export function cardIsPlayable(
   def: CardDef,
-  state: CombatState,
-  actor: Player,
+  state: CombatView,
+  actor: CombatActor,
   drawCount = actor.draw.length,
   sourceInHand = true,
 ): boolean {
@@ -634,7 +644,11 @@ export function cardIsPlayable(
 }
 
 /** What a card counts off the board. */
-function countOf(count: CountOf, actor: CountablePlayer, state?: CombatState, energySpent = 0, sourceCardUid?: string): number {
+function countOf(count: CountOf, actor: CountablePlayer, state?: CombatView, energySpent = 0, sourceCardUid?: string): number {
+  const known = (cards: readonly CardInstance[] | null) => {
+    if (cards === null) throw new UnknownCombatInformation('This card count depends on a hidden pile.')
+    return cards
+  }
   const typeOf = (card: CardInstance) => effectiveCombatCardDef(
     faceOf(cardDef(card.defId), card.upgraded), actor.guardianMode,
   ).type
@@ -654,9 +668,9 @@ function countOf(count: CountOf, actor: CountablePlayer, state?: CombatState, en
     case 'miracles':
       return actor.miracles
     case 'cardsInHand':
-      return actor.hand?.length ?? 0
+      return known(actor.hand).length
     case 'retainCardsInHand':
-      return actor.hand?.filter((held) => cardHasRetain(actor, held)).length ?? 0
+      return known(actor.hand).filter((held) => cardHasRetain(actor, held)).length
     case 'cardsInExhaust':
       return actor.exhaust.length
     case 'attacksInExhaust':
@@ -666,13 +680,13 @@ function countOf(count: CountOf, actor: CountablePlayer, state?: CombatState, en
     case 'energySpent':
       return energySpent
     case 'strikesInHand':
-      return actor.hand?.filter((card) => cardDef(card.defId).name.includes('Strike')).length ?? 0
+      return known(actor.hand).filter((card) => cardDef(card.defId).name.includes('Strike')).length
     case 'skillsInHand':
-      return actor.hand?.filter((card) => typeOf(card) === 'skill').length ?? 0
+      return known(actor.hand).filter((card) => typeOf(card) === 'skill').length
     case 'attacksInHand':
-      return actor.hand?.filter((card) => typeOf(card) === 'attack').length ?? 0
+      return known(actor.hand).filter((card) => typeOf(card) === 'attack').length
     case 'otherAttacksInHand':
-      return actor.hand?.filter((card) => card.uid !== sourceCardUid && typeOf(card) === 'attack').length ?? 0
+      return known(actor.hand).filter((card) => card.uid !== sourceCardUid && typeOf(card) === 'attack').length
     case 'attacksPlayedThisTurn':
       return actor.attacksPlayedThisTurn ?? 0
     case 'attackingEnemies':
@@ -694,17 +708,17 @@ function countOf(count: CountOf, actor: CountablePlayer, state?: CombatState, en
     case 'clawCubesGainedThisCombat':
       return actor.clawCubesGainedThisCombat ?? 0
     case 'attacksInChamber':
-      return actor.chamber.filter((card) => typeOf(card) === 'attack').length
+      return known(actor.chamber).filter((card) => typeOf(card) === 'attack').length
     case 'cursesInHandAndChamber':
-      return [...(actor.hand ?? []), ...actor.chamber].filter((card) => faceOf(cardDef(card.defId), card.upgraded).type === 'curse').length
+      return [...known(actor.hand), ...known(actor.chamber)].filter((card) => faceOf(cardDef(card.defId), card.upgraded).type === 'curse').length
     case 'starterCardsInHandAndChamber':
-      return [...(actor.hand ?? []), ...actor.chamber].filter((card) => ['Strike', 'Defend'].includes(cardDef(card.defId).name) && cardDef(card.defId).rarity === 'starter').length
+      return [...known(actor.hand), ...known(actor.chamber)].filter((card) => ['Strike', 'Defend'].includes(cardDef(card.defId).name) && cardDef(card.defId).rarity === 'starter').length
     case 'otherCardsInHand':
-      return Math.max(0, (actor.hand?.length ?? 0) - 1)
+      return Math.max(0, known(actor.hand).length - 1)
     case 'currentHp':
       return actor.hp
     case 'upgradedCardsInHand':
-      return actor.hand?.filter((card) => card.uid !== sourceCardUid && card.upgraded).length ?? 0
+      return known(actor.hand).filter((card) => card.uid !== sourceCardUid && card.upgraded).length
     case 'ownWeakAndVulnerable':
       return actor.weak + actor.vulnerable
   }
@@ -713,8 +727,8 @@ function countOf(count: CountOf, actor: CountablePlayer, state?: CombatState, en
 /** The number a clause actually uses, once the board has been read. */
 export function amountOf(
   amount: Amount,
-  state: CombatState,
-  actor: Player,
+  state: CombatView,
+  actor: CombatActor,
   target?: Enemy,
   context?: PlayContext,
 ): number {
@@ -732,7 +746,7 @@ export function amountOf(
   return total
 }
 
-function latestAllyAttack(state: CombatState, playerId: string) {
+function latestAllyAttack(state: CombatView, playerId: string) {
   return [...(state.playedCardsThisTurn ?? [])].reverse().find((played) =>
     played.playerId !== playerId && !played.copied &&
     (played.type ?? effectiveCombatCardDef(
@@ -742,8 +756,8 @@ function latestAllyAttack(state: CombatState, playerId: string) {
 }
 
 export function latestPlayableAllyAttack(
-  state: CombatState,
-  actor: Player,
+  state: CombatView,
+  actor: CombatActor,
   sourceCardUid?: string,
   drawCount = actor.draw.length,
 ) {
@@ -760,7 +774,7 @@ export function latestPlayableAllyAttack(
     : undefined
 }
 
-export function omniscienceEligibleCards(state: CombatState, actor: Player): CardInstance[] {
+export function omniscienceEligibleCards(state: CombatView, actor: CombatActor): CardInstance[] {
   return actor.draw.filter((card) => {
     const def = effectiveCombatCardDef(faceOf(cardDef(card.defId), card.upgraded), actor.guardianMode)
     return (def.type === 'attack' || def.type === 'skill') &&
@@ -768,7 +782,7 @@ export function omniscienceEligibleCards(state: CombatState, actor: Player): Car
   })
 }
 
-export function copySourcesFor(def: CardDef, actor: Player): CopySource[] {
+export function copySourcesFor(def: CardDef, actor: CombatActor): CopySource[] {
   return def.id === 'burst' ? []
     : (def.type === 'attack' || def.type === 'skill') && (actor.doubledCardsThisTurn ?? 0) > 0
       ? ['Echo Form']
@@ -782,7 +796,7 @@ export function copySourcesFor(def: CardDef, actor: Player): CopySource[] {
 }
 
 /** Whether playing this card reveals hidden cards before asking for a choice. */
-export function cardNeedsChoicePreview(def: CardDef, state?: CombatState, actor?: Player): boolean {
+export function cardNeedsChoicePreview(def: CardDef, state?: CombatView, actor?: CombatActor): boolean {
   if (def.type === 'power' && def.resolvesOnPlay !== true) return false
   let drew = false
   for (const effect of def.effects) {
@@ -826,6 +840,16 @@ export function reachesEnemy(
   actor: CountablePlayer | undefined,
   energySpent?: number,
 ): boolean {
+  try {
+    return knownEffectReachesEnemy(effect, actor, energySpent)
+  } catch (error) {
+    // Unknown counts cannot prove that a printed hit has no possible target.
+    if (error instanceof UnknownCombatInformation) return true
+    throw error
+  }
+}
+
+function knownEffectReachesEnemy(effect: Effect, actor: CountablePlayer | undefined, energySpent?: number): boolean {
   // A branch holds hits on either side; a hit inside one still needs its target.
   if (effect.kind === 'branch') return [...effect.effects, ...effect.otherwise].some((nested) => reachesEnemy(nested, actor, energySpent))
   if (!ENEMY_EFFECTS.includes(effect.kind)) return false
@@ -862,8 +886,8 @@ export function reachesEnemy(
 /** Ordered labels for independently targeted Commands produced by the selected Slimes. */
 export function slimeCommandEnemyChoiceLabels(
   def: CardDef,
-  state: CombatState,
-  actor: Player,
+  state: CombatView,
+  actor: CombatActor,
   slimeUids: readonly string[],
   energySpent = 0,
   energyCharged = energySpent,
@@ -884,7 +908,7 @@ export function slimeCommandEnemyChoiceLabels(
   })
   const used = new Map(slimes.map((slime) => [slime.card.uid, slime.commandsThisTurn]))
   const deferred: string[] = []
-  const command = (slime: Player['slimes'][number], times = 1) => {
+  const command = (slime: CombatActor['slimes'][number], times = 1) => {
     const slimeCard = slimeDef(slime)
     const available = slimeCard.slimeCommandLimit === undefined
       ? times : Math.max(0, Math.min(times, slimeCard.slimeCommandLimit - (used.get(slime.card.uid) ?? 0)))
@@ -971,8 +995,8 @@ export function slimeCommandEnemyChoiceLabels(
 /** Number of independently targeted enemy Commands produced by the selected Slimes. */
 export function slimeCommandEnemyChoiceCount(
   def: CardDef,
-  state: CombatState,
-  actor: Player,
+  state: CombatView,
+  actor: CombatActor,
   slimeUids: readonly string[],
   energySpent = 0,
   energyCharged = energySpent,
@@ -1028,7 +1052,8 @@ export function cardNeedsEnemy(
   }
   const sourceIsDeadOn = sourceDeadOn || sourceCardUid !== undefined && (
     actor?.hand?.some((card) => card.uid === sourceCardUid && card.hermitDeadOn === true) === true ||
-    actor?.chamber.some((card) => card.uid === sourceCardUid && cardDef(card.defId).hermit?.deadOn === true) === true
+    actor?.chamber?.some((card) => card.uid === sourceCardUid && cardDef(card.defId).hermit?.deadOn === true) === true ||
+    actor?.chamber === null && def.hermit?.deadOn === true
   )
   const targetsEnemy = (effect: Effect) =>
     (includeEvokes || (effect.kind !== 'evoke' && effect.kind !== 'recurseOrb' && effect.kind !== 'fission' &&
@@ -1040,7 +1065,7 @@ export function cardNeedsEnemy(
 }
 
 /** Soulburn a `useAllSoulburn` effect would spend, before any board choice is made. */
-export function soulburnChoiceCount(effects: readonly Effect[], state: CombatState, actor: Player): number {
+export function soulburnChoiceCount(effects: readonly Effect[], state: CombatView, actor: CombatActor): number {
   const spendIndex = effects.findIndex((effect) => effect.kind === 'useAllSoulburn')
   if (spendIndex < 0) return 0
   const gained = effects.slice(0, spendIndex).reduce((sum, effect) =>
@@ -1068,7 +1093,7 @@ const HERMIT_TARGETED_CURSES = new Set(['hermit_grudge', 'hermit_malice', 'hermi
  * `sourceCardUid` excludes the card currently resolving from a hand-sourced
  * load's own zone: by the time it actually loads, it has already left hand.
  */
-function loadNeedsEnemy(effects: readonly Effect[], actor: Player, sourceCardUid?: string): boolean {
+function loadNeedsEnemy(effects: readonly Effect[], actor: CombatActor, sourceCardUid?: string): boolean {
   return effects.some((effect) => {
     if (effect.kind !== 'load' || effect.upTo) return false
     const zone = (effect.source === 'discard' ? actor.discard : actor.hand)
@@ -1083,8 +1108,8 @@ function loadNeedsEnemy(effects: readonly Effect[], actor: Player, sourceCardUid
 function forcedSlimeChoicesExist(
   def: CardDef,
   effects: readonly Effect[],
-  state: CombatState,
-  actor: Player,
+  state: CombatView,
+  actor: CombatActor,
   requireAvailableSlimes: boolean,
 ): boolean {
   const active = { ...def, modes: undefined, effects: [...effects] }
@@ -1153,8 +1178,8 @@ function forcedSlimeChoicesExist(
  */
 export function cardCanBeForced(
   def: CardDef,
-  state: CombatState,
-  actor: Player,
+  state: CombatView,
+  actor: CombatActor,
   attachedGemId?: string,
   sourceCardUid?: string,
   requireAvailableSlimes = true,
@@ -1187,8 +1212,8 @@ export function cardCanBeForced(
 export function cardEnemyChoiceCount(
   def: CardDef,
   mode?: number,
-  state?: CombatState,
-  actor?: Player,
+  state?: CombatView,
+  actor?: CombatActor,
 ): number {
   const effects = def.modes ? def.modes[mode ?? -1]?.effects ?? [] : def.effects
   return effects.reduce((sum, effect) => sum + (
@@ -1207,7 +1232,7 @@ export function cardPlayerChoiceCount(def: CardDef, mode?: number): number {
 
 export function guardianCardNeedsAlly(
   def: CardDef,
-  actor: Pick<Player, 'guardianMode'>,
+  actor: Pick<CombatActor, 'guardianMode'>,
   attachedGemId?: string,
 ): boolean {
   if (def.id === 'guardian_prismatic_barrier') return true
@@ -1223,8 +1248,8 @@ export function guardianCardNeedsAlly(
 
 export function cardModeIsAvailable(
   def: CardDef,
-  state: CombatState,
-  player: Player,
+  state: CombatView,
+  player: CombatActor,
   mode: number,
   drawCount = player.draw.length,
   sourceCardUid?: string,
@@ -1238,7 +1263,7 @@ export function cardModeIsAvailable(
 /** Mandatory targets for a card that spends every Shiv the actor currently holds. */
 export function cardShivChoiceCount(
   def: CardDef,
-  actor: Pick<Player, 'shivs'>,
+  actor: Pick<CombatActor, 'shivs'>,
   mode?: number,
 ): number {
   const effects = def.modes ? def.modes[mode ?? -1]?.effects ?? [] : def.effects
@@ -1247,7 +1272,7 @@ export function cardShivChoiceCount(
 
 export function effectEvokePlan(
   effects: readonly Effect[],
-  actor: Pick<Player, 'orbs'> & CountablePlayer,
+  actor: Pick<CombatActor, 'orbs'> & CountablePlayer,
   slots: readonly number[],
   die: number,
   energySpent = 0,
@@ -1324,7 +1349,7 @@ export function effectEvokePlan(
 
 export function evokePlan(
   def: CardDef,
-  actor: Pick<Player, 'orbs'> & CountablePlayer,
+  actor: Pick<CombatActor, 'orbs'> & CountablePlayer,
   slots: readonly number[],
   die: number,
   mode?: number,
@@ -1339,7 +1364,7 @@ export function evokePlan(
 /** The next Orb choice a staged card needs, after its earlier choices. */
 export function nextEvokeChoice(
   def: CardDef,
-  actor: Pick<Player, 'orbs'> & CountablePlayer,
+  actor: Pick<CombatActor, 'orbs'> & CountablePlayer,
   slots: readonly number[],
   die: number,
   mode?: number,
@@ -1351,7 +1376,7 @@ export function nextEvokeChoice(
 /** Orb types already chosen by a staged play, including slots filled earlier in that same card. */
 export function chosenEvokeOrbs(
   def: CardDef,
-  actor: Pick<Player, 'orbs'> & CountablePlayer,
+  actor: Pick<CombatActor, 'orbs'> & CountablePlayer,
   slots: readonly number[],
   die: number,
   mode?: number,
@@ -1362,7 +1387,7 @@ export function chosenEvokeOrbs(
 
 function cardRequiresChosenEnemy(
   def: CardDef,
-  actor: Player,
+  actor: CombatActor,
   includeEvokes = true,
   energySpent?: number,
   mode?: number,
@@ -1377,10 +1402,10 @@ function cardRequiresChosenEnemy(
 }
 
 export function needsChosenEnemy(
-  state: CombatState,
+  state: CombatView,
   def: CardDef,
   chosenUid: string | null,
-  actor: Player,
+  actor: CombatActor,
   includeEvokes = true,
   energySpent?: number,
   mode?: number,
@@ -1395,7 +1420,7 @@ export function needsChosenEnemy(
 }
 
 export function hasInvalidChosenPlayer(
-  state: CombatState,
+  state: CombatView,
   def: CardDef,
   chosenId: unknown,
 ): boolean {
@@ -1409,10 +1434,10 @@ export function hasInvalidChosenPlayer(
 }
 
 export function hasInvalidRowSwitch(
-  state: CombatState,
+  state: CombatView,
   effects: readonly Effect[],
   chosenId: unknown,
-  actor: Player,
+  actor: CombatActor,
 ): boolean {
   if (!effects.some((effect) => effect.kind === 'switchRows') || chosenId === null || chosenId === undefined) {
     return false
@@ -1427,7 +1452,7 @@ export function hasInvalidRowSwitch(
  * printed number is replaced before every other cost rule applies, so a
  * discount still reduces the Boss price.
  */
-export function cardDefForTarget(def: CardDef, state: CombatState, enemyUid: string | null | undefined): CardDef {
+export function cardDefForTarget(def: CardDef, state: CombatView, enemyUid: string | null | undefined): CardDef {
   if (def.bossTargetCost === undefined) return def
   const target = livingEnemies(state).find((enemy) => enemy.uid === enemyUid)
   return target?.isBoss ? { ...def, cost: def.bossTargetCost } : def
@@ -1436,7 +1461,7 @@ export function cardDefForTarget(def: CardDef, state: CombatState, enemyUid: str
 /** How many adjacent enemies the player must pick for Bowling Bash; 0 when all of them take the damage. */
 export function adjacentDamageChoiceCount(
   effects: readonly Effect[],
-  state: CombatState,
+  state: CombatView,
   enemyUid: string | null | undefined,
 ): number {
   const effect = effects.find((candidate) => candidate.kind === 'damageAdjacent')
@@ -1451,7 +1476,7 @@ export function adjacentDamageChoiceCount(
  */
 export function adjacentDamageChoicesAreValid(
   effects: readonly Effect[],
-  state: CombatState,
+  state: CombatView,
   context: Pick<PlayContext, 'enemyUid' | 'enemyUids'>,
 ): boolean {
   const effect = effects.find((candidate) => candidate.kind === 'damageAdjacent')

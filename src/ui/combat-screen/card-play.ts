@@ -1,6 +1,7 @@
+import type { CombatActor, CombatView } from '../../game/combat/view.ts'
 import type { CardDef } from '../../game/cards.ts'
 import { cardDef, faceOf } from '../../game/cards.ts'
-import type { CombatState } from '../../game/combat.ts'
+
 import {
   cardNeedsChoicePreview, cardNeedsEnemy, cardShivChoiceCount, chosenEvokeOrbs,
   effectiveCombatCardDef, evokeTargetProgress, livingEnemies, nextEvokeChoice,
@@ -9,24 +10,18 @@ import {
   previewCardShivTargets, previewHermitChamberCardChoice,
   slimeChoiceIsAvailable,
 } from '../../game/combat.ts'
-import type { CardInstance, Enemy, Player } from '../../game/types.ts'
+import type { CardInstance, Enemy } from '../../game/types.ts'
 import type { CardInteractionMode } from './card-interaction.ts'
 import { cardShivsOnPlay, pendingFor } from './card-play-requirements.ts'
 import type { CombatScreenProps, Pending } from './types.ts'
+import { combatActor, localCombat } from '../../game/combat/view.ts'
+import type { CombatState } from '../../game/combat.ts'
+import type { CombatTargetProgress } from '../../game/combat/preview-queries.ts'
 
-export function stageHermitChamberViewer(player: Player, card: CardInstance, free = false) {
-  const stagedCard = { ...card, hermitDeadOn: true, ...(free ? { freeThisTurn: true } : {}) }
-  return {
-    card: stagedCard,
-    player: {
-      ...player,
-      chamber: player.chamber.filter((held) => held.uid !== card.uid),
-      hand: [...player.hand, stagedCard],
-    },
-  }
-}
+import { stageChamberCard as stageHermitChamberViewer } from '../../game/combat/queries.ts'
+export { stageHermitChamberViewer }
 
-function chargedCardEnergy(def: CardDef, player: Player, card: CardInstance): number | undefined {
+function chargedCardEnergy(def: CardDef, player: CombatActor, card: CardInstance): number | undefined {
   const cost = playCost(def, player, card)
   return typeof cost === 'number' ? cost : undefined
 }
@@ -34,7 +29,7 @@ export type CardPlayResult = 'submitted' | 'choosing' | 'cancelled'
 export type CardSource = 'hand' | 'chamber'
 export type CardPickup = { mode: CardInteractionMode; source: CardSource; hitsRow: boolean; displayedCard: CardInstance; cost: number | 'X' }
 
-export function singleRequiredHandCard(pending: Pending | null, viewer: Player | undefined): CardInstance | undefined {
+export function singleRequiredHandCard(pending: Pending | null, viewer: CombatActor | undefined): CardInstance | undefined {
   const choice = pending?.choice
   if (!pending || !viewer || !choice ||
     (choice.kind !== 'discard' && choice.kind !== 'exhaust' && choice.kind !== 'exhaustAny')) return undefined
@@ -44,7 +39,7 @@ export function singleRequiredHandCard(pending: Pending | null, viewer: Player |
   return cards.length === 1 ? cards[0] : undefined
 }
 
-export function automaticEnemyOption(state: CombatState, options: readonly { uid: string }[]): string | undefined {
+export function automaticEnemyOption(state: CombatView, options: readonly { uid: string }[]): string | undefined {
   if (options.length === 1) return options[0]!.uid
   const enemies = livingEnemies(state)
   const only = enemies.length === 1 ? enemies[0] : undefined
@@ -52,7 +47,7 @@ export function automaticEnemyOption(state: CombatState, options: readonly { uid
     : undefined
 }
 
-export function describeCardPickup(state: CombatState, viewer: Player, card: CardInstance, source: CardSource): CardPickup {
+export function describeCardPickup(state: CombatView, viewer: CombatActor, card: CardInstance, source: CardSource): CardPickup {
   const required = state.pendingHermitChamberPlays?.[0]
   const staged = source === 'chamber' ? stageHermitChamberViewer(viewer, card,
     required?.playerId === viewer.id && required.cardUids[0] === card.uid && required.free) : { card, player: viewer }
@@ -67,15 +62,20 @@ export function describeCardPickup(state: CombatState, viewer: Player, card: Car
   }
 }
 
+type TargetQuery = (kind: 'evoke' | 'shivs', next: Pending) =>
+  CombatTargetProgress | null | Promise<CombatTargetProgress | null>
+
 type Options = {
-  state: CombatState
-  viewer: Player
+  viewer: CombatActor
   pending: Pending | null
   miracleOnCard: boolean
   blocked: boolean
   survivorDiscard: boolean
-  stateRef: { current: CombatState }
+  stateRef: { current: CombatView }
   cardActionPending: { current: boolean }
+  targetQueryPending?: { current: object | null }
+  setQueryBusy?: (busy: boolean) => void
+  onQueryError?: (error: unknown) => void
   onAction: CombatScreenProps['onAction']
   setUsingCard: (using: boolean) => void
   setPending: (pending: Pending | null) => void
@@ -87,7 +87,7 @@ type Options = {
   slayerTargetAffordable: (next: Pending, enemy: Enemy | undefined) => boolean
   cardContext: (next: Pending) => Parameters<typeof previewCardShivTargets>[3]
   commit: (next: Pending) => void
-}
+} & ({ state: CombatState; queryTargets?: TargetQuery } | { state: CombatView; queryTargets: TargetQuery })
 
 /** Coordinates confirmed plays and choices; pickup never enters this flow. */
 export function createCardPlayCoordinator(options: Options) {
@@ -96,8 +96,16 @@ export function createCardPlayCoordinator(options: Options) {
     withAdjacentChoices, downfallChoicesReady, slimeEnemyChoicesRequired, hermitEnemyChoicesRequired,
     slayerTargetAffordable, cardContext, commit } = options
   const viewerId = viewer.id
+  const targetQueryPending = options.targetQueryPending ?? { current: null }
+  const queryTargets: TargetQuery = options.queryTargets ?? ((kind, next) => {
+    if (kind === 'shivs') return previewCardShivTargets(localCombat(state), viewerId, next.card.uid, cardContext(next),
+      next.chamberPlay ? 'chamber' : next.cardInHand ? 'hand' : 'copy')
+    return evokeTargetProgress(faceOf(cardDef(next.card.defId), next.card.upgraded),
+      localCombat(state), viewer, next.evokeSlots, next.evokeEnemyUids, next.mode ?? undefined, next.effectEnergy ?? 0)
+  })
 
   function cancel(): CardPlayResult {
+    if (targetQueryPending.current) return 'choosing'
     const forced = state.startTurnProgress?.forcedCard
     if (pending && forced?.playerId === viewerId && forced.cardUid === pending.card.uid) return 'choosing'
     if (pending?.choiceCards && pending.choice?.kind !== 'recover' && pending.choice?.kind !== 'recoverExhaust') return 'choosing'
@@ -147,7 +155,42 @@ export function createCardPlayCoordinator(options: Options) {
     }
   }
 
+  // Local choices stay synchronous; only a room-owned calculation suspends this plan.
   function stageOrCommit(next: Pending): CardPlayResult {
+    if (targetQueryPending.current) return 'choosing'
+    const plan = stagePlan(next)
+    let request: object | null = null
+    const release = () => {
+      if (!request || targetQueryPending.current !== request) return
+      targetQueryPending.current = null
+      options.setQueryBusy?.(false)
+    }
+    type Step = CombatTargetProgress | null
+    const advance = (value: Step = null): CardPlayResult | Promise<CardPlayResult> => {
+      for (;;) {
+        const step = plan.next(value)
+        if (step.done) { release(); return step.value }
+        if (step.value instanceof Promise) return step.value.then(result => {
+          if (stateRef.current !== state) return 'cancelled'
+          return advance(result)
+        })
+        value = step.value
+      }
+    }
+    const result = advance()
+    if (!(result instanceof Promise)) return result
+    request = {}
+    targetQueryPending.current = request
+    setPending(next)
+    options.setQueryBusy?.(true)
+    void result.catch((error: unknown) => {
+      if (options.onQueryError) options.onQueryError(error)
+      else if (!(error instanceof DOMException && error.name === 'AbortError')) console.error('Could not calculate card targets.', error)
+    }).finally(release)
+    return 'choosing'
+  }
+
+  function* stagePlan(next: Pending): Generator<ReturnType<TargetQuery>, CardPlayResult, CombatTargetProgress | null> {
     next = withAdjacentChoices(next)
     const onlyHandCard = singleRequiredHandCard(next, viewer)
     if (onlyHandCard) next = { ...next, picked: [onlyHandCard.uid], choiceConfirmed: true }
@@ -198,20 +241,16 @@ export function createCardPlayCoordinator(options: Options) {
       next = withEvokeSlot(next, evokeChoice.options[0]!.slot)
       evokeChoice = nextEvokeChoice(def, viewer!, next.evokeSlots, state.die, next.mode ?? undefined, next.effectEnergy ?? 0)
     }
-    let evokeProgress = evokeTargetProgress(
-      def, state, viewer!, next.evokeSlots, next.evokeEnemyUids,
-      next.mode ?? undefined, next.effectEnergy ?? 0,
-    )
-    while (!evokeProgress.complete && next.evokeEnemyUids[evokeProgress.index] === undefined) {
+    let evokeProgress = yield queryTargets('evoke', next)
+    while (evokeProgress && !evokeProgress.complete && next.evokeEnemyUids[evokeProgress.index] === undefined) {
       const target = automaticEnemyOption(state, evokeProgress.options)
       if (!target) break
       const targets = [...next.evokeEnemyUids]
       targets[evokeProgress.index] = target
       next = { ...next, evokeEnemyUids: targets }
-      evokeProgress = evokeTargetProgress(def, state, viewer, next.evokeSlots, next.evokeEnemyUids,
-        next.mode ?? undefined, next.effectEnergy ?? 0)
+      evokeProgress = yield queryTargets('evoke', next)
     }
-    if (evokeProgress.complete && next.evokeEnemyUids.length > evokeProgress.index) {
+    if (evokeProgress?.complete && next.evokeEnemyUids.length > evokeProgress.index) {
       next = { ...next, evokeEnemyUids: next.evokeEnemyUids.slice(0, evokeProgress.index) }
     }
     const overflowShivs = overflowShivCount(state,
@@ -231,14 +270,12 @@ export function createCardPlayCoordinator(options: Options) {
       setPending(next)
     }
     while (next.shivEnemyUids.length < next.spentShivs) {
-      const progress = previewCardShivTargets(state, viewer.id, next.card.uid, cardContext(next),
-        next.chamberPlay ? 'chamber' : next.cardInHand ? 'hand' : 'copy')
+      const progress = yield queryTargets('shivs', next)
       if (!progress || progress.complete || progress.options.length !== 1) break
       next = { ...next, shivEnemyUids: [...next.shivEnemyUids, progress.options[0]!.uid] }
     }
     if (next.shivEnemyUids.length < next.spentShivs + next.overflowShivs) {
-      const progress = previewCardShivTargets(state, viewer!.id, next.card.uid, cardContext(next),
-        next.chamberPlay ? 'chamber' : next.cardInHand ? 'hand' : 'copy')
+      const progress = yield queryTargets('shivs', next)
       const unusedTarget = next.shivEnemyUids.at(-1) ?? next.enemyUid ?? livingEnemies(state)[0]?.uid
       if (progress?.complete && unusedTarget) {
         next = {
@@ -302,7 +339,7 @@ export function createCardPlayCoordinator(options: Options) {
     selections?: Pending) {
     if (cardActionPending.current) return
     if (!onAction) {
-      const preview = previewCardChoice(state, viewer!.id, card.uid)
+      const preview = previewCardChoice(localCombat(state), viewer!.id, card.uid)
       if (!preview) return
       const next = preserveRevealedSelection({
         ...pendingFor(card, preview.cards, state, viewer!), enemyUid,
@@ -322,7 +359,7 @@ export function createCardPlayCoordinator(options: Options) {
       setUsingCard(false)
       const preview = outcome?.snapshot?.cardPreview
       const current = stateRef.current
-      const player = current.players.find((candidate) => candidate.id === viewerId)
+      const player = combatActor(current, viewerId)
       const held = player?.hand.find((candidate) => candidate.uid === card.uid)
       if (outcome?.status !== 'accepted' || !preview || preview.cardUid !== card.uid || !player || !held) return
       const next = preserveRevealedSelection({
@@ -342,7 +379,7 @@ export function createCardPlayCoordinator(options: Options) {
     const copy = state.pendingCardCopy
     if (!copy || copy.playerId !== viewer.id) return
     if (!onAction) {
-      const preview = previewCardCopyChoice(state, viewer.id)
+      const preview = previewCardCopyChoice(localCombat(state), viewer.id)
       if (!preview) return
       const next = preserveRevealedSelection({
         ...pendingFor(copy.card, preview.cards, state, viewer, false, copy.energySpent), enemyUid,
@@ -362,7 +399,7 @@ export function createCardPlayCoordinator(options: Options) {
       setUsingCard(false)
       const current = stateRef.current
       const currentCopy = current.pendingCardCopy
-      const player = current.players.find((candidate) => candidate.id === viewerId)
+      const player = combatActor(current, viewerId)
       const preview = outcome?.snapshot?.cardPreview
       if (outcome?.status !== 'accepted' || !preview?.copy || !currentCopy || !player) return
       const next = preserveRevealedSelection({
@@ -381,7 +418,7 @@ export function createCardPlayCoordinator(options: Options) {
     selections?: Pending) {
     if (cardActionPending.current || !viewer) return
     if (!onAction) {
-      const preview = previewHermitChamberCardChoice(state, viewer.id, card.uid)
+      const preview = previewHermitChamberCardChoice(localCombat(state), viewer.id, card.uid)
       if (!preview) return
       const required = state.pendingHermitChamberPlays?.[0]
       const staged = stageHermitChamberViewer(viewer, card,
@@ -408,7 +445,7 @@ export function createCardPlayCoordinator(options: Options) {
       cardActionPending.current = false
       setUsingCard(false)
       const current = stateRef.current
-      const player = current.players.find((candidate) => candidate.id === viewerId)
+      const player = combatActor(current, viewerId)
       const preview = outcome?.snapshot?.cardPreview
       const held = player?.chamber.find((candidate) => candidate.uid === card.uid)
       if (outcome?.status !== 'accepted' || !preview?.chamber || !player || !held) return

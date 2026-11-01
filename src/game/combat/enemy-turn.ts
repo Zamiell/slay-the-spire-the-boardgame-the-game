@@ -17,6 +17,7 @@ import { CARDS } from '../cards.ts'
 import { shuffle } from '../rng.ts'
 import type { Enemy, Player } from '../types.ts'
 import { handEndTurnRules, handEndTurnEffectApplies, mandatoryChoicePending } from './queries.ts'
+import { preservesPrivateSupplies } from './preview-privacy.ts'
 
 const CURSE_CARDS = Object.values(CARDS)
   .filter((card) => card.owner === 'curse' && card.id !== 'ascenders_bane')
@@ -31,6 +32,7 @@ function matchesSummon(defId: string, summonId: string): boolean {
 export type IncomingDamagePreview = {
   damage: number
   wastedBlock: number
+  hiddenHandEffects?: true
   frostBlock?: number
 }
 
@@ -106,7 +108,7 @@ function resolveEnemyTurn(state: CombatState, receiveAttack: typeof damagePlayer
  * other end-of-turn effects. Use the real enemy action order and targeting, but
  * don't stop at lethal damage or consume Buffer/Fairy effects.
  */
-export function previewIncomingDamage(state: CombatState): ReadonlyMap<string, IncomingDamagePreview> | null {
+export function previewIncomingDamage(state: CombatState, visibleHandOwner?: string): ReadonlyMap<string, IncomingDamagePreview> | null {
   if ((state.phase !== 'player' && state.phase !== 'start') || state.pendingCardPlayWindows?.length ||
     state.pendingTriggers?.length || mandatoryChoicePending(state)) return null
   const progress = state.startTurnProgress
@@ -138,7 +140,7 @@ export function previewIncomingDamage(state: CombatState): ReadonlyMap<string, I
     if (player.stance === 'wrath') endEffects.set(`${player.id}/wrath`, () => {
       if (!player.dead) receiveDamage(probe, player, 1)
     })
-    for (const held of player.hand) endEffects.set(`${player.id}/card:${held.uid}`, () => {
+    for (const held of visibleHandOwner === undefined || player.id === visibleHandOwner ? player.hand : []) endEffects.set(`${player.id}/card:${held.uid}`, () => {
       if (player.dead || !player.hand.some(card => card.uid === held.uid)) return
       const rules = handEndTurnRules(probe, held)
       for (const effect of rules.effects) {
@@ -154,6 +156,7 @@ export function previewIncomingDamage(state: CombatState): ReadonlyMap<string, I
       }
     })
     for (const enemy of probe.enemies) endEffects.set(`${player.id}/downfall-slimed:${enemy.uid}`, () => {
+      if (visibleHandOwner !== undefined && player.id !== visibleHandOwner) return
       if (player.dead || enemy.dead) return
       const slimed = enemyAbilities(enemyDef(enemy.defId, enemy.ascension))
         .find(ability => ability.kind === 'slimedHandHpLoss')
@@ -176,10 +179,13 @@ export function previewIncomingDamage(state: CombatState): ReadonlyMap<string, I
   const ended = combatIsOver(probe)
   const next = ended ? settle(probe) : resolveEnemyTurn(probe, receiveDamage)
   if (!ended && next === probe) return null
+  if (visibleHandOwner !== undefined && !preservesPrivateSupplies(state, next)) return null
   return new Map(next.players.filter(player => incoming.has(player.id)).map(player => {
     const retained = next.phase === 'won' || next.phase === 'lost' ? 0 : retainedBlockAtStartOfTurn(player)
     const frost = frostBlock.get(player.id) ?? 0
     return [player.id, { damage: incoming.get(player.id)!, wastedBlock: Math.max(0, player.block - retained),
+      ...(visibleHandOwner !== undefined && state.players.some(other => other.id !== visibleHandOwner && !other.dead && other.hand.length > 0)
+        ? { hiddenHandEffects: true as const } : {}),
       ...(frost > 0 ? { frostBlock: frost } : {}) }]
   }))
 }

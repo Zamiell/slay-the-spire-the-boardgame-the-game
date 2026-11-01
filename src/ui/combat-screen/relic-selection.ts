@@ -1,7 +1,7 @@
+import { combatActor, type CombatView } from '../../game/combat/view.ts'
 import { activePowerWindow, canActivateRelic, isPostRollStartTurnRelicChoice, overflowShivCount } from '../../game/combat.ts'
-import type { CombatState, RelicContext } from '../../game/combat.ts'
+import type { RelicContext } from '../../game/combat.ts'
 import { relicDef } from '../../game/relics.ts'
-import type { VisibleCombat } from '../../multiplayer/useRoomSession.ts'
 import { gainedShivs } from './card-play-requirements.ts'
 
 type RelicIdentity = { relicIndex: number; defId: string }
@@ -11,14 +11,14 @@ export type RelicSelection =
   | (RelicIdentity & { kind: 'scry'; scryId: number; picked: string[] })
   | (RelicIdentity & { kind: 'overflow'; required: number; targets: string[] })
 
-export function relicUsable(combat: CombatState, viewerId: string, relicIndex: number, postRollLocked = false) {
-  const viewer = combat.players.find((player) => player.id === viewerId)
+export function relicUsable(combat: CombatView, viewerId: string, relicIndex: number, postRollLocked = false) {
+  const viewer = combatActor(combat, viewerId)
   return Boolean(viewer && canActivateRelic(combat, viewer, relicIndex) &&
     !(postRollLocked && isPostRollStartTurnRelicChoice(combat, viewer, relicIndex)))
 }
 
 export function reconcileRelicSelection(
-  selection: RelicSelection, combat: CombatState | VisibleCombat, viewerId: string, usable = true,
+  selection: RelicSelection, combat: CombatView, viewerId: string, usable = true,
 ): RelicSelection {
   const viewer = combat.players.find((player) => player.id === viewerId)
   if (!viewer) return { kind: 'idle' }
@@ -54,7 +54,7 @@ export function toggleRelicCard(selection: RelicSelection, uid: string, maximum:
 }
 
 export function restoreRelicSelection(
-  selection: RelicSelection, context: RelicContext, combat: CombatState | VisibleCombat, viewerId: string,
+  selection: RelicSelection, context: RelicContext, combat: CombatView, viewerId: string,
   usable = true,
 ): RelicSelection {
   const restored = selection.kind === 'cards' ? { ...selection, picked: context.cardUids ?? selection.picked }

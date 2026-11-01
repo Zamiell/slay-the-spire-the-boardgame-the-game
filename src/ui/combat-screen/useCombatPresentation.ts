@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import type { CombatState } from '../../game/combat.ts'
+import type { CombatView } from '../../game/combat.ts'
 import { cardDef } from '../../game/cards.ts'
 import { playerVisualId } from '../../game/skins.ts'
 import { cardVfxRecipe, orbVfxRecipe, potionVfxRecipe, shivVfxRecipe, turnEffectVfxRecipe } from '../combat-vfx.ts'
@@ -8,7 +8,7 @@ import type { ActiveCombatVfx } from './types.ts'
 import { isCharacterAttack, ORB_END_TURN_STAGGER_MS } from './vfx.tsx'
 
 /** Audio and visual recipes consume the same restoration-aware presentation feed. */
-export function useCombatPresentation(state: CombatState, restoration?: number, connected?: boolean, reducedMotion = false) {
+export function useCombatPresentation(state: CombatView, restoration?: number, connected?: boolean, reducedMotion = false) {
   const live = usePresentationEvents(state, restoration, connected, reducedMotion)
   usePersonalCombatSoundEffects(state, live.soundEvents, restoration, connected, reducedMotion)
   const activeVfx = useMemo(() => {

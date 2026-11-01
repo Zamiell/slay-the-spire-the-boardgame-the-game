@@ -3,14 +3,14 @@
 //
 // No components here and no hooks, and no reaching for state that was not passed
 // in. DOM measurement and camera ownership live in useCombatStage.
-import type { CombatState } from '../../game/combat.ts'
+import type { CombatView } from '../../game/combat.ts'
 import { remainingRoundHpLoss } from '../../game/combat.ts'
 import { potionDef } from '../../game/relics.ts'
-import type { Player } from '../../game/types.ts'
+import type { CombatPlayerView } from '../../game/combat/view.ts'
 import { orbDisplayText } from '../TokenRow.tsx'
 
 /** The engine's phase names are for the engine; players get words. */
-export const PHASE_LABEL: Record<CombatState['phase'], string> = {
+export const PHASE_LABEL: Record<CombatView['phase'], string> = {
   player: 'Your turn',
   copy: 'Resolve original card',
   start: 'Start of turn',
@@ -22,7 +22,7 @@ export const PHASE_LABEL: Record<CombatState['phase'], string> = {
 }
 
 /** Rows are the board's spatial unit: one per player, enemies sit in them. */
-export function rowsOf(state: CombatState): number[] {
+export function rowsOf(state: CombatView): number[] {
   const rows = new Set<number>()
   for (const player of state.players) rows.add(player.row)
   for (const enemy of state.enemies) if (!enemy.isBoss) rows.add(enemy.row)
@@ -37,7 +37,7 @@ export function rowsOf(state: CombatState): number[] {
  * which is how the tokens' own hidden labels ended up unreachable. Everything
  * shown on the seat has to be listed.
  */
-export function describeSeat(player: Player): string {
+export function describeSeat(player: CombatPlayerView): string {
   const parts = [`${player.name}, ${player.hp} of ${player.maxHp} hit points, row ${player.row + 1}`]
   if (player.character === 'guardian' && player.guardianMode) {
     parts.push(`${player.guardianMode === 'attack' ? 'Attack' : 'Defense'} Mode`, `Vigor ${player.vigor}`)
@@ -90,7 +90,7 @@ export function describeSeat(player: Player): string {
   return parts.join(', ')
 }
 
-function potionDescription(player: Player): string {
+function potionDescription(player: Pick<CombatPlayerView, 'potions'>): string {
   return [...new Set(player.potions)].map((potionId) => {
     const count = player.potions.filter((held) => held === potionId).length
     const potion = potionDef(potionId)

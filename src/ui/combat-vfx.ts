@@ -4,7 +4,8 @@ import { playersInRowOf } from '../game/combat/board.ts'
 import { assetPath } from '../game/assets.ts'
 import rigMetadata from './rig-animation-metadata.json' with { type: 'json' }
 import { POTIONS } from '../game/relics.ts'
-import type { CombatState, TurnEffectPresentation } from '../game/combat/types.ts'
+import type { TurnEffectPresentation } from '../game/combat/types.ts'
+import type { CombatView } from '../game/combat/view.ts'
 import { characterOfSkin, isSkinId, type SkinId } from '../game/skins.ts'
 import type { CardType, CharacterId, OrbType, Enemy } from '../game/types.ts'
 
@@ -35,7 +36,7 @@ const MELEE_BOSS_ART = new Set([
 ])
 
 /** Mirror the attack's row, facing and area targeting for visual effects. */
-export function enemyAttackTargetPlayerIds(state: CombatState, enemy: Enemy): string[] {
+export function enemyAttackTargetPlayerIds(state: Pick<CombatView, 'die' | 'players' | 'enemies' | 'lastStand'>, enemy: Enemy): string[] {
   const actions = actionsForEnemy(enemy, state.die)
   const rowTargets = playersInRowOf(state, enemy)
   return state.players.filter(player => !player.dead && actions.some(action => {

@@ -361,15 +361,16 @@ export function affectedVerifiers(root, changedFiles, scripts) {
       covered = true
     }
     else if (file.startsWith('src/')) {
-      // A screen imports the engine through its barrel, so a change inside
-      // src/game/combat/ reaches the UI exactly as a change to the barrel
-      // itself does. Ask the direct-import checks about the barrel.
+      // Named barrels can be reached through shared renderers and projection
+      // adapters. Ordinary leaf helpers retain their focused direct consumers.
       const barrel = engineModuleOf(file)
       const absolute = resolve(root, barrel)
+      const consumes = entry => ['src/game/combat.ts', 'src/game/run.ts'].includes(barrel)
+        ? dependenciesOf(entry).has(absolute) : directImports(entry, root).includes(absolute)
       const owners = []
-      if (localRoots.some((entry) => directImports(entry, root).includes(absolute))) owners.push('verify-browser.mjs')
-      if (noncombatRoots.some((entry) => directImports(entry, root).includes(absolute))) owners.push('verify-noncombat-browser.mjs')
-      if (directImports('src/ui/OnlineGame.tsx', root).includes(absolute)) owners.push('verify-online-browser.mjs')
+      if (localRoots.some(consumes)) owners.push('verify-browser.mjs')
+      if (noncombatRoots.some(consumes)) owners.push('verify-noncombat-browser.mjs')
+      if (consumes('src/ui/OnlineGame.tsx')) owners.push('verify-online-browser.mjs')
       owners.push(...(focusedEngineOwners.get(cleanPath(file)) ?? []))
       if (owners.length) {
         for (const script of owners) selected.add(script)

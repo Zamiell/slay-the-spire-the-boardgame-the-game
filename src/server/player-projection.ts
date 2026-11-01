@@ -1,4 +1,5 @@
 import { isSkinOf } from '../game/skins.ts'
+import { availableTransformRewards } from '../game/acquisition.ts'
 import type { Player } from '../game/types.ts'
 import type { VisiblePlayer } from '../protocol/room.ts'
 
@@ -96,6 +97,7 @@ export function redactPlayer(player: Player, viewerId: string): VisiblePlayer {
     tradableDeckCount: player.deck.filter((card) => card.defId !== 'ascenders_bane').length,
     cardRewardCount: player.cardRewards.length,
     rareRewardCount: player.rareRewards.length,
+    ...(mine ? { transformAvailable: availableTransformRewards(player) > 0 } : {}),
     hand: mine ? player.hand : null,
     // Owners see the set, never the authoritative shuffled draw order.
     draw: mine ? [...player.draw].sort((left, right) =>

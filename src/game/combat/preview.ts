@@ -12,6 +12,7 @@ import { cardBlockAmount } from './effects.ts'
 import { effectiveCombatCardDef, effectIsActive, maximumXEnergy, persistentEffectOf, playCost } from './queries.ts'
 import type { CombatState, PlayContext } from './types.ts'
 import type { CardInstance } from '../types.ts'
+import { preservesPrivateSupplies } from './preview-privacy.ts'
 
 /** Headroom added to the target so no single card can kill it. */
 const STAND_IN_HP = 9999
@@ -54,7 +55,7 @@ export function previewCardBlock(
   return { block, baseline }
 }
 
-/** Rules an online client cannot evaluate: its copy of the state blanks these ledgers and piles. */
+/** Public forecasts conservatively exclude draw- and history-sensitive rules. */
 const PRIVATE_BOARD_RULES = /stanceChangedThisTurn|discardedThisTurn|drawPileEmpty/
 const DRAW_EFFECTS = /"kind":"[a-zA-Z]*[dD]raw/
 const defText = new WeakMap<CardDef, string>()
@@ -118,6 +119,7 @@ function damageDealt(
     playerId,
     ...(cost === 'X' ? { energySpent: Math.min(actor.energy, maximumXEnergy(def, actor)) } : {}),
   })
+  if (hiddenBoard && !preservesPrivateSupplies(probe, next)) return null
   if (next === probe) return null
   const after = next.enemies.find((enemy) => enemy.uid === enemyUid)
   return after ? hpBefore - after.hp : null
@@ -135,17 +137,20 @@ export function previewCardDamage(
   playerId: string,
   cardUid: string,
   enemyUid: string | null,
-  /** The state is an online client's copy, which blanks some of the board. */
+  /** Publish only forecasts independent of hidden history and ordered supplies. */
   hiddenBoard = false,
 ): CardDamagePreview | null {
   const target = enemyUid ?? state.enemies.find((enemy) => !enemy.dead)?.uid
   if (!target || state.phase !== 'player') return null
   const actor = findPlayer(state, playerId)
+  const held = actor?.hand.find(card => card.uid === cardUid)
+  if (!actor || !held) return null
   // With nothing to switch off, the plain play is this play: skip the second probe.
-  const modified = !actor || actor.strength !== 0 || actor.weak !== 0 || actor.stance !== 'neutral' ||
+  const modified = actor.strength !== 0 || actor.weak !== 0 || actor.stance !== 'neutral' ||
     (actor.wrathAttackDamageBonus ?? 0) !== 0 || (actor.akabekoAttacks ?? 0) !== 0 || actor.powers.some(hasCardIconBonus) ||
     enemyUid !== null && (state.enemies.find((enemy) => enemy.uid === enemyUid)?.vulnerable ?? 0) !== 0
   try {
+    if (effectiveCombatCardDef(faceOf(cardDef(held.defId), held.upgraded), actor.guardianMode).type !== 'attack') return null
     const damage = damageDealt(state, playerId, cardUid, target, false, enemyUid === null, hiddenBoard)
     const baseline = damage === null ? null
       : modified ? damageDealt(state, playerId, cardUid, target, true, enemyUid === null, hiddenBoard) : damage

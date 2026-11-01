@@ -170,6 +170,7 @@ export function NeowScreen({ players, progress, viewerId, ascension, enabled = t
       : effect ? `${effect.kind} ${effect.count} card${effect.count === 1 ? '' : 's'}` : ''
   const canAct = enabled && !submitting
   const itemOffer = viewerParticipates && (currentOffer?.kind === 'potion' || currentOffer?.kind === 'relic')
+  const cardOffer = viewerParticipates && Boolean(currentOffer) && !itemOffer
   const submit = (action: () => void | Promise<ActionOutcome>) => {
     if (!enabled || lifecycle.locked()) return
     lifecycle.submit(neowDecisionKey(viewerProgress), action, true)
@@ -208,11 +209,11 @@ export function NeowScreen({ players, progress, viewerId, ascension, enabled = t
     {!viewerParticipates ? <section className="neow-action" aria-labelledby="neow-action-title">
       <h3 id="neow-action-title">Catch Up in progress</h3>
       <p className="neow-action__waiting" role="status">Waiting for the Catch Up players to finish {blessingName}.</p>
-    </section> : <section className={`neow-action${currentOffer ? ' neow-action--offer' : ''}`}
-      aria-labelledby={itemOffer ? undefined : 'neow-action-title'}
-      aria-label={itemOffer ? `${viewer.name} · ${offerTitle(currentOffer!)}` : undefined}>
-      {!itemOffer ? <div className="neow-action__owner">
-        <span>{viewer.name}</span><h3 id="neow-action-title">{viewerProgress.done ? `${blessingWord} complete` : currentOffer ? offerTitle(currentOffer) : effect ? `Resolve ${effectLabel}` : unrevealedStage ? `${unrevealedKind} is face down` : blueReady ? `Choose a ${blessingWord.toLowerCase()}` : `Resolving ${blessingWord.toLowerCase()}`}</h3>
+    </section> : <section className={`neow-action${currentOffer ? ' neow-action--offer' : ''}${cardOffer ? ' neow-action--card-choice' : ''}`}
+      aria-labelledby={currentOffer ? undefined : 'neow-action-title'}
+      aria-label={currentOffer ? `${viewer.name} · ${offerTitle(currentOffer)}` : undefined}>
+      {!itemOffer && !cardOffer ? <div className="neow-action__owner">
+        <span>{viewer.name}</span><h3 id="neow-action-title">{viewerProgress.done ? `${blessingWord} complete` : effect ? `Resolve ${effectLabel}` : unrevealedStage ? `${unrevealedKind} is face down` : blueReady ? `Choose a ${blessingWord.toLowerCase()}` : `Resolving ${blessingWord.toLowerCase()}`}</h3>
       </div> : null}
       {viewerProgress.done ? <p className="neow-action__waiting" role="status">Waiting for the rest of the party.</p> : null}
       {unrevealedStage ? <div className="neow-unrevealed">

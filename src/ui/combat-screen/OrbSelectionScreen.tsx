@@ -1,5 +1,6 @@
+import type { CombatActor } from '../../game/combat/view.ts'
 import { useLayoutEffect, useRef, useState } from 'react'
-import type { CardInstance, Player } from '../../game/types.ts'
+import type { CardInstance } from '../../game/types.ts'
 import type { CardBlockPreview } from '../../game/combat.ts'
 import type { EvokeChoice } from '../../game/combat/types.ts'
 import { Card, CardKeywordHelp } from '../Card.tsx'
@@ -12,7 +13,7 @@ type OrbOption = EvokeChoice['options'][number]
 
 function OrbSelectionOption({ option, player, selected, disabled, onSelect }: {
   option: OrbOption
-  player: Player
+  player: CombatActor
   selected: boolean
   disabled: boolean
   onSelect: () => void
@@ -46,7 +47,7 @@ function OrbSelectionOption({ option, player, selected, disabled, onSelect }: {
 export function OrbSelectionScreen({ sourceCard, sourceBlock, player, options, disabled, active, onConfirm, onCancel }: {
   sourceCard: CardInstance
   sourceBlock?: CardBlockPreview
-  player: Player
+  player: CombatActor
   options: readonly OrbOption[]
   disabled: boolean
   active: boolean

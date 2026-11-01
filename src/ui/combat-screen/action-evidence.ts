@@ -1,6 +1,6 @@
-import type { CombatState } from '../../game/combat.ts'
+import type { CombatView } from '../../game/combat/view.ts'
+
 import { powerAbilityKey } from '../../game/combat.ts'
-import type { VisibleCombat } from '../../multiplayer/useRoomSession.ts'
 
 export type CardSubmissionSource = {
   cardUid: string
@@ -9,14 +9,14 @@ export type CardSubmissionSource = {
 }
 
 export function potionSubmissionCommitted(
-  submitted: { potionId: string; countBefore: number }, combat: CombatState | VisibleCombat, viewerId: string,
+  submitted: { potionId: string; countBefore: number }, combat: CombatView, viewerId: string,
 ) {
   const player = combat.players.find((player) => player.id === viewerId)
   return Boolean(player && player.potions.filter((id) => id === submitted.potionId).length < submitted.countBefore)
 }
 
 export function powerSubmissionCommitted(
-  submitted: { powerUid: string }, combat: CombatState | VisibleCombat, viewerId: string,
+  submitted: { powerUid: string }, combat: CombatView, viewerId: string,
 ) {
   return combat.powerTriggersUsedThisTurn.includes(powerAbilityKey(viewerId, submitted.powerUid))
 }
@@ -30,7 +30,7 @@ export type RelicSubmissionEvidence = {
 }
 
 export function relicSubmissionCommitted(
-  submitted: RelicSubmissionEvidence, combat: CombatState | VisibleCombat, viewerId: string,
+  submitted: RelicSubmissionEvidence, combat: CombatView, viewerId: string,
 ) {
   const held = combat.players.find((player) => player.id === viewerId)?.relics[submitted.relicIndex]
   if (!held || held.defId !== submitted.defId) return false
@@ -42,7 +42,7 @@ export function relicSubmissionCommitted(
 }
 
 export function cardSubmissionCommitted(
-  submitted: CardSubmissionSource, combat: CombatState | VisibleCombat, viewerId: string,
+  submitted: CardSubmissionSource, combat: CombatView, viewerId: string,
 ) {
   if (submitted.source === 'copy') return combat.pendingCardCopy?.card.uid !== submitted.cardUid ||
     combat.pendingCardCopy.id !== submitted.copyId

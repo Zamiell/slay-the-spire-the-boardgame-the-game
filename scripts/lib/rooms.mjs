@@ -30,6 +30,8 @@ import {
   cardPlayContext, powerContext, potionContext,
 } from './rooms/action-context.mjs'
 import { loadStore } from './rooms/store.mjs'
+import { parseCombatQuery } from '../../src/protocol/combat-query.ts'
+import { evaluateCombatQuery } from '../../src/game/combat/preview-queries.ts'
 import { ascensionBossQualifies, MAX_ASCENSION } from '../../src/game/campaign.ts'
 import {
   CAPS,
@@ -3963,18 +3965,96 @@ const previewState = (combat, preview) => preview?.rngBefore
   ? { ...combat, rng: { ...preview.rngBefore } }
   : combat
 
-function playWithReservedRng(combat, preview, play) {
-  if (!preview?.rngBefore || !preview.rngAfter) return play(combat)
+function stateWithReservedPreviewRng(combat, preview) {
+  if (!preview?.rngBefore || !preview.rngAfter) return combat
   const reserved = { ...preview.rngBefore }
   const replayValues = []
   for (let calls = preview.rngAfter.calls - preview.rngBefore.calls; calls > 0; calls -= 1) {
     replayValues.push(nextFloat(reserved))
   }
-  const replay = { ...combat, rng: { ...combat.rng, replayValues } }
+  return { ...combat, rng: { ...combat.rng, replayValues } }
+}
+
+function playWithReservedRng(combat, preview, play) {
+  if (!preview?.rngBefore || !preview.rngAfter) return play(combat)
+  const replay = stateWithReservedPreviewRng(combat, preview)
   const resolved = play(replay)
   if (resolved === replay) return combat
   const { replayValues: _replayValues, ...rng } = resolved.rng
   return { ...resolved, rng }
+}
+
+/** Read-only calculations use real authority, never the redacted client snapshot. */
+export function queryCombat(room, seatToken, input) {
+  const seat = findSeat(room, seatToken)
+  if (!seat) fail('Unknown seat')
+  let request
+  try { request = parseCombatQuery(input) } catch (error) {
+    if (error.name === 'ValiError') fail('Invalid combat preview query')
+    throw error
+  }
+  const actual = room.run?.combat
+  if (!actual || actual.combatId !== request.combatId || room.version !== request.version) {
+    return { status: 'stale', combatId: actual?.combatId ?? request.combatId, version: room.version }
+  }
+  let query = request.query
+  let combat = structuredClone(actual)
+  let revealedCards
+  if (query.kind === 'startTurn') {
+    if (combat.phase !== 'start') return { status: 'stale', combatId: actual.combatId, version: room.version }
+    const abilities = plannedStartTurnAbilities(room)
+    const byId = new Map(abilities.map(ability => [ability.id, ability]))
+    if (query.order.length !== byId.size || new Set(query.order).size !== byId.size ||
+      query.order.some(id => !byId.has(id)) || query.choices.some(choice => !byId.has(choice.id)) ||
+      new Set(query.choices.map(choice => choice.id)).size !== query.choices.length) {
+      fail('A preview must identify the current Start-of-Turn abilities')
+    }
+    const canonical = [...byId.keys()]
+    if ((room.startTurnOrder || startTurnOrderCoordinator(room) !== seat.playerId) &&
+      query.order.some((id, index) => id !== canonical[index])) fail('Only the order coordinator can preview a new shared order')
+    const supplied = new Map(query.choices.map(choice => [choice.id, choice]))
+    const stored = new Map((savedStartTurnChoices(room) ?? []).map(choice => [choice.id, choice]))
+    const defaults = new Map(defaultStartTurnChoices(combat).map(choice => [choice.id, choice]))
+    query = { ...query, choices: query.order.map(id => byId.get(id).playerId === seat.playerId
+      ? { ...(supplied.get(id) ?? { id, shivEnemyUids: [] }), ...(stored.get(id)?.trigger ? { trigger: stored.get(id).trigger } : {}) }
+      : stored.get(id) ?? (startTurnAbilityNeedsManualChoice(byId.get(id))
+        ? { id, shivEnemyUids: [] } : defaults.get(id) ?? { id, shivEnemyUids: [] })) }
+  } else if (query.kind !== 'hud') {
+    combat = combatForPreview(combat, seat.playerId, {
+      copies: room.concurrentCardCopies, forcedCards: room.concurrentForcedCards,
+    })
+    const actor = combat.players.find(player => player.id === seat.playerId)
+    const held = query.source === 'copy'
+      ? combat.pendingCardCopy?.playerId === seat.playerId && combat.pendingCardCopy.card.uid === query.cardUid
+        ? combat.pendingCardCopy.card : undefined
+      : actor?.[query.source]?.find(card => card.uid === query.cardUid)
+    if (!held) fail('That card is not available to this seat')
+    const preview = room.cardPreviews?.[seat.playerId]
+    const matchesReveal = preview?.cardUid === query.cardUid &&
+      Boolean(preview.copy) === (query.source === 'copy') && Boolean(preview.chamber) === (query.source === 'chamber') &&
+      (query.source !== 'hand' || (query.context.spendMiracle === true) === (preview.spendMiracle === true)) &&
+      (query.context.enemyUid ?? null) === (preview.enemyUid ?? null) &&
+      JSON.stringify(query.context.slimeUids ?? []) === JSON.stringify(preview.slimeUids ?? []) &&
+      JSON.stringify(query.context.slimeEnemyUids ?? []) === JSON.stringify(preview.slimeEnemyUids ?? []) &&
+      (query.source !== 'chamber' || preview.energySpent === undefined || query.context.energySpent === preview.energySpent)
+    if (query.kind === 'scryPlay') {
+      if (!faceOf(cardDef(held.defId), held.upgraded).effects.some(effect => effect.kind === 'scryAndPlay')) {
+        fail('That card does not offer a Scry play')
+      }
+      if (!matchesReveal || preview.kind !== 'scryToHand') {
+        fail('Reveal this card choice before inspecting its options')
+      }
+      if (new Set(query.discarded).size !== query.discarded.length ||
+        query.discarded.some(uid => !preview.cards.some(card => card.uid === uid))) fail('Scry choices must name revealed cards')
+      revealedCards = preview.cards
+    }
+    if (preview?.cardUid === query.cardUid && !matchesReveal) {
+      return { status: 'ready', combatId: actual.combatId, version: room.version, result: { kind: query.kind, progress: null } }
+    }
+    if (matchesReveal) combat = stateWithReservedPreviewRng(combat, preview)
+  }
+  const result = evaluateCombatQuery(combat, seat.playerId, query, { publicOnly: true, revealedCards })
+  return { status: 'ready', combatId: actual.combatId, version: room.version, result }
 }
 
 /** Reserve shuffle results already exposed by card previews saved before async play. */

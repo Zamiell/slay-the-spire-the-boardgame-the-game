@@ -76,7 +76,6 @@ import { mandatoryCardPlayWindowOwners } from '../game/combat/queries.ts'
 import {
   activeCardPlayWindow,
   beginEndTurnResolution,
-  scryPlayCardPlayable,
   finishCardPlayWindow,
   cardCanBeForced,
   cardEnemyChoiceCount,
@@ -104,7 +103,6 @@ import {
   enemyLabel,
   enemyTurn,
   effectiveCombatCardDef,
-  evokeTargetProgress,
   facingChoicesAreValid,
   guardianCardNeedsAlly,
   guardianGemForCard,
@@ -126,7 +124,6 @@ import {
   playHermitChamberCard,
   playCost,
   powerAbilityUsed,
-  previewCardShivTargets,
   previewCardDamage,
   previewCardBlock,
   previewIncomingDamage,
@@ -160,6 +157,8 @@ import {
   startTurnDiscardPreview,
   isPostRollStartTurnRelicChoice,
   startTurnNeedsChoice,
+  playerHasPostRollStartTurnChoice,
+  lightningTargetOptions,
   startTurnScryAbilities,
   startTurnScryPreview,
   adjacentDamageChoiceCount,
@@ -176,11 +175,15 @@ import type {
   EndTurnAbility,
   PlayerChoiceAnswer,
   StartTurnChoice,
+  StartTurnAbility,
 } from '../game/combat.ts'
 import { chosenDieRelicAbilities, potionDef, relicDef } from '../game/relics.ts'
 import { DieRelicChoiceList, dieRelicChoices } from './DieRelicChoices.tsx'
 import { CAPS, DOWNFALL_CHARACTER_IDS } from '../game/types.ts'
-import type { CardInstance, DownfallCharacterId, Enemy, Player } from '../game/types.ts'
+import type { CardInstance, DownfallCharacterId, Enemy } from '../game/types.ts'
+import { combatActor, isCombatActor, localCombat, hasCombatSimulation, combatTurnFact, type CombatActor, type CombatPlayerView, type CombatView } from '../game/combat/view.ts'
+import { useCombatQueries, useCombatQuery } from './combat-screen/useCombatQueries.ts'
+import type { CombatQuery, CombatQueryResult, CombatTargetProgress } from '../game/combat/preview-queries.ts'
 import type { ActionOutcome } from '../multiplayer/useRoomSession.ts'
 import { Card, cardAccessibleName, slimeCommandText } from './Card.tsx'
 import { CardCollectionOverlay } from './CardCollectionOverlay.tsx'
@@ -219,7 +222,7 @@ import { CourierPeek, courierPeekPhase } from './CourierPanel.tsx'
 import { createPortal } from 'react-dom'
 
 function targetPresentationTiming(
-  state: CombatState,
+  state: CombatView,
   targetId: string,
   contacts: ReadonlyMap<string, TargetContactDeadline>,
 ): { event?: CombatPresentationEvent; contact: number } {
@@ -465,12 +468,29 @@ function FlyingCard({ flight, character }: { flight: CardFlight; character: stri
 
 const START_TURN_STUCK_MS = 15_000
 
-function CombatScreenView({
+function CombatScreenView(props: CombatScreenProps) {
+  const viewer = combatActor(props.state, props.viewerId)
+  if (!viewer) return <section role="status" className="combat">
+    <p>Waiting for this seat's private cards.</p>
+    {props.onResync ? <button type="button" onClick={() => void props.onResync?.()}>Check room state</button> : null}
+  </section>
+  if (!hasCombatSimulation(props.state) && (!props.onAction || !props.onQuery ||
+    props.state.knowledge?.discardedThisTurn === undefined || props.state.knowledge.stanceChangedThisTurn === undefined)) {
+    return <section className="combat" role="alert">
+      <p>This room server needs an update before it can provide combat choices.</p>
+    </section>
+  }
+  return <CombatScreenReady {...props} viewer={viewer} />
+}
+
+function CombatScreenReady({
+  viewer,
   state,
   act,
   viewerId,
   onChange,
   onAction,
+  onQuery,
   autoAdvance = true,
   selectionDialogsActive = true,
   courierUsedBy,
@@ -506,8 +526,10 @@ function CombatScreenView({
   authoritativeRestoration,
   authoritativeConnected,
   animateOpeningHand = authoritativeVersion === undefined,
-}: CombatScreenProps) {
+}: CombatScreenProps & { viewer: CombatActor }) {
   const stageAct = Math.min(4, Math.max(1, act))
+  const queries = useCombatQueries(state, viewerId, authoritativeVersion, authoritativeRefresh,
+    authoritativeRestoration, onQuery)
   const [pending, setPending] = useState<Pending | null>(null)
   const [miracleOnCard, setMiracleOnCard] = useState(false)
   const [spendingShiv, setSpendingShiv] = useState<false | 'one' | 'all'>(false)
@@ -548,6 +570,12 @@ function CombatScreenView({
   const [startTurnExhaustUids, setStartTurnExhaustUids] = useState<Record<string, string | undefined>>({})
   const [startTurnModeShifts, setStartTurnModeShifts] = useState<Record<string, boolean | undefined>>({})
   const [resolvingStartTurnMode, setResolvingStartTurnMode] = useState(false)
+  const [planningStartTurn, setPlanningStartTurn] = useState(false)
+  const startPlanRequest = useRef<object | null>(null)
+  useLayoutEffect(() => {
+    startPlanRequest.current = null
+    setPlanningStartTurn(false)
+  }, [queries])
   const [unknownStartTurnMode, setUnknownStartTurnMode] = useState<{
     abilityId: string
     refreshAttempt: number
@@ -582,6 +610,14 @@ function CombatScreenView({
   const prefersReducedMotion = reducedMotion
   const itemDialogRef = useRef<HTMLDialogElement | null>(null)
   const cardActionPending = useRef(false)
+  const targetQueryPending = useRef<object | null>(null)
+  const [targetQueryBusy, setTargetQueryBusy] = useState(false)
+  useLayoutEffect(() => {
+    if (targetQueryPending.current) {
+      targetQueryPending.current = null
+      setTargetQueryBusy(false)
+    }
+  }, [queries])
   const automaticCopyChoice = useRef<string | null>(null)
   const armedCardFlight = useRef<{ card: CardInstance; chamber: boolean } | null>(null)
   const chamberCloseTimer = useRef<number | null>(null)
@@ -639,22 +675,20 @@ function CombatScreenView({
     }
   }
   const forcedAutoAttempt = useRef<string | null>(null)
-  const viewer = state.players.find((player) => player.id === viewerId)
-  const cardLifecycle = useActionLifecycle<CardSubmission, CombatState>({
+  const cardLifecycle = useActionLifecycle<CardSubmission, CombatView>({
     scope: `${state.combatId}:${viewerId}`, board: state, refresh: authoritativeRefresh,
     lockRef: cardActionPending,
     committed: (card, combat) => cardSubmissionCommitted(card, combat, viewerId),
     reconciled: (card, committed, combat) => {
       if (shouldDisarmCardFlight(card.source !== 'copy', committed)) armedCardFlight.current = null
-      const current = combat.players.find((player) => player.id === viewerId)
+      const current = combatActor(combat, viewerId)
       if (committed) setPending(null)
       else if (current) restoreUnknownCard(card.pending, current, card.usingMiracle, combat)
     },
   })
-  const usingCard = previewingCard || cardLifecycle.busy
+  const usingCard = previewingCard || cardLifecycle.busy || targetQueryBusy
   const sharedDrawLocked = state.players.filter(player => !player.dead).every(player => player.drawLocked)
-  const stanceChangedThisTurn = onAction ? viewerStanceChangedThisTurn : state.stanceChangedThisTurn.includes(viewerId)
-  const incomingDamage = useMemo(() => previewIncomingDamage(state), [state])
+  const stanceChangedThisTurn = onAction ? viewerStanceChangedThisTurn : combatTurnFact(state, viewerId, 'stanceChangedThisTurn')
   const [resourceHistory, setResourceHistory] = useState(() => trackCombatResources(undefined, state))
   const resourceVisibility = trackCombatResources(resourceHistory, state)
   if (resourceVisibility !== resourceHistory) setResourceHistory(resourceVisibility)
@@ -701,25 +735,34 @@ function CombatScreenView({
     const picked = cardTarget?.targetUid ?? pointedEnemyUid
     return living.some((enemy) => enemy.uid === picked) ? picked : null
   })()
+  const hud = useCombatQuery(queries, hasCombatSimulation(state) ? null : { kind: 'hud', enemyUid: previewEnemyUid })
+  const commonHud = hud?.kind === 'hud' ? hud : queries.latestHud
+  const incomingDamage = useMemo(() => hasCombatSimulation(state) ? previewIncomingDamage(state)
+    : commonHud ? new Map(commonHud.incoming) : null, [state, commonHud])
   const cardHints = useCardHints()
   const cardDamage = useMemo(() => {
     const previews = new Map<string, CardDamagePreview>()
     if (!cardHints || !viewer || viewer.dead || state.phase !== 'player') return previews
     for (const card of viewer.hand) {
-      const preview = previewCardDamage(state, viewer.id, card.uid, previewEnemyUid, Boolean(onAction))
+      const preview = hasCombatSimulation(state)
+        ? previewCardDamage(state, viewer.id, card.uid, previewEnemyUid, Boolean(onAction))
+        : hud?.kind === 'hud'
+          ? hud.cards.find(entry => entry.uid === card.uid)?.damage.find(entry => entry.enemyUid === previewEnemyUid)?.value
+          : null
       if (preview) previews.set(card.uid, preview)
     }
     return previews
-  }, [cardHints, state, viewer, previewEnemyUid, onAction])
+  }, [cardHints, state, viewer, previewEnemyUid, onAction, hud])
   const cardBlock = useMemo(() => {
     const previews = new Map<string, CardBlockPreview>()
     if (!viewer || viewer.dead) return previews
     for (const card of viewer.hand) {
-      const preview = previewCardBlock(state, viewer.id, card.uid, Boolean(onAction))
+      const preview = hasCombatSimulation(state) ? previewCardBlock(state, viewer.id, card.uid, Boolean(onAction))
+        : commonHud?.cards.find(entry => entry.uid === card.uid)?.block
       if (preview) previews.set(card.uid, preview)
     }
     return previews
-  }, [state, viewer, onAction])
+  }, [state, viewer, onAction, commonHud])
   const potionController = usePotionController({
     state, viewerId, onAction, onChange, authoritativeRefresh, partyStartTurnPostRollLocked,
     reconciliation,
@@ -755,7 +798,7 @@ function CombatScreenView({
     stagedPosesReadyByAttack.current.set(key, ready)
     return ready
   }
-  const stagedAssetsOf = (player: CombatState['players'][number]) => {
+  const stagedAssetsOf = (player: CombatPlayerView) => {
     const spec = stagedAttackOf(playerVisualId(player))
     return spec && stagedAttackAssets(playerVisualId(player), spec)
   }
@@ -867,7 +910,7 @@ function CombatScreenView({
   // loaded or resumed local state can never stay wedged on it.
   useEffect(() => {
     if (onAction || owedChoices.length === (state.pendingPlayerChoices?.length ?? 0)) return
-    const lapsed = lapseStrandedPlayerChoices(state)
+    const lapsed = lapseStrandedPlayerChoices(localCombat(state))
     if (lapsed !== state) onChange?.(lapsed)
   }, [onAction, onChange, owedChoices.length, state])
   const dieRelicPending = state.pendingDieRelicChoices?.[0]
@@ -882,7 +925,7 @@ function CombatScreenView({
 
   function submitHermitSetup(card: CardInstance, enemyUid: string | null = null) {
     if (onAction) void onAction({ kind: 'resolveHermitSetupLoad', cardUid: card.uid, enemyUid })
-    else onChange?.(resolveHermitSetupLoad(state, viewerId, card.uid, enemyUid))
+    else onChange?.(resolveHermitSetupLoad(localCombat(state), viewerId, card.uid, enemyUid))
   }
 
   useEffect(() => { setPlayerChoiceDiscarding(false) }, [viewerPlayerChoice?.id])
@@ -891,7 +934,7 @@ function CombatScreenView({
     if (!viewerPlayerChoice || usingPlayerChoice) return
     const choice = { choiceId: viewerPlayerChoice.id, ...answer }
     if (!onAction) {
-      const result = resolvePendingPlayerChoice(state, viewerId, choice)
+      const result = resolvePendingPlayerChoice(localCombat(state), viewerId, choice)
       if (result !== state) onChange?.(result)
       return
     }
@@ -902,7 +945,7 @@ function CombatScreenView({
 
   function submitHermitStrength(targetPlayerId: string) {
     if (onAction) void onAction({ kind: 'resolveHermitStrengthReward', playerId: targetPlayerId })
-    else onChange?.(resolveHermitStrengthReward(state, viewerId, targetPlayerId))
+    else onChange?.(resolveHermitStrengthReward(localCombat(state), viewerId, targetPlayerId))
   }
 
   // Slayer Pack: Nightmare+'s new enemy and Ritual Dagger+'s private reveal.
@@ -912,7 +955,7 @@ function CombatScreenView({
     if (!slayerChoice || usingSlayerChoice) return
     const answer = { choiceId: slayerChoice.id, ...decision }
     if (!onAction) {
-      const result = resolveSlayerChoice(state, viewerId, answer)
+      const result = resolveSlayerChoice(localCombat(state), viewerId, answer)
       if (result !== state) onChange?.(result)
       return
     }
@@ -925,7 +968,7 @@ function CombatScreenView({
     if (usingDieRelic || dieRelicPending?.playerId !== viewerId) return
     const cardUids = dieRelicCardUids
     if (!onAction) {
-      const result = resolvePendingDieRelicChoice(state, viewerId, {
+      const result = resolvePendingDieRelicChoice(localCombat(state), viewerId, {
         choiceId: dieRelicPending.id,
         enemyUid: dieRelicTargetUid,
         ...(discard ? { discardUids: cardUids } : { exhaustUids: cardUids }),
@@ -954,12 +997,12 @@ function CombatScreenView({
   function submitPlunderRow(row: number | null) {
     if (state.pendingPlunderSwitches?.[0]?.playerId !== viewerId) return
     if (onAction) void onAction({ kind: 'resolvePlunderRowSwitch', row })
-    else onChange?.(resolvePlunderRowSwitch(state, viewerId, row))
+    else onChange?.(resolvePlunderRowSwitch(localCombat(state), viewerId, row))
   }
 
   function skipUnplayableHermitChamber(cardUid: string) {
     if (onAction) void onAction({ kind: 'playHermitChamberCard', cardUid, enemyUid: null })
-    else onChange?.(playHermitChamberCard(state, viewerId, cardUid))
+    else onChange?.(playHermitChamberCard(localCombat(state), viewerId, cardUid))
   }
   const viewerHasSozu = viewer?.relics.some((relic) => relic.defId === 'sozu') ?? false
   const extraCrispyPower = viewer?.powers.find((power) => power.defId === 'extra_crispy' &&
@@ -968,7 +1011,7 @@ function CombatScreenView({
     : authoritativePendingTrigger !== undefined
       ? authoritativePendingTrigger ?? stagedStartTurnTriggers
         ?.find((trigger) => trigger.id === editingStagedStartTurnTrigger) ?? null
-      : pendingTriggerAbility(state)
+      : pendingTriggerAbility(localCombat(state))
   const stagedStartTurnTriggerPending = state.phase === 'start' &&
     state.pendingTriggers.some((trigger) => trigger.startTurn && trigger.playerId === viewerId)
   const triggerHermitChoicesReady = !pendingTrigger?.hermitChoices || triggerHermitStep === 'target' &&
@@ -1188,14 +1231,15 @@ function CombatScreenView({
   const forcedCard = state.startTurnProgress?.forcedCard
   const distilled = state.pendingDistilled
   const relicScry = state.pendingRelicScry
+  const relicScryCards = relicScry?.cards
   const playWindow = viewerId ? activeCardPlayWindow(state, viewerId) : undefined
-  const activeStartTurnScry = partyStartTurnScry ?? (!onAction ? startTurnScryPreview(state) : undefined)
-  const activeStartTurnDiscard = partyStartTurnDiscard ?? (!onAction ? startTurnDiscardPreview(state) : undefined)
+  const activeStartTurnScry = partyStartTurnScry ?? (!onAction ? startTurnScryPreview(localCombat(state)) : undefined)
+  const activeStartTurnDiscard = partyStartTurnDiscard ?? (!onAction ? startTurnDiscardPreview(localCombat(state)) : undefined)
   const startTurnScryKey = activeStartTurnScry
     ? `${activeStartTurnScry.playerId}:${activeStartTurnScry.label}:${activeStartTurnScry.cards?.map((card) => card.uid).join(',') ?? 'hidden'}`
     : ''
   const baseStartTurnScries = state.phase === 'start' && !activeStartTurnScry && !pendingTrigger
-    ? (partyStartTurnScryAbilities ?? startTurnScryAbilities(state))
+    ? (partyStartTurnScryAbilities ?? startTurnScryAbilities(localCombat(state)))
     : []
   const startTurnScryIds = startTurnScryOrder.length === baseStartTurnScries.length &&
     startTurnScryOrder.every((id) => baseStartTurnScries.some((ability) => ability.id === id))
@@ -1221,7 +1265,7 @@ function CombatScreenView({
   const cardPreviewKey = cardPreview
     ? `${cardPreview.cardUid}\0${cardPreview.copy === true}\0${cardPreview.chamber === true}\0${cardPreview.kind}\0${cardPreview.spendMiracle}\0${cardPreview.enemyUid ?? ''}\0${cardPreview.slimeUids?.join('\0') ?? ''}\0${cardPreview.slimeEnemyUids?.join('\0') ?? ''}\0${cardPreview.cards.map((card) => card.uid).join('\0')}`
     : ''
-  const endTurnEffect = onAction ? partyEndTurnAbilities?.[0] : endTurnResolutionAbility(state)
+  const endTurnEffect = onAction ? partyEndTurnAbilities?.[0] : endTurnResolutionAbility(localCombat(state))
   const endTurnResolving = endTurnEffect !== undefined
   const powerController = usePowerController({
     state, viewerId, onAction, onChange, powerPreview, authoritativeVersion, authoritativeRefresh,
@@ -1236,7 +1280,7 @@ function CombatScreenView({
     chooseOrb: chooseCreativeAiOrb,
   } = powerController
   const baseStartAbilities = useMemo(() => state.phase === 'start' && !pendingTrigger
-    ? (partyStartTurnAbilities ?? startTurnAbilities(state))
+    ? (partyStartTurnAbilities ?? (hasCombatSimulation(state) ? startTurnAbilities(state) : []))
     : [], [partyStartTurnAbilities, pendingTrigger?.id, state])
   const startAbilityKey = baseStartAbilities.map((ability) =>
     `${ability.id}:${ability.overflowShivs}:${ability.targets?.map((target) => target.uid).join(',') ?? ''}:` +
@@ -1741,7 +1785,7 @@ function CombatScreenView({
       setResolvingStartTurnDiscard(false)
       return
     }
-    onChange?.(resolveStartTurnDiscard(state, viewerId, activeStartTurnDiscard.sourceId, card.uid))
+    onChange?.(resolveStartTurnDiscard(localCombat(state), viewerId, activeStartTurnDiscard.sourceId, card.uid))
     setResolvingStartTurnDiscard(false)
   }
 
@@ -2018,7 +2062,7 @@ function CombatScreenView({
   const livingPlayers = state.players.filter((player) => !player.dead)
   const pendingHermitPower = pendingPowerDef?.id === 'hermit_shadow_cloak' || pendingPowerDef?.id === 'hermit_black_wind'
   const pendingPotionOverflow = potionOverflowRequired
-  const endTurnParticipants = requiredEndTurnPlayerIds ?? livingPlayers.filter(discardNeedsChoice).map((player) => player.id)
+  const endTurnParticipants = requiredEndTurnPlayerIds ?? livingPlayers.filter(isCombatActor).filter(discardNeedsChoice).map((player) => player.id)
   const confirmedDiscards = decidedPlayerIds
     ? endTurnParticipants.filter((playerId) => decidedPlayerIds.includes(playerId)).length
     : endTurnParticipants.filter((playerId) => discardOrders[playerId]).length
@@ -2166,16 +2210,17 @@ function CombatScreenView({
       .filter((uid): uid is string | null => uid !== undefined),
   })), [startIds, startTurnEnemyTargets, startTurnEvokeSlots, startTurnEvokeTargets,
     startTurnExhaustUids, startTurnModeShifts, startTurnPlayerTargets, startTurnTargets])
-  const orderedStartAbilities = useMemo(() => baseStartAbilities.length > 0
-    ? startTurnAbilities(state, startIds, startChoiceDrafts)
-    : [], [baseStartAbilities, startChoiceDrafts, startIds, state])
+  const startPlan = useCombatQuery(queries, baseStartAbilities.length > 0
+    ? { kind: 'startTurn', order: startIds, choices: startChoiceDrafts } : null)
+  const orderedStartAbilities = startPlan?.kind === 'startTurn' ? startPlan.abilities : baseStartAbilities
+  const startPlanReady = baseStartAbilities.length === 0 || startPlan?.kind === 'startTurn'
   const fumesOwnerId = startTurnChoiceId
     ? orderedStartAbilities.find((ability) => ability.id === startTurnChoiceId)?.playerId
     : undefined
   const viewerStartTurnDecided = Boolean(onAction && startTurnDecidedPlayerIds?.includes(viewer.id))
-  const canResolveStartTurn = !onAction || Boolean(!viewerStartTurnDecided &&
+  const canResolveStartTurn = !planningStartTurn && startPlanReady && (!onAction || Boolean(!viewerStartTurnDecided &&
     requiredStartTurnPlayerIds?.includes(viewer.id) &&
-    (viewer.id === startTurnCoordinatorId || viewer.id !== fumesOwnerId))
+    (viewer.id === startTurnCoordinatorId || viewer.id !== fumesOwnerId)))
   const canCommitStartTurnOrder = canResolveStartTurn &&
     (!partyStartTurnOrderPending || viewer.id === startTurnCoordinatorId)
   const startTurnCoordinator = state.players.find((player) => player.id === startTurnCoordinatorId &&
@@ -2267,7 +2312,8 @@ function CombatScreenView({
     !pendingStartEnemy && !pendingStartPlayer && !pendingStartExhaust && !teammateStartExhaust &&
     !pendingStartModeShift && !pendingStartShiv &&
     !pendingStartEvokeTarget && !pendingStartEvoke
-  const meaningfulStartTurnChoice = startTurnNeedsChoice(state, baseStartAbilities)
+  const meaningfulStartTurnChoice = hasCombatSimulation(state) ? startTurnNeedsChoice(state, baseStartAbilities)
+    : baseStartAbilities.length > 0 || playerHasPostRollStartTurnChoice(state, viewer)
   const isStartTurnEnemyTarget = (enemyUid: string) =>
     Boolean(pendingStartEnemy?.targets?.some((target) => target.uid === enemyUid) &&
       startEnemyChoiceAvailable(enemyUid)) ||
@@ -2275,33 +2321,53 @@ function CombatScreenView({
       pendingStartShiv.ability.shivTargets.some((target) => target.uid === enemyUid))) ||
     Boolean(pendingStartEvokeTarget?.ability.evokeTargets?.some((target) => target.uid === enemyUid))
 
+  function withStartPlan(order: string[], choices: StartTurnChoice[], apply: (plan: StartTurnAbility[]) => void) {
+    if (startPlanRequest.current) return
+    const result = queries.load({ kind: 'startTurn', order, choices })
+    const deliver = (value: Awaited<typeof result>) => {
+      if (!queries.active || stateRef.current !== state) return
+      if (value.kind !== 'startTurn') throw new Error('Expected a Start-of-Turn preview.')
+      apply(value.abilities)
+    }
+    if (!(result instanceof Promise)) return deliver(result)
+    const request = {}
+    startPlanRequest.current = request
+    setPlanningStartTurn(true)
+    void result.then(deliver).catch(queries.report).finally(() => {
+      if (startPlanRequest.current !== request) return
+      startPlanRequest.current = null
+      setPlanningStartTurn(false)
+    })
+  }
+
   function moveStartTurnAbility(id: string, delta: -1 | 1) {
     const from = startIds.indexOf(id)
     const to = from + delta
     if (!canCommitStartTurnOrder || partyStartTurnOrderLocked || from < 0 || to < 0 || to >= startIds.length) return
     const order = [...startIds]
     ;[order[from], order[to]] = [order[to]!, order[from]!]
-    const plan = startTurnAbilities(state, order)
-    setStartTurnOrder(order)
-    setStartTurnEnemyTargets(Object.fromEntries(plan.map((ability) => [
-      ability.id,
-      savedStartTurnEnemyTargets?.[ability.id] ??
-        (ability.targets?.length === 1 ? ability.targets[0]!.uid : undefined),
-    ])))
-    setStartTurnPlayerTargets(Object.fromEntries(plan.map((ability) => [
-      ability.id,
-      ability.players?.length === 1 ? ability.players[0]!.id : undefined,
-    ])))
-    setStartTurnExhaustUids(Object.fromEntries(plan.map((ability) => [
-      ability.id, ability.exhaustCards?.length === 1 ? ability.exhaustCards[0]!.uid : undefined,
-    ])))
-    setStartTurnModeShifts({})
-    setStartTurnTargets(Object.fromEntries(plan.map((ability) => [
-      ability.id,
-      Array(ability.overflowShivs).fill(undefined),
-    ])))
-    setStartTurnEvokeSlots(Object.fromEntries(plan.map((ability) => [ability.id, []])))
-    setStartTurnEvokeTargets(Object.fromEntries(plan.map((ability) => [ability.id, []])))
+    withStartPlan(order, [], plan => {
+      setStartTurnOrder(order)
+      setStartTurnEnemyTargets(Object.fromEntries(plan.map((ability) => [
+        ability.id,
+        savedStartTurnEnemyTargets?.[ability.id] ??
+          (ability.targets?.length === 1 ? ability.targets[0]!.uid : undefined),
+      ])))
+      setStartTurnPlayerTargets(Object.fromEntries(plan.map((ability) => [
+        ability.id,
+        ability.players?.length === 1 ? ability.players[0]!.id : undefined,
+      ])))
+      setStartTurnExhaustUids(Object.fromEntries(plan.map((ability) => [
+        ability.id, ability.exhaustCards?.length === 1 ? ability.exhaustCards[0]!.uid : undefined,
+      ])))
+      setStartTurnModeShifts({})
+      setStartTurnTargets(Object.fromEntries(plan.map((ability) => [
+        ability.id,
+        Array(ability.overflowShivs).fill(undefined),
+      ])))
+      setStartTurnEvokeSlots(Object.fromEntries(plan.map((ability) => [ability.id, []])))
+      setStartTurnEvokeTargets(Object.fromEntries(plan.map((ability) => [ability.id, []])))
+    })
   }
 
   function chooseStartTurnEnemy(enemyUid: string) {
@@ -2339,28 +2405,30 @@ function CombatScreenView({
     const drafts = startChoiceDrafts.map((choice) => choice.id === pendingStartModeShift.id
       ? { ...choice, guardianModeShift: shifts[pendingStartModeShift.id] }
       : choice)
-    const plan = startTurnAbilities(state, startIds, drafts)
-    const choices = new Map(drafts.map((choice) => [choice.id, choice]))
-    const relevant = onAction ? plan.filter((ability) => ability.playerId === pendingStartModeShift.playerId) : plan
-    const ready = plan.length === baseStartAbilities.length &&
-      relevant.every((ability) => !startTurnChoicePending(ability, choices.get(ability.id))) &&
-      !startTurnNeedsChoice(state, [], onAction ? pendingStartModeShift.playerId : undefined)
-    if (ready && onAction) {
-      setResolvingStartTurnMode(true)
-      void Promise.resolve(finishStartTurn(plan, shifts, true)).then((outcome) => {
-        if (!outcome || outcome.status === 'accepted') setStartTurnModeShifts(shifts)
-        else if (outcome.status === 'unknown') {
-          setStartTurnModeShifts(shifts)
-          setUnknownStartTurnMode({
-            abilityId: pendingStartModeShift.id,
-            refreshAttempt: outcome.refreshAttempt ?? refreshRef.current ?? -1,
-          })
-        } else setResolvingStartTurnMode(false)
-      }, () => setResolvingStartTurnMode(false))
-      return
-    }
-    setStartTurnModeShifts(shifts)
-    if (ready) finishStartTurn(plan, shifts, true)
+    withStartPlan(startIds, drafts, plan => {
+      const choices = new Map(drafts.map((choice) => [choice.id, choice]))
+      const relevant = onAction ? plan.filter((ability) => ability.playerId === pendingStartModeShift.playerId) : plan
+      const ready = plan.length === baseStartAbilities.length &&
+        relevant.every((ability) => !startTurnChoicePending(ability, choices.get(ability.id))) &&
+        !(hasCombatSimulation(state) ? startTurnNeedsChoice(state, [], onAction ? pendingStartModeShift.playerId : undefined)
+          : playerHasPostRollStartTurnChoice(state, viewer))
+      if (ready && onAction) {
+        setResolvingStartTurnMode(true)
+        void Promise.resolve(finishStartTurn(plan, shifts, true)).then((outcome) => {
+          if (!outcome || outcome.status === 'accepted') setStartTurnModeShifts(shifts)
+          else if (outcome.status === 'unknown') {
+            setStartTurnModeShifts(shifts)
+            setUnknownStartTurnMode({
+              abilityId: pendingStartModeShift.id,
+              refreshAttempt: outcome.refreshAttempt ?? refreshRef.current ?? -1,
+            })
+          } else setResolvingStartTurnMode(false)
+        }, () => setResolvingStartTurnMode(false))
+        return
+      }
+      setStartTurnModeShifts(shifts)
+      if (ready) finishStartTurn(plan, shifts, true)
+    })
   }
 
   useEffect(() => {
@@ -2405,16 +2473,17 @@ function CombatScreenView({
     const nextDrafts = startChoiceDrafts.map((choice) => choice.id === pendingStartEvoke.id
       ? { ...choice, evokeSlots }
       : choice)
-    const evokeOrbs = startTurnAbilities(state, startIds, nextDrafts)
-      .find((ability) => ability.id === pendingStartEvoke.id)?.evokeOrbs ?? [picked.orb]
-    setStartTurnEvokeTargets({
-      ...startTurnEvokeTargets,
-      [pendingStartEvoke.id]: [
-        ...existingTargets,
-        ...evokeOrbs.slice(existingTargets.length).map((orb) => orb === 'frost'
-          ? null
-          : pendingStartEvoke.evokeTargets?.length === 0 ? fallbackTarget : undefined),
-      ],
+    withStartPlan(startIds, nextDrafts, plan => {
+      const evokeOrbs = plan.find((ability) => ability.id === pendingStartEvoke.id)?.evokeOrbs ?? [picked.orb]
+      setStartTurnEvokeTargets({
+        ...startTurnEvokeTargets,
+        [pendingStartEvoke.id]: [
+          ...existingTargets,
+          ...evokeOrbs.slice(existingTargets.length).map((orb) => orb === 'frost'
+            ? null
+            : pendingStartEvoke.evokeTargets?.length === 0 ? fallbackTarget : undefined),
+        ],
+      })
     })
   }
 
@@ -2448,7 +2517,7 @@ function CombatScreenView({
   function finishStartTurnScryOrder() {
     if (!canOrderStartTurnScries || orderedStartTurnScries.length !== baseStartTurnScries.length) return
     if (onAction) onAction({ kind: 'orderStartTurnScries', order: startTurnScryIds })
-    else onChange?.(orderStartTurnScries(state, startTurnScryIds))
+    else onChange?.(orderStartTurnScries(localCombat(state), startTurnScryIds))
   }
 
   function chooseStartTurnScryCard(card: CardInstance) {
@@ -2468,7 +2537,7 @@ function CombatScreenView({
       setResolvingStartTurnScry(false)
       return
     }
-    onChange?.(resolveStartTurnScry(state, viewerId, activeStartTurnScry.id, startTurnScryPicked))
+    onChange?.(resolveStartTurnScry(localCombat(state), viewerId, activeStartTurnScry.id, startTurnScryPicked))
     setResolvingStartTurnScry(false)
   }
 
@@ -2493,21 +2562,21 @@ function CombatScreenView({
       return Promise.resolve(onAction({ kind: 'resolveStartTurn', choices }))
         .finally(() => setSendingStartTurn(false))
     }
-    onChange?.(resolveStartPlayerTurn(state, choices))
+    onChange?.(resolveStartPlayerTurn(localCombat(state), choices))
   }
 
   // Resolve the engine's deterministic default plan; keep every meaningful
   // order, target, overflow, or Orb decision manual.
   useEffect(() => {
     if (onAction || !autoAdvance || state.phase !== 'start' || !canResolveStartTurn) return undefined
-    const next = forcedCard ? resolveDeterministicForcedCard(state)
+    const next = forcedCard ? resolveDeterministicForcedCard(localCombat(state))
       : meaningfulStartTurnChoice || baseStartTurnScries.length > 0 || activeStartTurnScry ||
         activeStartTurnDiscard || pendingTrigger
         ? state
-        : resolveStartPlayerTurn(state, defaultStartTurnChoices(state))
+        : resolveStartPlayerTurn(localCombat(state), defaultStartTurnChoices(localCombat(state)))
     if (next === state) return undefined
     const timer = window.setTimeout(() => {
-      onChange?.(next)
+      onChange?.(localCombat(next))
     }, 250)
     return () => window.clearTimeout(timer)
   }, [onAction, autoAdvance, autoAdvanceRetry, authoritativeRefresh, state.phase, state.turn, canResolveStartTurn,
@@ -2520,7 +2589,7 @@ function CombatScreenView({
       endTurnParticipants.some(id => discardOrders[id] === undefined) ||
       forcedCard || state.pendingCardCopy || voluntaryActionsBlocked ||
       mandatoryCardPlayWindowOwners(state).length > 0) return
-    const next = endPlayerTurn(state, discardOrders)
+    const next = endPlayerTurn(localCombat(state), discardOrders)
     if (next === state) return
     const timer = window.setTimeout(() => onChange?.(next), 250)
     return () => window.clearTimeout(timer)
@@ -2622,8 +2691,8 @@ function CombatScreenView({
         if (currentAutoAdvance.current.key === logicalAutoAdvanceKey && currentAutoAdvance.current.enabled && shouldRetry(outcome)) {
           setAutoAdvanceRetry((attempt) => attempt + 1)
         }
-      } else if (state.phase === 'enemy') onChange?.(enemyTurn(state))
-      else onChange?.(startPlayerTurnWithChoices(state))
+      } else if (state.phase === 'enemy') onChange?.(enemyTurn(localCombat(state)))
+      else onChange?.(startPlayerTurnWithChoices(localCombat(state)))
     }, resolveDelayMs)
     return () => window.clearTimeout(timer)
   }, [autoAdvance, autoAdvanceRetry, authoritativeRefresh, authoritativeRestoration, characterAttacksActive, cultistPreparedUntil, cultistThrowAt,
@@ -2635,7 +2704,7 @@ function CombatScreenView({
     setPending(null)
     if (onAction) void onAction({ kind: 'finishCardPlayWindow', windowId: playWindow.id })
     else {
-      const next = finishCardPlayWindow(state, viewer.id, playWindow.id)
+      const next = finishCardPlayWindow(localCombat(state), viewer.id, playWindow.id)
       if (next !== state) onChange?.(next)
     }
   }
@@ -2658,7 +2727,7 @@ function CombatScreenView({
       if (endTurnResolving) return
       if (onAction) onAction({ kind: 'endTurn' })
       else {
-        const next = beginEndTurnResolution(state)
+        const next = beginEndTurnResolution(localCombat(state))
         if (next !== state) onChange?.(next)
       }
       return
@@ -2679,7 +2748,7 @@ function CombatScreenView({
     if (endTurnParticipants.every((playerId) => orders[playerId])) {
       setDiscardTops({})
       setDiscardOrders({})
-      onChange?.(endPlayerTurn(state, orders))
+      onChange?.(endPlayerTurn(localCombat(state), orders))
     } else {
       setDiscardOrders(orders)
     }
@@ -2693,7 +2762,7 @@ function CombatScreenView({
     return (activePowerWindow(combat) || combat.phase === 'copy') && player ? { combat, player } : null
   }
 
-  function restoreUnknownCard(submitted: Pending, current: Player, usingMiracle: boolean,
+  function restoreUnknownCard(submitted: Pending, current: CombatActor, usingMiracle: boolean,
     authoritative = stateRef.current) {
     const alive = new Set(authoritative.enemies.filter((enemy) => !enemy.dead).map((enemy) => enemy.uid))
     const enemyUid = submitted.enemyUid && alive.has(submitted.enemyUid) ? submitted.enemyUid : null
@@ -2738,7 +2807,7 @@ function CombatScreenView({
       ...(triggerSlimeEnemyAmount > 0 ? { slimeEnemyUids } : {}),
     } : undefined
     if (!onAction) {
-      const result = resolvePendingTrigger(state, viewer!.id, trigger.id, enemyRow, enemyUid, targetPlayerId, triggerChoices)
+      const result = resolvePendingTrigger(localCombat(state), viewer!.id, trigger.id, enemyRow, enemyUid, targetPlayerId, triggerChoices)
       if (result === state) return
       onChange?.(result)
       return
@@ -2774,6 +2843,10 @@ function CombatScreenView({
     ? Math.min(pending.choice.amount, choicePoolSize)
     : 0
   const pendingDef = pending ? faceOf(cardDef(pending.card.defId), pending.card.upgraded) : null
+  const pendingAvailable = pending && (pending.chamberPlay
+    ? viewer.chamber.some(card => card.uid === pending.card.uid)
+    : pending.cardInHand ? viewer.hand.some(card => card.uid === pending.card.uid)
+      : state.pendingCardCopy?.card.uid === pending.card.uid)
   // Slayer Pack: Deceive Reality's Scry must name one playable revealed card to play
   // for 0, judged as the engine will once the card itself counts as played.
   const scryPlay = pendingDef?.effects.some((effect) => effect.kind === 'scryAndPlay') === true
@@ -2782,17 +2855,15 @@ function CombatScreenView({
   // and per change of the binned cards, not on every render.
   const scryPlayCards = scryPlay ? pending?.choiceCards : undefined
   const scryPlayPicked = scryPlay ? pending?.picked : undefined
-  const scryPlaySourceUid = scryPlay ? pending?.card.uid : undefined
-  const scryPlayEligibleUids = useMemo(() => {
-    if (!scryPlayCards || !scryPlayPicked) return new Set<string>()
-    const judged: CombatState = { ...state, players: state.players.map((player) => player.id === viewer.id
-      ? { ...player, hand: player.hand.filter((card) => card.uid !== scryPlaySourceUid),
-        cardsPlayedThisTurn: (player.cardsPlayedThisTurn ?? 0) + 1 } : player) }
-    return new Set(scryPlayCards.filter((card) => scryPlayCardPlayable(judged, viewer.id, scryPlayCards, card.uid,
-      scryPlayPicked.filter((uid) => uid !== card.uid))).map((card) => card.uid))
-  }, [state, viewer.id, scryPlayCards, scryPlayPicked, scryPlaySourceUid])
+  const scryPlan = useCombatQuery(queries, pendingAvailable && pending && scryPlayCards && scryPlayPicked
+    ? { ...cardQuery('evoke', pending), kind: 'scryPlay', discarded: scryPlayPicked } : null, scryPlayCards ?? undefined)
+  const scryPlayReady = !scryPlay || scryPlan?.kind === 'scryPlay'
+  const scryPlayUnknown = scryPlan?.kind === 'scryPlay' && scryPlan.eligible === null
+  const scryPlayEligibleUids = useMemo(() => new Set(scryPlayUnknown
+    ? scryPlayCards?.filter(card => !faceOf(cardDef(card.defId), card.upgraded).unplayable).map(card => card.uid)
+    : scryPlan?.kind === 'scryPlay' ? scryPlan.eligible ?? [] : []), [scryPlan, scryPlayUnknown, scryPlayCards])
   const scryPlayEligible = (card: CardInstance) => scryPlayEligibleUids.has(card.uid)
-  const scryPlayRequired = scryPlay && pending?.choice?.kind === 'scryToHand' &&
+  const scryPlayRequired = scryPlay && !scryPlayUnknown && pending?.choice?.kind === 'scryToHand' &&
     (pending.choiceCards ?? []).some(scryPlayEligible)
   const scryPlayChosenValid = Boolean(pending?.scryToHandUid && pending.choiceCards?.some((card) =>
     card.uid === pending.scryToHandUid && scryPlayEligible(card)))
@@ -2836,14 +2907,15 @@ function CombatScreenView({
     return pending.enemyUid !== null || slayerTargetAffordable(pending, enemy)
   }
   const handChoiceSatisfied = pending?.choice?.kind === 'scry' || pending?.choice?.kind === 'scryToHand'
-    ? scryPlay ? scryPlayRequired ? scryPlayChosenValid : pending.scryToHandUid === undefined : true
+    ? scryPlay ? scryPlayUnknown ? pending.scryToHandUid === undefined || scryPlayChosenValid
+      : scryPlayRequired ? scryPlayChosenValid : pending.scryToHandUid === undefined : true
     : pending?.choice?.kind === 'discardAny' || pending?.choice?.kind === 'exhaustAny' || pending?.choice?.kind === 'loadAny' ||
       pending?.choice?.kind === 'bottomdeck'
       ? true
     : pending?.choice?.kind === 'recoverExhaust' && pending.choice.minimum === 0
       ? pending.picked.length <= choiceNeeded
     : pending?.choice ? pending.picked.length === choiceNeeded : true
-  const revealedChoiceSatisfied = !pending?.choiceCards || pending.choiceConfirmed
+  const revealedChoiceSatisfied = scryPlayReady && (!pending?.choiceCards || pending.choiceConfirmed)
   const variableChoiceSatisfied = pending?.choice?.kind !== 'discardAny' && pending?.choice?.kind !== 'exhaustAny' &&
     pending?.choice?.kind !== 'loadAny' && pending?.choice?.kind !== 'bottomdeck' ||
     pending.choiceConfirmed && pending.picked.length >= variableMinimum
@@ -2946,12 +3018,13 @@ function CombatScreenView({
     ? nextEvokeChoice(pendingDef, viewer, pending.evokeSlots, state.die, pending.mode ?? undefined, pending.effectEnergy ?? 0)
     : null
   const pendingEvokeTarget = pending?.evokeEnemyUids.findIndex((target) => target === undefined) ?? -1
-  const pendingEvokeTargetOptions = pendingDef && pending && viewer
-    ? evokeTargetProgress(
-      pendingDef, state, viewer, pending.evokeSlots, pending.evokeEnemyUids,
-      pending.mode ?? undefined, pending.effectEnergy ?? 0,
-    ).options
-    : []
+  const evokePreview = useCombatQuery(queries, pendingAvailable && pending &&
+    (pending.evokeSlots.length > 0 || pending.evokeEnemyUids.length > 0) ? cardQuery('evoke', pending) : null)
+  const pendingEvokeTargetOptions = evokePreview?.kind === 'evoke' ? evokePreview.progress?.options ??
+    (pending && pendingDef && chosenEvokeOrbs(pendingDef, viewer, pending.evokeSlots, state.die,
+      pending.mode ?? undefined, pending.effectEnergy ?? 0)[pendingEvokeTarget] === 'lightning'
+      ? lightningTargetOptions(state, viewer, pending.card.defId)
+      : livingEnemies(state).map(enemy => ({ uid: enemy.uid, label: enemyLabel(state.enemies, enemy) }))) : []
   const pendingEvokeTargetUids = new Set(pendingEvokeTargetOptions.map((option) => option.uid))
   const pendingEvokeUsesRows = Boolean(pending && pendingEvokeTarget >= 0 &&
     chosenEvokeOrbs(pendingDef!, viewer, pending.evokeSlots, state.die,
@@ -3059,14 +3132,32 @@ function CombatScreenView({
     }
   }
 
-  const pendingShivProgress = useMemo(() => pending && choiceSatisfied && evokeChoicesDone &&
+  function cardQuery(kind: 'evoke' | 'shivs', next: Pending): Extract<CombatQuery, { kind: 'evoke' | 'shivs' }> {
+    return {
+      kind, cardUid: next.card.uid, source: next.chamberPlay ? 'chamber' : next.cardInHand ? 'hand' : 'copy',
+      context: { ...cardContext(next), ...(kind === 'evoke' ? { energySpent: next.effectEnergy ?? 0 } : {}) },
+    }
+  }
+
+  function queryCardTargets(kind: 'evoke' | 'shivs', next: Pending): CombatTargetProgress | null | Promise<CombatTargetProgress | null> {
+    if (kind === 'evoke' && chosenEvokeOrbs(faceOf(cardDef(next.card.defId), next.card.upgraded),
+      viewer, next.evokeSlots, state.die, next.mode ?? undefined, next.effectEnergy ?? 0).length === 0) {
+      return { index: 0, options: [], complete: true }
+    }
+    const result = queries.load(cardQuery(kind, next))
+    const progress = (value: CombatQueryResult) => {
+      if (value.kind !== 'evoke' && value.kind !== 'shivs') throw new Error('Expected a combat target preview.')
+      return value.progress
+    }
+    return result instanceof Promise ? result.then(progress) : progress(result)
+  }
+
+  const shivPreview = useCombatQuery(queries, pendingAvailable && pending && choiceSatisfied && evokeChoicesDone &&
     (!pendingNeedsCardEnemy || pending.enemyUid !== null) &&
     pending.enemyUids.length >= pending.enemyChoices &&
     pending.shivEnemyUids.length < pending.spentShivs + pending.overflowShivs
-    ? previewCardShivTargets(state, viewer.id, pending.card.uid, cardContext(pending),
-      pending.chamberPlay ? 'chamber' : pending.cardInHand ? 'hand' : 'copy')
-    : null, [state, viewer, pending, pendingDef, choiceSatisfied, evokeChoicesDone,
-      pendingNeedsCardEnemy, miracleOnCard])
+    ? cardQuery('shivs', pending) : null)
+  const pendingShivProgress = shivPreview?.kind === 'shivs' ? shivPreview.progress : null
   useEffect(() => {
     if (!pending || !pendingShivProgress) return
     if (pendingShivProgress.complete) {
@@ -3085,13 +3176,13 @@ function CombatScreenView({
     // The online draw pile is not authoritative for action validation. The room
     // has already bound this action to its private preview, so only the engine
     // can validate it.
-    const result = onAction && next.choiceCards
+    const result = onAction
       ? undefined
       : next.chamberPlay
-        ? playHermitChamberCard(state, viewer!.id, next.card.uid, context)
+        ? playHermitChamberCard(localCombat(state), viewer!.id, next.card.uid, context)
         : next.cardInHand
-        ? playCard(state, viewer!.id, next.card.uid, context)
-        : playCardCopy(state, viewer!.id, context)
+        ? playCard(localCombat(state), viewer!.id, next.card.uid, context)
+        : playCardCopy(localCombat(state), viewer!.id, context)
     if (result === state) {
       if (next.enemyUids.length > 0 || next.playerIds.length > 0 || next.slimeUids.length > 0 ||
         next.slimeEnemyUids.length > 0 ||
@@ -3148,15 +3239,10 @@ function CombatScreenView({
             return
           }
           if (next.cardInHand || next.chamberPlay) armedCardFlight.current = null
-          const authoritativePlayer: Player = {
-            ...viewer!,
-            ...authoritative.player,
-            deck: authoritative.player.deck ?? viewer!.deck,
-            draw: authoritative.player.draw ?? viewer!.draw,
-            hand: authoritative.player.hand ?? viewer!.hand,
-            chamber: authoritative.player.chamber ?? [],
-            cardRewards: viewer!.cardRewards,
-            rareRewards: viewer!.rareRewards,
+          const authoritativePlayer = combatActor(authoritative.combat, viewerId)
+          if (!authoritativePlayer) {
+            setPending(null)
+            return
           }
           const chamberCard = next.chamberPlay
             ? authoritativePlayer.chamber.find((card) => card.uid === next.card.uid)
@@ -3299,7 +3385,8 @@ function CombatScreenView({
     state, viewer, pending, miracleOnCard, blocked: Boolean(endTurnResolving || pendingTrigger),
     survivorDiscard, stateRef, cardActionPending, onAction, setUsingCard, setPending,
     withAdjacentChoices, downfallChoicesReady, slimeEnemyChoicesRequired, hermitEnemyChoicesRequired: loadedTargetCount, slayerTargetAffordable,
-    cardContext, commit,
+    cardContext, commit, queryTargets: queryCardTargets, targetQueryPending, setQueryBusy: setTargetQueryBusy,
+    onQueryError: queries.report,
     clearOtherActions: () => {
       cancelPowerChoice()
       setSpendingShiv(false)
@@ -3349,7 +3436,7 @@ function CombatScreenView({
       : null
   }
 
-  function endTurnOrbSourceAt(player: Player, event: React.PointerEvent<HTMLDivElement>) {
+  function endTurnOrbSourceAt(player: CombatPlayerView, event: React.PointerEvent<HTMLDivElement>) {
     const orb = (event.target as HTMLElement).closest<HTMLElement>('[data-orb-slot]')
     const slot = Number(orb?.dataset.orbSlot)
     const sourceOrb = Number.isInteger(slot) ? player.orbs[slot] : undefined
@@ -3378,7 +3465,7 @@ function CombatScreenView({
     return Number.isInteger(row) ? endTurnTargetForRow(row, active.ability) : null
   }
 
-  function onEndTurnOrbPointerDown(player: Player, event: React.PointerEvent<HTMLDivElement>) {
+  function onEndTurnOrbPointerDown(player: CombatPlayerView, event: React.PointerEvent<HTMLDivElement>) {
     const ability = endTurnEffect
     const source = endTurnOrbSourceAt(player, event)
     if (event.button !== 0 || !ability?.orbChoice || !source || !endTurnEffectCanStartDrag(ability.id)) return
@@ -3431,7 +3518,7 @@ function CombatScreenView({
       onAction({ kind: 'resolveEndTurnEffect', abilityId, targetUid })
       return
     }
-    const next = resolveEndTurnAbility(state, chooseEndTurnTarget(abilityId, targetUid))
+    const next = resolveEndTurnAbility(localCombat(state), chooseEndTurnTarget(abilityId, targetUid))
     if (next !== state) onChange?.(next)
   }
 
@@ -3572,9 +3659,9 @@ function CombatScreenView({
     const card = viewer.hand.find((held) => held.uid === forcedCardUid)
     if (card) {
       forcedAutoAttempt.current = forcedAttemptKey
-      const deterministic = onAction ? state : resolveDeterministicForcedCard(state)
+      const deterministic = onAction ? state : resolveDeterministicForcedCard(localCombat(state))
       if (deterministic !== state) {
-        onChange?.(deterministic)
+        onChange?.(localCombat(deterministic))
         return
       }
       confirmCardPlay(card, 'hand')
@@ -3643,7 +3730,7 @@ function CombatScreenView({
       })
       return
     }
-    const result = (mode === 'all' ? spendAllShivs : spendShiv)(state, viewer!.id, enemy.uid)
+    const result = (mode === 'all' ? spendAllShivs : spendShiv)(localCombat(state), viewer!.id, enemy.uid)
     if (result !== state) {
       setSpendingShiv(false)
       onChange?.(result)
@@ -3817,7 +3904,7 @@ function CombatScreenView({
         })
       return
     }
-    const result = spendSoulburn(state, viewer!.id, enemy.uid, extraCrispyPowerUid)
+    const result = spendSoulburn(localCombat(state), viewer!.id, enemy.uid, extraCrispyPowerUid)
     if (result !== state) {
       setSpendingSoulburn(false)
       setExtraCrispySoulburn(false)
@@ -3966,7 +4053,7 @@ function CombatScreenView({
     })
   }
 
-  function onAllyClick(ally: Player) {
+  function onAllyClick(ally: CombatPlayerView) {
     if (ally.dead) return
     if (pendingStartPlayer?.players?.some((player) => player.id === ally.id) &&
       armedEndTurnAbilityId === pendingStartPlayer.id) {
@@ -4391,6 +4478,18 @@ function CombatScreenView({
       {groundedVfx}
       <header ref={combatBarRef} className="combat__bar">
         <CombatDie state={state} viewerId={viewerId} />
+        {queries.error ? <span className="combat__power-hint" role="alert">
+          {queries.error}
+          {onResync ? <button type="button" className="combat__resync" disabled={resyncing} onClick={() => {
+            setResyncing(true)
+            void onResync().catch(queries.report).finally(() => setResyncing(false))
+          }}>Check room state</button> : null}
+        </span> : null}
+        {planningStartTurn || !startPlanReady ? <span className="combat__power-hint" role="status">Calculating choices...</span> : null}
+        {evokePreview?.kind === 'evoke' && evokePreview.progress === null && pendingEvokeTarget >= 0 ||
+        shivPreview?.kind === 'shivs' && shivPreview.progress === null ? (
+          <span className="combat__power-hint" role="status">Target prediction unavailable; the room will validate your choices.</span>
+        ) : null}
         <span key={`${state.turn}-${state.phase}`} className={`combat__phase combat__phase--${state.phase}`}>{state.phase === 'copy'
           ? `Resolve ${copyResolutionLabel ?? 'card'}`
           : hermitSetupPending ? 'Load 1 card'
@@ -4594,7 +4693,7 @@ function CombatScreenView({
               onClick={() => {
                 if (viewer.energy < CAPS.energy) {
                   if (onAction) onAction({ kind: 'spendMiracle' })
-                  else onChange?.(spendMiracle(state, viewer.id))
+                  else onChange?.(spendMiracle(localCombat(state), viewer.id))
                 }
                 else {
                   setPending(null)
@@ -4621,7 +4720,7 @@ function CombatScreenView({
                 setSpendingShiv(false)
                 setSpendingSoulburn(false)
                 if (onAction) onAction({ kind: 'spendVigor' })
-                else onChange?.(spendVigor(state, viewer.id))
+                else onChange?.(spendVigor(localCombat(state), viewer.id))
               }}>
               <StatusIcon name="vigor" size={22} />
               <span aria-hidden="true">x{viewer.vigor}</span>
@@ -4696,6 +4795,7 @@ function CombatScreenView({
                   onClick={() => chooseStartTurnEnemy('none')}>Face away</button>
               ) : null}
               {!visibleStartModeShift && state.startTurnStage !== 'facing' ? <StartTurnOrder key={`${state.combatId}/${state.turn}`} title="Start-of-turn order"
+                submitting={sendingStartTurn}
                 hint={startTurnOrderHint(canCommitStartTurnOrder && !partyStartTurnOrderLocked, 'effects',
                   orderedStartAbilities.length, partyStartTurnOrderLocked)} foldWhenShort
                 players={state.players}
@@ -5397,20 +5497,24 @@ function CombatScreenView({
             : `Discard ${powerScryDiscardUids.length} and continue`} />
       ) : null}
 
-      {relicScry ? (
+      {relicScry && relicScryCards ? (
         <HandSelectionScreen action="Discard" source="Golden Eye" title="Golden Eye — Scry 3" cardSource="revealed"
           description={relicScry.playerId === viewerId ? 'Select any revealed cards to discard.'
             : `Waiting for ${state.players.find(player => player.id === relicScry.playerId)?.name}.`}
-          cards={relicScry.playerId === viewerId ? relicScry.cards : []} selectedUids={relicCardUids}
-          minimum={0} maximum={relicScry.cards.length} disabled={usingRelic || relicScry.playerId !== viewerId} active={selectionDialogsActive && !owesChoice}
+          cards={relicScry.playerId === viewerId ? relicScryCards : []} selectedUids={relicCardUids}
+          minimum={0} maximum={relicScryCards.length} disabled={usingRelic || relicScry.playerId !== viewerId} active={selectionDialogsActive && !owesChoice}
           drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
-          onSelect={card => relicController.toggleCard(card.uid, relicScry.cards.length)}
+          onSelect={card => relicController.toggleCard(card.uid, relicScryCards.length)}
           onConfirm={relicScry.playerId === viewerId
             ? () => useRelic(relicScry.relicIndex, { scryDiscardUids: relicCardUids }) : undefined}
           confirmLabel={`Discard ${relicCardUids.length || 'none'}`} />
       ) : null}
 
-      {visibleDistilled ? (
+      {relicScry && relicScryCards === null || visibleDistilled?.cards === null ? (
+        <p className="combat__power-hint" role="status">Waiting for the owner to resolve the private reveal.</p>
+      ) : null}
+
+      {visibleDistilled?.cards ? (
         <HandSelectionScreen action="Play" source="Distilled Chaos" title="Distilled Chaos" cardSource="revealed"
           description={visibleDistilled.playerId === viewerId ? 'Choose the next revealed card to play for 0 Energy.'
             : `Waiting for ${state.players.find(player => player.id === visibleDistilled.playerId)?.name ?? 'another player'} to choose the next card.`}
@@ -5418,7 +5522,7 @@ function CombatScreenView({
           minimum={1} maximum={1} cost={0} disabled={visibleDistilled.playerId !== viewerId} active={selectionDialogsActive && !owesChoice}
           drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
           onSelect={card => onAction ? void onAction({ kind: 'chooseDistilledCard', cardUid: card.uid })
-            : onChange?.(chooseDistilledCard(state, viewerId, card.uid))} />
+            : onChange?.(chooseDistilledCard(localCombat(state), viewerId, card.uid))} />
       ) : null}
 
       {choosingRetains ? (
@@ -5551,7 +5655,7 @@ function CombatScreenView({
           minimum={0} maximum={pending.choice.kind === 'scry' || pending.choice.kind === 'scryToHand'
             ? pending.choiceCards.length : pending.choice.kind === 'loadAny' ? pending.choice.amount : choiceNeeded}
           disabled={usingCard || !mutationsEnabled || authoritativeConnected === false} active={selectionDialogsActive && !owesChoice}
-          confirmDisabled={!handChoiceSatisfied} blockPreviews={cardBlock}
+          confirmDisabled={!handChoiceSatisfied || !scryPlayReady} blockPreviews={cardBlock}
           drawLocked={viewer.drawLocked} sharedDrawLocked={sharedDrawLocked} stanceChangedThisTurn={stanceChangedThisTurn}
           onSelect={onChoiceCardClick} onConfirm={confirmChoice} cancelLabel="Cancel"
           onCancel={handSelectionCanCancel &&
@@ -5577,7 +5681,9 @@ function CombatScreenView({
           description={pending.choice.kind === 'scry' || pending.choice.kind === 'scryToHand'
                 ? pending.choice.kind === 'scryToHand'
                   ? scryPlay
-                    ? scryPlayRequired
+                    ? !scryPlayReady ? 'Checking which revealed cards can be played...'
+                      : scryPlayUnknown ? 'Private discard reactions affect play eligibility. Choose a card or continue; the room will validate the choice.'
+                      : scryPlayRequired
                       ? 'Choose one revealed card to play for 0 Energy, and any others to discard.'
                       : 'No revealed card can be played. Select any cards to discard.'
                     : 'Select any cards to discard. You may also put one eligible revealed card into your hand.'
@@ -6431,7 +6537,7 @@ function CombatScreenView({
                     <div className="seat__status-strip" data-guardian-mode={occupant.guardianMode ?? undefined} tabIndex={0}
                       aria-label={`${occupant.name} combat effects`}>
                       {!occupant.dead && ['start', 'player', 'copy', 'discard'].includes(state.phase) ?
-                        <IncomingDamage name={occupant.name} preview={incomingDamage?.get(occupant.id)}
+                        <IncomingDamage name={occupant.name} preview={incomingDamage?.get(occupant.id)} hiddenHand={occupant.hand === null}
                           block={occupant.block} wrath={occupant.stance === 'wrath'} startOfTurn={state.phase === 'start'} /> : null}
                       <TokenRow
                         showHelp

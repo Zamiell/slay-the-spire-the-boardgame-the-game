@@ -11,6 +11,8 @@
 // What is in here: HP loss and death, the clause resolver, the card movements
 // whose reactions have to run inside it, Orbs, and the trigger loop that closes
 // the circle.
+import { combatActor, UnknownCombatInformation, type CombatActor, type CombatView } from './view.ts'
+import { preservesPrivateSupplies } from './preview-privacy.ts'
 import {
   adjacentEnemies,
   clone,
@@ -3739,6 +3741,7 @@ export function scryPlayCardPlayable(
   revealed: readonly CardInstance[],
   cardUid: string,
   discardUids: readonly string[],
+  publicOnly = false,
 ): boolean {
   const card = revealed.find((candidate) => candidate.uid === cardUid)
   if (!card || discardUids.includes(cardUid) || faceOf(cardDef(card.defId), card.upgraded).unplayable) return false
@@ -3756,6 +3759,9 @@ export function scryPlayCardPlayable(
   for (const pending of context.pendingDiscards ?? []) {
     const owner = findPlayer(probe, pending.playerId)
     if (owner) resolveDiscardReactions(probe, owner, pending.cards)
+  }
+  if (publicOnly && !preservesPrivateSupplies(state, probe, { playerId, cardUids: shown })) {
+    throw new UnknownCombatInformation('Scry play eligibility depends on an unrevealed draw reaction.')
   }
   if (combatIsOver(probe)) return false
   actor.hand = [...actor.hand, forgetRetain(card)]
@@ -3968,11 +3974,12 @@ function allocate(
 export function evokeTargetProgress(
   def: CardDef,
   state: CombatState,
-  actor: Player,
+  actor: CombatActor,
   slots: readonly number[],
   targets: readonly (string | null | undefined)[],
   mode?: number,
   energySpent = 0,
+  publicOnly = false,
 ): { index: number; options: { uid: string; label: string }[]; complete: boolean } {
   const chosen = evokePlan(def, actor, slots, state.die, mode, energySpent).chosen
   const simulation = clone(state)
@@ -3999,6 +4006,9 @@ export function evokeTargetProgress(
     }
     if (!applyOrbEvokeEffect(simulation, simulationActor, orb, target, def.id)) {
       return { index, options, complete: false }
+    }
+    if (publicOnly && !preservesPrivateSupplies(state, simulation)) {
+      throw new UnknownCombatInformation('Orb target prediction depends on a hidden supply.')
     }
   }
   return { index: chosen.length, options: [], complete: true }
@@ -4344,7 +4354,7 @@ export function fireTriggers(
   }
 }
 
-export function triggerSourceById(player: Player, id: string): TriggerSource | undefined {
+export function triggerSourceById(player: Pick<Player, 'name' | 'relics' | 'powers'>, id: string): TriggerSource | undefined {
   if (id.startsWith('relic:')) {
     const [indexText, abilityText] = id.slice(6).split(':')
     const index = Number(indexText)
@@ -4499,7 +4509,7 @@ export function triggerNeedsHermitChoice(_state: CombatState, player: Player, so
   return triggerHermitChoices(player, source) !== undefined
 }
 
-export function triggerSlimeChoice(state: CombatState, player: Player, source: TriggerSource):
+export function triggerSlimeChoice(state: CombatView, player: CombatActor, source: TriggerSource):
   { cards: { uid: string; label: string }[]; amount: number; minimum: number } | undefined {
   const effect = source.effects.find((candidate) =>
     ['growSlime', 'commandSlime', 'gainSlimeVigor', 'tapSlime', 'rainOfGoop'].includes(candidate.kind)) as unknown as
@@ -4527,12 +4537,12 @@ export function pendingTriggerSlimeEnemyChoiceCount(
 }
 
 export function pendingTriggerSlimeEnemyChoiceLabels(
-  state: CombatState,
+  state: CombatView,
   triggerId: number,
   slimeUids: readonly string[],
 ): string[] {
   const pending = state.pendingTriggers?.find((trigger) => trigger.id === triggerId)
-  const player = pending && findPlayer(state, pending.playerId)
+  const player = pending && combatActor(state, pending.playerId)
   const source = player && pending ? triggerSourceById(player, pending.sourceId) : undefined
   if (!player || !source) return []
   const def: CardDef = {

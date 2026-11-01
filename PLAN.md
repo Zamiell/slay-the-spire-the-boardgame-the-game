@@ -49,7 +49,7 @@ controller. Automatic setup no longer retries an uncertain action on a timer.
 New setup, Tiny House, and Neow recovery cases pass on desktop and horizontal phone;
 existing Tiny House, Neow viewport, and loot integration checks pass. The Tiny House
 resume regression now explicitly verifies the intended whole-loot rewind before
-reacquisition. The combined final gate and visual review remain tracked below.
+reacquisition. The completed combined gate and visual review are recorded below.
 
 ## 2. Type the internal room model and complete client action types
 
@@ -167,15 +167,41 @@ The online adapter currently substitutes empty arrays for hidden piles and
 manufactures RNG and other fields to satisfy `CombatState`. That requires
 consumers to remember which apparently valid values are unavailable information.
 
-- [ ] Define a read-only presentation model that distinguishes unknown from empty.
-- [ ] Separate local simulation capabilities from online presentation capabilities.
-- [ ] Adapt renderers and queries to request only the information they actually use.
-- [ ] Keep previews that need private information explicitly unavailable.
-- [ ] Remove fabricated authoritative-state fields as consumers migrate.
+- [x] Define a read-only presentation model that distinguishes unknown from empty.
+- [x] Separate local simulation capabilities from online presentation capabilities.
+- [x] Adapt renderers and queries to request only the information they actually use.
+- [x] Keep previews that need private information explicitly unavailable.
+- [x] Remove fabricated authoritative-state fields as consumers migrate.
 
 **Completion criteria:** Local and online presentation remain consistent without
 treating hidden data as empty data. Private arrays and supplies remain private,
 and online previews cannot accidentally simulate from invented state.
+
+**Implemented:** Combat rendering and public queries consume `CombatView`; hidden
+piles remain null, draw order is explicitly unknown, and private supplies/RNG are
+absent. Local mutations acquire a checked simulation capability. Online decisions
+are validated by the room rather than a fabricated local preflight. Version-bound,
+authenticated read-only queries provide authoritative planning and on-demand HUD
+calculations without consuming gameplay state or the recovery-read rate budget.
+Local planning remains synchronous; delayed online calculations are scoped and
+cancelled on replacement. Reveal-bound queries cannot substitute another card,
+payment, target, or unrevealed discard.
+
+Private-supply-dependent predictions remain unavailable. Incoming estimates exclude
+other seats' private hand effects and identify that limitation. Unknown Scry
+eligibility is not reported as an empty set of legal choices. Transform availability
+is supplied explicitly without exposing reward piles. The matching server update
+is required and documented; an older server produces an explicit update message.
+The existing noncombat compatibility adapter is outside this combat-only migration.
+
+**Evidence:** Both compiler projects, negative type fixtures, public-view/privacy
+contracts, synchronous and delayed card coordination, room/server regressions,
+and Chromium/WebKit card forecasts pass. New recorded desktop/phone cases verify
+late-reply fencing and delayed Orb planning against actual room calculations.
+Online Guardian and party-start checks pass. The latter exposed an order disclosure
+covering the next target; editing or submitting now closes it with appropriate
+focus handling, and pointer/keyboard regressions cover the fix. Final combined
+validation and the completed recorded UI sweep are documented below.
 
 ## 6. Consolidate event-selection state
 
@@ -241,7 +267,7 @@ Sizing now measures short-lived poses atomically rather than racing their remova
 and verifies the actual supported WebM/MOV/WebP policy. Browser libraries were
 restored in an isolated container, with no host package installation. The complete
 skin-attack presentation matrix and start-turn restoration checks also pass.
-The combined final UI review remains part of the final gate.
+The combined final UI review is recorded below.
 
 ## 8. Finish component-owned CSS consolidation
 
@@ -274,7 +300,7 @@ and horizontal phone for idle, hover, keyboard focus, press, chosen, disabled,
 game/OS reduced motion, and forced colors. Campfire scene, local/online action,
 shared picker, hover overflow, and Tiny House suites pass. Screenshots were
 reviewed, and the complete light lane passes 92/92 in the compatible toolchain.
-The combined recorded UI sweep remains part of final delivery.
+The completed combined recorded UI sweep is recorded below.
 
 ## 9. Make verifier ownership and output resources explicit
 
@@ -372,3 +398,31 @@ Follow `AGENTS.md` for each implementation increment:
 - Complete the required light, type, build, and focused checks before publishing.
   The legacy browser umbrella remains opt-in.
 - Update this plan as items are completed, narrowed, or rejected with evidence.
+
+### Completed final gate
+
+All ten implementation items are complete within their stated boundaries.
+
+- The final full light lane passed **93/93** suites with zero retries in the
+  compatible asset toolchain. `pnpm build` passed both compiler projects and the
+  production bundle. Focused gameplay, multiplayer, replay, persistence, lifecycle,
+  and presentation coverage is recorded under the individual items above.
+- The complete normal-motion UI sweep passed **22 desktop and 22 horizontal-phone
+  surfaces**. All 88 arrival/interaction screenshots and sampled frames from both
+  recordings were reviewed, including dense Neow arrival sequences. The sweep now
+  writes its current capture manifest in normal mode, records arrival paths, and
+  rejects duplicate capture names instead of leaving stale review metadata.
+- Recording review found obsolete Neow offer chrome showing through the shared
+  card picker's entrance animation. Card offers now omit that duplicate heading
+  and use an opaque, borderless underlay; the shared entrance and hover animations
+  remain intact. Chromium and WebKit Neow checks pass on both supported screen
+  classes, and the final noncombat delivery suite passes **18/18** cases.
+- WebKit's scaled phone viewport exposed an integer-rounding error in the layout
+  assertion, not an overflowing scene. The focused verifier now measures the
+  fractional visual viewport and retains failure geometry/screenshots. Native
+  hover checks require a real intermediate frame and a non-instant transition
+  without assuming software WebKit renders three intermediate frames.
+
+The final partial-view client requires the matching room-server update, as
+documented in `docs/online-play.md`. No private-state fallback is retained for
+older servers. The legacy browser umbrella was not run.

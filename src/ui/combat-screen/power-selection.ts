@@ -1,8 +1,8 @@
+import { combatActor, type CombatView } from '../../game/combat/view.ts'
 import { activePowerWindow, cardNeedsEnemy, guardianCardNeedsAlly, livingEnemies, powerActivationAllowed } from '../../game/combat.ts'
-import type { CombatState, PowerContext } from '../../game/combat.ts'
+import type { PowerContext } from '../../game/combat.ts'
 import { cardDef, faceOf } from '../../game/cards.ts'
 import type { CardInstance } from '../../game/types.ts'
-import type { VisibleCombat } from '../../multiplayer/useRoomSession.ts'
 import type { CombatScreenProps, PowerSubmission } from './types.ts'
 import { powerSubmissionCommitted } from './action-evidence.ts'
 
@@ -106,8 +106,8 @@ export function powerSelectionValues(state: PowerSelection) {
   }
 }
 
-export function powerRequirements(combat: CombatState, viewerId: string, powerUid: string | null) {
-  const viewer = combat.players.find((player) => player.id === viewerId)
+export function powerRequirements(combat: CombatView, viewerId: string, powerUid: string | null) {
+  const viewer = combatActor(combat, viewerId)
   const power = viewer?.powers.find((power) => power.uid === powerUid)
   const def = power ? faceOf(cardDef(power.defId), power.upgraded) : null
   const needsEnemy = Boolean(viewer && power && def &&
@@ -126,8 +126,8 @@ export function powerRequirements(combat: CombatState, viewerId: string, powerUi
   }
 }
 
-export function powerActivationChoice(combat: CombatState, viewerId: string, powerUid: string) {
-  const viewer = combat.players.find((player) => player.id === viewerId)
+export function powerActivationChoice(combat: CombatView, viewerId: string, powerUid: string) {
+  const viewer = combatActor(combat, viewerId)
   const requirements = powerRequirements(combat, viewerId, powerUid)
   const { pendingPower: power, pendingPowerDef: def, pendingPowerNeedsEnemy, pendingPowerNeedsAlly } = requirements
   if (!viewer || !power || !def?.activeAbility || powerSubmissionCommitted({ powerUid }, combat, viewerId) ||
@@ -149,10 +149,10 @@ export function powerActivationChoice(combat: CombatState, viewerId: string, pow
 
 /** Rebuild only from the owner's authoritative reveal, never from their hidden draw pile. */
 export function restorePowerSelection(
-  submitted: PowerSubmission, combat: CombatState | VisibleCombat, viewerId: string,
+  submitted: PowerSubmission, combat: CombatView, viewerId: string,
   preview: CombatScreenProps['powerPreview'], confirmed: boolean,
 ): PowerSelection {
-  const viewer = combat.players.find((player) => player.id === viewerId)
+  const viewer = combatActor(combat, viewerId)
   if (!viewer || !activePowerWindow(combat) || combat.startTurnProgress?.forcedCard ||
     !viewer.powers.some((power) => power.uid === submitted.powerUid) ||
     powerSubmissionCommitted(submitted, combat, viewerId)) return { kind: 'idle' }
@@ -166,8 +166,8 @@ export function restorePowerSelection(
   })
 }
 
-function powerContextSurvives(context: PowerContext, combat: CombatState | VisibleCombat, viewerId: string) {
-  const viewer = combat.players.find((player) => player.id === viewerId)
+function powerContextSurvives(context: PowerContext, combat: CombatView, viewerId: string) {
+  const viewer = combatActor(combat, viewerId)
   const alive = combat.enemies.filter((enemy) => !enemy.dead)
   return (!context.enemyUid || alive.some((enemy) => enemy.uid === context.enemyUid)) &&
     (context.enemyRow === undefined || alive.some((enemy) => enemy.row === context.enemyRow)) &&
@@ -175,9 +175,9 @@ function powerContextSurvives(context: PowerContext, combat: CombatState | Visib
     (context.exhaustUids ?? []).every((uid) => viewer?.hand?.some((card) => card.uid === uid))
 }
 
-export function reconcilePowerSelection(selection: PowerSelection, combat: CombatState, viewerId: string): PowerSelection {
+export function reconcilePowerSelection(selection: PowerSelection, combat: CombatView, viewerId: string): PowerSelection {
   if (selection.kind === 'idle') return selection
-  const viewer = combat.players.find((player) => player.id === viewerId)
+  const viewer = combatActor(combat, viewerId)
   if (!viewer || !activePowerWindow(combat) || combat.startTurnProgress?.forcedCard ||
     !viewer.powers.some((power) => power.uid === selection.powerUid) ||
     powerSubmissionCommitted(selection, combat, viewerId)) return { kind: 'idle' }

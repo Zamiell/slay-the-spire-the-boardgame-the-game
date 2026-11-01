@@ -1,9 +1,10 @@
+import type { CombatView } from '../../game/combat/view.ts'
 import { useEffect, useMemo, useRef } from 'react'
 import { activatePower, activePowerWindow, cardNeedsEnemy, livingEnemies, powerAbilityUsed, previewPowerChoice } from '../../game/combat.ts'
-import type { CombatState, PowerContext } from '../../game/combat.ts'
+import type { PowerContext } from '../../game/combat.ts'
 import { cardDef, faceOf } from '../../game/cards.ts'
 import type { CardInstance, Enemy } from '../../game/types.ts'
-import type { ActionOutcome, VisibleCombat } from '../../multiplayer/useRoomSession.ts'
+import type { ActionOutcome } from '../../multiplayer/useRoomSession.ts'
 import type { CombatScreenProps, PowerSubmission } from './types.ts'
 import { powerSubmissionCommitted } from './action-evidence.ts'
 import {
@@ -13,17 +14,18 @@ import {
 import type { PowerSelection, PowerSelectionEvent } from './power-selection.ts'
 import { useActionLifecycle } from '../actions/useActionLifecycle.ts'
 import { useScopedSelection } from './useScopedSelection.ts'
+import { combatActor, localCombat } from '../../game/combat/view.ts'
 
 type Options = Pick<CombatScreenProps, 'state' | 'viewerId' | 'onAction' | 'onChange' |
   'powerPreview' | 'authoritativeVersion' | 'authoritativeRefresh'> & {
-  reconciliation: (outcome: ActionOutcome) => { combat: CombatState | VisibleCombat } | null
+  reconciliation: (outcome: ActionOutcome) => { combat: CombatView } | null
   triggerId?: number
   endTurnResolving: boolean
 }
 
 export function usePowerController(options: Options) {
   const { state, viewerId, onAction, onChange, powerPreview } = options
-  const viewer = state.players.find((player) => player.id === viewerId)
+  const viewer = combatActor(state, viewerId)
   const latest = useRef(options)
   latest.current = options
   const scope = `${state.combatId}:${viewerId}`
@@ -37,7 +39,7 @@ export function usePowerController(options: Options) {
     return outcome.snapshot && outcome.snapshot.version > (latest.current.authoritativeVersion ?? -1)
       ? outcome.snapshot.powerPreview : latest.current.powerPreview
   }
-  const lifecycle = useActionLifecycle<PowerSubmission, CombatState>({
+  const lifecycle = useActionLifecycle<PowerSubmission, CombatView>({
     scope, board: state, refresh: options.authoritativeRefresh,
     committed: (power, combat) => powerSubmissionCommitted(power, combat, viewerId),
     reconciled: (power, committed, combat) => {
@@ -83,7 +85,7 @@ export function usePowerController(options: Options) {
         context = { ...context, enemyUid: onlyEnemy.uid }
       }
     }
-    const result = onAction && values.powerChoiceCards ? undefined : activatePower(state, viewer.id, powerUid, context)
+    const result = onAction ? undefined : activatePower(localCombat(state), viewer.id, powerUid, context)
     if (result === state) return
     const submitted = { powerUid, powerPreviewId: powerPreview?.id, context }
     cancel()
@@ -120,7 +122,7 @@ export function usePowerController(options: Options) {
   function requestPreview(powerUid: string) {
     if (!viewer || locked()) return
     if (!onAction) {
-      const preview = previewPowerChoice(state, viewer.id, powerUid)
+      const preview = previewPowerChoice(localCombat(state), viewer.id, powerUid)
       if (preview) dispatch({ type: 'preview', powerUid, cards: preview.cards })
       return
     }

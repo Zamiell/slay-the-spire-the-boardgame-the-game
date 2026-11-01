@@ -1,4 +1,4 @@
-import type { CombatState } from '../../game/combat/types.ts'
+import type { CombatView } from '../../game/combat/view.ts'
 
 const RESOURCES = ['shivs', 'miracles', 'vigor', 'soulburn', 'clawCubesGainedThisCombat'] as const
 export type CombatResource = typeof RESOURCES[number]
@@ -10,7 +10,7 @@ export type ResourceVisibility = {
 /** Remember acquisition, not the current balance; keep each seat's history separate. */
 export function trackCombatResources(
   previous: ResourceVisibility | undefined,
-  state: Pick<CombatState, 'combatId' | 'players'>,
+  state: Pick<CombatView, 'combatId' | 'players'>,
 ): ResourceVisibility {
   let next = previous?.combatId === state.combatId ? previous
     : { combatId: state.combatId, byPlayer: new Map<string, ReadonlySet<CombatResource>>() }

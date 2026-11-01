@@ -1,11 +1,12 @@
+import type { CombatView, CombatPlayerView } from '../../game/combat/view.ts'
 import { useEffect, useRef } from 'react'
 import {
   activatePotion, canActivatePotion, isPostRollStartTurnPotionChoice, livingEnemies, overflowShivCount,
 } from '../../game/combat.ts'
-import type { CombatState, PotionContext } from '../../game/combat.ts'
+import type { PotionContext } from '../../game/combat.ts'
 import { potionDef } from '../../game/relics.ts'
-import type { ActionOutcome, VisibleCombat, VisiblePlayer } from '../../multiplayer/useRoomSession.ts'
-import type { Player } from '../../game/types.ts'
+import type { ActionOutcome } from '../../multiplayer/useRoomSession.ts'
+
 import { gainedShivs } from './helpers.ts'
 import { transitionPotionSelection } from './potion-selection.ts'
 import type { PotionSelection, PotionSelectionEvent } from './potion-selection.ts'
@@ -13,18 +14,19 @@ import { useActionLifecycle } from '../actions/useActionLifecycle.ts'
 import { useScopedSelection } from './useScopedSelection.ts'
 import { potionSubmissionCommitted } from './action-evidence.ts'
 import type { CombatScreenProps } from './types.ts'
+import { combatActor, localCombat } from '../../game/combat/view.ts'
 
 type PotionSubmission = { potionId: string; countBefore: number }
 type Options = Pick<CombatScreenProps, 'state' | 'viewerId' | 'onAction' | 'onChange' |
   'authoritativeRefresh' | 'partyStartTurnPostRollLocked'> & {
   clearOtherActions: () => void
   reconciliation: (outcome: ActionOutcome) => {
-    combat: CombatState | VisibleCombat
-    player: Player | VisiblePlayer
+    combat: CombatView
+    player: CombatPlayerView
   } | null
 }
 
-export function potionNeedsSelection(state: CombatState | VisibleCombat, viewer: Player | VisiblePlayer, potionId: string) {
+export function potionNeedsSelection(state: CombatView, viewer: CombatPlayerView, potionId: string) {
   const potion = potionDef(potionId)
   const onlyEnemy = state.enemies.filter((enemy) => !enemy.dead).length === 1
   const capacity = state.potionLimit + (viewer.relics.some((relic) => relic.defId === 'potion_belt') ? 2 : 0)
@@ -38,13 +40,13 @@ export function potionNeedsSelection(state: CombatState | VisibleCombat, viewer:
 
 export function usePotionController(options: Options) {
   const { state, viewerId, onAction, onChange, partyStartTurnPostRollLocked } = options
-  const viewer = state.players.find((player) => player.id === viewerId)
+  const viewer = combatActor(state, viewerId)
   const scope = `${state.combatId}:${viewerId}`
   const [selection, setSelection] = useScopedSelection<PotionSelection>(scope, { kind: 'idle' })
   function dispatch(event: PotionSelectionEvent) {
     setSelection((current) => transitionPotionSelection(current, event))
   }
-  const lifecycle = useActionLifecycle<PotionSubmission, CombatState>({
+  const lifecycle = useActionLifecycle<PotionSubmission, CombatView>({
     scope,
     board: state,
     refresh: options.authoritativeRefresh,
@@ -87,7 +89,7 @@ export function usePotionController(options: Options) {
         context = { ...context, enemyUid: onlyEnemy.uid }
       } else if (potion.target === 'row') context = { ...context, enemyRow: onlyEnemy.row }
     }
-    const result = activatePotion(state, viewer.id, potionId, context)
+    const result = onAction ? undefined : activatePotion(localCombat(state), viewer.id, potionId, context)
     if (result === state) {
       if (context.shivEnemyUids?.length) dispatch({ type: 'targets', targets: [] })
       return
@@ -98,7 +100,7 @@ export function usePotionController(options: Options) {
     lifecycle.submit({ potionId, countBefore }, () => onAction ? onAction({
       kind: 'usePotion', potionId, ...context, preflight: true,
       expectedShivOverflow: overflow?.expected, skipOverflow: overflow?.skip,
-    }) : onChange?.(result), Boolean(onAction), (outcome) => {
+    }) : onChange?.(result!), Boolean(onAction), (outcome) => {
       if (outcome.status !== 'refused' && outcome.status !== 'reconciled') return
       const authoritative = options.reconciliation(outcome)
       if (!authoritative) return

@@ -1,6 +1,7 @@
+import type { CombatActor, CombatView } from '../../game/combat/view.ts'
 import type { CardDef,Effect } from '../../game/cards.ts'
 import { cardDef,faceOf } from '../../game/cards.ts'
-import type { CombatState } from '../../game/combat.ts'
+
 import {
 activeCardPlayWindow,
 amountOf,
@@ -21,14 +22,14 @@ playCost,
 reachedTimeWarpLimit,
 slimeChoiceIsAvailable
 } from '../../game/combat.ts'
-import type { CardInstance,Player } from '../../game/types.ts'
+import type { CardInstance } from '../../game/types.ts'
 import type { Pending } from './types.ts'
 
 export function requirementsOf(
   def: CardDef,
   allies: number,
-  viewer: Player,
-  state: CombatState,
+  viewer: CombatActor,
+  state: CombatView,
   energySpent?: number,
   cardInHand = true,
   sourceDeadOn = false,
@@ -190,8 +191,8 @@ export function requirementsOf(
 export function pendingFor(
   card: CardInstance,
   choiceCards: CardInstance[] | null,
-  state: CombatState,
-  viewer: Player,
+  state: CombatView,
+  viewer: CombatActor,
   cardInHand = true,
   copiedEnergySpent?: number,
   sourceInActorHand = cardInHand,
@@ -272,8 +273,8 @@ export function cardShivsOnPlay(def: CardDef, discarded = 0): number {
 }
 
 export function canAfford(
-  state: CombatState,
-  player: Player,
+  state: CombatView,
+  player: CombatActor,
   card: CardInstance,
   spendMiracle = false,
   drawCount = player.draw.length,

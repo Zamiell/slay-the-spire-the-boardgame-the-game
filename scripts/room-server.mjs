@@ -24,6 +24,7 @@ import {
   findSeat,
   joinRoom,
   markDisconnected,
+  queryCombat,
   removeSeat,
   restoreRoom,
   saveStore,
@@ -190,6 +191,7 @@ export function createRoomServer({
   const invalidUpgradeRates = new Map()
   const actionRates = new Map()
   const readRates = new Map()
+  const previewRates = new Map()
   const voiceRates = new Map()
   const pendingAuth = new Map()
   const wss = new WebSocketServer({
@@ -509,6 +511,9 @@ export function createRoomServer({
   const mayRead = (room, token) => consume(
     readRates, `${room.code}:${token}`, MESSAGE_WINDOW_MS, MAX_READS_PER_WINDOW,
   )
+  const mayPreview = (room, token) => consume(
+    previewRates, `${room.code}:${token}`, MESSAGE_WINDOW_MS, MAX_MESSAGES_PER_WINDOW,
+  )
   const maySignalVoice = (room, token) => consume(
     voiceRates, `${room.code}:${token}`, MESSAGE_WINDOW_MS, MAX_VOICE_MESSAGES_PER_WINDOW,
   )
@@ -533,6 +538,7 @@ export function createRoomServer({
     for (const [key, rate] of invalidUpgradeRates) if (now - rate.startedAt >= CREATE_WINDOW_MS) invalidUpgradeRates.delete(key)
     for (const [key, rate] of actionRates) if (now - rate.startedAt >= MESSAGE_WINDOW_MS) actionRates.delete(key)
     for (const [key, rate] of readRates) if (now - rate.startedAt >= MESSAGE_WINDOW_MS) readRates.delete(key)
+    for (const [key, rate] of previewRates) if (now - rate.startedAt >= MESSAGE_WINDOW_MS) previewRates.delete(key)
     for (const [key, rate] of voiceRates) if (now - rate.startedAt >= MESSAGE_WINDOW_MS) voiceRates.delete(key)
     for (const [code, quorum] of store.reconnectQuorums) {
       if (now < quorum.expiresAt) continue
@@ -1019,7 +1025,7 @@ export function createRoomServer({
           throw error
         }
       }
-      const match = url.pathname.match(/^\/api\/rooms\/([^/]+)(?:\/(join|leave|character|ascension|relic-rule|last-stand-rule|run-meta|campaign-select|start|action|voice-ice))?$/)
+      const match = url.pathname.match(/^\/api\/rooms\/([^/]+)(?:\/(join|leave|character|ascension|relic-rule|last-stand-rule|run-meta|campaign-select|start|action|preview|voice-ice))?$/)
       if (!match) return send(response, 404, { error: 'Not found' })
       const room = roomOrThrow(match[1])
       const operation = match[2]
@@ -1080,6 +1086,13 @@ export function createRoomServer({
         return send(response, 401, { error: 'Unknown seat' })
       }
       if (operation !== 'leave' && seatRestricted(room, token)) rejectRestricted()
+      if (operation === 'preview') {
+        if (!mayPreview(room, token)) return send(response, 429, { error: 'Rate limit exceeded' })
+        if (recoveringRestart(room)) return send(response, 409, { error: 'Waiting for every player to reconnect' })
+        const body = await readJson(request)
+        if (store.rooms.get(room.code) !== room) return send(response, 404, { error: 'Room not found' })
+        return send(response, 200, queryCombat(room, token, body))
+      }
       if (!mayAct(room, token)) return send(response, 429, { error: 'Rate limit exceeded' })
       if (recoveringRestart(room)) return send(response, 409, { error: 'Waiting for every player to reconnect' })
       const body = await readJson(request)

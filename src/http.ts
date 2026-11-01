@@ -34,6 +34,7 @@ export async function requestJson(url: string | (() => Promise<string>), options
   body?: object
   cache?: RequestCache
   signal?: AbortSignal
+  headers?: HeadersInit
 }) {
   if (options.signal?.aborted) throw new DOMException('Request cancelled', 'AbortError')
   const controller = new AbortController()
@@ -44,10 +45,13 @@ export async function requestJson(url: string | (() => Promise<string>), options
   try {
     const endpoint = typeof url === 'function' ? await url() : url
     if (controller.signal.aborted) throw new DOMException('Request cancelled', 'AbortError')
+    const headers = new Headers(options.headers)
+    if (options.body !== undefined) headers.set('content-type', 'application/json')
     const response = await fetch(endpoint, {
       method: options.method ?? 'GET', cache: options.cache,
+      headers,
       ...(options.body === undefined ? {} : {
-        headers: { 'content-type': 'application/json' }, body: JSON.stringify(options.body),
+        body: JSON.stringify(options.body),
       }),
       signal: controller.signal,
     })

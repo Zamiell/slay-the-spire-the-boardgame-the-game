@@ -9,10 +9,13 @@ import { cardDef, faceOf } from '../cards.ts'
 import type { Effect, TargetScope } from '../cards.ts'
 import { enemyDef } from '../enemies.ts'
 import type { Enemy, OrbType, Player } from '../types.ts'
+import type { CombatView } from './view.ts'
+
+type BoardView = Pick<CombatView, 'players' | 'enemies'>
 
 export const clone = <T,>(value: T): T => structuredClone(value)
 
-export function livingEnemies(state: CombatState): Enemy[] {
+export function livingEnemies(state: Pick<CombatView, 'enemies'>): Enemy[] {
   return state.enemies.filter((enemy) => !enemy.dead)
 }
 
@@ -21,7 +24,7 @@ export function initialEnemySlots(state: Pick<CombatState, 'initialEnemyCount' |
     !/-summon-\d+-\d+-\d+$/.test(enemy.uid)).length
 }
 
-export function findPlayer(state: CombatState, playerId: string): Player | undefined {
+export function findPlayer<P extends { id: string }>(state: { players: readonly P[] }, playerId: string): P | undefined {
   return state.players.find((player) => player.id === playerId)
 }
 
@@ -32,7 +35,7 @@ export function retainedBlockAtStartOfTurn(player: Pick<Player, 'block' | 'power
 }
 
 /** Public remaining HP-loss allowance from Apparition and persistent Powers. */
-export function remainingRoundHpLoss(player: Player): number | undefined {
+export function remainingRoundHpLoss(player: Pick<Player, 'powers' | 'hpLossLimitThisRound' | 'hpLostThisRound'>): number | undefined {
   const powerLimit = player.powers.flatMap((held) =>
     faceOf(cardDef(held.defId), held.upgraded).persistentEffects ?? [])
     .filter((effect): effect is Extract<Effect, { kind: 'limitRoundHpLoss' }> =>
@@ -44,14 +47,14 @@ export function remainingRoundHpLoss(player: Player): number | undefined {
   return limit === undefined ? undefined : Math.max(0, limit - (player.hpLostThisRound ?? 0))
 }
 
-export function combatRows(state: CombatState): number[] {
+export function combatRows(state: BoardView): number[] {
   return [...new Set([
     ...state.players.map((player) => player.row),
     ...state.enemies.filter((enemy) => !enemy.isBoss).map((enemy) => enemy.row),
   ])].sort((a, b) => a - b)
 }
 
-export function combatRowLabel(state: Pick<CombatState, 'players'>, row: number): string {
+export function combatRowLabel(state: { players: readonly Pick<Player, 'row' | 'character'>[] }, row: number): string {
   const playerIndex = state.players.findIndex((candidate) => candidate.row === row)
   if (playerIndex < 0) return `Row ${row + 1}`
   const character = state.players[playerIndex]!.character
@@ -61,7 +64,7 @@ export function combatRowLabel(state: Pick<CombatState, 'players'>, row: number)
   return `Row ${label}${duplicateCharacter ? ` (Player ${playerIndex + 1})` : ''}`
 }
 
-export function rowExists(state: CombatState, row: unknown): row is number {
+export function rowExists(state: BoardView, row: unknown): row is number {
   return Number.isInteger(row) && combatRows(state).includes(row as number)
 }
 
@@ -94,7 +97,7 @@ export function orbEndTurnAmount(
 }
 
 export function lightningTargetOptions(
-  state: CombatState,
+  state: BoardView,
   actor: Pick<Player, 'powers'>,
   sourceCardId?: string,
 ): NonNullable<EndTurnAbility['targets']> {
@@ -112,7 +115,7 @@ export function lightningTargetOptions(
 }
 
 export function lightningDamageTargets(
-  state: CombatState,
+  state: BoardView,
   actor: Pick<Player, 'powers'>,
   target: string | null | undefined,
   sourceCardId?: string,
@@ -130,7 +133,7 @@ export function lightningDamageTargets(
 }
 
 export function orbDamageTargets(
-  state: CombatState,
+  state: BoardView,
   actor: Pick<Player, 'powers'>,
   orb: Exclude<OrbType, 'frost'>,
   target: string | null | undefined,
@@ -143,7 +146,7 @@ export function orbDamageTargets(
 
 /** Enemies a scope resolves to. A row always includes the boss (p.15). */
 export function resolveEnemyTargets(
-  state: CombatState,
+  state: Pick<CombatView, 'enemies'>,
   scope: TargetScope,
   chosenUid: string | null,
   chosenRow?: number | null,
@@ -179,23 +182,23 @@ export function enemyLabel(enemies: readonly LabeledEnemy[], enemy: LabeledEnemy
  * them. Splitting the two is what keeps "2 Block to any player. Enter Calm."
  * from handing the Watcher's stance to somebody else.
  */
-export function supportTargets(
-  state: CombatState,
+export function supportTargets<P extends Pick<Player, 'id' | 'dead'>>(
+  state: { players: readonly P[] },
   effect: { toChosen?: boolean },
   supportScope: TargetScope,
   context: PlayContext,
-  actor: Player,
-): Player[] {
+  actor: P,
+): P[] {
   if (!effect.toChosen) return [actor]
   return resolvePlayerTargets(state, supportScope, context.playerId, actor)
 }
 
-function resolvePlayerTargets(
-  state: CombatState,
+function resolvePlayerTargets<P extends Pick<Player, 'id' | 'dead'>>(
+  state: { players: readonly P[] },
   scope: TargetScope,
   chosenId: unknown,
-  actor: Player,
-): Player[] {
+  actor: P,
+): P[] {
   if (scope === 'allPlayers') return state.players.filter((player) => !player.dead)
   if (scope === 'anyPlayer') {
     if (chosenId === null) return [actor]
@@ -208,7 +211,7 @@ function resolvePlayerTargets(
 export const powerAbilityKey = (playerId: string, powerUid: string): string =>
   `${playerId}/power:${powerUid}`
 
-export function powerAbilityUsed(state: CombatState, playerId: string, powerUid: string): boolean {
+export function powerAbilityUsed(state: Pick<CombatView, 'powerTriggersUsedThisTurn'>, playerId: string, powerUid: string): boolean {
   return state.powerTriggersUsedThisTurn.includes(powerAbilityKey(playerId, powerUid))
 }
 
@@ -226,14 +229,17 @@ export function parseLoopOrbTarget(value: string | undefined): { slot: number; e
   return { slot, enemyUid: value.slice(colon + 1) || null }
 }
 
-export function loopOrbTargets(player: Player): EndTurnAbility['targets'] {
+export function loopOrbTargets(player: Pick<Player, 'orbs'>): EndTurnAbility['targets'] {
   const targets = player.orbs.flatMap((orb, slot) => orb
     ? [{ uid: loopOrbTarget(slot), label: `${orb[0]!.toUpperCase()}${orb.slice(1)} Orb ${slot + 1}` }]
     : [])
   return targets.length > 0 ? targets : undefined
 }
 
-export function playersInRowOf(state: CombatState, enemy: Enemy): Player[] {
+export function playersInRowOf<P extends Pick<Player, 'dead' | 'row'>>(
+  state: { players: readonly P[]; enemies: readonly Pick<Enemy, 'isBoss'>[]; lastStand: boolean },
+  enemy: Pick<Enemy, 'isBoss' | 'row'>,
+): P[] {
   // A boss counts as being in EVERY row (docs/rules.md), which is why the
   // player-facing `resolveEnemyTargets` already treats a row as including it.
   // The enemy side did not, so a boss with a single-target attack could only
@@ -260,17 +266,20 @@ export function playersInRowOf(state: CombatState, enemy: Enemy): Player[] {
  * not resolve at all. The optional Last Stand rule (p.23) replaces one player
  * death with the whole party dying during a Boss fight.
  */
-export function lastStandActive(state: CombatState): boolean {
+export function lastStandActive(state: Pick<CombatView, 'lastStand' | 'enemies'>): boolean {
   return state.lastStand && state.enemies.some((enemy) => enemy.isBoss)
 }
 
-export function combatIsOver(state: CombatState): boolean {
+export function combatIsOver(state: Pick<CombatView, 'players' | 'enemies' | 'lastStand' | 'pendingSummons'>): boolean {
   const lastStand = lastStandActive(state)
   return (state.enemies.every((enemy) => enemy.dead) && state.pendingSummons.length === 0) ||
     (lastStand ? state.players.every((player) => player.dead) : state.players.some((player) => player.dead))
 }
 
-export function cardResolutionIsOver(state: CombatState, context: PlayContext, actor: Player): boolean {
+export function cardResolutionIsOver(
+  state: Pick<CombatView, 'players' | 'enemies' | 'lastStand' | 'pendingSummons'>,
+  context: PlayContext, actor: Pick<Player, 'dead'>,
+): boolean {
   return actor.dead || combatIsOver(state) && (context.pendingEnemyDeathUids?.length ?? 0) === 0
 }
 
@@ -286,7 +295,7 @@ export function cardResolutionIsOver(state: CombatState, context: PlayContext, a
  * enemy borders it. The target keeps its own place while it is checked, so a
  * target the hit just killed still has the same neighbours.
  */
-export function adjacentEnemies(state: CombatState, targetUid: string | null | undefined): Enemy[] {
+export function adjacentEnemies(state: BoardView, targetUid: string | null | undefined): Enemy[] {
   const target = state.enemies.find((enemy) => enemy.uid === targetUid)
   if (!target) return []
   const standing = state.enemies.filter((enemy) => !enemy.dead || enemy.uid === target.uid)

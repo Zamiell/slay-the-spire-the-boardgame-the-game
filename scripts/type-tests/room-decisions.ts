@@ -1,6 +1,8 @@
 import type { RoomDecisionAction } from '../../src/protocol/decisions.ts'
 import type { RoomSeat } from '../../src/server/room-state.ts'
 import type { PublicSeat } from '../../src/protocol/room.ts'
+import type { CombatView } from '../../src/game/combat/view.ts'
+import { playCard, evaluateCombatQuery } from '../../src/game/combat.ts'
 
 const decision = (action: RoomDecisionAction) => action
 decision({ kind: 'potionReward', choice: 'pass', playerId: 'p2' })
@@ -21,3 +23,13 @@ const publicSeat: PublicSeat = { playerId: 'p1', name: 'Ann', character: 'ironcl
 const authorize = (seat: RoomSeat) => seat.token
 // @ts-expect-error A projected seat is not a private authorization identity.
 authorize(publicSeat)
+
+declare const combatView: CombatView
+// @ts-expect-error A partial presentation view is not mutation authority.
+playCard(combatView, 'p1', 'c1')
+// @ts-expect-error Private calculations require real authority, not a projection.
+evaluateCombatQuery(combatView, 'p1', { kind: 'hud' })
+// @ts-expect-error A presentation view does not manufacture an RNG.
+combatView.rng.seed
+// @ts-expect-error A private hand is unknown, not an empty array.
+combatView.players[0]!.hand.length

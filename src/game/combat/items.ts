@@ -8,6 +8,7 @@ import { applyEffect, damageEnemyLogged, discardByCardEffect, drawInto, exhaustC
 import { addPresentationEvent, presentationTargets } from './presentation.ts'
 import { activePowerWindow, cardCanBeForced, cardIsPlayable, mandatoryChoicePending, overflowShivCount, reachedTimeWarpLimit, reachesEnemy } from './queries.ts'
 import type { CombatState, PlayContext, PotionContext, RelicContext } from './types.ts'
+import type { CombatActor, CombatView } from './view.ts'
 import { cardDef, cardIsCurse, faceOf } from '../cards.ts'
 import { availableTransformRewards, healingCapFor, transformCard } from '../acquisition.ts'
 import { gainBlock, gainStrength } from '../damage.ts'
@@ -46,12 +47,8 @@ export function spendMiracle(state: CombatState, playerId: string): CombatState 
   return next
 }
 
-function publicHandCount(player: Player): number {
-  return (player as Player & { handCount?: number }).handCount ?? player.hand.length
-}
-
 /** Whether a held Relic has a legal manual activation before choosing its targets. */
-export function canActivateRelic(state: CombatState, player: Player, relicIndex: number): boolean {
+export function canActivateRelic(state: CombatView, player: CombatActor, relicIndex: number): boolean {
   const held = player.relics[relicIndex]
   if (!held) return false
   const heldId = downfallRelicBaseId(held.defId)
@@ -79,11 +76,11 @@ export function canActivateRelic(state: CombatState, player: Player, relicIndex:
     heldId === 'mummified_hand' && !player.powerPlayedThisTurn ||
     heldId === 'self_forming_clay' && !player.lostHpThisCombat ||
     heldId === 'holy_water' && (held.cubes ?? 0) < 1 ||
-    heldId === 'charons_ashes' && publicHandCount(player) === 0) return false
-  if (heldId === 'fuel_canister' && publicHandCount(player) === 0 ||
+    heldId === 'charons_ashes' && player.hand.length === 0) return false
+  if (heldId === 'fuel_canister' && player.hand.length === 0 ||
     heldId === 'makeshift_battery' && !player.hand.some((card) =>
       cardDef(card.defId).type === 'status' || cardIsCurse(card.defId)) ||
-    heldId === 'unceasing_top' && publicHandCount(player) > 1 ||
+    heldId === 'unceasing_top' && player.hand.length > 1 ||
     heldId === 'the_broken_seal' && player.exhaust.length < 2 ||
     heldId === 'shuriken' && (player.attacksPlayedThisTurn ?? 0) < 3 ||
     heldId === 'shot_glass' && player.potions.length === 0 ||
@@ -339,7 +336,7 @@ export function spendSoulburn(
 }
 
 /** Whether a held Potion has a legal activation window or required source card. */
-export function canActivatePotion(state: CombatState, player: Player, potionId: string): boolean {
+export function canActivatePotion(state: CombatView, player: CombatActor | Player, potionId: string): boolean {
   if (player.dead || !player.potions.includes(potionId) || state.startTurnProgress?.forcedCard ||
     mandatoryChoicePending(state) ||
     (state.pendingTriggers?.length ?? 0) > 0 || potionId === 'fairy_in_a_bottle') return false
@@ -350,7 +347,7 @@ export function canActivatePotion(state: CombatState, player: Player, potionId: 
     (potionId !== 'liquid_memories' || player.discard.length > 0) &&
     (potionId !== 'liquid_void' || player.exhaust.length > 0) &&
     (potionId !== 'transforming_brew' || player.hand.some((card) => !cardIsCurse(card.defId)) &&
-      availableTransformRewards(player) > 0)
+      ('cardRewards' in player ? availableTransformRewards(player) > 0 : player.transformAvailable !== false))
 }
 
 /** Use and discard one held potion during the shared Player Turn (p.8, p.12). */

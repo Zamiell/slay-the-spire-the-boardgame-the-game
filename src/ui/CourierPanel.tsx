@@ -4,17 +4,18 @@ import { assetPath } from '../game/assets.ts'
 import { potionLimit } from '../game/acquisition.ts'
 import { courierCost, type CourierOffer } from '../game/noncombat.ts'
 import { potionDef, relicDef } from '../game/relics.ts'
-import { mandatoryChoicePending, type CombatState } from '../game/combat.ts'
+import { mandatoryChoicePending, type CombatView } from '../game/combat.ts'
 import type { Player } from '../game/types.ts'
 import { ItemImage } from './ItemImage.tsx'
 
-const hasSozu = (player: Player) => player.relics.some((relic) => relic.defId === 'sozu')
+type CourierPlayer = Pick<Player, 'id' | 'name' | 'dead' | 'gold' | 'relics' | 'potions'>
+const hasSozu = (player: CourierPlayer) => player.relics.some((relic) => relic.defId === 'sozu')
 
-export const courierReady = (player: Player | undefined, usedBy: string[]) =>
+export const courierReady = (player: CourierPlayer | undefined, usedBy: string[]) =>
   Boolean(player && !player.dead && player.gold > 0 && !usedBy.includes(player.id) &&
     player.relics.some((relic) => relic.defId === 'the_courier'))
 
-export const courierPeekPhase = (combat: CombatState) =>
+export const courierPeekPhase = (combat: CombatView) =>
   (combat.phase === 'player' || combat.phase === 'start' || combat.phase === 'discard') && !mandatoryChoicePending(combat) &&
   !combat.startTurnProgress?.forcedCard && !combat.pendingDistilled && !combat.pendingRelicScry
 
@@ -25,7 +26,7 @@ function Gold({ value }: { value: number }) {
 /* The combat bar hosts the full plaque; horizontal phones hide it and use the
    header key instead, because the stage rises into the bar on short screens. */
 export function CourierPeek({ players, viewerId, usedBy, onReveal, placement, active = true }: {
-  players: Player[]
+  players: readonly CourierPlayer[]
   viewerId: string
   usedBy: string[]
   onReveal: (kind: CourierOffer['kind']) => void
@@ -90,7 +91,7 @@ export function CourierPeek({ players, viewerId, usedBy, onReveal, placement, ac
 }
 
 export function CourierPanel({ players, viewerId, ascension, offer, pledge, online = false, onResolve }: {
-  players: Player[]
+  players: readonly CourierPlayer[]
   viewerId: string
   ascension: number
   offer: CourierOffer | null

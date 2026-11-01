@@ -5,6 +5,8 @@
 // stops the sequence mid-way and parks its progress on the state, because the
 // answer has to come from a player — and in a multiplayer game, from a player
 // whose hand nobody else may see.
+import type { CombatActor, CombatView } from './view.ts'
+import { preservesPrivateSupplies } from './preview-privacy.ts'
 import {
   clone,
   combatIsOver,
@@ -556,6 +558,22 @@ function startTurnTriggerPlayers(state: CombatState, player: Player, source: Tri
     : undefined
 }
 
+function facingSources(state: CombatView): StartTurnSource[] {
+  if (state.phase !== 'start' || state.startTurnStage !== 'facing' ||
+    state.startTurnProgress?.beforeDraw || state.startTurnProgress?.rollPending ||
+    state.startTurnProgress?.pauseAfterDraw || state.startTurnProgress?.discard) return []
+  const facing = livingEnemies(state).filter((enemy) =>
+    enemyAbilities(enemyDef(enemy.defId, enemy.ascension)).some((ability) => ability.kind === 'facing'))
+  return state.players.filter((player) => !player.dead).map((player) => ({
+    facingPlayerId: player.id,
+    ability: {
+      id: `facing:${player.id}`, playerId: player.id, label: `${player.name} — choose Facing`,
+      targets: [...facing.map((enemy) => ({ uid: enemy.uid, label: enemyLabel(state.enemies, enemy) })),
+        ...(facing.length === 1 ? [{ uid: 'none', label: 'No Facing enemy' }] : [])],
+    },
+  }))
+}
+
 function startTurnSources(state: CombatState, includeDeadPlayers = false): StartTurnSource[] {
   if (state.phase !== 'start' || state.startTurnProgress?.beforeDraw || state.startTurnProgress?.rollPending ||
     state.startTurnProgress?.pauseAfterDraw || state.startTurnProgress?.discard) return []
@@ -584,20 +602,7 @@ function startTurnSources(state: CombatState, includeDeadPlayers = false): Start
       },
     }))))
   const owner = state.players.find((player) => !player.dead)
-  if (state.startTurnStage === 'facing') {
-    const facing = livingEnemies(state).filter((enemy) =>
-      enemyAbilities(enemyDef(enemy.defId, enemy.ascension)).some((ability) => ability.kind === 'facing'))
-    return owner ? state.players.filter((player) => !player.dead).map((player) => ({
-      facingPlayerId: player.id,
-      ability: {
-        id: `facing:${player.id}`,
-        playerId: player.id,
-        label: `${player.name} — choose Facing`,
-        targets: [...facing.map((enemy) => ({ uid: enemy.uid, label: enemyLabel(state.enemies, enemy) })),
-          ...(facing.length === 1 ? [{ uid: 'none', label: 'No Facing enemy' }] : [])],
-      },
-    })) : []
-  }
+  if (state.startTurnStage === 'facing') return facingSources(state)
   const enemySources: StartTurnSource[] = []
   const guardianSources: StartTurnSource[] = state.players.filter((player) =>
     (includeDeadPlayers || !player.dead) && player.character === 'guardian' &&
@@ -717,10 +722,10 @@ function pendingStartTurnSources(state: CombatState): StartTurnSource[] {
 
 /** Computes the collision-free physical row for every partial Facing choice. */
 function facingRowPlan(
-  state: CombatState,
+  state: CombatView,
   choices: readonly StartTurnChoice[],
 ): Map<string, number> | null {
-  const byId = new Map(startTurnSources(state).map((entry) => [entry.ability.id, entry]))
+  const byId = new Map(facingSources(state).map((entry) => [entry.ability.id, entry]))
   const enemies = livingEnemies(state).filter((enemy) =>
     enemyAbilities(enemyDef(enemy.defId, enemy.ascension)).some((ability) => ability.kind === 'facing'))
   const playerRows = new Map(state.players.map((player) => [player.id, player.row]))
@@ -764,7 +769,7 @@ function facingRowPlan(
 }
 
 /** Validates the two physical row slots available on each Facing side. */
-export function facingChoicesAreValid(state: CombatState, choices: readonly StartTurnChoice[]): boolean {
+export function facingChoicesAreValid(state: CombatView, choices: readonly StartTurnChoice[]): boolean {
   return facingRowPlan(state, choices) !== null
 }
 
@@ -790,6 +795,7 @@ function startTurnAbilitiesFor(
   sources: readonly StartTurnSource[],
   order?: readonly string[],
   choices: readonly StartTurnChoice[] = [],
+  publicOnly = false,
 ): StartTurnAbility[] {
   const ids = order ?? sources.map(({ ability }) => ability.id)
   if (!validStartTurnOrder(sources, ids)) return []
@@ -802,6 +808,11 @@ function startTurnAbilitiesFor(
   let forcedCardParked = false
   return ids.map((id) => {
     const entry = byId.get(id)!
+    const deferPrivate = () => {
+      planningBlocked = true
+      forcedCardParked = true
+      return { ...entry.ability, overflowShivs: 0 }
+    }
     if (planningEnded) return { ...entry.ability, targets: undefined, overflowShivs: 0 }
     const simulationState = clone(plannedState)
     const player = findPlayer(simulationState, entry.ability.playerId)!
@@ -830,6 +841,7 @@ function startTurnAbilitiesFor(
       if (!planningBlocked && enemy) {
         if (entry.enemyAction) applyEnemyAction(simulationState, enemy, entry.enemyAction)
         else enemy.block = gainBlock(enemy.block, entry.enemyBlock ?? 0)
+        if (publicOnly && !preservesPrivateSupplies(plannedState, simulationState)) return deferPrivate()
         plannedState = simulationState
       }
       return { ...entry.ability, overflowShivs: 0 }
@@ -881,6 +893,9 @@ function startTurnAbilitiesFor(
         }
         resolveShivAttack(simulationState, planningPlayer, uid, 1 + planningPlayer.shivDamageBonus,
           { enemyUid: uid, playerId: null })
+        if (publicOnly && !preservesPrivateSupplies(plannedState, simulationState)) {
+          return { ...deferPrivate(), overflowShivs }
+        }
         if (planningPlayer.dead || targetOptions().length === 0) {
           shivEndedCombat = true
           break
@@ -923,6 +938,9 @@ function startTurnAbilitiesFor(
             3 + player.powers.length + (player.darkOrbEvokeBonus ?? 0)) +
             (player.orbEvokeBonus ?? 0))
         }
+        if (publicOnly && !preservesPrivateSupplies(plannedState, simulationState)) {
+          return { ...deferPrivate(), overflowShivs }
+        }
         if (combatIsOver(simulationState)) {
           evokeEndedCombat = true
           break
@@ -959,9 +977,14 @@ function startTurnAbilitiesFor(
           exhaustUids: choice?.exhaustUids,
           hermitContext: choice?.trigger,
         })) {
-          plannedState = exact
-          if (combatIsOver(exact)) planningEnded = true
-          if (planningEnded || exact.startTurnProgress?.forcedCard) planningBlocked = true
+          if (publicOnly && !preservesPrivateSupplies(plannedState, exact)) {
+            planningBlocked = true
+            forcedCardParked = true
+          } else {
+            plannedState = exact
+            if (combatIsOver(exact)) planningEnded = true
+            if (planningEnded || exact.startTurnProgress?.forcedCard) planningBlocked = true
+          }
         } else {
           planningBlocked = true
         }
@@ -987,8 +1010,9 @@ export function startTurnAbilities(
   state: CombatState,
   order?: readonly string[],
   choices: readonly StartTurnChoice[] = [],
+  publicOnly = false,
 ): StartTurnAbility[] {
-  return startTurnAbilitiesFor(state, pendingStartTurnSources(state), order, choices)
+  return startTurnAbilitiesFor(state, pendingStartTurnSources(state), order, choices, publicOnly)
 }
 
 function defaultStartTurnChoicesForOrder(
@@ -1649,16 +1673,16 @@ export function startPlayerTurnWithChoices(state: CombatState): CombatState {
 }
 
 export function isPostRollStartTurnPotionChoice(
-  state: CombatState,
-  player: Player,
+  state: CombatView,
+  player: CombatActor,
   potionId: string,
 ): boolean {
   return canActivatePotion(state, player, potionId)
 }
 
 export function isPostRollStartTurnRelicChoice(
-  state: CombatState,
-  player: Player,
+  state: CombatView,
+  player: CombatActor,
   relicIndex: number,
 ): boolean {
   return Boolean(player.relics[relicIndex]) &&
@@ -1666,7 +1690,7 @@ export function isPostRollStartTurnRelicChoice(
     canActivateRelic(state, player, relicIndex)
 }
 
-export function playerHasPostRollStartTurnChoice(state: CombatState, player: Player): boolean {
+export function playerHasPostRollStartTurnChoice(state: CombatView, player: CombatActor): boolean {
   return player.potions.some((potionId) =>
     isPostRollStartTurnPotionChoice(state, player, potionId)) || player.relics.some((_relic, relicIndex) =>
     isPostRollStartTurnRelicChoice(state, player, relicIndex))

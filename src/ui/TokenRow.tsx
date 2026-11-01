@@ -19,6 +19,8 @@ type TokenRowProps = {
 }
 
 type CountKey = keyof TokenRowProps
+type OrbPlayer = Pick<Player, 'id' | 'name' | 'character' | 'orbs' | 'powers' | 'damageDealtZeroThisTurn' |
+  'orbEvokeBonus' | 'darkOrbEvokeBonus' | 'orbEndTurnBonus' | 'lightningEndTurnBonus'>
 
 const TOKENS: { key: CountKey; icon: StatusIconName; label: string }[] = [
   { key: 'block', icon: 'block', label: 'Block' },
@@ -68,7 +70,7 @@ export function TokenRow({ showHelp = false, children, ...props }: TokenRowProps
   )
 }
 
-export function orbDisplayValue(player: Player, orb: OrbType, evoked = false): number {
+export function orbDisplayValue(player: OrbPlayer, orb: OrbType, evoked = false): number {
   // Slayer Pack: orbEndTurnAmount keeps Biased Cognition's -1 from showing below 0.
   if (orb === 'lightning') {
     return player.damageDealtZeroThisTurn ? 0
@@ -79,7 +81,7 @@ export function orbDisplayValue(player: Player, orb: OrbType, evoked = false): n
     : 3 + player.powers.length + (player.orbEvokeBonus ?? 0) + (player.darkOrbEvokeBonus ?? 0)
 }
 
-export function orbDisplayText(player: Player, orb: OrbType): string {
+export function orbDisplayText(player: OrbPlayer, orb: OrbType): string {
   const passive = orbDisplayValue(player, orb)
   const evoked = orbDisplayValue(player, orb, true)
   const target = orb === 'lightning' && lightningTargetsRows(player)
@@ -100,7 +102,7 @@ export function OrbRow({
   onTarget,
   selectedSlots,
 }: {
-  player: Player
+  player: OrbPlayer
   targetableSlots?: readonly number[]
   targetVerb?: string
   onTarget?: (slot: number) => void

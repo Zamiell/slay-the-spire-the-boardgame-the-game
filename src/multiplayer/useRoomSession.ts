@@ -6,6 +6,8 @@ import type { RoomDecisionAction } from '../protocol/decisions.ts'
 import { RoomCredentialsSchema } from '../protocol/actions.ts'
 import type { RoomCredentials } from '../protocol/actions.ts'
 import { is } from 'valibot'
+import { HttpResponseError, requestJson, responseMessage } from '../http.ts'
+import { decodeCombatQueryReply, type CombatQueryRequest } from '../protocol/combat-query.ts'
 import { CAMPAIGN_EVENT, campaignKey, savedCampaign, saveAscensionUnlock } from '../campaign-storage.ts'
 import { enabledCardPacks } from '../wallet.ts'
 import { onSkinPreferenceChange, preferredSkin } from '../skin-preference.ts'
@@ -702,6 +704,30 @@ export function useRoomSession() {
   const start = useCallback((campaign: 'base' | 'downfall', preventDuplicateCardRewards = false) =>
     enqueue('start', { campaign, preventDuplicateCardRewards }), [enqueue])
   const act = useCallback((action: object) => enqueue('action', { action }), [enqueue])
+  const preview = useCallback(async (request: CombatQueryRequest, signal: AbortSignal) => {
+    const source = snapshotRef.current
+    const started = generation.current
+    if (!credentials || source?.version !== request.version || source.run?.combat?.combatId !== request.combatId) {
+      throw new DOMException('The combat view changed.', 'AbortError')
+    }
+    const response = await requestJson(() => roomUrl(`/api/rooms/${credentials.code}/preview`), {
+      method: 'POST', body: request, signal, timeoutMs: REFRESH_TIMEOUT_MS,
+      headers: { 'x-room-token': credentials.token }, failure: 'Could not calculate combat choices.',
+    })
+    if (!mounted.current || generation.current !== started || snapshotRef.current?.epoch !== source.epoch ||
+      snapshotRef.current?.version !== request.version) throw new DOMException('The combat view changed.', 'AbortError')
+    if (!response.ok) {
+      const message = responseMessage(response.body, 'Could not calculate combat choices.')
+      throw new HttpResponseError(response.status === 404 && message === 'Not found'
+        ? 'This room server needs an update to calculate combat choices.' : message, response.status)
+    }
+    const reply = decodeCombatQueryReply(response.body)
+    if (reply.status === 'stale') throw new DOMException('The combat view changed.', 'AbortError')
+    if (reply.version !== request.version || reply.combatId !== request.combatId || reply.result.kind !== request.query.kind) {
+      throw new HttpResponseError('The room returned a mismatched combat preview.', response.status, 'invalid-response')
+    }
+    return reply.result
+  }, [credentials])
   const decide: (action: RoomDecisionAction) => Promise<ActionOutcome> = act
   const sendVoiceSignal = useCallback((to: string, signal: VoiceSignal['signal']) => {
     if (socket.current?.readyState !== WebSocket.OPEN) return false
@@ -796,6 +822,7 @@ export function useRoomSession() {
     selectCampaign,
     act,
     decide,
+    preview,
     sendVoiceSignal,
     onVoiceSignal,
     loadVoiceIceServers,

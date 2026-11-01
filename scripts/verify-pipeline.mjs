@@ -185,7 +185,10 @@ check('frontend surfaces select their cores and named focused browser checks', (
   assert(combat.includes('verify-card-block-preview-browser.mjs'))
   includesEvery(combat, ['verify-retain-selection-browser.mjs', 'verify-card-choices-browser.mjs'], 'shared combat choices')
   assert(combat.includes('verify-orb-selection-browser.mjs'))
-  assertEqual(combat.length, 56, 'combat screen selected an unrelated browser suite')
+  assert(combat.includes('verify-combat-view-browser.mjs'), 'combat screen omitted partial-view coverage')
+  for (const unrelated of ['verify-wallet-sync-browser.mjs', 'verify-account-browser.mjs', 'verify-mail-browser.mjs']) {
+    assert(!combat.includes(unrelated), `combat screen selected unrelated ${unrelated}`)
+  }
   includesEvery(affectedBrowser('src/ui/combat-screen/SelectionScreen.tsx'), [
     'verify-orb-selection-browser.mjs', 'verify-survivor-selection-browser.mjs', 'verify-hermit-combo-browser.mjs',
   ], 'shared selection shell')

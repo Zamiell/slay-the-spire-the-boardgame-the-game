@@ -1,8 +1,9 @@
+import type { CombatView } from '../../game/combat/view.ts'
 import { useEffect, useRef } from 'react'
 import { activateRelic, livingEnemies, overflowShivCount } from '../../game/combat.ts'
-import type { CombatState, RelicContext } from '../../game/combat.ts'
+import type { RelicContext } from '../../game/combat.ts'
 import { relicDef } from '../../game/relics.ts'
-import type { ActionOutcome, VisibleCombat } from '../../multiplayer/useRoomSession.ts'
+import type { ActionOutcome } from '../../multiplayer/useRoomSession.ts'
 import type { CombatScreenProps } from './types.ts'
 import { relicSubmissionCommitted } from './action-evidence.ts'
 import type { RelicSubmissionEvidence } from './action-evidence.ts'
@@ -11,25 +12,26 @@ import type { RelicSelection } from './relic-selection.ts'
 import { useActionLifecycle } from '../actions/useActionLifecycle.ts'
 import { useScopedSelection } from './useScopedSelection.ts'
 import { gainedShivs } from './card-play-requirements.ts'
+import { combatActor, localCombat } from '../../game/combat/view.ts'
 
 type Submission = RelicSubmissionEvidence & { selection: RelicSelection; context: RelicContext }
 type Options = Pick<CombatScreenProps, 'state' | 'viewerId' | 'onAction' | 'onChange' |
   'authoritativeRefresh' | 'partyStartTurnPostRollLocked'> & {
-  reconciliation: (outcome: ActionOutcome) => { combat: CombatState | VisibleCombat } | null
+  reconciliation: (outcome: ActionOutcome) => { combat: CombatView } | null
 }
 
 export function useRelicController(options: Options) {
   const { state, viewerId, onAction, onChange, partyStartTurnPostRollLocked = false } = options
-  const viewer = state.players.find((player) => player.id === viewerId)
+  const viewer = combatActor(state, viewerId)
   const latest = useRef(options)
   latest.current = options
   const scope = `${state.combatId}:${viewerId}`
   const [selection, setSelection] = useScopedSelection<RelicSelection>(scope, { kind: 'idle' })
-  function restore(submitted: Submission, combat: CombatState | VisibleCombat) {
+  function restore(submitted: Submission, combat: CombatView) {
     setSelection(restoreRelicSelection(submitted.selection, submitted.context, combat, viewerId,
       relicUsable(latest.current.state, viewerId, submitted.relicIndex, latest.current.partyStartTurnPostRollLocked)))
   }
-  const lifecycle = useActionLifecycle<Submission, CombatState>({
+  const lifecycle = useActionLifecycle<Submission, CombatView>({
     scope, board: state, refresh: options.authoritativeRefresh,
     committed: (submitted, combat) => relicSubmissionCommitted(submitted, combat, viewerId),
     reconciled: (submitted, committed, combat) => {
@@ -51,7 +53,7 @@ export function useRelicController(options: Options) {
       const amount = gainedShivs(relicDef(held.defId).effects) || 2
       context = { ...context, shivEnemyUids: Array<string>(overflowShivCount(state, amount)).fill(enemies[0]!.uid) }
     }
-    const result = activateRelic(state, viewer.id, relicIndex, context)
+    const result = onAction ? undefined : activateRelic(localCombat(state), viewer.id, relicIndex, context)
     if (result === state) return
     const submitted: Submission = {
       relicIndex, defId: held.defId, spentBefore: held.spent === true, cubesBefore: held.cubes,
@@ -60,7 +62,7 @@ export function useRelicController(options: Options) {
     if (!onAction) setSelection({ kind: 'idle' })
     lifecycle.submit(submitted, () => onAction ? onAction({
       kind: 'activateRelic', relicIndex, relicScryId: submitted.scryId, ...context,
-    }) : onChange?.(result), Boolean(onAction), (outcome) => {
+    }) : onChange?.(result!), Boolean(onAction), (outcome) => {
       if (outcome.status === 'accepted') {
         setSelection(reconcileRelicSelection({ kind: 'idle' }, latest.current.state, viewerId))
       } else if (outcome.status === 'refused' || outcome.status === 'reconciled') {

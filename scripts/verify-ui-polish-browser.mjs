@@ -78,7 +78,8 @@ try {
       const file = `${screen}-${name}.jpg`
       if (retained({ screen, name }))
         await page.screenshot({ path: join(output, file), type: 'jpeg', quality: 82 })
-      captures.push({ screen, name, file, interaction: phone ? 'keyboard focus' : 'mouse hover' })
+      captures.push({ screen, name, file, interaction: phone ? 'keyboard focus' : 'mouse hover',
+        ...(!capture ? { arrivalFile: `${screen}-${name}-arrival.jpg` } : {}) })
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `${screen}/${name}: page overflows`)
     }
     const home = () => page.goto(origin)
@@ -273,9 +274,11 @@ try {
         gallery.push(`| ${screen} | ![Before ${name}](before/${screen}-${name}.jpg) | ![After ${name}](after/${screen}-${name}.jpg) |`)
       gallery.push('')
     }
-    writeFileSync(join(output, 'captures.json'), `${JSON.stringify(published, null, 2)}\n`)
     writeFileSync('working-report/ui-polish/gallery.md', `${gallery.join('\n').trimEnd()}\n`)
   }
+  assert.equal(new Set(published.map(entry => `${entry.screen}/${entry.name}`)).size, published.length,
+    'capture names must not overwrite another surface')
+  writeFileSync(join(output, 'captures.json'), `${JSON.stringify(published, null, 2)}\n`)
   if (capture) {
     const files = []
     function audit(directory) {

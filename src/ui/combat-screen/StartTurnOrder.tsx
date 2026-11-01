@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { Tooltip } from '../Tooltip.tsx'
 import { cardDef, faceOf } from '../../game/cards.ts'
 import type { StartTurnAbility } from '../../game/combat/types.ts'
@@ -8,6 +8,7 @@ import { Icon } from '../Icon.tsx'
 import { ItemImage } from '../ItemImage.tsx'
 import { PowerGlyph } from '../PowerRow.tsx'
 import { effectText } from '../Card.tsx'
+type OrderPlayer = Pick<Player, 'id' | 'name' | 'powers' | 'relics' | 'dead' | 'nextCardCost'>
 
 export type StartTurnOrderStep = {
   id: string
@@ -27,7 +28,7 @@ export function pendingSneckoEyeCost(player: Pick<Player, 'nextCardCost' | 'reli
  * Before-draw Scries carry no `visual`; their id still ends with the trigger
  * source (`relic:<index>:<ability>` or `power:<uid>`), which names the art.
  */
-function stepVisual(step: StartTurnOrderStep, owner: Player | undefined): StartTurnAbility['visual'] {
+function stepVisual(step: StartTurnOrderStep, owner: OrderPlayer | undefined): StartTurnAbility['visual'] {
   if (step.visual || !owner) return step.visual
   const relic = /(?:^|\/)relic:(\d+):\d+$/.exec(step.id)
   const relicId = relic ? owner.relics[Number(relic[1])]?.defId : undefined
@@ -36,7 +37,7 @@ function stepVisual(step: StartTurnOrderStep, owner: Player | undefined): StartT
   return power ? { kind: 'card', cardUid: power[1]! } : undefined
 }
 
-function StepArt({ step, owner }: { step: StartTurnOrderStep; owner: Player | undefined }) {
+function StepArt({ step, owner }: { step: StartTurnOrderStep; owner: OrderPlayer | undefined }) {
   const visual = stepVisual(step, owner)
   const power = visual?.kind === 'card' ? owner?.powers.find((card) => card.uid === visual.cardUid) : undefined
   return (
@@ -60,17 +61,27 @@ const COMPACT_BOARD = '(max-height: 53.125rem)'
  * its relic or Power art, whose it is when a party shares the list, and any
  * choice it still waits on; the move buttons are full-size touch targets.
  */
-export function StartTurnOrder({ title, hint, steps, players, canMove, onMove, foldWhenShort = false }: {
+export function StartTurnOrder({ title, hint, steps, players, canMove, onMove, foldWhenShort = false, submitting = false }: {
   title: string
   hint: string
   /** Start folded on a short screen while no step owes a choice. */
   foldWhenShort?: boolean
+  submitting?: boolean
   steps: readonly StartTurnOrderStep[]
-  players: readonly Player[]
+  players: readonly OrderPlayer[]
   canMove: boolean
   onMove: (id: string, delta: -1 | 1) => void
 }) {
   const party = players.length > 1
+  const disclosure = useRef<HTMLDetailsElement>(null)
+  const close = () => {
+    const element = disclosure.current
+    if (!element) return
+    const returnFocus = element.contains(document.activeElement)
+    element.open = false
+    if (returnFocus) element.querySelector('summary')?.focus({ preventScroll: true })
+  }
+  useLayoutEffect(() => { if (submitting) close() }, [submitting])
   const activeCosts = players.flatMap(owner => {
     const cost = pendingSneckoEyeCost(owner)
     return owner.dead || cost === null ? [] : [{ owner, cost }]
@@ -80,7 +91,7 @@ export function StartTurnOrder({ title, hint, steps, players, canMove, onMove, f
   const [startsOpen] = useState(() => !foldWhenShort || owed || !window.matchMedia(COMPACT_BOARD).matches)
   const movable = steps.length > 1
   return (
-    <details className="start-turn-order" open={startsOpen}>
+    <details ref={disclosure} className="start-turn-order" open={startsOpen}>
       <summary>
         <span className="start-turn-order__title">{title}</span>{' '}
         <span className="start-turn-order__count">{steps.length}</span>
@@ -113,7 +124,8 @@ export function StartTurnOrder({ title, hint, steps, players, canMove, onMove, f
                         : badge.done ? ' start-turn-order__badge--done' : ''}`
                       return badge.onEdit
                         ? <Tooltip key={badge.text} name={`Change choice for ${step.label}`}>{help =>
-                          <button {...help} type="button" className={className} onClick={badge.onEdit}>{badge.text}</button>}</Tooltip>
+                          <button {...help} type="button" className={className}
+                            onClick={() => { close(); badge.onEdit?.() }}>{badge.text}</button>}</Tooltip>
                         : <span key={badge.text} className={className}>{badge.text}</span>
                     })}
                   </span>

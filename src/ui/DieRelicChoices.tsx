@@ -4,28 +4,28 @@
 // panel in near-identical rows. Here one row is one Relic ability; its targets
 // are short chips under it, and a Relic with nothing to aim is a single button.
 import { enemyLabel, reachesEnemy } from '../game/combat.ts'
-import type { CombatState } from '../game/combat.ts'
+import type { CombatView, CombatPlayerView } from '../game/combat.ts'
 import { relicIconPath } from '../game/assets.ts'
 import { chosenDieRelicAbilities, relicDef } from '../game/relics.ts'
-import type { Enemy, Player } from '../game/types.ts'
+import type { Enemy } from '../game/types.ts'
 import { relicOptionLabel, RelicTooltipAnchor } from './RelicChip.tsx'
 import { livingEnemiesInStageOrder } from './board-signals.ts'
 
 export type DieRelicChoice = {
-  owner: Player
+  owner: CombatPlayerView
   relicIndex: number
   abilityIndex: number
   defId: string
   faces: readonly number[]
   enemy?: Enemy
-  targetPlayer?: Player
+  targetPlayer?: CombatPlayerView
 }
 
 /** Every die Relic ability a living player holds, once per legal target. */
 export function dieRelicChoices(
-  state: CombatState,
+  state: CombatView,
   { skip, needsEnemyForAll = false }: {
-    skip?: (owner: Player, relicIndex: number, faces: readonly number[]) => boolean
+    skip?: (owner: CombatPlayerView, relicIndex: number, faces: readonly number[]) => boolean
     /** Cheat's engine path wants an enemy even for an all-enemies ability; the other paths ignore it. */
     needsEnemyForAll?: boolean
   } = {},
@@ -45,12 +45,12 @@ export function dieRelicChoices(
     })))
 }
 
-const targetText = (state: CombatState, choice: DieRelicChoice): string =>
+const targetText = (state: CombatView, choice: DieRelicChoice): string =>
   [choice.enemy ? enemyLabel(state.enemies, choice.enemy) : null, choice.targetPlayer?.name]
     .filter(Boolean).join(' → ')
 
 export function DieRelicChoiceList({ state, choices, pressed, onChoose }: {
-  state: CombatState
+  state: CombatView
   choices: readonly DieRelicChoice[]
   pressed?: (choice: DieRelicChoice) => boolean
   onChoose: (choice: DieRelicChoice) => void

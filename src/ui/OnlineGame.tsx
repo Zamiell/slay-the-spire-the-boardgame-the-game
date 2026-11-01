@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Tooltip } from './Tooltip.tsx'
 import { cardDef, faceOf } from '../game/cards.ts'
 import { assetPath, preloadImages, releasePreloadedImages } from '../game/assets.ts'
-import type { CombatState } from '../game/combat.ts'
+import { independentPlayerTurn, onlineCombatView } from './combat-screen/online-view.ts'
 import { ASCENSION_RULES, canGiveUpRun, hasPendingRelicAcquisition, victoryIsTerminal } from '../game/run.ts'
 import { relicDef } from '../game/relics.ts'
 import type { Room } from '../game/map.ts'
@@ -509,68 +509,9 @@ export function OnlineGame({ onLocal, settings, onSettings }: Props) {
     snapshot?.you.playerId,
   )
   const visibleCombat = snapshot?.run?.combat
-  const asyncPlayerTurn = visibleCombat?.phase === 'player' ||
-    visibleCombat?.phase === 'copy' && visibleCombat.pendingCardCopy?.resumePhase === 'player'
-  const combat = useMemo(() => {
-    if (!visibleCombat) return null
-    const viewerId = snapshot?.you.playerId
-    const visibleProgress = visibleCombat.startTurnProgress
-    return {
-      ...visibleCombat,
-      startTurnProgress: visibleProgress ? {
-        ...visibleProgress,
-        forcedCard: asyncPlayerTurn && visibleProgress.forcedCard?.playerId !== viewerId
-          ? undefined : visibleProgress.forcedCard,
-      } : undefined,
-      pendingCardCopy: asyncPlayerTurn && visibleCombat.pendingCardCopy?.playerId !== viewerId
-        ? undefined : visibleCombat.pendingCardCopy,
-      pendingTriggers: asyncPlayerTurn || visibleCombat.phase === 'start'
-        ? visibleCombat.pendingTriggers.filter((trigger) => trigger.playerId === viewerId)
-        : visibleCombat.pendingTriggers,
-      pendingPlunderSwitches: asyncPlayerTurn
-        ? visibleCombat.pendingPlunderSwitches?.filter((choice) => choice.playerId === viewerId)
-        : visibleCombat.pendingPlunderSwitches,
-      pendingDieRelicChoices: asyncPlayerTurn
-        ? visibleCombat.pendingDieRelicChoices?.filter((choice) => choice.playerId === viewerId)
-        : visibleCombat.pendingDieRelicChoices,
-      pendingHermitSetupLoads: asyncPlayerTurn
-        ? visibleCombat.pendingHermitSetupLoads?.filter((choice) => choice.playerId === viewerId)
-        : visibleCombat.pendingHermitSetupLoads,
-      pendingHermitChamberPlays: asyncPlayerTurn
-        ? visibleCombat.pendingHermitChamberPlays?.filter((choice) => choice.playerId === viewerId)
-        : visibleCombat.pendingHermitChamberPlays,
-      pendingHermitStrengthRewards: asyncPlayerTurn
-        ? visibleCombat.pendingHermitStrengthRewards?.filter((choice) => choice.playerId === viewerId)
-        : visibleCombat.pendingHermitStrengthRewards,
-      // Slayer Pack: another seat's card choice never blocks this seat's Player Turn.
-      pendingPlayerChoices: asyncPlayerTurn
-        ? visibleCombat.pendingPlayerChoices?.filter((choice) => choice.playerId === viewerId)
-        : visibleCombat.pendingPlayerChoices,
-      pendingSlayerChoices: asyncPlayerTurn
-        ? visibleCombat.pendingSlayerChoices?.filter((choice) => choice.playerId === viewerId)
-        : visibleCombat.pendingSlayerChoices,
-      rng: { seed: 0, calls: 0 },
-      discardedThisTurn: [],
-      stanceChangedThisTurn: [],
-      playedCardsThisTurn: visibleCombat.playedCardsThisTurn ?? [],
-      potionDeck: [],
-      potionLimit: visibleCombat.potionLimit,
-      lastStand: visibleCombat.lastStand,
-      summonSupply: {},
-      pendingSummons: visibleCombat.pendingSummons ?? [],
-      pendingDistilled: visibleCombat.pendingDistilled &&
-      (!asyncPlayerTurn || visibleCombat.pendingDistilled.playerId === viewerId) ? {
-        ...visibleCombat.pendingDistilled,
-        cards: visibleCombat.pendingDistilled.cards ?? [],
-      } : undefined,
-      pendingRelicScry: visibleCombat.pendingRelicScry &&
-      (!asyncPlayerTurn || visibleCombat.pendingRelicScry.playerId === viewerId) ? {
-        ...visibleCombat.pendingRelicScry,
-        cards: visibleCombat.pendingRelicScry.cards ?? [],
-      } : undefined,
-      players: visibleCombat.players.map(playerForUi),
-    } satisfies CombatState
-  }, [asyncPlayerTurn, visibleCombat, snapshot?.you.playerId])
+  const asyncPlayerTurn = independentPlayerTurn(visibleCombat)
+  const combat = useMemo(() => visibleCombat && snapshot
+    ? onlineCombatView(visibleCombat, snapshot.you.playerId) : null, [visibleCombat, snapshot?.you.playerId])
 
   if (!snapshot && room.activeCode) {
     return (
@@ -921,6 +862,7 @@ export function OnlineGame({ onLocal, settings, onSettings }: Props) {
           startTurnDecidedPlayerIds={snapshot.startTurnDecided}
           requiredStartTurnPlayerIds={snapshot.startTurnRequired}
           partyEndTurnAbilities={snapshot.endTurnAbilities}
+          onQuery={room.preview}
           partyStartTurnAbilities={snapshot.startTurnAbilities}
           partyStartTurnScryAbilities={snapshot.startTurnScryAbilities}
           startTurnCoordinatorId={snapshot.startTurnCoordinatorId}

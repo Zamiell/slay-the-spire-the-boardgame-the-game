@@ -25,6 +25,7 @@ const browser = await (process.argv.includes('--webkit') ? webkit : chromium).la
 try {
   for (const viewport of [{ width: 1440, height: 900 }, { width: 844, height: 390 }]) {
     const phone = viewport.width === 844
+    if (process.argv.includes('--touch-only') && !phone) continue
     const context = await browser.newContext({ viewport, ...(phone ? { isMobile: true, hasTouch: true } : {}) })
     const page = installScreenAudit(await context.newPage())
     await page.addInitScript(() => {
@@ -43,7 +44,9 @@ try {
         const scene = document.querySelector('.neow-screen').getBoundingClientRect()
         const action = document.querySelector('.neow-action').getBoundingClientRect()
         const buttons = [...document.querySelectorAll('.neow-action button')].filter(button => !button.disabled)
-        return { height: innerHeight, width: innerWidth, scene: scene.toJSON(), action: action.toJSON(),
+        // The landscape-phone viewport is scaled; WebKit rounds innerHeight down.
+        return { height: visualViewport?.height ?? innerHeight, width: visualViewport?.width ?? innerWidth,
+          scene: scene.toJSON(), action: action.toJSON(),
           scrollHeight: document.documentElement.scrollHeight, scrollWidth: document.documentElement.scrollWidth,
           overflowing: [...document.querySelectorAll('body *')].filter(element => {
             const box = element.getBoundingClientRect()
@@ -52,7 +55,10 @@ try {
             box: element.getBoundingClientRect().toJSON() })),
           buttons: buttons.map(button => ({ text: button.textContent, rect: button.getBoundingClientRect().toJSON() })) }
       })
-      assert(layout.scene.bottom <= layout.height + 1, `${label}: Neow extends below viewport`)
+      if (layout.scene.bottom > layout.height + 1 || layout.action.bottom > layout.height + 1) {
+        await page.screenshot({ path: join(out, `${label}-${viewport.width}-layout-failure.png`) })
+      }
+      assert(layout.scene.bottom <= layout.height + 1, `${label}: Neow extends below viewport ${JSON.stringify(layout)}`)
       assert(layout.action.top >= layout.scene.top && layout.action.bottom <= layout.height + 1, `${label}: controls extend outside scene`)
       assert(layout.scrollHeight <= layout.height + 1, `${label}: document scrolls vertically`)
       if (layout.scrollWidth > layout.width + 1) await page.screenshot({ path: join(out, `${label}-${viewport.width}-overflow.png`) })
@@ -94,6 +100,16 @@ try {
     await page.getByRole('heading', { name: 'Neow’s Blessing' }).waitFor()
     await page.evaluate(() => window.__STS_DEBUG__.reset(1, 'neow-viewport'))
     await page.locator('.reward-screen--card-choice').waitFor()
+    assert.equal(await page.locator('.neow-action__owner').count(), 0,
+      'the fading card picker must not expose a duplicate legacy title')
+    assert(await page.locator('.neow-action').evaluate(element => {
+      const style = getComputedStyle(element)
+      const scene = element.parentElement.getBoundingClientRect()
+      const box = element.getBoundingClientRect()
+      return style.borderTopWidth === '0px' && style.borderLeftWidth === '0px' &&
+        style.backgroundColor !== 'transparent' && !style.backgroundColor.startsWith('rgba(') &&
+        box.top <= scene.top + 1 && box.bottom >= scene.bottom - 1
+    }), 'the reveal underlay must be opaque, borderless, and fill the Neow scene from its first frame')
     assert.equal(await page.getByRole('button', { name: 'Reveal Card Reward', exact: true }).count(), 0)
     assert.equal(await page.getByRole('button', { name: 'Skip unseen', exact: true }).count(), 0)
     const opening = await page.evaluate(() => window.__STS_DEBUG__.getRun().neow)

@@ -6,6 +6,7 @@
 // which is the one door back in for a parked trigger whichever phase left it
 // there. A discard the owner has to order privately parks in its own way and
 // comes back through `endPlayerTurn` with the order attached.
+import type { CombatActor } from './view.ts'
 import {
   clone,
   combatIsOver,
@@ -560,14 +561,14 @@ function continueEndPlayerTurn(
  * teammate identities. The phase is the server's answer to this question;
  * nothing in `src/ui/` should ask it again.
  */
-export function discardTopNeedsChoice(player: Player): boolean {
+export function discardTopNeedsChoice(player: CombatActor): boolean {
   if (player.dead || wellLaidPlansRetainsHand(player)) return false
   const discarding = player.hand.filter((card) => !card.endTurnProtected && !card.retainThisTurn &&
     !cardHasRetain(player, card))
   return discardOrderNeedsChoice(player, discarding)
 }
 
-export function discardNeedsChoice(player: Player): boolean {
+export function discardNeedsChoice(player: CombatActor): boolean {
   if (player.dead || wellLaidPlansRetainsHand(player)) return false
   const discarding = player.hand.filter((card) => !card.endTurnProtected && !card.retainThisTurn &&
     !cardHasRetain(player, card))
@@ -576,7 +577,7 @@ export function discardNeedsChoice(player: Player): boolean {
     discarding.some((card) => card.mayRetainThisTurn)
 }
 
-function wellLaidPlansRetainsHand(player: Player): boolean {
+function wellLaidPlansRetainsHand(player: CombatActor): boolean {
   const effects = player.powers.filter(power => power.defId === 'well_laid_plans')
     .flatMap(power => faceOf(cardDef(power.defId), power.upgraded).effects)
   const plansAllowance = effects.reduce((total, effect) =>

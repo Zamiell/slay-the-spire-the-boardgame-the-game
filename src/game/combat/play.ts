@@ -6,6 +6,7 @@
 // half-resolved on a target the board cannot give it. Everything that has to
 // wait for the card to finish — enemy reactions, deferred discards, a copy that
 // resolves before its original — is drained here, in printed order, once.
+import { preservesPrivateSupplies } from './preview-privacy.ts'
 import {
   cardResolutionIsOver,
   clone,
@@ -534,12 +535,18 @@ export function previewCardShivTargets(
   cardUid: string,
   context: PlayContext,
   source: 'hand' | 'copy' | 'chamber' = 'hand',
+  publicOnly = false,
 ): { index: number; options: { uid: string; label: string }[]; complete: boolean } | null {
   const progress: { index: number; options: { uid: string; label: string }[]; complete: boolean } = {
     index: 0, options: [], complete: false,
   }
   let reachedShivs = false
+  let privateDependency = false
   const observe: NonNullable<PlayContext['previewShivTarget']> = (simulation, index, target, optional) => {
+    if (publicOnly && !preservesPrivateSupplies(state, simulation)) {
+      privateDependency = true
+      return true
+    }
     reachedShivs = true
     const options = livingEnemies(simulation).map((enemy) => ({
       uid: enemy.uid, label: enemyLabel(simulation.enemies, enemy),
@@ -555,6 +562,7 @@ export function previewCardShivTargets(
       ? playHermitChamberCardImpl(state, playerId, cardUid, context, observe)
       : playCardImpl(state, playerId, cardUid, context, observe)
   progress.complete = resolved !== state
+  if (privateDependency || publicOnly && !preservesPrivateSupplies(state, resolved)) return null
   return reachedShivs || progress.complete ? progress : null
 }
 

@@ -755,9 +755,10 @@ export type PotionContext = {
 
 export type CountablePlayer = Pick<Player, 'id' | 'row' | 'orbs' | 'block' | 'strength' | 'miracles' | 'stance' |
   'weak' | 'vulnerable' |
-  'attacksPlayedThisTurn' | 'exhaust' | 'clawCubesGainedThisCombat' | 'heat' | 'slimes' | 'chamber' |
+  'attacksPlayedThisTurn' | 'exhaust' | 'clawCubesGainedThisCombat' | 'heat' | 'slimes' |
   'guardianMode' | 'hp'> & {
   hand: readonly CardInstance[] | null
+  chamber: readonly CardInstance[] | null
   powers?: readonly CardInstance[]
 }
 

@@ -22,14 +22,24 @@ export async function checkRewardSweep(page, choices) {
         await new Promise(requestAnimationFrame)
         frames.push(nodes.map((node, index) => node.getBoundingClientRect().width / resting[index].width))
       } while (performance.now() - start < 600)
-      return frames
+      const durations = nodes.map(node => {
+        const style = getComputedStyle(node)
+        const properties = style.transitionProperty.split(',').map(value => value.trim())
+        const times = style.transitionDuration.split(',').map(value =>
+          Number.parseFloat(value) * (value.trim().endsWith('ms') ? .001 : 1))
+        return Math.max(0, ...properties.flatMap((property, index) =>
+          ['all', 'transform', 'scale'].includes(property) ? [times[index % times.length]] : []))
+      })
+      return { frames, durations }
     }, resting)
     const point = resting[selected] ?? { x: 5, y: 5 }
     await page.mouse.move(point.x, point.y)
-    const frames = await recording
+    const { frames, durations } = await recording
     for (const index of [selected, previous].filter(index => index >= 0)) {
       const intermediate = frames.map(frame => frame[index]).filter(scale => scale > 1.005 && scale < 1.245)
-      assert(new Set(intermediate.map(scale => scale.toFixed(3))).size >= 3,
+      assert(durations[index] >= .1, `reward ${index} must retain a non-instant transform transition`)
+      // Slow software WebKit can paint fewer than three frames during an ease-out.
+      assert(intermediate.length > 0,
         `reward ${index} must visibly animate ${index === selected ? 'in' : 'out'}: ${JSON.stringify(frames)}`)
     }
     assert(frames.at(-1).every((scale, index) => Math.abs(scale - (index === selected ? 1.25 : 1)) < .01),

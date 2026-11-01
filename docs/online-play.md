@@ -4,6 +4,25 @@ The room server owns every multiplayer run. Browsers receive only the hidden car
 their own seat and recover that seat after a refresh or closed tab. Voice is a browser-native
 WebRTC mesh; the room WebSocket carries signaling only, never audio.
 
+## Combat views and calculations
+
+The browser's `CombatView` is not an authoritative `CombatState`: hidden piles stay
+`null`, and RNG and private supplies are absent. An owner's draw pile is an unordered
+set, not its shuffled order. Mutations still go through the existing action protocol.
+
+`POST /api/rooms/:code/preview` performs authenticated, read-only calculations against
+an exact combat ID and room version. Replies explicitly distinguish `ready` from
+`stale`; they never install a new room snapshot or record an action. Calculations have
+their own rate budget so they cannot starve recovery reads. Client caches and pending
+requests retire with their source frame, and local calculations remain synchronous.
+Deploy the matching room server when upgrading this client.
+
+Public forecasts decline calculations that consume unrevealed ordered supplies.
+Other seats' private hand effects are excluded from incoming-damage estimates:
+`~` marks that limitation. Other seats' totals remain unknown to this client.
+Eligibility that depends on an unrevealed reaction remains unknown, rather than
+being reported as an empty set of legal choices; final decisions are server-validated.
+
 ## Production host
 
 Production multiplayer runs on `DESKTOP-09UIMTJ` instead of an expiring GitHub-hosted
@@ -27,7 +46,7 @@ runner or a third-party tunnel:
   `MULTIPLAYER_SERVER_ORIGIN`.
 
 The room server is tuned for 5–10 regular players spread across simultaneous four-player
-rooms and accepts up to 50 authenticated WebSocket connections. Gameplay, snapshot reads,
+rooms and accepts up to 50 authenticated WebSocket connections. Gameplay, calculations, snapshot reads,
 reconnect authentication, and WebRTC signaling use separate budgets, so a four-player
 burst in one category cannot disconnect a seat or starve recovery in another.
 Normal over-limit traffic receives a retryable error while the socket stays open; only an

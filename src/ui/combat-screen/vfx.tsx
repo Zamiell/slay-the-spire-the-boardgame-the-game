@@ -11,7 +11,7 @@ import { combatArtReady, combatArtSize, onCombatArtReady, type CombatArtElement 
 import type { ActiveCombatVfx } from './types.ts'
 import { cardDef } from '../../game/cards.ts'
 import { playerVisualId, type VisualId } from '../../game/skins.ts'
-import type { CombatPresentationEvent, CombatState } from '../../game/combat.ts'
+import type { CombatPresentationEvent, CombatView } from '../../game/combat.ts'
 import { cardVfxRecipe, shivVfxRecipe, vfxAssetPath, vfxToneColor } from '../combat-vfx.ts'
 import { STAGED_ATTACKS, type StagedAttackSpec } from './staged-attacks.ts'
 
@@ -55,7 +55,7 @@ export const isCharacterAttack = ({ event, recipe }: ActiveCombatVfx): boolean =
       ((event.resolvedType ?? cardDef(event.sourceId).type) === 'attack' ||
         OFFENSIVE_VFX_FAMILIES.has(recipe.family)))
 
-export function isHermitAttack(state: CombatState, event?: CombatPresentationEvent): boolean {
+export function isHermitAttack(state: CombatView, event?: CombatPresentationEvent): boolean {
   if (!event || (event.kind !== 'card' && event.kind !== 'shiv') ||
     !state.players.some(p => p.id === event.actorId && p.character === 'hermit')) return false
   return isCharacterAttack({ event, recipe: event.kind === 'shiv' ? shivVfxRecipe()
@@ -68,7 +68,7 @@ export const stagedAttackOf = (visual: VisualId): StagedAttackSpec | undefined =
   Object.hasOwn(STAGED_ATTACKS, visual) ? STAGED_ATTACKS[visual as keyof typeof STAGED_ATTACKS] : undefined
 
 /** The staged attack a card or Shiv play puts on the board, when its actor wears a skin that has one. */
-export function stagedAttackOfEvent(state: CombatState, event?: CombatPresentationEvent): StagedAttackSpec | undefined {
+export function stagedAttackOfEvent(state: CombatView, event?: CombatPresentationEvent): StagedAttackSpec | undefined {
   if (!event || (event.kind !== 'card' && event.kind !== 'shiv')) return undefined
   const actor = state.players.find(p => p.id === event.actorId)
   const visual = actor && playerVisualId(actor)
@@ -93,7 +93,7 @@ const stagedAssetUrls = new Set(Object.entries(STAGED_ATTACKS).flatMap(([visual,
 export const isStagedAttackAsset = (url: string): boolean => stagedAssetUrls.has(url)
 const stagedWeights = new Map<StagedAttackSpec, readonly number[]>(
   Object.values(STAGED_ATTACKS).map(spec => [spec, spec.hits.map(hit => hit.weight)]))
-export function splitAttackWeights(state: CombatState, event?: CombatPresentationEvent): readonly number[] | undefined {
+export function splitAttackWeights(state: CombatView, event?: CombatPresentationEvent): readonly number[] | undefined {
   if (isHermitAttack(state, event)) return HERMIT_IMPACT_WEIGHTS
   const spec = stagedAttackOfEvent(state, event)
   return spec && stagedWeights.get(spec)
@@ -107,7 +107,7 @@ export function splitAttackAnimationPending(seq: number): boolean {
 }
 
 export function characterAttackContactMs(
-  state: CombatState,
+  state: CombatView,
   targetId: string,
   event?: CombatPresentationEvent,
 ): number {

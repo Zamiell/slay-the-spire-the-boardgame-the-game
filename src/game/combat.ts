@@ -4,6 +4,10 @@
 // action returns the SAME REFERENCE, which is how callers and the server tell
 // "not allowed" from "allowed but nothing changed".
 
+export type { CombatActor, CombatPlayerView, CombatView } from './combat/view.ts'
+export { evaluateCombatQuery } from './combat/preview-queries.ts'
+export type { CombatQuery, CombatQueryResult, CombatTargetProgress } from './combat/preview-queries.ts'
+
 export {
   chooseEndTurnTarget, defaultEndTurnOrder, endTurnChoiceId, endTurnChoiceTarget, parseSelfExhaustEndTurnTarget,
   selfExhaustEndTurnTarget,
@@ -39,6 +43,7 @@ export {
   lightningRowFromTarget,
   lightningRowTarget,
   lightningTargetsRows,
+  lightningTargetOptions,
   livingEnemies,
   orbEndTurnAmount,
   powerAbilityKey,

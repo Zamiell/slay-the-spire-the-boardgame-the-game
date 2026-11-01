@@ -262,4 +262,36 @@ for (const [label, enemies, repeated, automatic] of [
   }
   assert.deepEqual(state, before, `${label}: automatic targeting must not mutate combat`)
 }
-console.log('PASS confirmed play coordination, choice readiness, private previews and cancellation')
+for (const stale of [false, true]) {
+  const local = structuredClone(state)
+  local.phase = 'player'
+  const actor = local.players[0]
+  actor.hand = [card('defend_ironclad')]
+  actor.powers = []
+  actor.slimes = []
+  const current = { current: local }
+  const queryPending = { current: null }
+  const accepted = []
+  const busy = []
+  let resolveQuery
+  let requests = 0
+  const query = new Promise(resolve => { resolveQuery = resolve })
+  const coordinator = createCardPlayCoordinator({ ...options,
+    state: local, viewer: actor, stateRef: current, pending: null,
+    cardActionPending: { current: false }, targetQueryPending: queryPending,
+    queryTargets: () => { requests++; return query },
+    setQueryBusy: value => busy.push(value), commit: next => accepted.push(next),
+  })
+  assert.equal(coordinator.confirm(actor.hand[0], 'hand'), 'choosing')
+  assert.equal(coordinator.confirm(actor.hand[0], 'hand'), 'choosing')
+  assert.equal(coordinator.cancel(), 'choosing')
+  assert.equal(requests, 1, 'a pending read-only calculation must not be duplicated')
+  assert.equal(accepted.length, 0)
+  if (stale) current.current = structuredClone(local)
+  resolveQuery({ index: 0, options: [], complete: true })
+  await new Promise(resolve => setImmediate(resolve))
+  assert.equal(accepted.length, stale ? 0 : 1, 'a retired calculation cannot commit a card')
+  assert.equal(queryPending.current, null)
+  assert.deepEqual(busy, [true, false])
+}
+console.log('PASS confirmed play coordination, private previews, cancellation, and fenced asynchronous queries')

@@ -8,8 +8,9 @@ than redesigning the board or replacing every screen's artwork.
 - Audited the UI renderer inventory: **75 TSX files and 438 native control render
   sites**, including buttons, inputs, selects, disclosures, and dialogs.
   [Full file inventory](inventory.json).
-- Captured **20 representative views on desktop and horizontal phone**, before
-  implementation and after it: **80 screenshots / 40 matched comparisons**.
+- Originally captured **20 representative views on desktop and horizontal phone**,
+  before implementation and after it. Identical pairs have been removed from the
+  published gallery and both capture manifests so the gallery focuses on changes.
 - Before images were captured from the UI at commit `b8ca5fc8`, before the
   production changes in this pass.
 - Screenshots use isolated, synthetic accounts and runs. They do not inspect or
@@ -18,7 +19,7 @@ than redesigning the board or replacing every screen's artwork.
   keyboard focus. Actual held touch presses and cancellation are verified
   separately. A still screenshot cannot show easing or transition duration.
 
-**[Open the complete before/after gallery](gallery.md).**
+**[Open the changes-only before/after gallery](gallery.md).**
 
 ## What changed
 
@@ -222,4 +223,7 @@ node scripts/verify-ui-polish-browser.mjs --capture=after
 
 Do not regenerate the `before` directory on the changed UI: it is the historical
 baseline. Capture manifests record the view and interaction used for each image.
+After captures retain only views still present in the baseline manifest and
+automatically remove byte-identical pairs. The full 20-view interaction sweep
+still runs even when a view has been omitted from the screenshot gallery.
 The browser helpers mute both media and Web Audio in the isolated test sessions.

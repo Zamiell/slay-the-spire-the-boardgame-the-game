@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { mkdirSync, writeFileSync, readdirSync, readFileSync } from 'node:fs'
+import { mkdirSync, writeFileSync, readdirSync, readFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { createServer } from 'vite'
 import ts from 'typescript'
@@ -13,6 +13,9 @@ const onlyScreen = process.argv.find(argument => argument.startsWith('--screen='
 assert(!capture || ['before', 'after'].includes(capture), 'Capture must be before or after')
 assert(!onlyScreen || ['desktop', 'horizontal-phone'].includes(onlyScreen), 'Unknown screen class')
 const output = capture ? `working-report/ui-polish/${capture}` : 'artifacts/ui-polish'
+const baseline = capture === 'after'
+  ? JSON.parse(readFileSync('working-report/ui-polish/before/captures.json', 'utf8')) : null
+const retained = entry => !baseline || baseline.some(before => before.screen === entry.screen && before.name === entry.name)
 mkdirSync(output, { recursive: true })
 process.env.VITE_LEADERBOARD = 'true'
 const rooms = createRoomServer({ classifierEnabled: true, deckClassifier: async () => 'Ironclad Strength and Block' })
@@ -68,7 +71,8 @@ try {
       await page.evaluate(() => document.fonts.ready)
       await page.waitForTimeout(capture ? 600 : 100)
       const file = `${screen}-${name}.jpg`
-      if (capture) await page.screenshot({ path: join(output, file), type: 'jpeg', quality: 82, animations: 'disabled' })
+      if (capture && retained({ screen, name }))
+        await page.screenshot({ path: join(output, file), type: 'jpeg', quality: 82, animations: 'disabled' })
       captures.push({ screen, name, file, interaction: phone ? 'keyboard focus' : 'mouse hover' })
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `${screen}/${name}: page overflows`)
     }
@@ -229,22 +233,33 @@ try {
     console.log(`PASS ${screen}: ${captures.filter(capture => capture.screen === screen).length} UI surfaces`)
     await page.close()
   }
-  writeFileSync(join(output, 'captures.json'), `${JSON.stringify(captures, null, 2)}\n`)
+  let published = captures.filter(retained)
   if (capture === 'after' && !onlyScreen) {
-    const before = JSON.parse(readFileSync('working-report/ui-polish/before/captures.json', 'utf8'))
-    assert.deepEqual(captures.map(({ screen, name }) => `${screen}/${name}`),
-      before.map(({ screen, name }) => `${screen}/${name}`), 'Before/after views must match')
-    const names = [...new Set(captures.map(capture => capture.name))]
+    assert.deepEqual(published.map(({ screen, name }) => `${screen}/${name}`),
+      baseline.map(({ screen, name }) => `${screen}/${name}`), 'Before/after views must match')
+    published = published.filter(entry => {
+      const before = join('working-report/ui-polish/before', entry.file)
+      const after = join(output, entry.file)
+      if (!readFileSync(before).equals(readFileSync(after))) return true
+      rmSync(before)
+      rmSync(after)
+      return false
+    })
+    writeFileSync('working-report/ui-polish/before/captures.json',
+      `${JSON.stringify(baseline.filter(entry => published.some(after => after.file === entry.file)), null, 2)}\n`)
+    const names = [...new Set(published.map(capture => capture.name))]
     const gallery = ['# Before / after gallery', '',
       'Desktop: 1440 x 900. Horizontal phone: 844 x 390. Click an image for full size.',
       'Desktop captures show mouse hover; phone captures show keyboard focus. Timing and actual touch presses are checked separately.',
+      'Identical before/after pairs are omitted.',
       'Ambient combat animation frames can differ. These are review images, not pixel-equality goldens.', '']
     for (const name of names) {
       gallery.push(`## ${name.replaceAll('-', ' ')}`, '', '| Screen | Before | After |', '|---|---|---|')
-      for (const screen of ['desktop', 'horizontal-phone'])
+      for (const { screen } of published.filter(entry => entry.name === name))
         gallery.push(`| ${screen} | ![Before ${name}](before/${screen}-${name}.jpg) | ![After ${name}](after/${screen}-${name}.jpg) |`)
       gallery.push('')
     }
+    writeFileSync(join(output, 'captures.json'), `${JSON.stringify(published, null, 2)}\n`)
     writeFileSync('working-report/ui-polish/gallery.md', `${gallery.join('\n').trimEnd()}\n`)
   }
   if (capture) {

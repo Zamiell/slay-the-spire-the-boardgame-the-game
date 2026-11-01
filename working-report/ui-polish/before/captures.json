@@ -49,24 +49,6 @@
   },
   {
     "screen": "desktop",
-    "name": "run-mode",
-    "file": "desktop-run-mode.jpg",
-    "interaction": "mouse hover"
-  },
-  {
-    "screen": "desktop",
-    "name": "character",
-    "file": "desktop-character.jpg",
-    "interaction": "mouse hover"
-  },
-  {
-    "screen": "desktop",
-    "name": "campaign",
-    "file": "desktop-campaign.jpg",
-    "interaction": "mouse hover"
-  },
-  {
-    "screen": "desktop",
     "name": "neow",
     "file": "desktop-neow.jpg",
     "interaction": "mouse hover"
@@ -91,12 +73,6 @@
   },
   {
     "screen": "desktop",
-    "name": "merchant",
-    "file": "desktop-merchant.jpg",
-    "interaction": "mouse hover"
-  },
-  {
-    "screen": "desktop",
     "name": "campfire",
     "file": "desktop-campfire.jpg",
     "interaction": "mouse hover"
@@ -111,12 +87,6 @@
     "screen": "desktop",
     "name": "rewards",
     "file": "desktop-rewards.jpg",
-    "interaction": "mouse hover"
-  },
-  {
-    "screen": "desktop",
-    "name": "pause",
-    "file": "desktop-pause.jpg",
     "interaction": "mouse hover"
   },
   {

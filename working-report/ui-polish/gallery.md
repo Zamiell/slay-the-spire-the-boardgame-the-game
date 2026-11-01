@@ -2,6 +2,7 @@
 
 Desktop: 1440 x 900. Horizontal phone: 844 x 390. Click an image for full size.
 Desktop captures show mouse hover; phone captures show keyboard focus. Timing and actual touch presses are checked separately.
+Identical before/after pairs are omitted.
 Ambient combat animation frames can differ. These are review images, not pixel-equality goldens.
 
 ## main menu
@@ -64,21 +65,18 @@ Ambient combat animation frames can differ. These are review images, not pixel-e
 
 | Screen | Before | After |
 |---|---|---|
-| desktop | ![Before run-mode](before/desktop-run-mode.jpg) | ![After run-mode](after/desktop-run-mode.jpg) |
 | horizontal-phone | ![Before run-mode](before/horizontal-phone-run-mode.jpg) | ![After run-mode](after/horizontal-phone-run-mode.jpg) |
 
 ## character
 
 | Screen | Before | After |
 |---|---|---|
-| desktop | ![Before character](before/desktop-character.jpg) | ![After character](after/desktop-character.jpg) |
 | horizontal-phone | ![Before character](before/horizontal-phone-character.jpg) | ![After character](after/horizontal-phone-character.jpg) |
 
 ## campaign
 
 | Screen | Before | After |
 |---|---|---|
-| desktop | ![Before campaign](before/desktop-campaign.jpg) | ![After campaign](after/desktop-campaign.jpg) |
 | horizontal-phone | ![Before campaign](before/horizontal-phone-campaign.jpg) | ![After campaign](after/horizontal-phone-campaign.jpg) |
 
 ## neow
@@ -113,7 +111,6 @@ Ambient combat animation frames can differ. These are review images, not pixel-e
 
 | Screen | Before | After |
 |---|---|---|
-| desktop | ![Before merchant](before/desktop-merchant.jpg) | ![After merchant](after/desktop-merchant.jpg) |
 | horizontal-phone | ![Before merchant](before/horizontal-phone-merchant.jpg) | ![After merchant](after/horizontal-phone-merchant.jpg) |
 
 ## campfire
@@ -141,5 +138,4 @@ Ambient combat animation frames can differ. These are review images, not pixel-e
 
 | Screen | Before | After |
 |---|---|---|
-| desktop | ![Before pause](before/desktop-pause.jpg) | ![After pause](after/desktop-pause.jpg) |
 | horizontal-phone | ![Before pause](before/horizontal-phone-pause.jpg) | ![After pause](after/horizontal-phone-pause.jpg) |

@@ -8,6 +8,7 @@ import type { RoomCredentials } from '../protocol/actions.ts'
 import { is } from 'valibot'
 import { HttpResponseError, requestJson, responseMessage } from '../http.ts'
 import { decodeCombatQueryReply, type CombatQueryRequest } from '../protocol/combat-query.ts'
+import { decodeRoomSnapshot, decodeRoomReply, decodeRoomEntry, InvalidRoomSnapshot } from '../protocol/room-snapshot.ts'
 import { CAMPAIGN_EVENT, campaignKey, savedCampaign, saveAscensionUnlock } from '../campaign-storage.ts'
 import { enabledCardPacks } from '../wallet.ts'
 import { onSkinPreferenceChange, preferredSkin } from '../skin-preference.ts'
@@ -113,6 +114,7 @@ async function json(response: Response) {
 }
 
 const resetAfterFailure = () => resetRoomEndpoint()
+const roomJson = async (response: Response) => decodeRoomReply(await json(response))
 
 export async function validRoomSessions() {
   const sessions = savedRoomSessions()
@@ -120,7 +122,7 @@ export async function validRoomSessions() {
   const endpoint = await roomUrl('/api/rooms/')
   const verified = new Set(await Promise.all(sessions.map(async (saved) => {
     try {
-      await json(await fetch(`${endpoint}${encodeURIComponent(saved.code)}`, {
+      await roomJson(await fetch(`${endpoint}${encodeURIComponent(saved.code)}`, {
         headers: { 'x-room-token': saved.token },
         signal: AbortSignal.timeout(REFRESH_TIMEOUT_MS),
       }))
@@ -234,16 +236,17 @@ export function useRoomSession() {
         let endpoint: string | undefined
         try {
           endpoint = await roomUrl(`/api/rooms/${activeCredentials.code}`)
-          const latest = await json(await fetch(endpoint, {
+          const latest = await roomJson(await fetch(endpoint, {
             headers: { 'x-room-token': activeCredentials.token },
             signal: AbortSignal.timeout(REFRESH_TIMEOUT_MS),
-          })) as RoomSnapshot
+          }))
           if (generation.current !== actionGeneration) break
           if (accept(latest)) setRestorationEpoch((current) => current + 1)
           setRefreshEpoch((current) => Math.max(current, refreshId))
           if (refreshId > reconciliation.current.target) reconciliation.current.target = 0
           delay = 1_000
         } catch (cause) {
+          if (cause instanceof InvalidRoomSnapshot && generation.current === actionGeneration) setError(cause.message)
           resetAfterFailure()
           delay = Math.min(delay * 2, 5_000)
         }
@@ -258,10 +261,10 @@ export function useRoomSession() {
     const resyncGeneration = generation.current
     const before = snapshotRef.current
     try {
-      const latest = await json(await fetch(await roomUrl(`/api/rooms/${credentials.code}`), {
+      const latest = await roomJson(await fetch(await roomUrl(`/api/rooms/${credentials.code}`), {
         headers: { 'x-room-token': credentials.token },
         signal: AbortSignal.timeout(REFRESH_TIMEOUT_MS),
-      })) as RoomSnapshot
+      }))
       if (generation.current !== resyncGeneration) return false
       // A pushed frame that arrived meanwhile is newer than this GET.
       if (snapshotRef.current === before) {
@@ -270,7 +273,8 @@ export function useRoomSession() {
       }
       setRestorationEpoch((current) => current + 1)
       return true
-    } catch {
+    } catch (cause) {
+      if (cause instanceof InvalidRoomSnapshot && generation.current === resyncGeneration) setError(cause.message)
       resetAfterFailure()
       return false
     }
@@ -306,10 +310,10 @@ export function useRoomSession() {
       let endpoint: string | undefined
       try {
         endpoint = await roomUrl(`/api/rooms/${credentials.code}`)
-        const restored = await json(await fetch(endpoint, {
+        const restored = await roomJson(await fetch(endpoint, {
           headers: { 'x-room-token': credentials.token },
           signal: AbortSignal.timeout(REFRESH_TIMEOUT_MS),
-        })) as RoomSnapshot
+        }))
         if (!active || generation.current !== connectedGeneration) return
         if (accept(restored)) setRestorationEpoch((current) => current + 1)
         setRefreshEpoch((current) => Math.max(current, refreshId))
@@ -336,16 +340,17 @@ export function useRoomSession() {
           let probeEndpoint: string | undefined
           try {
             probeEndpoint = await roomUrl(`/api/rooms/${credentials.code}`)
-            const latest = await json(await fetch(probeEndpoint, {
+            const latest = await roomJson(await fetch(probeEndpoint, {
               headers: { 'x-room-token': credentials.token },
               signal: AbortSignal.timeout(REFRESH_TIMEOUT_MS),
-            })) as RoomSnapshot
+            }))
             if (!active || socket.current !== next) return
             if (!latest.you.connected) return reconnect()
             if (accept(latest)) setRestorationEpoch((current) => current + 1)
             livenessTimer ??= window.setTimeout(probe, LIVENESS_INTERVAL_MS)
-          } catch {
+          } catch (cause) {
             if (!active || socket.current !== next) return
+            if (cause instanceof InvalidRoomSnapshot) setError(cause.message)
             livenessTimer ??= window.setTimeout(probe, LIVENESS_INTERVAL_MS)
           }
         }
@@ -360,9 +365,10 @@ export function useRoomSession() {
           try {
             const message = JSON.parse(String(event.data))
             if (message.type === 'snapshot') {
+              const received = decodeRoomSnapshot(message.snapshot)
               clearTimeout(connectionTimeout)
               livenessTimer ??= window.setTimeout(probe, LIVENESS_INTERVAL_MS)
-              accept(message.snapshot)
+              accept(received)
               if (connectionRef.current !== 'connected') connectionEpoch.current += 1
               connectionRef.current = 'connected'
               setConnection('connected')
@@ -372,20 +378,22 @@ export function useRoomSession() {
               if (pending) {
                 clearTimeout(pending.timeout)
                 socketActions.current.delete(message.requestId)
-                pending.resolve(message.snapshot)
+                pending.resolve(received)
               }
             } else if (message.type === 'voice' && message.signal && typeof message.signal === 'object' && !Array.isArray(message.signal)) {
               for (const listener of voiceListeners.current) listener(message)
             } else if (message.type === 'error') {
+              const refusedSnapshot = message.snapshot === undefined ? undefined : decodeRoomSnapshot(message.snapshot)
               const pending = socketActions.current.get(message.requestId)
               if (pending) {
                 clearTimeout(pending.timeout)
                 socketActions.current.delete(message.requestId)
-                if (message.snapshot && accept(message.snapshot)) setRestorationEpoch((current) => current + 1)
-                pending.reject(new RequestError(message.error, message.status ?? 409, message.snapshot))
+                if (refusedSnapshot && accept(refusedSnapshot)) setRestorationEpoch((current) => current + 1)
+                pending.reject(new RequestError(message.error, message.status ?? 409, refusedSnapshot))
               } else setError(message.error)
             }
-          } catch {
+          } catch (cause) {
+            setError(cause instanceof InvalidRoomSnapshot ? cause.message : 'Invalid room update. Reconnecting…')
             next.close(1002, 'Invalid room update')
           }
         })
@@ -469,7 +477,7 @@ export function useRoomSession() {
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify({ name, character, skin: character ? preferredSkin(character) : undefined, requestId, campaignProgress: savedCampaign(), cardPacks: enabledCardPacks(savedWallet()) }),
             signal: AbortSignal.timeout(ACTION_TIMEOUT_MS),
-          })) as { token: string; snapshot: RoomSnapshot }
+          })).then(decodeRoomEntry)
           break
         } catch (cause) {
           resetAfterFailure()
@@ -542,13 +550,12 @@ export function useRoomSession() {
         })
       } else {
         endpoint = await roomUrl(`/api/rooms/${credentials.code}/${operation}`)
-        const reply: RoomSnapshot | { snapshot: RoomSnapshot } = await json(await fetch(endpoint, {
+        next = await roomJson(await fetch(endpoint, {
           method: 'POST',
           headers: { 'content-type': 'application/json', 'x-room-token': credentials.token },
           body: JSON.stringify(body),
           signal: AbortSignal.timeout(ACTION_TIMEOUT_MS),
         }))
-        next = 'snapshot' in reply ? reply.snapshot : reply
       }
       if (generation.current === actionGeneration) {
         accept(next)
@@ -571,10 +578,10 @@ export function useRoomSession() {
           let refreshEndpoint: string | undefined
           try {
             refreshEndpoint = await roomUrl(`/api/rooms/${credentials.code}`)
-            const latest = await json(await fetch(refreshEndpoint, {
+            const latest = await roomJson(await fetch(refreshEndpoint, {
               headers: { 'x-room-token': credentials.token },
               signal: AbortSignal.timeout(REFRESH_TIMEOUT_MS),
-            })) as RoomSnapshot
+            }))
             if (generation.current === actionGeneration) {
               if (accept(latest)) setRestorationEpoch((current) => current + 1)
               setRefreshEpoch((current) => Math.max(current, refreshId))
@@ -584,6 +591,7 @@ export function useRoomSession() {
               snapshot: latest,
             } satisfies ActionOutcome
           } catch (refreshCause) {
+            if (refreshCause instanceof InvalidRoomSnapshot && generation.current === actionGeneration) setError(refreshCause.message)
             resetAfterFailure()
             // A 4xx mutation response proves refusal even if its refresh fails —
             // but a refusal can still have changed the room, and the server sends

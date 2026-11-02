@@ -353,13 +353,18 @@ try {
     const cards = [...element.querySelectorAll('.card-picker__preview .card')].map((card) => card.getBoundingClientRect())
     const controls = [...element.querySelectorAll('.card-picker__footer button')].map((button) => button.getBoundingClientRect())
     return {
+      picker: pickerBox.toJSON(), cards: cards.map(box => box.toJSON()),
+      controls: controls.map(box => box.toJSON()),
+      headerClear: pickerBox.top >= document.querySelector('.app-shell__header').getBoundingClientRect().bottom - 1,
       overflow: document.documentElement.scrollHeight > innerHeight || document.documentElement.scrollWidth > innerWidth,
       cardsFit: cards.length === 2 && cards.every((box) => box.left >= pickerBox.left - 1 && box.right <= pickerBox.right + 1 && box.top >= pickerBox.top - 1 && box.bottom <= pickerBox.bottom + 1),
       controlsFit: controls.every((box) => box.left >= 0 && box.right <= innerWidth && box.top >= 0 && box.bottom <= innerHeight),
     }
   })
   assert.equal(phone.overflow, false, JSON.stringify(phone))
-  assert(phone.cardsFit && phone.controlsFit, JSON.stringify(phone))
+  if (!phone.cardsFit || !phone.controlsFit) await page.screenshot({ path: resolve(output, 'compact-picker-failure.png') })
+  assert(phone.headerClear && phone.cardsFit && phone.controlsFit, JSON.stringify(phone))
+  await page.screenshot({ path: resolve(output, 'compact-picker.png') })
   await picker.getByRole('button', { name: 'Confirm' }).click()
   await page.waitForFunction(() => window.__STS_DEBUG__.getRun().phase === 'map')
 

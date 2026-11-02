@@ -462,3 +462,47 @@ classes, including the private Merchant pledge overlay's arrival and dismissal.
 Its regression checks enforce viewport/header bounds and a centered heading.
 Older Courier/disclosure fixtures were updated to exercise the current UI rather
 than removed controls. No browser umbrella or new dependency was needed.
+
+## Five boundary refinements
+
+- [x] **Runtime room decoding.** HTTP reads, entry and action replies, and pushed
+  snapshots/refusals use a shared Valibot-backed structural decoder. The server
+  publishes a snapshot schema version; original unversioned v1 frames remain
+  supported. Invalid core shapes, incompatible versions, impossible phase
+  envelopes, and known private-pile leaks are refused before installation.
+  Recovery epochs advance only after valid reads. Optional start-turn fields now
+  accurately describe their absence outside that phase.
+- [x] **Shared choice-overlay host.** Card pickers and reward choices escape scene
+  containers through one themed host, inheriting the run's inert state and actual
+  HUD boundary. Existing focus ownership remains in `useModalFocus`. Callers no
+  longer choose between body/root portals. Compact-phone cards size against the
+  remaining picker body instead of assuming a fixed-height HUD.
+- [x] **Typed play-session ownership.** Live play, tutorials, and replays are one
+  discriminated session state. The controller owns the parked live run, replay
+  runner/cancellation/seeking, and restoration; persistence and reward eligibility
+  share explicit policy. Switching temporary modes preserves the original live
+  run. The Hermit tutorial now keeps its setup hand available to the coach instead
+  of hiding that lesson behind an automatic native dialog.
+- [x] **Card-decision controller.** Card drafts, public-board reconciliation,
+  action-context construction, submission, refusal recovery, private reveals, and
+  copy continuation have a cohesive owner. Pure draft/choice rules are directly
+  testable without importing rendering components. Gesture, flight, and stage
+  animation ownership remain separate, connected through a small presentation
+  interface. Reconciliation no longer casts a partial board to authoritative state.
+- [x] **Feature-owned HTTP routes.** Accounts/wallets, mail, and community
+  statistics/leaderboards have separate handlers. Shared HTTP mechanics, rate
+  policies, persistence/retries, and room transport retain their existing owners.
+  Rate maps remain distinct, mail failure rollback and account durability remain
+  intact, and the release archive includes the extracted modules.
+
+**Verification:** Final full light gate **93/93**; both compiler projects and
+production build pass. Focused room recovery, multiplayer planning, card choices,
+delayed authoritative previews, copied-card recovery, chamber/Slayer flows,
+pickers/loot, solo resume, replay controls, and both tutorial flows pass. HTTP
+profile, wallet, mail, leaderboard, statistics, and deployment checks pass.
+The complete normal-motion sweep covers **44 surfaces / 88 screenshots**;
+screenshots and video transition samples were reviewed on desktop and horizontal
+phone, alongside recorded card-planning transitions and compact-picker captures.
+The party verifier now waits for the authoritative coordinator stage instead of
+racing another seat's render. Legacy portal selectors and source-layout checks
+were updated without running the opt-in browser umbrella. No dependency was added.

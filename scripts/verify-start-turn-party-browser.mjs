@@ -180,7 +180,8 @@ try {
     await waiting(defect, 'Silent')
     await defect.screenshot({ path: `${out}/${screen}-waiting.png` })
     const confirmOrder = silent.getByRole('button', { name: 'Confirm start-of-turn order', exact: true })
-    if (await confirmOrder.count()) await action(silent, () => confirmOrder.click())
+    // The other seat's socket may publish before Silent has rendered the new order stage.
+    if (snapshot(1).startTurnOrderPending) await action(silent, () => confirmOrder.click())
     await silent.locator('[data-enemy-id="e3"].enemy--targeted .enemy__hit-area').click()
     const orderPanel = silent.locator('.start-turn-order')
     if (await orderPanel.getAttribute('open') === null) await orderPanel.locator('summary').click()

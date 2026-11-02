@@ -1,8 +1,9 @@
-import { useEffect, useId, useLayoutEffect, useRef } from 'react'
+import { useEffect, useId, useRef } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { useModalFocus } from './useModalFocus.ts'
+import { ChoiceOverlay } from './ChoiceOverlay.tsx'
 
-export function RewardChoiceScreen({ title, description, choiceKey, className = '', style, disabled, onBack, children }: {
+type Props = {
   title: string
   description?: string
   choiceKey: string
@@ -11,20 +12,15 @@ export function RewardChoiceScreen({ title, description, choiceKey, className = 
   disabled?: boolean
   onBack?: () => void
   children: ReactNode
-}) {
+}
+
+export function RewardChoiceScreen(props: Props) {
+  return <ChoiceOverlay><RewardChoiceContent {...props} /></ChoiceOverlay>
+}
+
+function RewardChoiceContent({ title, description, choiceKey, className = '', style, disabled, onBack, children }: Props) {
   const picker = useRef<HTMLElement>(null)
   const id = useId()
-  useLayoutEffect(() => {
-    const root = picker.current
-    const header = root?.closest('.app-shell')?.querySelector<HTMLElement>(':scope > .app-shell__header')
-    if (!root || !header) return
-    const measure = () => root.style.setProperty('--reward-header-bottom', `${header.getBoundingClientRect().bottom}px`)
-    measure()
-    const observer = new ResizeObserver(measure)
-    observer.observe(header)
-    window.addEventListener('resize', measure)
-    return () => { observer.disconnect(); window.removeEventListener('resize', measure) }
-  }, [])
   useModalFocus(picker, { resetKey: choiceKey })
   useEffect(() => {
     if (!onBack) return

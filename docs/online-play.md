@@ -4,6 +4,18 @@ The room server owns every multiplayer run. Browsers receive only the hidden car
 their own seat and recover that seat after a refresh or closed tab. Voice is a browser-native
 WebRTC mesh; the room WebSocket carries signaling only, never audio.
 
+## Snapshot contract
+
+HTTP reads, action replies, room entry, and WebSocket snapshots pass through the
+same runtime decoder before installation. It validates the core presentation
+shapes, phase consistency, and private-pile boundaries; it does not duplicate
+engine legality checks. Malformed updates cannot count as successful recovery.
+
+Snapshots publish `snapshotSchemaVersion: 1`. Unversioned snapshots retain the
+original v1 interpretation; unsupported versions produce an explicit update
+message rather than guessed defaults. This schema version is separate from the
+room's mutation `version` and server-boot `epoch`.
+
 ## Combat views and calculations
 
 The browser's `CombatView` is not an authoritative `CombatState`: hidden piles stay

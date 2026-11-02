@@ -348,7 +348,7 @@
 
 .sts-scope .reward-screen--card-choice {
   position: fixed;
-  inset: var(--reward-header-bottom, 0px) 0 0;
+  inset: var(--choice-overlay-top, 0px) 0 0;
   z-index: 30;
   display: grid;
   align-content: center;

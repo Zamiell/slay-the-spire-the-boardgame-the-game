@@ -1,17 +1,32 @@
 #!/usr/bin/env node
-import { claimProfile, loginProfile, syncAscension } from './lib/profiles.mjs'
-import { claimCoinGrant, confirmCoinGrant } from './lib/coin-grants.mjs'
-import { syncAccountWallet } from './lib/account-wallets.mjs'
-import { MAX_MAIL_CHARACTERS, WELCOME_LETTER, announceToPlayers, developerInbox, developerUnread, ownerOf, playerInbox, sendDeveloperReply, sendPlayerLetter } from './lib/mail.mjs'
+import { createAccountRoutes } from './lib/http/accounts.mjs'
+import { createMailRoutes } from './lib/http/mail.mjs'
+import { createCommunityRoutes } from './lib/http/community.mjs'
+import { MAX_BODY, send, readJson, sourceOf, networkOf } from './lib/http/io.mjs'
+import { CREATE_WINDOW_MS, LOGIN_FAILURE_WINDOW_MS, MAIL_SEND_WINDOW_MS, MAX_RATE_KEYS } from './lib/http/policies.mjs'
+
+
+
+import { MAX_MAIL_CHARACTERS } from './lib/mail.mjs'
 import { createServer as createHttpServer } from 'node:http'
 import { existsSync, writeFileSync } from 'node:fs'
-import { timingSafeEqual } from 'node:crypto'
+
 import { basename } from 'node:path'
 import { WebSocketServer } from 'ws'
 import { classifyDeckType, codexReady } from './lib/codex-deck-classifier.mjs'
-import { addLeaderboardRun, dailyLeaderboard, leaderboardSnapshot, personalStats, roomLeaderboardRun, winningDecksPage } from './lib/leaderboard.mjs'
-import { backfillDailyCoins, creditRecordedDailyCoins } from './lib/daily-coins.mjs'
-import { deckHash, HERO_NAMES, SPECIFIC_ARCHETYPE_FLOOR, otherDeckType, randomDeck, recordDeckClassification, soloDeck, statsSnapshot, validClassifierThreadId, validDeckType, validSoloDeck } from './lib/stats.mjs'
+import { addLeaderboardRun, roomLeaderboardRun } from './lib/leaderboard.mjs'
+import { backfillDailyCoins } from './lib/daily-coins.mjs'
+import {
+  deckHash,
+  HERO_NAMES,
+  SPECIFIC_ARCHETYPE_FLOOR,
+  otherDeckType,
+  recordDeckClassification,
+  soloDeck,
+  validClassifierThreadId,
+  validDeckType,
+  validSoloDeck,
+} from './lib/stats.mjs'
 import {
   apply,
   chooseAscension,
@@ -32,12 +47,6 @@ import {
   startRun,
   selectCampaign,
 } from './lib/rooms.mjs'
-
-const JSON_HEADERS = {
-  'content-type': 'application/json; charset=utf-8',
-  'cache-control': 'no-store',
-}
-const MAX_BODY = 64 * 1024
 const MULTIPLAYER_PROTOCOL_VERSION = 1
 const MAX_ROOMS = 100
 const ROOM_TTL_MS = 24 * 60 * 60 * 1000
@@ -51,28 +60,11 @@ const MAX_MESSAGES_PER_WINDOW = 300
 const MAX_READS_PER_WINDOW = 600
 const MAX_VOICE_MESSAGES_PER_WINDOW = 600
 const MAX_ABUSIVE_MESSAGES_PER_WINDOW = 3_000
-const CREATE_WINDOW_MS = 60_000
-const MAX_PROFILE_CLAIMS_PER_WINDOW = 30
-const MAX_LOGINS_PER_WINDOW = 10
-const LOGIN_FAILURE_WINDOW_MS = 10 * 60_000
-const MAX_LOGIN_FAILURES_PER_NAME = 8
 const MAX_CREATES_PER_WINDOW = 10
 const MAX_JOINS_PER_WINDOW = 30
-const MAX_LEADERBOARD_WRITES_PER_WINDOW = 6
-const MAX_DECK_READS_PER_WINDOW = 30
-const MAX_STATS_READS_PER_WINDOW = 120
 const MAX_RESTRICTED_NETWORKS = 256
-const MAX_MAIL_READS_PER_WINDOW = 60
-const MAIL_SEND_WINDOW_MS = 10 * 60_000
-const MAX_MAIL_SENDS_PER_WINDOW = 5
-const MAX_MAIL_SENDS_PER_SOURCE = 20
-const MAX_MAIL_ADMIN_REPLIES_PER_WINDOW = 60
-const MAX_MAIL_ADMIN_FAILURES_PER_WINDOW = 10
-const DECK_PAGE_CACHE_LIMIT = 64
-const DECK_QUERY_KEYS = new Set(['sort', 'direction', 'character', 'ascension', 'cursor'])
 const CLASSIFICATION_DAY_MS = 24 * 60 * 60 * 1000
 const MAX_UPGRADES_PER_WINDOW = 120
-const MAX_RATE_KEYS = 1024
 const MAX_ROOMS_PER_IP = 10
 export const MAX_CONNECTIONS = 50
 const MAX_PENDING_AUTH = MAX_CONNECTIONS
@@ -81,29 +73,6 @@ const STORE_SAVE_DELAY_MS = 1_000
 const CATCH_UP_RESERVATION_MS = 30_000
 const DEFAULT_ICE_SERVERS = [{ urls: 'stun:stun.cloudflare.com:3478' }]
 
-function send(response, status, body) {
-  response.writeHead(status, JSON_HEADERS)
-  response.end(JSON.stringify(body))
-}
-
-async function readJson(request) {
-  const chunks = []
-  let size = 0
-  for await (const chunk of request) {
-    size += chunk.length
-    if (size > MAX_BODY) throw Object.assign(new Error('Request body is too large'), { status: 413 })
-    chunks.push(chunk)
-  }
-  if (chunks.length === 0) return {}
-  try {
-    const body = JSON.parse(Buffer.concat(chunks).toString('utf8'))
-    if (!body || Array.isArray(body) || typeof body !== 'object') throw new Error('JSON body must be an object')
-    return body
-  } catch {
-    throw Object.assign(new Error('JSON body must be an object'), { status: 400 })
-  }
-}
-
 const tokenOf = (request) => request.headers['x-room-token']?.toString()
 const codeOf = (value) => value.trim().toUpperCase()
 const requestIdOf = (value) => {
@@ -111,23 +80,8 @@ const requestIdOf = (value) => {
   if (typeof value === 'string' && /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(value)) return value
   throw Object.assign(new Error('Invalid request ID'), { status: 400 })
 }
-const sourceOf = (request) => request.headers['cf-connecting-ip']?.toString()
-  ?? request.socket.remoteAddress
-  ?? 'unknown'
 
 const SPIRE_REJECTION = 'Spire rejects room-temperature IQ'
-
-/** Groups an IPv6 address by its /64, which one household's rotating addresses share. */
-function networkOf(source) {
-  // A dual-stack socket reports IPv4 clients as ::ffff:a.b.c.d.
-  if (source.toLowerCase().startsWith('::ffff:')) source = source.slice(7)
-  if (!source.includes(':') || source.includes('.')) return source
-  const [head, tail] = source.split('::')
-  const before = head ? head.split(':') : []
-  const after = tail ? tail.split(':') : []
-  const groups = tail === undefined ? before : [...before, ...Array(Math.max(0, 8 - before.length - after.length)).fill('0'), ...after]
-  return groups.slice(0, 4).map((group) => Number.parseInt(group, 16).toString(16)).join(':')
-}
 
 export function createRoomServer({
   turnKeyId = process.env.CLOUDFLARE_TURN_KEY_ID,
@@ -181,12 +135,6 @@ export function createRoomServer({
   const mailProfileRates = new Map()
   const mailAdminReplyRates = new Map()
   const mailAdminFailures = new Map()
-  const deckPages = new Map()
-  let deckPagesRevision = store.leaderboardRevision
-  let leaderboardSummary
-  let leaderboardSummaryRevision = -1
-  const dailyBoards = new Map()
-  let dailyBoardsRevision = -1
   const upgradeRates = new Map()
   const invalidUpgradeRates = new Map()
   const actionRates = new Map()
@@ -448,15 +396,6 @@ export function createRoomServer({
     rate.count += 1
     return rate.count <= maximum
   }
-
-  const mailAdminKey = typeof mailAdminToken === 'string' && mailAdminToken.length >= 24 ? Buffer.from(`Bearer ${mailAdminToken}`) : null
-  if (mailAdminToken && !mailAdminKey) console.warn('Mail replies disabled: STS_MAIL_ADMIN_TOKEN must be at least 24 characters')
-  const delegatedMailOwners = new Set((typeof mailAdminOwners === 'string' ? mailAdminOwners.split(',') : mailAdminOwners ?? [])
-    .map((value) => String(value).trim().toLowerCase()).filter((value) => /^[0-9a-f]{64}$/.test(value)))
-  const delegatedMailProfile = (token) => {
-    const profile = typeof token === 'string' ? store.profiles.find((entry) => entry.token === token) : undefined
-    return profile && delegatedMailOwners.has(ownerOf(profile.token)) ? profile : undefined
-  }
   // STS_RESTRICTED_USERNAMES (comma separated) names accounts the Spire turns away: no room to
   // create or join, and no new account from the network they were last seen on. The networks
   // are remembered only while the process runs; the account's own browser reports in on load.
@@ -481,28 +420,6 @@ export function createRoomServer({
       store.reconnectQuorums.delete(code)
       if (room) settleRestrictedSeats(room)
     }
-  }
-  // Failures are always counted: when the table is full the oldest source makes
-  // room, so a flood of fresh addresses cannot switch the lockout off.
-  const mailAdminAuthorized = (request, now = Date.now()) => {
-    const source = sourceOf(request)
-    const failures = mailAdminFailures.get(source)
-    const current = failures && now - failures.startedAt < CREATE_WINDOW_MS ? failures : undefined
-    const offered = Buffer.from(request.headers.authorization?.toString() ?? '')
-    const matches = offered.length === mailAdminKey.length && timingSafeEqual(offered, mailAdminKey)
-    if (matches && (current?.count ?? 0) < MAX_MAIL_ADMIN_FAILURES_PER_WINDOW) return true
-    if (!matches) {
-      if (!current && mailAdminFailures.size >= MAX_RATE_KEYS) mailAdminFailures.delete(mailAdminFailures.keys().next().value)
-      mailAdminFailures.delete(source)
-      mailAdminFailures.set(source, { startedAt: current?.startedAt ?? now, count: (current?.count ?? 0) + 1 })
-    }
-    return false
-  }
-  const saveMail = (undo) => {
-    store.mailDirty = true
-    if (attemptSave()) return true
-    undo()
-    return false
   }
 
   const mayAct = (room, token) => consume(
@@ -640,6 +557,14 @@ export function createRoomServer({
     } catch {}
   }
 
+  const persistence = { attemptSave, queueSave }
+  const rates = { consume, profileRates, loginRates, loginFailures, statsRates, mailReadRates,
+    mailSendRates, mailProfileRates, mailAdminReplyRates, mailAdminFailures, deckReadRates, dailyReadRates, leaderboardRates }
+  const accountRoutes = createAccountRoutes({ store, persistence, rates,
+    restrictions: { restrictedNetworks, rejectRestricted, isRestrictedName, noteRestrictedSource } })
+  const mailRoutes = createMailRoutes({ store, persistence, rates, mailAdminToken, mailAdminOwners, maxMailCharacters })
+  const communityRoutes = createCommunityRoutes({ store, persistence, rates, scheduleClassification })
+
   const server = createHttpServer(async (request, response) => {
     let acted = null
     try {
@@ -666,325 +591,9 @@ export function createRoomServer({
           accountWallets: true, accountAscensions: true,
         })
       }
-      if (request.method === 'POST' && url.pathname === '/api/profile') {
-        if (!consume(profileRates, sourceOf(request), CREATE_WINDOW_MS, MAX_PROFILE_CLAIMS_PER_WINDOW)) {
-          return send(response, 429, { error: 'Too many name requests. Please try again shortly.' })
-        }
-        const body = await readJson(request)
-        // A restricted network only loses new accounts; a known token may still set or confirm its password.
-        if (restrictedNetworks.has(networkOf(sourceOf(request))) && !store.profiles.some((entry) => entry.token === body.token)) rejectRestricted()
-        const profile = await claimProfile(store.profiles, body)
-        if (!attemptSave()) {
-          queueSave()
-          return send(response, 503, { error: 'Could not save your account. Please try again.' })
-        }
-        return send(response, 200, { username: profile.username })
-      }
-      if (request.method === 'POST' && url.pathname === '/api/login') {
-        if (!consume(loginRates, sourceOf(request), CREATE_WINDOW_MS, MAX_LOGINS_PER_WINDOW)) {
-          return send(response, 429, { error: 'Too many log in attempts. Please try again shortly.' })
-        }
-        const body = await readJson(request)
-        const failureKey = typeof body.username === 'string' ? body.username.normalize('NFKC').trim().toLowerCase().slice(0, 64) : ''
-        // Guessing is capped per name as well as per source, so a name can be locked for a
-        // while by anyone who knows it. That trade is accepted: the cap is what stops a
-        // botnet guessing one account's password.
-        // The attempt is counted before the slow hash, so a burst of parallel guesses cannot
-        // all pass the check; a login that is not a wrong password gives its slot back.
-        const now = Date.now()
-        const failures = loginFailures.get(failureKey)
-        const attempts = failures && now - failures.startedAt < LOGIN_FAILURE_WINDOW_MS ? failures : { startedAt: now, count: 0 }
-        if (attempts.count >= MAX_LOGIN_FAILURES_PER_NAME) {
-          return send(response, 429, { error: 'Too many wrong passwords for this name. Please try again later.' })
-        }
-        // As with mail admin failures, a full table evicts its oldest name instead of skipping the count.
-        if (!failures && loginFailures.size >= MAX_RATE_KEYS) loginFailures.delete(loginFailures.keys().next().value)
-        attempts.count += 1
-        loginFailures.delete(failureKey)
-        loginFailures.set(failureKey, attempts)
-        let profile
-        try { profile = await loginProfile(store.profiles, body) } catch (error) {
-          if (error.status !== 401) attempts.count -= 1
-          throw error
-        }
-        loginFailures.delete(failureKey)
-        const restricted = isRestrictedName(profile.username)
-        if (restricted) noteRestrictedSource(request)
-        return send(response, 200, { username: profile.username, token: profile.token, ...(restricted ? { restricted } : {}) })
-      }
-      if (request.method === 'POST' && url.pathname === '/api/profile/status') {
-        if (!consume(statsRates, `status:${sourceOf(request)}`, CREATE_WINDOW_MS, MAX_STATS_READS_PER_WINDOW)) {
-          return send(response, 429, { error: 'Too many requests. Please try again shortly.' })
-        }
-        const body = await readJson(request)
-        const profile = typeof body.token === 'string' ? store.profiles.find((entry) => entry.token === body.token) : undefined
-        const restricted = Boolean(profile) && isRestrictedName(profile.username)
-        if (restricted) noteRestrictedSource(request)
-        return send(response, 200, { restricted })
-      }
-      if (request.method === 'POST' && url.pathname === '/api/profile/stats') {
-        if (!consume(statsRates, `profile:${sourceOf(request)}`, CREATE_WINDOW_MS, MAX_STATS_READS_PER_WINDOW)) {
-          return send(response, 429, { error: 'Too many requests. Please try again shortly.' })
-        }
-        const body = await readJson(request)
-        const profile = typeof body.token === 'string' ? store.profiles.find((entry) => entry.token === body.token) : undefined
-        if (!profile) return send(response, 409, { error: 'Your name is not registered on this server.', code: 'profile' })
-        return send(response, 200, personalStats(store.leaderboardRuns, profile.username))
-      }
-      if (request.method === 'POST' && url.pathname === '/api/profile/ascension') {
-        if (!consume(statsRates, `ascension:${sourceOf(request)}`, CREATE_WINDOW_MS, MAX_STATS_READS_PER_WINDOW)) {
-          return send(response, 429, { error: 'Too many requests. Please try again shortly.' })
-        }
-        const body = await readJson(request)
-        const profile = typeof body.token === 'string' ? store.profiles.find((entry) => entry.token === body.token) : undefined
-        if (!profile) return send(response, 409, { error: 'Your name is not registered on this server.', code: 'profile' })
-        const previous = profile.highestAscension
-        const reply = syncAscension(profile, store.leaderboardRuns, body.highestAscension)
-        if (previous !== reply.highestAscension) store.ascensionsDirty = true
-        if (store.ascensionsDirty) {
-          if (!attemptSave()) {
-            queueSave()
-            return send(response, 503, { error: 'Could not save your Ascension. Please try again.' })
-          }
-          store.ascensionsDirty = false
-        }
-        return send(response, 200, reply)
-      }
-      if (request.method === 'POST' && url.pathname === '/api/profile/wallet') {
-        if (!consume(statsRates, `wallet:${sourceOf(request)}`, CREATE_WINDOW_MS, MAX_STATS_READS_PER_WINDOW)) {
-          return send(response, 429, { error: 'Too many requests. Please try again shortly.' })
-        }
-        const body = await readJson(request)
-        const profile = typeof body.token === 'string' ? store.profiles.find((entry) => entry.token === body.token) : undefined
-        if (!profile) return send(response, 200, { registered: false })
-        const reply = syncAccountWallet(store, profile, body)
-        if (store.walletsDirty) {
-          if (!attemptSave()) {
-            queueSave()
-            return send(response, 503, { error: 'Could not save your wallet. Please try again.' })
-          }
-          store.walletsDirty = false
-        }
-        return send(response, 200, reply)
-      }
-      if (request.method === 'POST' && (url.pathname === '/api/profile/coins' || url.pathname === '/api/profile/coins/confirm')) {
-        if (!consume(statsRates, `coins:${sourceOf(request)}`, CREATE_WINDOW_MS, MAX_STATS_READS_PER_WINDOW)) {
-          return send(response, 429, { error: 'Too many requests. Please try again shortly.' })
-        }
-        const body = await readJson(request)
-        const profile = typeof body.token === 'string' ? store.profiles.find((entry) => entry.token === body.token) : undefined
-        // An unregistered or anonymous player simply has no grant: no error for a first visit to log.
-        if (!profile) return send(response, 200, url.pathname === '/api/profile/coins' ? { coins: 0 } : { claimed: false })
-        const reply = url.pathname === '/api/profile/coins'
-          ? claimCoinGrant(store, profile.username, body.claimId)
-          : confirmCoinGrant(store, profile.username, body.claimId, body.grantId)
-        if (store.coinGrantsChanged) {
-          // The reservation or the spend must be on disk before the client acts on it.
-          if (!attemptSave()) {
-            queueSave()
-            return send(response, 503, { error: 'Could not save. Please try again.' })
-          }
-          store.coinGrantsChanged = false
-        }
-        return send(response, 200, reply)
-      }
-      if (request.method === 'POST' && (url.pathname === '/api/mail' || url.pathname === '/api/mail/send')) {
-        const sending = url.pathname === '/api/mail/send'
-        if (!consume(sending ? mailSendRates : mailReadRates, sourceOf(request), sending ? MAIL_SEND_WINDOW_MS : CREATE_WINDOW_MS,
-          sending ? MAX_MAIL_SENDS_PER_SOURCE : MAX_MAIL_READS_PER_WINDOW)) {
-          return send(response, 429, { error: sending ? 'You have sent a lot of letters. Please wait a little.' : 'Too many mail requests' })
-        }
-        const body = await readJson(request)
-        const profile = typeof body.token === 'string' ? store.profiles.find((entry) => entry.token === body.token) : undefined
-        if (!sending) {
-          // An unknown profile simply has no letters yet: a first visit reads an
-          // empty mailbox rather than an error.
-          if (!profile) return send(response, 200, { letters: [], unread: 0, admin: false })
-          const admin = delegatedMailOwners.has(ownerOf(profile.token))
-          const readOptions = { markRead: body.markRead === true, readThroughAt: body.readThroughAt }
-          let inbox = playerInbox(store.mail, profile, readOptions)
-          if (!admin && inbox.letters.length === 0) {
-            try {
-              const { undo } = sendDeveloperReply(store.mail, profile.username, WELCOME_LETTER, store.profiles, { maxCharacters: maxMailCharacters })
-              if (saveMail(undo)) inbox = playerInbox(store.mail, profile, readOptions)
-            } catch {}
-          }
-          if (inbox.changed) {
-            store.mailDirty = true
-            queueSave()
-          }
-          return send(response, 200, {
-            letters: inbox.letters,
-            unread: admin ? developerUnread(store.mail, profile.username) : inbox.unread,
-            personalUnread: inbox.unread,
-            admin,
-          })
-        }
-        if (!profile) return send(response, 409, { error: 'Your name is not registered on this server.', code: 'profile' })
-        if (delegatedMailOwners.has(ownerOf(profile.token))) return send(response, 403, { error: 'Server mailbox accounts only reply to player letters.' })
-        if (!consume(mailProfileRates, profile.username, MAIL_SEND_WINDOW_MS, MAX_MAIL_SENDS_PER_WINDOW)) {
-          return send(response, 429, { error: 'You have sent a lot of letters. Please wait a little.' })
-        }
-        // A letter that is refused or cannot be saved does not count against the allowance.
-        const refund = () => { const rate = mailProfileRates.get(profile.username); if (rate) rate.count -= 1 }
-        let sent
-        try { sent = sendPlayerLetter(store.mail, profile, body.body, { maxCharacters: maxMailCharacters }) } catch (error) {
-          refund()
-          throw error
-        }
-        if (!saveMail(sent.undo)) {
-          refund()
-          return send(response, 503, { error: 'Could not send your letter. Please try again.' })
-        }
-        return send(response, 201, { letters: sent.letters, unread: sent.unread })
-      }
-      if (request.method === 'POST' && (url.pathname === '/api/mail/desk' || url.pathname === '/api/mail/desk/reply')) {
-        const source = sourceOf(request)
-        if (!consume(url.pathname.endsWith('/reply') ? mailSendRates : mailReadRates, source,
-          url.pathname.endsWith('/reply') ? MAIL_SEND_WINDOW_MS : CREATE_WINDOW_MS,
-          url.pathname.endsWith('/reply') ? MAX_MAIL_SENDS_PER_SOURCE : MAX_MAIL_READS_PER_WINDOW)) {
-          return send(response, 429, { error: 'Too many mail requests' })
-        }
-        const body = await readJson(request)
-        const profile = delegatedMailProfile(body.token)
-        if (!profile) return send(response, 403, { error: 'This account cannot manage server mail.' })
-        if (url.pathname === '/api/mail/desk') {
-          const inbox = developerInbox(store.mail, store.profiles, {
-            username: typeof body.username === 'string' ? body.username : undefined,
-            markRead: body.markRead === true,
-            readThroughAt: body.readThroughAt,
-            excludeUsername: profile.username,
-          })
-          if (inbox.changed) {
-            store.mailDirty = true
-            queueSave()
-          }
-          return send(response, 200, { threads: inbox.threads, unread: inbox.unread })
-        }
-        const incoming = developerInbox(store.mail, store.profiles, { username: body.username, excludeUsername: profile.username }).threads[0]
-        if (!incoming?.letters.some((letter) => letter.from === 'player')) {
-          return send(response, 404, { error: 'No player letter to answer.' })
-        }
-        if (!consume(mailAdminReplyRates, ownerOf(profile.token), MAIL_SEND_WINDOW_MS, MAX_MAIL_ADMIN_REPLIES_PER_WINDOW)) {
-          return send(response, 429, { error: 'You have sent a lot of replies. Please wait a little.' })
-        }
-        const { undo, ...reply } = sendDeveloperReply(store.mail, body.username, body.body, store.profiles, { maxCharacters: maxMailCharacters })
-        if (!saveMail(undo)) return send(response, 503, { error: 'Could not save the reply. Please try again.' })
-        const updated = developerInbox(store.mail, store.profiles, { username: reply.username, excludeUsername: profile.username })
-        return send(response, 201, { ...reply, threads: updated.threads, unread: updated.unread })
-      }
-      if (url.pathname === '/api/mail/admin' || url.pathname === '/api/mail/admin/reply' || url.pathname === '/api/mail/admin/announce') {
-        if (!mailAdminKey) return send(response, 404, { error: 'Not found' })
-        if (!mailAdminAuthorized(request)) return send(response, 401, { error: 'Unauthorized' })
-        if (request.method === 'GET' && url.pathname === '/api/mail/admin') {
-          const inbox = developerInbox(store.mail, store.profiles, {
-            username: url.searchParams.get('username') ?? undefined, markRead: url.searchParams.get('markRead') === 'true',
-          })
-          if (inbox.changed) {
-            store.mailDirty = true
-            queueSave()
-          }
-          return send(response, 200, { threads: inbox.threads })
-        }
-        if (request.method === 'POST' && url.pathname === '/api/mail/admin/reply') {
-          const body = await readJson(request)
-          const { undo, ...reply } = sendDeveloperReply(store.mail, body.username, body.body, store.profiles, { maxCharacters: maxMailCharacters })
-          if (!saveMail(undo)) return send(response, 503, { error: 'Could not save the reply. Please try again.' })
-          return send(response, 201, reply)
-        }
-        if (request.method === 'POST' && url.pathname === '/api/mail/admin/announce') {
-          // One letter to every registered player except the delegated mailbox accounts.
-          const body = await readJson(request)
-          // A flag that is not a real boolean must not turn a rehearsal into a live send to everyone.
-          if (body.dryRun !== undefined && typeof body.dryRun !== 'boolean') return send(response, 400, { error: 'dryRun must be true or false.' })
-          const dryRun = body.dryRun === true
-          const { undo, ...announced } = announceToPlayers(store.mail, store.profiles, body.body, {
-            excludeOwners: delegatedMailOwners, dryRun, maxCharacters: maxMailCharacters,
-          })
-          if (announced.sent > 0 && !saveMail(undo)) return send(response, 503, { error: 'Could not save the announcement. Please try again.' })
-          return send(response, dryRun ? 200 : 201, announced)
-        }
-        return send(response, 405, { error: 'Method not allowed' })
-      }
-      if (request.method === 'GET' && url.pathname === '/api/leaderboard/decks') {
-        if (!consume(deckReadRates, sourceOf(request), CREATE_WINDOW_MS, MAX_DECK_READS_PER_WINDOW)) return send(response, 429, { error: 'Too many deck requests' })
-        if ([...url.searchParams.keys()].some((name) => !DECK_QUERY_KEYS.has(name) ||
-            name !== 'character' && url.searchParams.getAll(name).length > 1)) return send(response, 400, { error: 'Invalid winning deck query' })
-        if (deckPagesRevision !== store.leaderboardRevision) {
-          deckPages.clear()
-          deckPagesRevision = store.leaderboardRevision
-        }
-        const key = JSON.stringify([url.searchParams.get('sort') ?? 'recordedAt', url.searchParams.get('direction') ?? 'desc',
-          url.searchParams.getAll('character').sort(), url.searchParams.get('ascension') ?? 'all', url.searchParams.get('cursor')])
-        let page = deckPages.get(key)
-        if (!page) {
-          page = winningDecksPage(store.leaderboardRuns, url.searchParams)
-          if (deckPages.size >= DECK_PAGE_CACHE_LIMIT) deckPages.clear()
-          deckPages.set(key, page)
-        }
-        return send(response, 200, page)
-      }
-      if (request.method === 'GET' && url.pathname === '/api/stats') {
-        if (!consume(statsRates, sourceOf(request), CREATE_WINDOW_MS, MAX_STATS_READS_PER_WINDOW)) return send(response, 429, { error: 'Too many stats requests' })
-        return send(response, 200, statsSnapshot(store.statsRuns, url.searchParams))
-      }
-      if (request.method === 'GET' && url.pathname === '/api/stats/deck') {
-        if (!consume(statsRates, sourceOf(request), CREATE_WINDOW_MS, MAX_STATS_READS_PER_WINDOW)) return send(response, 429, { error: 'Too many stats requests' })
-        return send(response, 200, randomDeck(store.statsRuns, url.searchParams))
-      }
-      if (request.method === 'GET' && url.pathname === '/api/leaderboard/daily') {
-        if (!consume(dailyReadRates, sourceOf(request), CREATE_WINDOW_MS, MAX_DECK_READS_PER_WINDOW)) return send(response, 429, { error: 'Too many daily ranking requests' })
-        if ([...url.searchParams.keys()].some((name) => name !== 'date' && name !== 'character') ||
-            url.searchParams.getAll('date').length !== 1) return send(response, 400, { error: 'Invalid daily ranking query' })
-        const date = url.searchParams.get('date')
-        const characters = [...new Set(url.searchParams.getAll('character'))].sort()
-        const key = JSON.stringify([date, characters])
-        if (dailyBoardsRevision !== store.leaderboardRevision) {
-          dailyBoards.clear()
-          dailyBoardsRevision = store.leaderboardRevision
-        }
-        let board = dailyBoards.get(key)
-        if (!board) {
-          board = dailyLeaderboard(store.leaderboardRuns, date, characters)
-          if (dailyBoards.size >= DECK_PAGE_CACHE_LIMIT) dailyBoards.clear()
-          dailyBoards.set(key, board)
-        }
-        return send(response, 200, board)
-      }
-      if (request.method === 'GET' && url.pathname === '/api/leaderboard') {
-        if (leaderboardSummaryRevision !== store.leaderboardRevision) {
-          leaderboardSummary = leaderboardSnapshot(store.leaderboardRuns)
-          leaderboardSummaryRevision = store.leaderboardRevision
-        }
-        return send(response, 200, leaderboardSummary)
-      }
-      if (request.method === 'POST' && url.pathname === '/api/leaderboard') {
-        const source = sourceOf(request)
-        if (!consume(leaderboardRates, source, CREATE_WINDOW_MS, MAX_LEADERBOARD_WRITES_PER_WINDOW)) {
-          return send(response, 429, { error: 'Too many leaderboard submissions' })
-        }
-        const body = await readJson(request)
-        if (typeof body.id === 'string' && body.id.startsWith('room:')) {
-          return send(response, 400, { error: 'Run id is reserved for room results' })
-        }
-        const profile = store.profiles.find((entry) => entry.token === body.profileToken)
-        if (body.profileToken && !profile) return send(response, 409, { error: 'Profile unavailable' })
-        const { winningDecks: _, ...submission } = body
-        const added = addLeaderboardRun(store, { ...submission, username: profile?.username })
-        const recorded = store.leaderboardRuns.find((run) => run.id === body.id)
-        if (recorded?.dailyDate !== undefined) {
-          creditRecordedDailyCoins(store, recorded, profile)
-          if (store.walletsDirty) {
-            if (!attemptSave()) {
-              queueSave()
-              return send(response, 503, { error: 'Could not save your Daily Climb coins. Please try again.' })
-            }
-            store.walletsDirty = false
-          }
-        }
-        if (added) { queueSave(); scheduleClassification() }
-        return send(response, added ? 201 : 200, { ok: true, added, floorsClearedAccepted: true, finalDeckAccepted: true, profileAccepted: true, dailyDateAccepted: true, dailyCoinsAccepted: true })
-      }
+      if (await accountRoutes(request, response, url)) return
+      if (await mailRoutes(request, response, url)) return
+      if (await communityRoutes(request, response, url)) return
       if (request.method === 'POST' && url.pathname === '/api/rooms') {
         sweepRooms()
         const source = sourceOf(request)

@@ -113,6 +113,8 @@ try {
       },
     })
     assert(walk.stoppedAt, `${label}: the walk did not reach the end of the first fight: ${walk.log.slice(-3).join(' | ')}`)
+    if (hero === 'hermit') assert(walk.chapters.includes(`fight-${firstFight}-setup`),
+      'the mandatory setup picker must not hide the Hermit loading lesson')
     assert(walk.chapters.includes('neow') && walk.chapters.includes(`move-${firstFight}`) &&
       walk.chapters.some((chapter) => chapter.startsWith(`fight-${firstFight}`)), `${label}: chapters ${walk.chapters.join(', ')}`)
     const after = await getRun(page)

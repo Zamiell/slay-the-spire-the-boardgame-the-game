@@ -1,7 +1,7 @@
 .card-picker {
   position: fixed;
   z-index: 80;
-  top: 4.8rem;
+  top: var(--choice-overlay-top, 4.8rem);
   right: 0;
   bottom: 0;
   left: 0;
@@ -11,15 +11,14 @@
   background: rgb(0 0 0 / .94);
 }
 
-.card-picker__body { position: relative; min-height: 0; }
+.card-picker__body { position: relative; min-height: 0; container-type: size; }
 .card-picker[hidden] { display: none; }
 .card-picker[data-source] { grid-template-rows: auto minmax(0, 1fr) auto; }
 .card-picker__source { padding: .5rem 1rem; text-align: center; }
 .card-picker__source h2 { margin: 0; font-size: 1.1rem; }
 .card-picker__source p { margin: .25rem 0 0; font-size: .85rem; }
-.card-picker[data-source] .card-picker__body { container-type: size; }
 .card-picker[data-source] .card-picker__grid { padding: 1rem; }
-.card-picker[data-source] :is(.card-picker__grid, .card-picker__preview) > .card {
+.card-picker :is(.card-picker__grid, .card-picker__preview) > .card {
   max-width: calc((100cqh - 2rem) / var(--card-ratio));
 }
 .card-picker__grid {

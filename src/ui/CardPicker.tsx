@@ -3,6 +3,7 @@ import { cardDef } from '../game/cards.ts'
 import type { CardInstance } from '../game/types.ts'
 import { Card } from './Card.tsx'
 import { useModalFocus } from './useModalFocus.ts'
+import { ChoiceOverlay } from './ChoiceOverlay.tsx'
 
 type PickerVerb = 'Remove' | 'Transform' | 'Upgrade' | 'Trade'
 
@@ -39,7 +40,11 @@ export function PickerConfirmButton({ label = 'Confirm', disabled = false, onCli
 }
 
 /** The shared full-deck picker used whenever a run changes one of its cards. */
-export function CardPicker({
+export function CardPicker(props: CardPickerProps) {
+  return <ChoiceOverlay><CardPickerContent {...props} /></ChoiceOverlay>
+}
+
+function CardPickerContent({
   cards, verb, selectedCardUids, onSelect, onClear, onBack, onConfirm, confirmLabel = 'Confirm', backLabel = 'Back',
   maxSelections = 1, selectionLabel: selectionLabelOverride, confirmDisabled, selectionRequired = true, backDisabled = false, disabled = false,
   selectionLocked = false, heading, description, active = true,

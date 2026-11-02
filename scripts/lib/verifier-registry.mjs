@@ -29,6 +29,11 @@ export function verifierMetadata(script, root, inferredLane) {
 }
 
 export function toolOwners(file, root) {
+  if (file.startsWith('scripts/lib/http/')) return [
+    'verify-room-server.mjs', 'verify-profile.mjs', 'verify-mail.mjs', 'verify-account-wallets.mjs',
+    'verify-leaderboard.mjs', 'verify-stats.mjs', 'verify-daily-coins.mjs',
+    'verify-multiplayer-reliability.mjs',
+  ]
   if (['scripts/lib/verifier-registry.mjs', 'scripts/lib/affected-verifiers.mjs', 'scripts/verify-all.mjs'].includes(file)) {
     return ['verify-pipeline.mjs']
   }
@@ -92,6 +97,23 @@ export const focusedEngineOwners = ownerMap([
 ])
 
 export const focusedUiOwners = ownerMap([
+  ['src/protocol/room-snapshot.ts', [
+    'verify-room-protocol.mjs', 'verify-room-server.mjs', 'verify-room-resume-browser.mjs',
+    'verify-start-turn-party-browser.mjs', 'verify-combat-view-browser.mjs',
+  ]],
+  ['src/ui/ChoiceOverlay.tsx', [
+    'verify-card-picker-browser.mjs', 'verify-loot-browser.mjs', 'verify-noncombat-actions-browser.mjs',
+    'verify-neow-viewport-browser.mjs', 'verify-event-panels-browser.mjs', 'verify-tutorial-browser.mjs',
+  ]],
+  ...['src/ui/play-session.ts', 'src/ui/usePlaySession.ts'].map(file => [file, [
+    'verify-tutorial.mjs', 'verify-tutorial-browser.mjs', 'verify-run-replay-browser.mjs',
+    'verify-replay-controls-browser.mjs', 'verify-solo-resume-browser.mjs',
+  ]]),
+  ...['card-draft.ts', 'card-choice-rules.ts', 'useCardController.ts'].map(file => [`src/ui/combat-screen/${file}`, [
+    'verify-card-play.mjs', 'verify-combat-workflows.mjs', 'verify-card-choices-browser.mjs',
+    'verify-combat-view-browser.mjs', 'verify-hermit-chamber-browser.mjs',
+    'verify-slayer-discard-and-orbs-browser.mjs',
+  ]]),
   ['src/ui/noncombat-player.ts', [
     'verify-noncombat-actions-browser.mjs', 'verify-event-repeat-browser.mjs',
     'verify-event-panels-browser.mjs', 'verify-noncombat-browser.mjs',

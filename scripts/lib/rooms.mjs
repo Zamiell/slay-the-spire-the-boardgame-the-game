@@ -34,6 +34,7 @@ import {
 } from './rooms/action-context.mjs'
 import { loadStore } from './rooms/store.mjs'
 import { parseCombatQuery } from '../../src/protocol/combat-query.ts'
+import { ROOM_SNAPSHOT_VERSION } from '../../src/protocol/room-snapshot.ts'
 import { evaluateCombatQuery } from '../../src/game/combat/preview-queries.ts'
 import { ascensionBossQualifies, MAX_ASCENSION } from '../../src/game/campaign.ts'
 import {
@@ -4506,6 +4507,7 @@ export function snapshotFor(room, seatToken, shared = {}) {
   }
 
   return {
+    snapshotSchemaVersion: ROOM_SNAPSHOT_VERSION,
     code: room.code,
     phase: room.phase,
     selectingCampaign: room.selectingCampaign === true,

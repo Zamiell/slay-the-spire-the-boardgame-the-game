@@ -56,13 +56,20 @@ async function freePlay(page) {
   })
   // A window opened by a tap the coach allowed (a full potion belt, say): back out.
   if (await page.locator('dialog[open]').count()) {
+    if (await page.locator('dialog.hand-discard[open]').count()) {
+      if (await click('dialog.hand-discard[open] .hand-discard__hand .card:not([disabled])')) {
+        await click('dialog.hand-discard[open] .hand-discard__footer button:not([disabled])', /^Confirm/)
+        return 'made a hand selection'
+      }
+    }
     // A card choice (Headbutt, Scry) picks its first card and confirms.
     if (await page.locator('dialog.choice-modal[open]').count()) {
       await click('dialog.choice-modal[open] .choice-modal__cards .card')
       if (await click('dialog.choice-modal[open] .choice-modal__panel > button:not([disabled])')) return 'made a card choice'
     }
+    const before = await page.locator('dialog[open]').count()
     await page.keyboard.press('Escape')
-    return 'closed a window'
+    return await page.locator('dialog[open]').count() < before ? 'closed a window' : null
   }
   // Enemy turns animate; only a quiet player turn is one the coach left to the player.
   if (state.phase === 'combat' && state.combat === 'start' &&
@@ -159,7 +166,7 @@ export async function walkTutorial(page, { onStep, until, maxActions = 600 } = {
         pressed.push(ring)
         if (repeats > 0) log.push(`  tap ${Math.round(ring.x)},${Math.round(ring.y)} of ${rings.map((r) => `${Math.round(r.x)},${Math.round(r.y)}`).join(' ')}`)
         if (ring.cardName) {
-          const card = page.locator(`.hand .card[data-card-name=${JSON.stringify(ring.cardName)}]`).first()
+          const card = page.locator(`.hand .card[data-card-name=${JSON.stringify(ring.cardName)}]:visible`).first()
           await card.focus()
           await page.waitForFunction(() => !document.querySelector('.hand[data-hand-moving]'))
           await card.press('Enter')

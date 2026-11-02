@@ -195,6 +195,8 @@ export type VisibleRun = {
 }
 
 export type RoomSnapshot = {
+  /** Absent on the original v1 server. */
+  snapshotSchemaVersion?: number
   earnedAscension?: number
   code: string
   phase: 'lobby' | 'run'
@@ -224,8 +226,8 @@ export type RoomSnapshot = {
   endTurnTopPlayerIds?: string[]
   endTurnAbilities?: EndTurnAbility[]
   startTurnAbilities?: StartTurnAbility[]
-  startTurnDecided: string[]
-  startTurnRequired: string[]
+  startTurnDecided?: string[]
+  startTurnRequired?: string[]
   startTurnCoordinatorId?: string | null
   startTurnChoiceId?: string
   startTurnEnemyTargets?: Record<string, string>

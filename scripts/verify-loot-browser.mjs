@@ -687,9 +687,9 @@ try {
   await Promise.all(campfireStyles.map((style) => style.evaluate((element) => element.remove())))
 
   await page.evaluate(() => window.__SHOW_NEOW_REWARD__())
-  await page.locator('.neow-action--offer .card').first().waitFor()
+  await page.locator('.choice-overlay-host .reward-screen__cards .card').first().waitFor()
   await page.evaluate(() => {
-    const card = document.querySelector('.neow-action--offer .card')
+    const card = document.querySelector('.choice-overlay-host .reward-screen__cards .card')
     card.click()
     card.click()
   })

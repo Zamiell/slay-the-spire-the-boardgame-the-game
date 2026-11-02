@@ -117,7 +117,7 @@ import { wingBootUses } from './wing-boots.ts'
 import type { GameSettings } from './game-settings.ts'
 import { useWebMcp } from './useWebMcp.ts'
 import { ReplayBar } from './ReplayBar.tsx'
-import { ReplaySession } from './run-replay.ts'
+import { usePlaySession } from './usePlaySession.ts'
 import { flushLeaderboardOutbox, queueFinishedSoloRun } from '../leaderboard.ts'
 import { coinsOwed } from '../game/coins.ts'
 import { enabledCardPacks, soloRunKey } from '../wallet.ts'
@@ -128,11 +128,9 @@ import {
   applyRunLogEvent,
   discardRunLog,
   downloadRunLog,
-  playRunLog,
   readRunLog,
   startRunLog,
   useRunLog,
-  type RunLog,
 } from './run-log.ts'
 
 const SINGLE_PLAYER_ONLY = import.meta.env.VITE_SINGLE_PLAYER === 'true'
@@ -367,25 +365,25 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
   const [runLogExtractedRunId, setRunLogExtractedRunId] = useState<string | null>(null)
   const [runLogMessage, setRunLogMessage] = useState<string | null>(null)
   const [extractingRunLog, setExtractingRunLog] = useState(false)
-  const [replayLog, setReplayLog] = useState<RunLog | null>(null)
-  const [replayFinished, setReplayFinished] = useState(false)
-  // Bumped by each seek so the screens start clean instead of carrying half-finished picks from the old position.
-  const [replayEpoch, setReplayEpoch] = useState(0)
-  const [replaySession, setReplaySession] = useState<ReplaySession | null>(null)
-  const replayRunner = useRef<{ log: RunLog; controller: AbortController; removeCursor?: () => void; stop?: number } | null>(null)
-  const replayReturn = useRef<{ run: RunState; viewerId: string } | null>(null)
+  const playSession = usePlaySession({
+    run, viewerId, active, open, reducedMotion: settings.reducedMotion || prefersReducedMotion,
+    setRun, setViewer: setViewerId, onOpen, onClose, report: setRunLogMessage,
+    pause: () => setPauseOpen(true),
+    closeMenus: () => {
+      setPauseOpen(false); setGiveUpOpen(false); setCompendium(false); setSettingsOpen(false)
+    },
+  })
+  const { replayLog, replaySession, replayFinished, replayEpoch, tutorial, startReplay,
+    leaveReplay, seekReplay, exitTutorial } = playSession
+
   const terminalRun = useRef<RunState | null>(null)
-  // The guided tutorial is a throwaway Act I run. The run it interrupted is
-  // parked here and restored on exit, and while it lasts nothing is written to
-  // the solo checkpoint, the campaign journal, the run log or the leaderboard.
-  // `attempt` restarts the coach when the same hero's tutorial is tried again.
-  const [tutorial, setTutorial] = useState<{ character: CharacterId; seed: string; attempt: number } | null>(null)
   const [tutorialTipsHidden, setTutorialTipsHidden] = useState(false)
-  const tutorialReturn = useRef<{ run: RunState; viewerId: string } | null>(null)
   const tutorialCharacter = tutorial?.character
+  // The coach teaches setup on the hand itself; a native modal would hide that lesson.
+  const tutorialOwnsSetupHand = Boolean(tutorial && run.combat?.pendingHermitSetupLoads?.length)
   const tutorialChapterList = useMemo(() => tutorialCharacter ? tutorialChapters(tutorialCharacter) : [], [tutorialCharacter])
   const { available: runLogAvailable, discard: discardLog, load: loadRunLog } = useRunLog(
-    run, active && open && !replayLog && !tutorial, viewerId, runLogRestoration,
+    run, active && open && playSession.persistent, viewerId, runLogRestoration,
   )
   const consoleContext = useRef({ run, active, open, viewerId, replayLog, tutorial })
   consoleContext.current = { run, active, open, viewerId, replayLog, tutorial }
@@ -403,7 +401,7 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
   useEffect(() => onProfileChange(() => setRestricted(isRestricted())), [])
   const lostToSpire = restricted && !replayLog
   useLayoutEffect(() => {
-    if (restricted && open && !tutorial && !replayLog && canGiveUp) setRun(giveUpRun)
+    if (restricted && open && playSession.persistent && canGiveUp) setRun(giveUpRun)
   }, [restricted, open, tutorial, replayLog, canGiveUp])
 
   /** The settings the run in progress was actually built from. */
@@ -470,6 +468,7 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
       setChooseYourRelic(resume.built.chooseYourRelic)
       setLastStand(resume.built.lastStand)
       setMode(resume.built.meta.mode ?? 'standard')
+      playSession.reset()
       setBuilt(resume.built)
       setRun(restored)
       setRunLogRestoration((generation) => generation + 1)
@@ -566,10 +565,7 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
     setRunLogExtractedRunId(null)
     setRunLogMessage(null)
     setCoinGain(null)
-    setReplayLog(null)
-    setReplaySession(null)
-    setTutorial(null)
-    tutorialReturn.current = null
+    playSession.reset()
     terminalRun.current = null
     // Bought Shop packs join every new run except a Daily Climb, whose pools everyone shares.
     const packs = nextMeta.mode === 'daily' ? [] : enabledCardPacks(savedWallet())
@@ -587,33 +583,16 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
   }
 
   const startTutorial = (character: CharacterId) => {
-    if (!tutorialReturn.current) tutorialReturn.current = { run, viewerId }
-    setViewerId('p1')
-    setPauseOpen(false)
-    setGiveUpOpen(false)
     setTutorialTipsHidden(false)
     const seed = tutorialSeed(character)
-    setTutorial((current) => ({ character, seed, attempt: (current?.attempt ?? 0) + 1 }))
-    setRun(createTutorialRun(character, ROSTER.find((entry) => entry.character === character)!.name, seed))
-    onOpen()
-  }
-
-  const exitTutorial = () => {
-    const previous = tutorialReturn.current
-    tutorialReturn.current = null
-    if (previous) {
-      setRun(previous.run)
-      setViewerId(previous.viewerId)
-    }
-    setTutorial(null)
-    setPauseOpen(false)
-    onClose()
+    playSession.enterTutorial(character, seed,
+      createTutorialRun(character, ROSTER.find(entry => entry.character === character)!.name, seed))
   }
 
   const recordRunResult = () => {
     // Recording the result is what pays the run's boss coins, once: the ledger
     // refuses a second payment however often this is reached for the same run.
-    if (!replayLog && !tutorial && !run.consoleModified) {
+    if (playSession.rewardsAllowed) {
       if (!ownsRun(built)) {
         // Another account signed in since this run began (possibly in another tab): its coins are not theirs.
         if (coinsOwed(run.campaign.bossCoins) > 0) setRunLogMessage('This run was started by another account, so its coins were not paid. Sign in to that account to play its runs.')
@@ -655,119 +634,6 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
     onClose()
   }
 
-  const stopReplay = () => {
-    const runner = replayRunner.current
-    replayRunner.current = null
-    if (!runner) return
-    clearTimeout(runner.stop)
-    runner.controller.abort()
-    runner.removeCursor?.()
-  }
-
-  const leaveReplay = () => {
-    stopReplay()
-    const previous = replayReturn.current
-    replayReturn.current = null
-    if (previous) {
-      setRun(previous.run)
-      setViewerId(previous.viewerId)
-    }
-    setReplayLog(null)
-    setReplaySession(null)
-    setReplayFinished(false)
-    setRunLogMessage(null)
-  }
-
-  const startReplay = (log: RunLog) => {
-    stopReplay()
-    setReplayFinished(false)
-    replayReturn.current = { run: structuredClone(run), viewerId }
-    setRunLogMessage(null)
-    setReplayLog(log)
-    setReplaySession(new ReplaySession(log))
-    setRun(structuredClone(log.initial))
-    setViewerId(log.initial.players[0]!.id)
-    setCompendium(false)
-    setPauseOpen(false)
-    setSettingsOpen(false)
-    onOpen()
-  }
-
-  const launchReplay = (log: RunLog, session: ReplaySession, start?: { position: number; state: RunState }) => {
-    const started = { log, controller: new AbortController() } as NonNullable<typeof replayRunner.current>
-    replayRunner.current = started
-    session.update({ finished: false })
-    void playRunLog(log, {
-      setRun,
-      setViewer: setViewerId,
-      reducedMotion: settings.reducedMotion || prefersReducedMotion,
-      signal: started.controller.signal,
-      pause: () => setPauseOpen(true),
-      pace: session,
-      start,
-      onPosition: (position) => session.update({ position }),
-    }).then((removeCursor) => {
-      if (started.controller.signal.aborted) removeCursor()
-      else {
-        started.removeCursor = removeCursor
-        session.update({ finished: true, paused: false, position: session.timeline.total })
-        setReplayFinished(true)
-      }
-    }).catch((error) => {
-      if (started.controller.signal.aborted) return
-      session.update({ finished: true })
-      setRunLogMessage(error instanceof Error ? error.message : 'Replay stopped.')
-    })
-  }
-
-  // Jumping restarts playback from the chosen move; the run state there is rebuilt from the log.
-  const seekReplay = (position: number) => {
-    const runner = replayRunner.current
-    if (!replayLog || !replaySession || !runner) return
-    const target = Math.min(Math.max(Math.trunc(position), 0), replaySession.timeline.total)
-    let state: RunState
-    try { state = replaySession.timeline.stateAt(target) } catch (error) {
-      setRunLogMessage(error instanceof Error ? error.message : 'Replay stopped.')
-      return
-    }
-    clearTimeout(runner.stop)
-    runner.controller.abort()
-    runner.removeCursor?.()
-    setReplayFinished(false)
-    setRunLogMessage(null)
-    // The remount below replaces the game menu's dialog, so an open menu is closed with it.
-    setPauseOpen(false)
-    setReplayEpoch((epoch) => epoch + 1)
-    launchReplay(replayLog, replaySession, { position: target, state })
-  }
-
-  useEffect(() => {
-    if (!replayLog || !replaySession || !open || !active) return
-    // StrictMode reruns this effect at once with nothing changed (also when a Suspense boundary
-    // reappears); the replay already under way keeps going instead of restarting from its first event.
-    if (replayRunner.current?.log === replayLog) clearTimeout(replayRunner.current.stop)
-    else {
-      stopReplay()
-      setReplayFinished(false)
-      setRunLogMessage(null)
-      // Coming back to a replay that was already under way picks up where it stopped.
-      const position = replaySession.position
-      let start: { position: number; state: RunState } | undefined
-      try { if (position > 0) start = { position, state: replaySession.timeline.stateAt(position) } } catch {}
-      launchReplay(replayLog, replaySession, start)
-    }
-    return () => {
-      // A seek replaces the runner, so the one to stop is whichever is current when the effect ends.
-      const runner = replayRunner.current
-      if (runner) runner.stop = window.setTimeout(() => { if (replayRunner.current === runner) stopReplay() })
-    }
-  }, [active, open, replayLog])
-
-  useEffect(() => {
-    replaySession?.timeline.index()
-    return () => replaySession?.timeline.stopIndexing()
-  }, [replaySession])
-
   // A debug bridge for the Playwright suite: drive real clicks, assert real
   // state. Screenshots are for review; assertions read from here.
   useLayoutEffect(() => {
@@ -789,7 +655,7 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
   }, [replayLog, playerProgress.highestAscension])
 
   useEffect(() => {
-    if (!replayLog && !tutorial) saveCampaign(open ? campaignBeforePendingRun(run) : campaignBeforeCurrentRun(run))
+    if (playSession.persistent) saveCampaign(open ? campaignBeforePendingRun(run) : campaignBeforeCurrentRun(run))
   }, [open, replayLog, run.campaignProgress, run.campaign.finalized, tutorial])
 
   useEffect(() => {
@@ -801,7 +667,7 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
     return () => { window.removeEventListener(CAMPAIGN_EVENT, refresh); window.removeEventListener('storage', storage) }
   }, [])
 
-  ownership.current = { open, built, playing: !tutorial && !replayLog }
+  ownership.current = { open, built, playing: playSession.persistent }
   // A bounty toast belongs to the screen it was raised on; leaving the run drops it.
   useEffect(() => { if (!open) setCoinGain(null) }, [open])
 
@@ -812,7 +678,7 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
   const announcedAwards = useRef<{ key: string; count: number } | null>(null)
   useEffect(() => {
     // A tutorial or replay is not the parked run: leave its count alone, so returning announces nothing.
-    if (replayLog || tutorial || run.consoleModified) return
+    if (!playSession.rewardsAllowed) return
     const count = run.campaign.bossCoins?.length ?? 0
     const key = `${coinKey}|${run.campaign.runId}`
     const previous = announcedAwards.current
@@ -823,7 +689,7 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
   }, [coinKey, replayLog, run.campaign.bossCoins, run.consoleModified, tutorial])
 
   useLayoutEffect(() => {
-    if (!open || replayLog || tutorial) return
+    if (!open || !playSession.persistent) return
     if (run.campaign.finalized) {
       if (terminalRun.current?.campaign.runId !== run.campaign.runId) return discardSoloRun()
       if (recordRunId === run.campaign.runId && queuedLeaderboardRun.current !== run.campaign.runId && ownsRun(built)) {
@@ -1057,7 +923,7 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
           <button type="button" className="is-chosen" onClick={() => setPauseOpen(false)}>Resume</button>
           <button type="button" onClick={() => { setPauseOpen(false); setSettingsReturnToPause(true); setSettingsOpen(true) }}>Settings</button>
           <button type="button" onClick={() => { setPauseOpen(false); setCompendium(true) }}>Compendium</button>
-          {!replayLog && !tutorial && canGiveUp ? <button type="button" onClick={() => { setPauseOpen(false); setGiveUpOpen(true) }}>Give up</button> : null}
+          {playSession.persistent && canGiveUp ? <button type="button" onClick={() => { setPauseOpen(false); setGiveUpOpen(true) }}>Give up</button> : null}
           <button type="button" onClick={() => {
             setPauseOpen(false)
             if (tutorial) exitTutorial()
@@ -1079,7 +945,7 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
           viewerId={viewerId}
           animateOpeningHand
           autoAdvance={!replayLog && !compendium && !pauseOpen && !settingsOpen && !giveUpOpen && !run.courier.offer}
-          selectionDialogsActive={!compendium && !pauseOpen && !settingsOpen && !giveUpOpen && !run.courier.offer}
+          selectionDialogsActive={!tutorialOwnsSetupHand && !compendium && !pauseOpen && !settingsOpen && !giveUpOpen && !run.courier.offer}
           courierUsedBy={run.courier.usedBy}
           onCourierReveal={run.courier.offer ? undefined : revealLocalCourier}
           mutationsEnabled={!run.courier.offer}
@@ -1345,7 +1211,7 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
     </main>
     </MapDrawingProvider>
     </SkinProvider>
-    {active && !replayLog && !tutorial && !compendium ? <DeveloperConsole key={run.campaign.runId}
+    {active && playSession.persistent && !compendium ? <DeveloperConsole key={run.campaign.runId}
       modified={Boolean(run.consoleModified)} onExecute={async command => {
         const rewind = command.trim().toLowerCase() === 'rewind'
         const history = rewind ? await loadRunLog() : undefined

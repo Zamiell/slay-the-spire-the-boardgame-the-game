@@ -3,9 +3,27 @@ import { BASE_CHARACTER_IDS, CHARACTER_IDS, DOWNFALL_CHARACTER_IDS } from '../sr
 import { HERO_TUTORIALS, tutorialChapters } from '../src/ui/tutorial/index.ts'
 import { onScript } from '../src/ui/tutorial/helpers.ts'
 import { simulateTutorial } from './lib/tutorial-sim.mjs'
+import { createRun } from '../src/game/run.ts'
+import { parkedLiveRun, playSessionPolicy } from '../src/ui/play-session.ts'
 import { suite, check, assert, assertEqual, assertDeepEqual, report } from './lib/harness.mjs'
 
 suite('tutorial content')
+
+check('temporary play modes preserve the original live run and cannot earn or persist progress', () => {
+  const run = createRun(47, [{ id: 'p1', name: 'Owner', character: 'ironclad' }])
+  const parked = parkedLiveRun({ kind: 'live' }, { run, viewerId: 'p1', onClose() {} })
+  assertDeepEqual(Object.keys(parked).sort(), ['run', 'viewerId'], 'browser callbacks must not enter the parked snapshot')
+  assertEqual(structuredClone(parked).run.seed, run.seed)
+  const tutorial = { kind: 'tutorial', returnTo: parked, tutorial: { character: 'ironclad', seed: 'lesson', attempt: 1 } }
+  const replay = { kind: 'replay', returnTo: parked, finished: false }
+  for (const temporary of [tutorial, replay]) {
+    assertEqual(parkedLiveRun(temporary, { run: { seed: -1 }, viewerId: 'other' }), parked,
+      'switching temporary modes must not replace the parked real run')
+    assertDeepEqual(playSessionPolicy(temporary, false), { persistent: false, rewardsAllowed: false })
+  }
+  assertDeepEqual(playSessionPolicy({ kind: 'live' }, true), { persistent: true, rewardsAllowed: false },
+    'a console-modified live run remains resumable without earning rewards')
+})
 
 const HEROES = [...BASE_CHARACTER_IDS, ...DOWNFALL_CHARACTER_IDS]
 const sorted = (items) => [...items].sort()

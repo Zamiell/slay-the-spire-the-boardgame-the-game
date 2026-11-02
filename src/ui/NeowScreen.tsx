@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { createPortal } from 'react-dom'
 import { assetPath, characterHeroArt } from '../game/assets.ts'
 import { playerVisualId } from '../game/skins.ts'
 import type { NeowCard, NeowDecision, NeowImmediateReward, NeowPlayerState, NeowRewardOffer } from '../game/neow.ts'
@@ -257,7 +256,7 @@ export function NeowScreen({ players, progress, viewerId, ascension, enabled = t
           })}>Gain reward</button>
         <button type="button" disabled={!canAct} onClick={() => submit(() => onEffect(viewer.id, false, {}))}>Skip reward</button>
       </fieldset> : null}
-      {effect && selection.cards.length > 0 ? createPortal(<CardPicker
+      {effect && selection.cards.length > 0 ? <CardPicker
         active={selectionDialogsActive}
         cards={selection.cards}
         verb={effect.kind === 'upgrade' ? 'Upgrade' : effect.kind === 'transform' ? 'Transform' : 'Remove'}
@@ -274,7 +273,7 @@ export function NeowScreen({ players, progress, viewerId, ascension, enabled = t
         confirmDisabled={!canAct || selectedCards.length !== selection.count}
         backDisabled={!canAct}
         disabled={!canAct}
-      />, document.body) : null}
+      /> : null}
       {submitting && !itemOffer ? <p className="neow-action__waiting" role="status">Resolving choice…</p> : null}
       {!enabled && !viewerProgress.done && !itemOffer ? <p className="neow-action__waiting" role="status">
         {disabledMessage ?? `Reconnecting… your ${blessingWord} is preserved.`}

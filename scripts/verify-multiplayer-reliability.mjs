@@ -4,6 +4,7 @@ import { spawnSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { validateRoomStore } from '../infra/validate-room-store.mjs'
+import { MAX_PROFILE_CLAIMS_PER_WINDOW } from './lib/http/policies.mjs'
 
 const workflowsDirectory = new URL('../.github/workflows/', import.meta.url)
 assert.deepEqual(readdirSync(workflowsDirectory).sort(), ['ci.yml', 'pages-deploy.yml', 'server-deploy.yml'])
@@ -137,12 +138,14 @@ assert.doesNotMatch(service, /migration-hold|HANDOFF/)
 const roomServer = readFileSync(new URL('./room-server.mjs', import.meta.url), 'utf8')
 assert.match(roomServer, /export const MAX_CONNECTIONS = 50/)
 assert.match(roomServer, /const MAX_MESSAGES_PER_WINDOW = 300/)
-assert.match(roomServer, /const MAX_PROFILE_CLAIMS_PER_WINDOW = 30/)
+assert.equal(MAX_PROFILE_CLAIMS_PER_WINDOW, 30)
 assert.match(roomServer, /const MAX_READS_PER_WINDOW = 600/)
 assert.match(roomServer, /const MAX_VOICE_MESSAGES_PER_WINDOW = 600/)
 assert.match(roomServer, /connections: sockets\.size, connectionCapacity: maxConnections/)
 assert.doesNotMatch(roomServer, /client\.rateLimited/)
-assert.doesNotMatch(roomServer, /POST.*profile[\s\S]{0,180}consume\(createRates/)
+const accountRoutes = readFileSync(new URL('./lib/http/accounts.mjs', import.meta.url), 'utf8')
+assert.match(accountRoutes, /consume\(profileRates, sourceOf\(request\)/)
+assert.doesNotMatch(accountRoutes, /POST.*profile[\s\S]{0,180}consume\(createRates/)
 assert.match(runner, /Restart=always/)
 assert.match(runner, /DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1/)
 

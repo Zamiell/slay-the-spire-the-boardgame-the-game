@@ -6,6 +6,7 @@ import { cardDef, faceOf } from '../src/game/cards.ts'
 import { createPlayer } from '../src/game/run.ts'
 import { createRng } from '../src/game/rng.ts'
 import { bruiserSlime } from '../src/game/downfall/slime-boss.ts'
+import { cardContext, reconcileCardDraft, restoreUnknownCardDraft } from '../src/ui/combat-screen/card-draft.ts'
 
 const rng = createRng(47)
 const player = createPlayer(rng, 'p1', 'Ironclad', 'ironclad', 0)
@@ -27,6 +28,27 @@ const options = {
   slimeEnemyChoicesRequired: () => 0, slayerTargetAffordable: () => true,
   hermitEnemyChoicesRequired: () => 0,
   cardContext: () => ({}), commit: next => commits.push(next),
+}
+{
+  const board = structuredClone(state)
+  board.phase = 'player'
+  const actor = board.players[0]
+  actor.hand = [card('strike_ironclad'), card('exhume')]
+  actor.exhaust = [card('defend_ironclad')]
+  const draft = { ...pendingFor(actor.hand[0], null, board, actor),
+    enemyUid: 'enemy', enemyUids: ['enemy'] }
+  const before = structuredClone(draft)
+  const changed = structuredClone(board)
+  changed.enemies[0].dead = true
+  const reconciled = reconcileCardDraft(draft, changed, changed.players[0])
+  assert.equal(reconciled.enemyUid, null)
+  assert.deepEqual(reconciled.enemyUids, [])
+  assert.deepEqual(draft, before, 'reconciling a card draft must not mutate the submitted choices')
+  const restored = restoreUnknownCardDraft(draft, changed.players[0], changed)
+  assert.equal(restored.enemyUid, null)
+  const recover = { ...pendingFor(actor.hand[1], actor.exhaust, board, actor), picked: ['defend_ironclad'] }
+  assert.equal(cardContext(recover, actor, false).recoverExhaustUid, 'defend_ironclad',
+    'action context belongs to the submitted card, not another render-time pending card')
 }
 for (const defId of ['dual_cast', 'unload', 'blade_dance', 'carve_reality']) {
   const local = structuredClone(state)

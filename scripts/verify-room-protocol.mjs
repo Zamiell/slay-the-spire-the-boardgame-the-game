@@ -12,9 +12,66 @@ import { redactRun, redactCombat } from './lib/rooms/projection.mjs'
 import { createRoom, createStore, joinRoom, snapshotFor, startRun } from './lib/rooms.mjs'
 import { createCombat } from '../src/game/combat.ts'
 import { createRng } from '../src/game/rng.ts'
-import { suite, check, assert, assertEqual, assertDeepEqual, report } from './lib/harness.mjs'
+import { enterRoom } from '../src/game/run.ts'
+import { postNeowRun } from './lib/post-neow-run.mjs'
+import { decodeRoomSnapshot, decodeRoomReply, decodeRoomEntry } from '../src/protocol/room-snapshot.ts'
+import { suite, check, assert, assertEqual, assertDeepEqual, assertThrows, report } from './lib/harness.mjs'
 
 suite('room protocol')
+
+check('snapshot decoder accepts real lobby, Neow, combat and noncombat projections without inventing fields', () => {
+  const room = createRoom(createStore())
+  const owner = joinRoom(room, { name: 'Owner', character: 'ironclad' })
+  joinRoom(room, { name: 'Peer', character: 'silent' })
+  const verify = () => {
+    const snapshot = JSON.parse(JSON.stringify(snapshotFor(room, owner.token)))
+    assertEqual(decodeRoomSnapshot(snapshot), snapshot)
+    assertDeepEqual(decodeRoomReply({ snapshot }), snapshot)
+    assertDeepEqual(decodeRoomEntry({ token: owner.token, snapshot }).snapshot, snapshot)
+    return snapshot
+  }
+  verify()
+  startRun(room, owner.token)
+  verify()
+  for (const kind of ['encounter', 'merchant', 'event', 'treasure', 'campfire']) {
+    const run = postNeowRun(47, room.seats.map(seat => ({ id: seat.playerId, name: seat.name, character: seat.character })))
+    const id = run.map.rows[0][0]
+    run.map.rooms[id].kind = kind
+    room.run = enterRoom(run, id)
+    const decoded = verify()
+    assertEqual(decoded.run.players[1].deck, null, 'a private pile must remain unknown')
+  }
+})
+
+check('invalid, incompatible and leaking snapshots cannot reach presentation', () => {
+  const room = createRoom(createStore())
+  const owner = joinRoom(room, { name: 'Owner', character: 'ironclad' })
+  joinRoom(room, { name: 'Peer', character: 'silent' })
+  startRun(room, owner.token)
+  const valid = JSON.parse(JSON.stringify(snapshotFor(room, owner.token)))
+  for (const change of [
+    frame => { frame.snapshotSchemaVersion = 999 },
+    frame => { frame.version = 'new' },
+    frame => { frame.run.players[0].hand = {} },
+    frame => { frame.run.players[0].deck = [null] },
+    frame => { frame.run.players[0].slimes = {} },
+    frame => { frame.run.players[0].damageStats = { attack: 'many' } },
+    frame => { frame.run.players[1].hand = [] },
+    frame => { frame.run.players[0].cardRewards = [] },
+    frame => { frame.run.map.rows = null },
+    frame => { frame.run.rng = { seed: 1, calls: 0 } },
+    frame => { frame.run.phase = 'combat'; frame.run.combat = null },
+  ]) {
+    const frame = structuredClone(valid)
+    change(frame)
+    assertThrows(() => decodeRoomSnapshot(frame))
+  }
+  const legacy = { ...valid, futurePresentationHint: true }
+  delete legacy.snapshotSchemaVersion
+  assertEqual(decodeRoomSnapshot(legacy), legacy, 'v1 compatibility preserves unrelated future fields')
+  legacy.run.players[0].deck = null
+  assertEqual(decodeRoomSnapshot(legacy).run.players[0].deck, null, 'missing owner cards remain a waiting state')
+})
 
 check('migrated action schemas preserve error messages and validation order', () => {
   const die = { kind: 'resolveDieRelicChoice', choiceId: 7 }

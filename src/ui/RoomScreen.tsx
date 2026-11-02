@@ -1,7 +1,6 @@
 import { RoomBanner } from "./RoomBanner.tsx";
 import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { useEventDraft } from "./useEventDraft.ts";
-import { createPortal } from "react-dom";
 import { motion } from "motion/react";
 import { CARDS, cardIsCurse } from "../game/cards.ts";
 import { assetPath, enemyImagePath } from "../game/assets.ts";
@@ -541,8 +540,7 @@ function MerchantScreen({
             }}>Confirm {replacementPotionId ? potionDef(replacementPotionId).name : "purchase"}</button>
         </section>
       </dialog>
-      {removalOpen ? createPortal(<div className={buyer.deck === null ? "sts-scope" : undefined}
-        style={buyer.deck === null ? { display: "contents" } : undefined} onKeyDown={event => {
+      {removalOpen ? <div onKeyDown={event => {
         if (event.key === "Escape" && !event.defaultPrevented) {
           event.preventDefault();
           setRemovalOpen(false);
@@ -579,7 +577,7 @@ function MerchantScreen({
               setRemovalOpen(false);
             }}
             confirmLabel={removalPending ? `Pledge · ◉ ${additional(removalRemaining, removalKey)}` : `Remove selected card · ◉ ${removalCost}`}
-          />}</div>, buyer.deck === null ? merchantStage.current?.closest(".app-shell") ?? document.body : document.body) : null}
+          />}</div> : null}
       {Object.entries(merchantPledges).some(
         ([, pending]) => player.id in pending.payments,
       ) ? (
@@ -1141,7 +1139,7 @@ function EventScreen({
         ) : <p role="status">Choose your card in the full-deck picker.</p>}
         {pendingTrade.kind === "relic" ? <div className="event-options"><button type="button" disabled={!relicId} onClick={() => submit(["accept_trade"])}>Complete exchange</button><button type="button" onClick={() => submit(["reject_trade"])}>Decline</button></div> : null}
       </> : <p role="status">Exchange pending…</p>}
-    </div></section>{isTarget && pendingTrade.kind === "card" ? createPortal(<CardPicker
+    </div></section>{isTarget && pendingTrade.kind === "card" ? <CardPicker
       cards={tradeCards}
       verb="Trade"
       selectionLabel="1 card"
@@ -1160,7 +1158,7 @@ function EventScreen({
       confirmLabel="Complete exchange"
       backLabel="Decline trade"
       confirmDisabled={!tradeCardUid}
-    />, document.body) : null}</>;
+    /> : null}</>;
   }
   if (itemOffers) {
     const pending = pendingDecision;
@@ -1672,7 +1670,7 @@ function EventScreen({
             : "Your choice is locked. Waiting for the party…"}</p>
         ) : null}
       </div>
-      {usesCardPicker && cardPickerStep ? createPortal(<CardPicker
+      {usesCardPicker && cardPickerStep ? <CardPicker
         cards={pickerCards}
         verb={cardPickerStep.verb}
         selectionLabel={pickerSelectionLabel}
@@ -1700,7 +1698,7 @@ function EventScreen({
         confirmDisabled={pickerCardUids.length !== 1 || Boolean(pendingDecision?.cardUids?.length) ||
           selectedOptionInvalidated || selectedOptionUnavailable || selectedUnaffordable}
         disabled={Boolean(pendingDecision?.cardUids?.length)}
-      />, document.body) : null}
+      /> : null}
     </section>
   );
 }

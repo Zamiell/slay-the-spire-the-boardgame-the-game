@@ -1,17 +1,16 @@
+import { useCardController } from './combat-screen/useCardController.ts'
 import { useStartTurnDraft, useEndTurnDraft } from './combat-screen/useTurnDrafts.ts'
 import { useCombatStage } from './combat-screen/useCombatStage.ts'
 import { useCombatPresentation } from './combat-screen/useCombatPresentation.ts'
 import { SmokeTrail, warmSmokeTrails } from './combat-screen/SmokeTrail.tsx'
 import heroArtHeads from './hero-art-head.json'
 import { animateCardFlight, cardFlightPath } from './combat-screen/card-flight.ts'
-import { cardSubmissionCommitted } from './combat-screen/action-evidence.ts'
-import { useActionLifecycle } from './actions/useActionLifecycle.ts'
 import { usePotionController } from './combat-screen/usePotionController.ts'
 import { usePowerController } from './combat-screen/usePowerController.ts'
 import { useRelicController } from './combat-screen/useRelicController.ts'
 import { HermitTriggerChoice } from './combat-screen/HermitTriggerChoice.tsx'
 import { pendingSneckoEyeCost, StartTurnOrder } from './combat-screen/StartTurnOrder.tsx'
-import { automaticEnemyOption, createCardPlayCoordinator, describeCardPickup, singleRequiredHandCard, stageHermitChamberViewer } from './combat-screen/card-play.ts'
+import { automaticEnemyOption, describeCardPickup, singleRequiredHandCard, stageHermitChamberViewer } from './combat-screen/card-play.ts'
 import { useCardInteraction } from './combat-screen/useCardInteraction.ts'
 import { trackCombatResources } from './combat-screen/resource-visibility.ts'
 import { CardInteractionLayer } from './combat-screen/CardInteractionLayer.tsx'
@@ -25,13 +24,9 @@ import { enemyAbilities, enemyDef } from '../game/enemies.ts'
 import { hasStagedAttack, playerVisualId, skinTraits, type VisualId } from '../game/skins.ts'
 import {
   PHASE_LABEL,
-  canAfford,
-  cardShivsOnPlay,
-  describeSeat,
-  gainedShivs,
-  pendingFor,
-  requirementsOf,
-  rowsOf,
+  canAfford, describeSeat,
+  gainedShivs, requirementsOf,
+  rowsOf
 } from './combat-screen/helpers.ts'
 import {
   useCardHints,
@@ -48,10 +43,7 @@ import type {
   CombatScreenProps,
   EndTurnEffectDrag,
   MotionKey,
-  MotionSnapshot,
-  Pending,
-  PendingStartChoice,
-  CardSubmission,
+  MotionSnapshot, PendingStartChoice
 } from './combat-screen/types.ts'
 import {
   CombatVfx,
@@ -83,12 +75,8 @@ import {
   cardHasRetain,
   cardModeIsAvailable,
   cardNeedsChoicePreview,
-  cardNeedsEnemy,
-  cardPlayConditionMet,
-  cardPlayerChoiceCount,
-  cardReferencesGuardianMode,
-  cardShivChoiceCount,
-  chooseDistilledCard,
+  cardNeedsEnemy, cardPlayerChoiceCount,
+  cardReferencesGuardianMode, chooseDistilledCard,
   chosenEvokeOrbs,
   evokePlan,
   chooseEndTurnTarget,
@@ -119,10 +107,7 @@ import {
   orderStartTurnScries,
   overflowShivCount,
   pendingTriggerAbility,
-  pendingTriggerSlimeEnemyChoiceLabels,
-  playCard,
-  playCardCopy,
-  playHermitChamberCard,
+  pendingTriggerSlimeEnemyChoiceLabels, playHermitChamberCard,
   playCost,
   powerAbilityUsed,
   previewCardDamage,
@@ -131,9 +116,7 @@ import {
   reachesEnemy,
   reachedTimeWarpLimit,
   timeWarpLimit,
-  slimeChoiceIsAvailable,
-  slimeCommandEnemyChoiceLabels,
-  remainingRoundHpLoss,
+  slimeChoiceIsAvailable, remainingRoundHpLoss,
   resolvePendingTrigger,
   resolveEndTurnAbility,
   resolvePendingDieRelicChoice,
@@ -161,21 +144,15 @@ import {
   playerHasPostRollStartTurnChoice,
   lightningTargetOptions,
   startTurnScryAbilities,
-  startTurnScryPreview,
-  adjacentDamageChoiceCount,
-  adjacentEnemies,
-  cardDefForTarget,
-  resolveSlayerChoice,
+  startTurnScryPreview, adjacentEnemies, resolveSlayerChoice
 } from '../game/combat.ts'
 import type {
   CardDamagePreview,
   CardBlockPreview,
-  CombatPresentationEvent,
-  CombatState,
-  EndTurnAbility,
+  CombatPresentationEvent, EndTurnAbility,
   PlayerChoiceAnswer,
   StartTurnChoice,
-  StartTurnAbility,
+  StartTurnAbility
 } from '../game/combat.ts'
 import { chosenDieRelicAbilities, potionDef, relicDef } from '../game/relics.ts'
 import { DieRelicChoiceList, dieRelicChoices } from './DieRelicChoices.tsx'
@@ -183,7 +160,6 @@ import { CAPS, DOWNFALL_CHARACTER_IDS } from '../game/types.ts'
 import type { CardInstance, DownfallCharacterId, Enemy } from '../game/types.ts'
 import { combatActor, isCombatActor, localCombat, hasCombatSimulation, combatTurnFact, type CombatActor, type CombatPlayerView, type CombatView } from '../game/combat/view.ts'
 import { useCombatQueries, useCombatQuery } from './combat-screen/useCombatQueries.ts'
-import type { CombatQuery, CombatQueryResult, CombatTargetProgress } from '../game/combat/preview-queries.ts'
 import type { ActionOutcome } from '../multiplayer/useRoomSession.ts'
 import { Card, cardAccessibleName, slimeCommandText } from './Card.tsx'
 import { CardCollectionOverlay } from './CardCollectionOverlay.tsx'
@@ -210,8 +186,7 @@ import {
   drawnCardUids,
   healthBand,
   livingEnemiesInStageOrder,
-  pendingUiSurvivesContext,
-  shouldDisarmCardFlight,
+  pendingUiSurvivesContext
 } from './board-signals.ts'
 import { enemyAttackTargetPlayerIds, enemyAttackArrivalMsFor, cardVfxRecipe, potionVfxRecipe, shivVfxRecipe } from './combat-vfx.ts'
 import { combatBodyPoint } from './combat-geometry.ts'
@@ -530,8 +505,6 @@ function CombatScreenReady({
   const stageAct = Math.min(4, Math.max(1, act))
   const queries = useCombatQueries(state, viewerId, authoritativeVersion, authoritativeRefresh,
     authoritativeRestoration, onQuery)
-  const [pending, setPending] = useState<Pending | null>(null)
-  const [miracleOnCard, setMiracleOnCard] = useState(false)
   const [spendingShiv, setSpendingShiv] = useState<false | 'one' | 'all'>(false)
   const shivActionPending = useRef(false)
   const soulburnActionPending = useRef(false)
@@ -551,7 +524,6 @@ function CombatScreenReady({
   const [usingTrigger, setUsingTrigger] = useState(false)
   const [editingStagedStartTurnTrigger, setEditingStagedStartTurnTrigger] = useState<number | null>(null)
   const [usingDieRelic, setUsingDieRelic] = useState(false)
-  const [previewingCard, setUsingCard] = useState(false)
   const [endTurnEffectDrag, setEndTurnEffectDrag] = useState<EndTurnEffectDrag | null>(null)
   const [slimeCardZoom, setSlimeCardZoom] = useState<SlimeCardZoom | null>(null)
   const closeSlimeCardZoom = useRef(() => setSlimeCardZoom(null))
@@ -589,16 +561,6 @@ function CombatScreenReady({
   useEffect(() => registerCardZoomCloser(closeSlimeCardZoom.current), [])
   const prefersReducedMotion = reducedMotion
   const itemDialogRef = useRef<HTMLDialogElement | null>(null)
-  const cardActionPending = useRef(false)
-  const targetQueryPending = useRef<object | null>(null)
-  const [targetQueryBusy, setTargetQueryBusy] = useState(false)
-  useLayoutEffect(() => {
-    if (targetQueryPending.current) {
-      targetQueryPending.current = null
-      setTargetQueryBusy(false)
-    }
-  }, [queries])
-  const automaticCopyChoice = useRef<string | null>(null)
   const armedCardFlight = useRef<{ card: CardInstance; chamber: boolean } | null>(null)
   const chamberCloseTimer = useRef<number | null>(null)
   const chamberContactTimer = useRef<number | null>(null)
@@ -655,18 +617,22 @@ function CombatScreenReady({
     }
   }
   const forcedAutoAttempt = useRef<string | null>(null)
-  const cardLifecycle = useActionLifecycle<CardSubmission, CombatView>({
-    scope: `${state.combatId}:${viewerId}`, board: state, refresh: authoritativeRefresh,
-    lockRef: cardActionPending,
-    committed: (card, combat) => cardSubmissionCommitted(card, combat, viewerId),
-    reconciled: (card, committed, combat) => {
-      if (shouldDisarmCardFlight(card.source !== 'copy', committed)) armedCardFlight.current = null
-      const current = combatActor(combat, viewerId)
-      if (committed) setPending(null)
-      else if (current) restoreUnknownCard(card.pending, current, card.usingMiracle, combat)
+  const cardController = useCardController({
+    state, viewer, viewerId, onAction, onChange, cardPreview, drawCount, queries,
+    authoritativeRefresh, reconciliation,
+    interaction: () => ({ blocked: Boolean(endTurnResolving || pendingTrigger), survivorDiscard }),
+    clearOtherActions: () => {
+      cancelPowerChoice(); setSpendingShiv(false); setSpendingSoulburn(false); cancelPotionChoice()
+    },
+    presentation: {
+      arm: (card, chamber) => { armedCardFlight.current = { card, chamber } },
+      disarm: () => { armedCardFlight.current = null },
     },
   })
-  const usingCard = previewingCard || cardLifecycle.busy || targetQueryBusy
+  const { pending, setPending, miracleOnCard, setMiracleOnCard, usingCard, cardActionPending, stateRef,
+    cardQuery, commit, stageOrCommit, requestChoicePreview, requestCopyChoicePreview, requestChamberChoicePreview,
+    withEvokeSlot, confirmCardPlay, cancelCardPlay } = cardController
+  const { withAdjacentChoices, slayerTargetAffordable, loadedTargetCount, hermitDieRelicSelectionsReady, chamberChoiceRequired, chamberReplacementOptions, slimeEnemyChoiceLabels, slimeEnemyChoicesRequired, downfallChoicesReady } = cardController.rules
   const sharedDrawLocked = state.players.filter(player => !player.dead).every(player => player.drawLocked)
   const stanceChangedThisTurn = onAction ? viewerStanceChangedThisTurn : combatTurnFact(state, viewerId, 'stanceChangedThisTurn')
   const [resourceHistory, setResourceHistory] = useState(() => trackCombatResources(undefined, state))
@@ -1250,19 +1216,14 @@ function CombatScreenReady({
   const forcedCardUid = forcedCard?.playerId === viewerId && typeof forcedCard.cardUid === 'string'
     ? forcedCard.cardUid
     : null
-  const stateRef = useRef(state)
   const versionRef = useRef(authoritativeVersion ?? -1)
   const refreshRef = useRef(authoritativeRefresh)
-  stateRef.current = state
   versionRef.current = authoritativeVersion ?? -1
   refreshRef.current = authoritativeRefresh
   const rows = useMemo(() => rowsOf(state), [state])
   const facingEnemies = state.enemies.filter((enemy) =>
     enemyAbilities(enemyDef(enemy.defId, enemy.ascension)).some((ability) => ability.kind === 'facing'))
   const liveFacingEnemies = facingEnemies.filter((enemy) => !enemy.dead)
-  const cardPreviewKey = cardPreview
-    ? `${cardPreview.cardUid}\0${cardPreview.copy === true}\0${cardPreview.chamber === true}\0${cardPreview.kind}\0${cardPreview.spendMiracle}\0${cardPreview.enemyUid ?? ''}\0${cardPreview.slimeUids?.join('\0') ?? ''}\0${cardPreview.slimeEnemyUids?.join('\0') ?? ''}\0${cardPreview.cards.map((card) => card.uid).join('\0')}`
-    : ''
   const endTurnEffect = onAction ? partyEndTurnAbilities?.[0] : endTurnResolutionAbility(localCombat(state))
   const endTurnResolving = endTurnEffect !== undefined
   const endDraft = useEndTurnDraft({
@@ -1642,74 +1603,6 @@ function CombatScreenReady({
     cancelPotionChoice()
   }, [endTurnResolving])
 
-  // A private reveal is room state, not transient component state: restore it
-  // after a reconnect so the player must finish the card they already saw.
-  useEffect(() => {
-    if (!cardPreview || !viewer) {
-      if (onAction) setPending((current) => current?.choiceCards &&
-        current.choice?.kind !== 'recover' && current.choice?.kind !== 'recoverExhaust' &&
-        current.choice?.kind !== 'load' && current.choice?.kind !== 'loadAny' ? null : current)
-      return
-    }
-    if (usingCard) return
-    const copied = cardPreview.copy === true && state.pendingCardCopy?.playerId === viewer.id
-    const chamber = cardPreview.chamber === true
-    const card = copied
-      ? state.pendingCardCopy!.card
-      : (chamber ? viewer.chamber : viewer.hand).find((held) => held.uid === cardPreview.cardUid)
-    if (!card) {
-      if (onAction) setPending((current) => current?.choiceCards &&
-        current.choice?.kind !== 'recover' && current.choice?.kind !== 'recoverExhaust' &&
-        current.choice?.kind !== 'load' && current.choice?.kind !== 'loadAny' ? null : current)
-      return
-    }
-    const requiredChamber = state.pendingHermitChamberPlays?.[0]
-    const staged = chamber ? stageHermitChamberViewer(viewer, card,
-      requiredChamber?.playerId === viewer.id && requiredChamber.cardUids[0] === card.uid &&
-      requiredChamber.free === true) : null
-    const next = { ...pendingFor(staged?.card ?? card, cardPreview.cards, state, staged?.player ?? viewer,
-      staged ? false : !copied, copied ? state.pendingCardCopy?.energySpent : undefined, staged ? true : undefined)
-      , chamberPlay: chamber }
-    if (next.choice?.kind !== cardPreview.kind) return
-    setMiracleOnCard(cardPreview.spendMiracle)
-    const restored = { ...next, enemyUid: cardPreview.enemyUid,
-      ...(cardPreview.energySpent === undefined ? {} : {
-        energySpent: cardPreview.energySpent,
-        effectEnergy: cardPreview.energySpent,
-        energyCharged: copied ? 0 : cardPreview.energySpent,
-      }),
-      slimeUids: cardPreview.slimeUids ?? [], slimeEnemyUids: cardPreview.slimeEnemyUids ?? [] }
-    setPending((current) => current?.card.uid === card.uid &&
-      current.choice?.kind === cardPreview.kind &&
-      current.slimeUids.join('\0') === (cardPreview.slimeUids ?? []).join('\0') &&
-      current.choiceCards?.length === cardPreview.cards.length &&
-      current.choiceCards?.every((held, index) => held.uid === cardPreview.cards[index]?.uid)
-      ? { ...current, enemyUid: cardPreview.enemyUid,
-        slimeEnemyUids: cardPreview.slimeEnemyUids ?? [] }
-      : restored)
-  }, [cardPreviewKey, viewerId, usingCard, onAction])
-
-  useEffect(() => {
-    const copy = state.pendingCardCopy
-    if (state.phase !== 'copy' || !copy || copy.playerId !== viewerId || !viewer || cardPreview || usingCard) return
-    const key = `${state.combatId}:${copy.id}`
-    if (automaticCopyChoice.current === key) return
-    automaticCopyChoice.current = key
-    const def = faceOf(cardDef(copy.card.defId), copy.card.upgraded)
-    if (cardNeedsChoicePreview(def, state, viewer)) {
-      if (cardNeedsEnemy(def, viewer, false, copy.energySpent, false, copy.card.attachedGemId, copy.card.uid,
-        copy.energySpent, copy.card.hermitDeadOn === true)) {
-        setPending({ ...pendingFor(copy.card, null, state, viewer, false, copy.energySpent), choice: null, choiceCards: null })
-        if (livingEnemies(state).length === 1) requestCopyChoicePreview(livingEnemies(state)[0]!.uid)
-      } else requestCopyChoicePreview()
-      return
-    }
-    const next = pendingFor(copy.card, null, state, viewer, false, copy.energySpent)
-    setPending(next)
-    stageOrCommit(next)
-  }, [state.phase, state.pendingCardCopy?.id,
-    viewerId, cardPreviewKey, usingCard])
-
   // Native modal semantics make every control behind a card choice inert and
   // keep keyboard focus inside it without a custom focus trap. Hidden reveals
   // prevent cancellation; Headbutt's already-public discard choice does not.
@@ -1777,140 +1670,6 @@ function CombatScreenReady({
     onChange?.(resolveStartTurnDiscard(localCombat(state), viewerId, activeStartTurnDiscard.sourceId, card.uid))
     setResolvingStartTurnDiscard(false)
   }
-
-  // Card choices are made against a shared board too. Recompute overflow when
-  // teammates take or spend cubes, and discard targets that died meanwhile.
-  useEffect(() => {
-    if (!viewer) return
-    const alive = new Set(state.enemies.filter((enemy) => !enemy.dead).map((enemy) => enemy.uid))
-    const livingPlayers = new Set(state.players.filter((player) => !player.dead).map((player) => player.id))
-    setPending((current) => {
-      if (!current) return current
-      if (usingCard) return current
-      if (current.chamberPlay
-        ? !viewer.chamber.some((card) => card.uid === current.card.uid)
-        : current.cardInHand
-          ? !viewer.hand.some((card) => card.uid === current.card.uid)
-          : state.pendingCardCopy?.playerId !== viewer.id || state.pendingCardCopy.card.uid !== current.card.uid) return null
-      const def = effectiveCombatCardDef(
-        faceOf(cardDef(current.card.defId), current.card.upgraded), current.corruptedShardMode ?? viewer.guardianMode,
-      )
-      if (current.cardInHand && !cardPlayConditionMet(def, state, viewer, drawCount)) return null
-      const recover = def.effects.find((effect) => effect.kind === 'recoverDiscard')
-      const recoverExhaust = def.effects.find((effect) => effect.kind === 'recoverExhaust' ||
-        effect.kind === 'recoverExhaustToDraw' || effect.kind === 'recoverExhaustToDiscard')
-      const recoveryCards = recover ? viewer.discard : recoverExhaust ? viewer.exhaust : null
-      const choice = recover
-        ? viewer.discard.length > 0 ? { kind: 'recover' as const, amount: recover.amount } : null
-        : recoverExhaust
-          ? viewer.exhaust.length > 0
-            ? { kind: 'recoverExhaust' as const, amount: recoverExhaust.amount,
-              minimum: recoverExhaust.kind === 'recoverExhaustToDraw' ? 0 : undefined }
-            : null
-        : current.choice
-      const choiceCards = recoveryCards ? (recoveryCards.length > 0 ? recoveryCards : null) : current.choiceCards
-      const choiceCardsChanged = choiceCards?.length !== current.choiceCards?.length ||
-        choiceCards?.some((card, index) => card.uid !== current.choiceCards?.[index]?.uid) === true
-      const overflowShivs = overflowShivCount(state,
-        cardShivsOnPlay(def, current.choice?.kind === 'discardAny' ? current.picked.length : 0))
-      const overflowChanged = overflowShivs !== current.overflowShivs
-      const spentShivs = cardShivChoiceCount(def, viewer)
-      const spentChanged = spentShivs !== current.spentShivs
-      const selectedMode = current.mode == null ? undefined : def.modes?.[current.mode]
-      const selectedEnemyChoices = cardEnemyChoiceCount(def, current.mode ?? undefined, state, viewer)
-      const mode = selectedMode?.effects.some((effect) => effect.kind === 'hitChoices' && effect.distinct) &&
-        selectedEnemyChoices > alive.size ? null : current.mode
-      const enemyChoices = cardEnemyChoiceCount(def, mode ?? undefined, state, viewer)
-      const playerChoices = cardPlayerChoiceCount(def, mode ?? undefined)
-      const enemyUid = current.enemyUid && alive.has(current.enemyUid) ? current.enemyUid : null
-      const enemyUids = mode === current.mode ? current.enemyUids.filter((uid) => alive.has(uid)) : []
-      const playerIds = current.playerIds.filter((id) => livingPlayers.has(id))
-      const picked = choiceCards
-        ? recover || recoverExhaust
-          ? current.picked.filter((uid) => choiceCards.some((card) => card.uid === uid))
-          : current.picked
-        : current.picked.filter((uid) => viewer.hand.some((card) => card.uid === uid))
-      const pickedChanged = picked.length !== current.picked.length
-      const powerBeamCards = guardianPowerBeamCards(viewer, current.card.uid)
-      const guardianPowerCardUid = current.guardianPowerCardUid &&
-        powerBeamCards.some((card) => card.uid === current.guardianPowerCardUid)
-        ? current.guardianPowerCardUid : null
-      const minimumUnpaid = (current.choice?.kind === 'exhaustAny' || current.choice?.kind === 'bottomdeck') &&
-        current.choiceConfirmed &&
-        picked.length < Math.min(current.choice.minimum ?? 0,
-          Math.max(0, viewer.hand.length - Number(current.cardInHand)))
-      const shivEnemyUids = overflowChanged || spentChanged
-        ? []
-        : current.shivEnemyUids.filter((uid) => alive.has(uid))
-      const needsEnemy = cardNeedsEnemy(def, viewer, false, current.effectEnergy ?? undefined,
-        false, current.card.attachedGemId, current.card.uid,
-        current.energyCharged ?? undefined, current.card.hermitDeadOn === true) || spentShivs > 0 ||
-        overflowShivs > 0 || enemyChoices > 0
-      const needsSwitch = def.effects.some((effect) => effect.kind === 'switchRows') && livingPlayers.size > 1
-      const switchTargetAlive = current.switchPlayerId === null || livingPlayers.has(current.switchPlayerId)
-      const switchPlayerId = switchTargetAlive ? current.switchPlayerId : null
-      const switchChoiceDone = !needsSwitch || (current.switchChoiceDone && switchTargetAlive)
-      const invalidEvokeTarget = current.evokeEnemyUids.some((target) => {
-        if (typeof target !== 'string') return false
-        const row = lightningRowFromTarget(target)
-        return row === null
-          ? !alive.has(target)
-          : !lightningTargetsRows(viewer, def.id) || !rowsOf(state).includes(row)
-      })
-      const evokeSlots = invalidEvokeTarget ? [] : current.evokeSlots
-      const evokeEnemyUids = invalidEvokeTarget ? [] : current.evokeEnemyUids
-      if (overflowChanged && !needsEnemy && !current.needsAlly && !needsSwitch && !current.choice &&
-        !nextEvokeChoice(def, viewer, evokeSlots, state.die, current.mode ?? undefined, current.effectEnergy ?? 0) &&
-        !evokeEnemyUids.some((target) => target === undefined)) return null
-      if (
-        overflowShivs === current.overflowShivs &&
-        spentShivs === current.spentShivs &&
-        enemyUid === current.enemyUid &&
-        mode === current.mode &&
-        enemyUids.length === current.enemyUids.length &&
-        playerIds.length === current.playerIds.length &&
-        choice?.kind === current.choice?.kind &&
-        !choiceCardsChanged &&
-        !pickedChanged &&
-        guardianPowerCardUid === current.guardianPowerCardUid &&
-        !minimumUnpaid &&
-        shivEnemyUids.length === current.shivEnemyUids.length &&
-        needsSwitch === current.needsSwitch &&
-        switchPlayerId === current.switchPlayerId &&
-        switchChoiceDone === current.switchChoiceDone &&
-        !invalidEvokeTarget
-      ) return current
-      return {
-        ...current,
-        overflowShivs,
-        spentShivs,
-        mode,
-        needsEnemy,
-        needsSwitch,
-        enemyChoices,
-        playerChoices,
-        enemyUid,
-        enemyUids,
-        playerIds,
-        choice,
-        choiceCards,
-        picked,
-        guardianPowerCardUid,
-        switchPlayerId,
-        switchChoiceDone,
-        shivEnemyUids,
-        choiceConfirmed: (pickedChanged || choiceCardsChanged || minimumUnpaid ||
-          (overflowChanged && overflowShivs === 0)) &&
-          (current.choice?.kind === 'discardAny' || current.choice?.kind === 'exhaustAny' ||
-            current.choice?.kind === 'bottomdeck' ||
-            current.choice?.kind === 'recover' || current.choice?.kind === 'recoverExhaust')
-          ? false
-          : current.choiceConfirmed,
-        evokeSlots,
-        evokeEnemyUids,
-      }
-    })
-  }, [state, viewer, drawCount, usingCard])
 
   const endTurnRef = useRef<HTMLButtonElement | null>(null)
   useButtonShortcut(endTurnRef, ' ', state.phase === 'player')
@@ -2653,34 +2412,6 @@ function CombatScreenReady({
     return (activePowerWindow(combat) || combat.phase === 'copy') && player ? { combat, player } : null
   }
 
-  function restoreUnknownCard(submitted: Pending, current: CombatActor, usingMiracle: boolean,
-    authoritative = stateRef.current) {
-    const alive = new Set(authoritative.enemies.filter((enemy) => !enemy.dead).map((enemy) => enemy.uid))
-    const enemyUid = submitted.enemyUid && alive.has(submitted.enemyUid) ? submitted.enemyUid : null
-    const enemyUids = submitted.enemyUids.filter((uid) => alive.has(uid))
-    const slimeEnemyUids = submitted.slimeEnemyUids.filter((uid) => alive.has(uid))
-    const hermitEnemyUids = submitted.hermitEnemyUids.filter((uid) => alive.has(uid))
-    const soulburnEnemyUids = submitted.soulburnEnemyUids.filter((uid) => alive.has(uid))
-    const shivEnemyUids = submitted.shivEnemyUids.filter((uid) => alive.has(uid))
-    const choicePool = submitted.choiceCards ?? current.hand
-    const picked = submitted.picked.filter((uid) => choicePool.some((card) => card.uid === uid))
-    const targetChanged = enemyUid !== submitted.enemyUid || enemyUids.length !== submitted.enemyUids.length ||
-      slimeEnemyUids.length !== submitted.slimeEnemyUids.length || hermitEnemyUids.length !== submitted.hermitEnemyUids.length ||
-      soulburnEnemyUids.length !== submitted.soulburnEnemyUids.length || shivEnemyUids.length !== submitted.shivEnemyUids.length
-    setMiracleOnCard(usingMiracle)
-    setPending({
-      ...submitted,
-      enemyUid,
-      enemyUids,
-      slimeEnemyUids,
-      hermitEnemyUids,
-      soulburnEnemyUids,
-      shivEnemyUids,
-      picked,
-      choiceConfirmed: submitted.choiceConfirmed && picked.length === submitted.picked.length && targetChanged,
-    })
-  }
-
   function resolveTrigger(enemyRow?: number, enemyUid?: string, targetPlayerId?: string,
     slimeEnemyUids = triggerSlimeEnemyUids) {
     const trigger = pendingTrigger
@@ -2778,18 +2509,6 @@ function CombatScreenReady({
   const adjacentPickUids = pending?.enemyUid && pendingDef?.effects.some((effect) => effect.kind === 'damageAdjacent')
     ? new Set(adjacentEnemies(state, pending.enemyUid).map((enemy) => enemy.uid))
     : null
-  const withAdjacentChoices = (next: Pending): Pending => {
-    const effects = faceOf(cardDef(next.card.defId), next.card.upgraded).effects
-    if (!effects.some((effect) => effect.kind === 'damageAdjacent')) return next
-    const enemyChoices = adjacentDamageChoiceCount(effects, state, next.enemyUid)
-    return enemyChoices === next.enemyChoices ? next : { ...next, enemyChoices, enemyUids: [] }
-  }
-  const slayerTargetAffordable = (next: Pending, enemy: Enemy | undefined): boolean => {
-    const def = effectiveCombatCardDef(faceOf(cardDef(next.card.defId), next.card.upgraded), viewer.guardianMode)
-    if (def.bossTargetCost === undefined || !enemy?.isBoss || !next.cardInHand || next.card.uid === forcedCardUid) return true
-    const cost = playCost(cardDefForTarget(def, state, enemy.uid), viewer, next.card)
-    return cost === 'X' || cost <= viewer.energy + (miracleOnCard ? 1 : 0)
-  }
   const slayerTargetAllowed = (enemy: Enemy): boolean => {
     if (!pending) return true
     if (adjacentPickUids && pending.enemyUids.length < pending.enemyChoices) {
@@ -2818,84 +2537,6 @@ function CombatScreenReady({
   const corruptedShardModeSatisfied = !corruptedShardModeNeeded || pending?.corruptedShardMode !== null
   const energyChoiceSatisfied = (pendingDef?.cost !== 'X' || pending?.energySpent !== null) &&
     (pendingDef?.id !== 'slayer_metamorphosis' || pending?.metamorphosisPowerUid !== undefined)
-  const loadedTargetCount = (next: Pending) => next.picked.filter((uid) => {
-    const loaded = next.choiceCards?.find((card) => card.uid === uid) ??
-      viewer.hand.find((card) => card.uid === uid) ?? viewer.discard.find((card) => card.uid === uid)
-    return loaded && ['hermit_grudge', 'hermit_malice', 'hermit_horror'].includes(loaded.defId)
-  }).length
-  const hermitDieRelicSelectionsReady = (next: Pending) => next.hermitDieRelics.every((choice) => {
-    const owner = state.players.find((player) => player.id === choice.playerId && !player.dead)
-    const held = owner?.relics[choice.relicIndex]
-    const ability = held && chosenDieRelicAbilities(relicDef(held.defId))[choice.abilityIndex]
-    if (!owner || !ability || ability.trigger.kind !== 'dieRelic') return false
-    if (ability.supportTarget === 'anyPlayer' &&
-      !state.players.some((player) => !player.dead && player.id === choice.targetPlayerId)) return false
-    return true
-  })
-  const chamberChoiceRequired = (next: Pending) => {
-    const choice = next.chamberChoice
-    if (!choice || choice.baseAmount === undefined || choice.openAfterBase === undefined) return choice?.minimum ?? 0
-    const loaded = (next.choice?.kind === 'load' || next.choice?.kind === 'loadAny' ? next.picked.length : 0) +
-      Number(choice.loadSelf && next.chooseLoadSelf === true)
-    return Math.min(choice.amount, choice.baseAmount + Math.max(0, loaded - choice.openAfterBase))
-  }
-  const chamberReplacementOptions = (next: Pending): string[] => {
-    const choice = next.chamberChoice
-    if (!choice || choice.baseAmount === undefined || choice.openAfterBase === undefined) return []
-    const base = next.chamberUids.slice(0, choice.baseAmount)
-    const baseSet = new Set(base)
-    const chamber = viewer.chamber.filter((card) => !baseSet.has(card.uid) &&
-      (!next.chamberPlay || card.uid !== next.card.uid)).map((card) => card.uid)
-    const capacity = chamber.length + choice.openAfterBase
-    const loads = [
-      ...(next.choice?.kind === 'load' || next.choice?.kind === 'loadAny' ? next.picked : []),
-      ...(choice.loadSelf && next.chooseLoadSelf === true ? [next.card.uid] : []),
-    ]
-    let replacementAt = 0
-    for (const uid of loads) {
-      if (chamber.length < capacity) chamber.push(uid)
-      else {
-        const selected = next.chamberUids[choice.baseAmount + replacementAt++]
-        if (!selected) return chamber
-        const at = chamber.indexOf(selected)
-        if (at < 0) return []
-        chamber[at] = uid
-      }
-    }
-    return []
-  }
-  const chamberChoicesReady = (next: Pending) => !next.chamberChoice
-    ? true
-    : next.chamberChoice.baseAmount === undefined
-      ? next.chamberChoiceConfirmed && next.chamberUids.length >= next.chamberChoice.minimum &&
-        next.chamberUids.length <= next.chamberChoice.amount
-      : chamberChoiceRequired(next) === 0 || next.chamberChoiceConfirmed &&
-        next.chamberUids.length === chamberChoiceRequired(next)
-  const slimeEnemyChoiceLabels = (next: Pending) => {
-    const printed = faceOf(cardDef(next.card.defId), next.card.upgraded)
-    const effective = effectiveCombatCardDef(printed, next.corruptedShardMode ?? viewer.guardianMode)
-    const selected = effective.modes && next.mode !== null
-      ? { ...effective, modes: undefined, effects: effective.modes[next.mode]?.effects ?? [] }
-      : effective
-    return slimeCommandEnemyChoiceLabels(selected, state, viewer, next.slimeUids,
-      next.effectEnergy ?? 0, next.energyCharged ?? 0, next.card)
-  }
-  const slimeEnemyChoicesRequired = (next: Pending) => slimeEnemyChoiceLabels(next).length
-  const downfallChoicesReady = (next: Pending) =>
-    (!next.slimeChoice || next.slimeChoiceConfirmed && next.slimeUids.length >= next.slimeChoice.minimum &&
-      next.slimeUids.length <= next.slimeChoice.amount) &&
-    chamberChoicesReady(next) &&
-    next.slimeEnemyUids.length === slimeEnemyChoicesRequired(next) &&
-    (!next.hermitDieRelicChoice || next.hermitDieRelicChoiceConfirmed &&
-      next.hermitDieRelics.length >= next.hermitDieRelicChoice.minimum &&
-      next.hermitDieRelics.length <= next.hermitDieRelicChoice.amount && hermitDieRelicSelectionsReady(next)) &&
-    next.hermitEnemyUids.length === loadedTargetCount(next) &&
-    next.soulburnEnemyUids.length === next.soulburnChoices &&
-    next.chooseLoadSelf !== null && next.spendVigor !== null && next.guardianModeShift !== null &&
-    next.secondGuardianModeShift !== null && next.guardianBlockSpend !== null &&
-    (next.card.defId !== 'guardian_power_beam' ||
-      (viewer.guardianMode ?? next.corruptedShardMode) !== 'defense' ||
-      guardianPowerBeamCards(viewer, next.card.uid).length === 0 || next.guardianPowerCardUid !== null)
   const choiceSatisfied = handChoiceSatisfied && revealedChoiceSatisfied && variableChoiceSatisfied &&
     (!pending || downfallChoicesReady(pending)) &&
     modeSatisfied && corruptedShardModeSatisfied && energyChoiceSatisfied
@@ -2975,74 +2616,6 @@ function CombatScreenReady({
     setArmedEndTurnAbilityId((current) => current === 'evoke-target' ? null : current)
   }, [evokeTargetStep])
 
-  function cardContext(next: Pending) {
-    return {
-      enemyUid: next.enemyUid,
-      enemyUids: next.enemyUids,
-      playerId: next.playerId ?? viewer!.id,
-      energySpent: next.chamberPlay && faceOf(cardDef(next.card.defId), next.card.upgraded).cost !== 'X'
-        ? undefined : next.energySpent ?? undefined,
-      playerIds: next.playerIds,
-      switchWithPlayerId: next.switchChoiceDone ? next.switchPlayerId : null,
-      mode: next.mode ?? undefined,
-      corruptedShardMode: next.corruptedShardMode ?? undefined,
-      discardUids: next.choice?.kind === 'discard' || next.choice?.kind === 'discardAny'
-        ? next.picked
-        : undefined,
-      exhaustUids: next.choice?.kind === 'exhaust' || next.choice?.kind === 'exhaustAny'
-        ? next.picked
-        : undefined,
-      scryDiscardUids: next.choice?.kind === 'scry' || next.choice?.kind === 'scryToHand' ? next.picked : undefined,
-      scryToHandUid: next.choice?.kind === 'scryToHand' ? next.scryToHandUid : undefined,
-      topdeckUids: next.choice?.kind === 'topdeck' || next.choice?.kind === 'bottomdeck' ? next.picked : undefined,
-      recoverDiscardUids: next.choice?.kind === 'recover' ? next.picked : undefined,
-      recoverExhaustUid: next.choice?.kind === 'recoverExhaust' &&
-        pendingDef?.effects.some((effect) => effect.kind === 'recoverExhaust') ? next.picked[0] : undefined,
-      recoverExhaustUids: next.choice?.kind === 'recoverExhaust' &&
-        pendingDef?.effects.some((effect) => effect.kind === 'recoverExhaustToDraw' ||
-          effect.kind === 'recoverExhaustToDiscard') ? next.picked : undefined,
-      searchDrawUids: next.choice?.kind === 'search' ? next.picked : undefined,
-      loadUids: next.choice?.kind === 'load' || next.choice?.kind === 'loadAny' ? next.picked : undefined,
-      chamberUids: next.chamberChoice ? next.chamberUids : undefined,
-      hermitEnemyUids: next.hermitEnemyUids,
-      hermitDieRelics: next.hermitDieRelicChoice ? next.hermitDieRelics : undefined,
-      chooseLoadSelf: next.chooseLoadSelf === true,
-      slimeUids: next.slimeChoice ? next.slimeUids : undefined,
-      slimeEnemyUids: next.slimeEnemyUids,
-      soulburnEnemyUids: next.soulburnChoices > 0 ? next.soulburnEnemyUids : undefined,
-      spendVigor: next.spendVigor ?? undefined,
-      guardianModeShift: next.guardianModeShift === true,
-      secondGuardianModeShift: next.secondGuardianModeShift === true,
-      guardianBlockSpend: next.guardianBlockSpend ?? undefined,
-      guardianPowerCardUid: next.guardianPowerCardUid ?? undefined,
-      spendMiracle: miracleOnCard,
-      shivEnemyUids: next.shivEnemyUids,
-      evokeSlots: next.evokeSlots,
-      evokeEnemyUids: next.evokeEnemyUids as (string | null)[],
-      metamorphosisPowerUid: next.metamorphosisPowerUid,
-    }
-  }
-
-  function cardQuery(kind: 'evoke' | 'shivs', next: Pending): Extract<CombatQuery, { kind: 'evoke' | 'shivs' }> {
-    return {
-      kind, cardUid: next.card.uid, source: next.chamberPlay ? 'chamber' : next.cardInHand ? 'hand' : 'copy',
-      context: { ...cardContext(next), ...(kind === 'evoke' ? { energySpent: next.effectEnergy ?? 0 } : {}) },
-    }
-  }
-
-  function queryCardTargets(kind: 'evoke' | 'shivs', next: Pending): CombatTargetProgress | null | Promise<CombatTargetProgress | null> {
-    if (kind === 'evoke' && chosenEvokeOrbs(faceOf(cardDef(next.card.defId), next.card.upgraded),
-      viewer, next.evokeSlots, state.die, next.mode ?? undefined, next.effectEnergy ?? 0).length === 0) {
-      return { index: 0, options: [], complete: true }
-    }
-    const result = queries.load(cardQuery(kind, next))
-    const progress = (value: CombatQueryResult) => {
-      if (value.kind !== 'evoke' && value.kind !== 'shivs') throw new Error('Expected a combat target preview.')
-      return value.progress
-    }
-    return result instanceof Promise ? result.then(progress) : progress(result)
-  }
-
   const shivPreview = useCombatQuery(queries, pendingAvailable && pending && choiceSatisfied && evokeChoicesDone &&
     (!pendingNeedsCardEnemy || pending.enemyUid !== null) &&
     pending.enemyUids.length >= pending.enemyChoices &&
@@ -3060,231 +2633,6 @@ function CombatScreenReady({
       ? { ...current, shivEnemyUids: current.shivEnemyUids.slice(0, pendingShivProgress.index) }
       : current)
   }, [pending, pendingShivProgress])
-
-  function commit(next: Pending, skipOverflow = false) {
-    if (cardActionPending.current) return
-    const context = cardContext(next)
-    // The online draw pile is not authoritative for action validation. The room
-    // has already bound this action to its private preview, so only the engine
-    // can validate it.
-    const result = onAction
-      ? undefined
-      : next.chamberPlay
-        ? playHermitChamberCard(localCombat(state), viewer!.id, next.card.uid, context)
-        : next.cardInHand
-        ? playCard(localCombat(state), viewer!.id, next.card.uid, context)
-        : playCardCopy(localCombat(state), viewer!.id, context)
-    if (result === state) {
-      if (next.enemyUids.length > 0 || next.playerIds.length > 0 || next.slimeUids.length > 0 ||
-        next.slimeEnemyUids.length > 0 ||
-        next.chamberUids.length > 0 || next.hermitEnemyUids.length > 0 || next.soulburnEnemyUids.length > 0 ||
-        next.hermitDieRelics.length > 0 || next.shivEnemyUids.length > 0 || next.evokeSlots.length > 0) {
-        setPending({ ...next, enemyUids: [], playerIds: [], slimeUids: [], slimeEnemyUids: [], chamberUids: [],
-          chamberChoiceConfirmed: false, hermitEnemyUids: [],
-          hermitDieRelics: [], hermitDieRelicChoiceConfirmed: false,
-          soulburnEnemyUids: [], shivEnemyUids: [], evokeSlots: [], evokeEnemyUids: [] })
-      }
-      return
-    }
-    if (next.cardInHand || next.chamberPlay) {
-      armedCardFlight.current = { card: next.card, chamber: next.chamberPlay }
-    }
-    const action = {
-      kind: next.chamberPlay ? 'playHermitChamberCard' : next.cardInHand ? 'playCard' : 'playCardCopy',
-      cardUid: next.card.uid,
-      copyId: !next.cardInHand && !next.chamberPlay ? state.pendingCardCopy?.id : undefined,
-      ...context,
-      preflight: true,
-      expectedShivOverflow: next.overflowShivs > 0 ? next.overflowShivs : undefined,
-      skipOverflow: next.overflowShivs > 0 ? skipOverflow : undefined,
-    }
-    const submission = {
-      cardUid: next.card.uid,
-      source: next.chamberPlay ? 'chamber' as const : next.cardInHand ? 'hand' as const : 'copy' as const,
-      copyId: action.copyId,
-      pending: next,
-      usingMiracle: miracleOnCard,
-    }
-    if (onAction) {
-      const usingMiracle = miracleOnCard
-      setMiracleOnCard(false)
-      setPending(next.choiceCards ? next : null)
-      const finish = (outcome: ActionOutcome) => {
-        if (outcome?.status !== 'refused' && outcome?.status !== 'reconciled') {
-          setPending(null)
-          return
-        }
-        if (outcome?.status === 'refused' || outcome?.status === 'reconciled') {
-          const authoritative = reconciliation(outcome)
-          if (!authoritative) {
-            if (shouldDisarmCardFlight(next.cardInHand || next.chamberPlay, false)) armedCardFlight.current = null
-            return
-          }
-          if (next.chamberPlay
-            ? !authoritative.player.chamber?.some((card) => card.uid === next.card.uid)
-            : next.cardInHand
-              ? !authoritative.player.hand?.some((card) => card.uid === next.card.uid)
-              : authoritative.combat.pendingCardCopy?.card.uid !== next.card.uid ||
-                authoritative.combat.pendingCardCopy.id !== action.copyId) {
-            setPending(null)
-            return
-          }
-          if (next.cardInHand || next.chamberPlay) armedCardFlight.current = null
-          const authoritativePlayer = combatActor(authoritative.combat, viewerId)
-          if (!authoritativePlayer) {
-            setPending(null)
-            return
-          }
-          const chamberCard = next.chamberPlay
-            ? authoritativePlayer.chamber.find((card) => card.uid === next.card.uid)
-            : undefined
-          const staged = chamberCard ? stageHermitChamberViewer(authoritativePlayer, chamberCard) : undefined
-          const pendingPlayer = staged?.player ?? authoritativePlayer
-          const def = effectiveCombatCardDef(
-            faceOf(cardDef(next.card.defId), next.card.upgraded), pendingPlayer.guardianMode,
-          )
-          if (next.choiceCards &&
-            (next.choice?.kind === 'recover' || next.choice?.kind === 'recoverExhaust')) {
-            setMiracleOnCard(usingMiracle)
-            const cards = next.choice.kind === 'recover'
-              ? authoritative.player.discard
-              : authoritative.player.exhaust
-            if (cards.length === 0) {
-              setPending(null)
-              return
-            }
-            setPending({
-              ...next,
-              choice: cards.length > 0 ? { kind: next.choice.kind, amount: next.choice.amount,
-                minimum: next.choice.minimum } : null,
-              choiceCards: cards.length > 0 ? cards : null,
-              choiceConfirmed: false,
-              picked: [],
-              enemyUid: null,
-            })
-            return
-          }
-          const reconciledCombat = { ...stateRef.current, ...authoritative.combat } as CombatState
-          if (next.choiceCards && !cardNeedsChoicePreview(def, reconciledCombat, pendingPlayer)) {
-            setMiracleOnCard(usingMiracle)
-            setPending({
-              ...pendingFor(staged?.card ?? next.card, null, reconciledCombat, pendingPlayer,
-                next.cardInHand, next.cardInHand || next.chamberPlay
-                  ? undefined : authoritative.combat.pendingCardCopy?.energySpent,
-                next.cardInHand || next.chamberPlay),
-              chamberPlay: next.chamberPlay,
-            })
-            return
-          }
-          if (next.choiceCards) {
-            setMiracleOnCard(usingMiracle)
-            const preview = outcome?.snapshot?.cardPreview
-            const matchingReveal = preview?.cardUid === next.card.uid && preview.kind === next.choice?.kind &&
-              (preview.copy === true) === (!next.cardInHand && !next.chamberPlay) &&
-              (preview.chamber === true) === next.chamberPlay
-            if (matchingReveal) {
-              const sameCards = preview.cards.length === next.choiceCards.length &&
-                preview.cards.every((card, index) => card.uid === next.choiceCards?.[index]?.uid)
-              const needsRetarget = preview.enemyUid !== next.enemyUid ||
-                (preview.slimeEnemyUids ?? []).join('\0') !== next.slimeEnemyUids.join('\0')
-              setPending({
-                ...next,
-                choiceCards: preview.cards,
-                picked: sameCards ? next.picked : [],
-                choiceConfirmed: sameCards && needsRetarget && next.choiceConfirmed,
-                chamberUids: [],
-                chamberChoiceConfirmed: false,
-                hermitEnemyUids: [],
-                scryToHandUid: sameCards ? next.scryToHandUid : undefined,
-                enemyUid: preview.enemyUid,
-                slimeUids: preview.slimeUids ?? [],
-                slimeEnemyUids: preview.slimeEnemyUids ?? [],
-              })
-              return
-            }
-            if (next.chamberPlay) requestChamberChoicePreview(next.card, next.enemyUid, next)
-            else if (next.cardInHand) requestChoicePreview(next.card, next.enemyUid, next)
-            else requestCopyChoicePreview(next.enemyUid, next)
-            return
-          }
-          const overflowShivs = overflowShivCount(authoritative.combat,
-            cardShivsOnPlay(def, next.choice?.kind === 'discardAny' ? next.picked.length : 0))
-          const spentShivs = cardShivChoiceCount(def, pendingPlayer)
-          const enemyChoices = cardEnemyChoiceCount(def, undefined, state, viewer!)
-          const playerChoices = cardPlayerChoiceCount(def)
-          const physicalCard = next.cardInHand || next.chamberPlay
-          const cost = physicalCard ? playCost(def, pendingPlayer, next.card) : 0
-          const energySpent = physicalCard ? cost === 'X' ? null : 0
-            : authoritative.combat.pendingCardCopy?.energySpent ?? 0
-          const effectEnergy = physicalCard && def.cost === 'X' && cost !== 'X' ? cost : energySpent
-          const needsEnemy = cardNeedsEnemy(def, pendingPlayer, false, effectEnergy ?? undefined,
-            false, next.card.attachedGemId, next.card.uid,
-            physicalCard && typeof cost === 'number' ? cost : undefined, next.card.hermitDeadOn === true) || spentShivs > 0 ||
-            overflowShivs > 0 || enemyChoices > 0
-          const needsAlly = (def.supportTarget === 'anyPlayer' ||
-            guardianCardNeedsAlly(def, pendingPlayer, next.card.attachedGemId)) &&
-            authoritative.combat.players.filter((player) => !player.dead).length > 1
-          const needsSwitch = def.effects.some((effect) => effect.kind === 'switchRows') &&
-            authoritative.combat.players.filter((player) => !player.dead).length > 1
-          setMiracleOnCard(usingMiracle)
-          if (needsEnemy || needsAlly || playerChoices > 0 || needsSwitch || def.modes || next.choice ||
-            nextEvokeChoice(def, pendingPlayer, [], authoritative.combat.die, undefined, effectEnergy ?? 0)) {
-            setPending({
-              ...next,
-              energySpent,
-              effectEnergy,
-              needsEnemy,
-              needsAlly,
-              needsSwitch,
-              overflowShivs,
-              spentShivs,
-              enemyChoices,
-              playerChoices,
-              enemyUid: null,
-              enemyUids: [],
-              playerId: null,
-              playerIds: authoritative.combat.players.filter((player) => !player.dead).length === 1
-                ? Array(playerChoices).fill(authoritative.player.id)
-                : [],
-              picked: next.picked.filter((uid) =>
-                authoritative.player.hand?.some((card) => card.uid === uid) === true),
-              choiceConfirmed: overflowShivs === 0 &&
-                (next.choice?.kind === 'discardAny' || next.choice?.kind === 'exhaustAny' || next.choice?.kind === 'bottomdeck')
-                ? false
-                : next.choiceConfirmed,
-              switchPlayerId: null,
-              switchChoiceDone: false,
-              shivEnemyUids: [],
-              evokeSlots: [],
-              evokeEnemyUids: [],
-              mode: null,
-            })
-          }
-        }
-      }
-      cardLifecycle.submit(submission, () => onAction(action), true, finish)
-      return
-    }
-    setMiracleOnCard(false)
-    if (result) cardLifecycle.submit(submission, () => onChange?.(result), false)
-    setPending(null)
-  }
-
-  const { withEvokeSlot, choose: stageOrCommit, requestChoicePreview, requestCopyChoicePreview,
-    requestChamberChoicePreview, confirm: confirmCardPlay,
-    cancel: cancelCardPlay } = createCardPlayCoordinator({
-    state, viewer, pending, miracleOnCard, blocked: Boolean(endTurnResolving || pendingTrigger),
-    survivorDiscard, stateRef, cardActionPending, onAction, setUsingCard, setPending,
-    withAdjacentChoices, downfallChoicesReady, slimeEnemyChoicesRequired, hermitEnemyChoicesRequired: loadedTargetCount, slayerTargetAffordable,
-    cardContext, commit, queryTargets: queryCardTargets, targetQueryPending, setQueryBusy: setTargetQueryBusy,
-    onQueryError: queries.report,
-    clearOtherActions: () => {
-      cancelPowerChoice()
-      setSpendingShiv(false)
-      setSpendingSoulburn(false)
-      cancelPotionChoice()
-    },
-  })
 
   useLayoutEffect(() => {
     if (!pending || !onlyHandCard || usingCard || !mutationsEnabled || authoritativeConnected === false ||

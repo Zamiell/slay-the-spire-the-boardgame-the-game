@@ -879,21 +879,21 @@ check('a new local run presents Neow and deals one public face per seat', () => 
 })
 await page.getByRole('button', { name: 'Reveal Card Reward' }).click()
 await page.locator('.reward-screen--card-choice').getByRole('heading', { name: 'Choose a Card' }).waitFor()
-await page.locator('.neow-action--offer .card').first().waitFor()
+await page.locator('.choice-overlay-host .reward-screen__cards .card').first().waitFor()
 const neowRewardChoiceCount = await page.evaluate(() =>
   Object.values(window.__STS_DEBUG__.getRun().neow.players)[0].redReward.choices.length)
-const neowRewardCards = await page.locator('.neow-action--offer .card').evaluateAll((cards) => cards.map((card) => {
+const neowRewardCards = await page.locator('.choice-overlay-host .reward-screen__cards .card').evaluateAll((cards) => cards.map((card) => {
   const box = card.getBoundingClientRect()
   return { top: box.top, bottom: box.bottom, visible: box.top >= 0 && box.bottom <= innerHeight }
 }))
-const baseNeowRewardTitle = await page.locator('.neow-action--offer .card').first().getAttribute('data-card-name')
+const baseNeowRewardTitle = await page.locator('.choice-overlay-host .reward-screen__cards .card').first().getAttribute('data-card-name')
 await page.evaluate(() => {
   const run = structuredClone(window.__STS_DEBUG__.getRun())
   Object.values(run.neow.players)[0].redReward.upgraded = true
   window.__STS_DEBUG__.setRun(run)
 })
-await page.waitForFunction(() => document.querySelector('.neow-action--offer .card')?.getAttribute('data-card-name')?.endsWith('+'))
-const upgradedNeowRewardTitle = await page.locator('.neow-action--offer .card').first().getAttribute('data-card-name')
+await page.waitForFunction(() => document.querySelector('.choice-overlay-host .reward-screen__cards .card')?.getAttribute('data-card-name')?.endsWith('+'))
+const upgradedNeowRewardTitle = await page.locator('.choice-overlay-host .reward-screen__cards .card').first().getAttribute('data-card-name')
 const staleNeowRewardLabel = await page.getByText('Resolve face-up reward', { exact: true }).count()
 await shot('00b-neow-card-reward')
 check('Neow shows complete private reward cards on the desktop stage', () => {

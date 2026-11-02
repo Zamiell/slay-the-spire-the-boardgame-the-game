@@ -11,6 +11,9 @@
     "scripts/lib/rooms/campfire.mjs",
     "scripts/lib/rooms/merchant.mjs",
     "scripts/lib/rooms/rewards.mjs",
+    "scripts/lib/rooms/setup.mjs",
+    "scripts/lib/rooms/events.mjs",
+    "scripts/lib/rooms/courier.mjs",
     "scripts/lib/rooms/errors.mjs"
   ]
 }

@@ -192,7 +192,8 @@ other seats' private hand effects and identify that limitation. Unknown Scry
 eligibility is not reported as an empty set of legal choices. Transform availability
 is supplied explicitly without exposing reward piles. The matching server update
 is required and documented; an older server produces an explicit update message.
-The existing noncombat compatibility adapter is outside this combat-only migration.
+The noncombat compatibility adapter was deferred from this combat-only migration;
+the follow-up below removes it.
 
 **Evidence:** Both compiler projects, negative type fixtures, public-view/privacy
 contracts, synchronous and delayed card coordination, room/server regressions,
@@ -426,3 +427,38 @@ All ten implementation items are complete within their stated boundaries.
 The final partial-view client requires the matching room-server update, as
 documented in `docs/online-play.md`. No private-state fallback is retained for
 older servers. The legacy browser umbrella was not run.
+
+## Follow-up refactorings
+
+- [x] **Partial noncombat presentation.** Removed `playerForUi` and its invented
+  private piles. Shared noncombat screens use narrow player contracts and explicit
+  public counts; local players are projected at the shell boundary. Unknown owner
+  cards produce waiting states rather than automatic empty-deck decisions.
+  Prepared Event encounters have their own partial protocol type and cannot enter
+  private Scry simulation. Tiny House previews use the shared Egg calculation
+  without simulating acquisition against a fabricated player. Private Merchant
+  removal pledges remain fundable without disclosing the chosen card or UID.
+- [x] **More checked server families.** Setup/Neow, Event decisions/payments, and
+  Courier actions now live in checked modules alongside campfire, merchant, and
+  rewards. Canonical client action types cover these families. The coordinator
+  retains authentication, the outer transaction, rollback, and final settlement;
+  callbacks keep family modules independent of that coordinator. This remains
+  incremental checking, not a claim that every combat handler is typed.
+- [x] **Scoped combat turn drafts.** Dedicated start/end-turn controllers own
+  initialization, authoritative restoration, peer updates, and invalidation before
+  paint. Pure transition checks cover stale callbacks, Scry replacement, peer
+  Exhaust choices, empty discard restoration, and local hotseat continuity.
+  Online seat changes cannot inherit private choices; local party choices survive
+  taking another seat. Request-delivery locks remain separate from editable drafts.
+
+**Follow-up verification:** The full light gate passes **93/93**, both compiler
+projects and the production build pass, and the final noncombat browser suite
+passes **24/24**. Room authority/protocol/server checks pass **488/488**, **9/9**,
+and **55/55**; Courier browser coverage passes **26/26**. Event panels/reconnect,
+start-turn order/party/resync, and local/online retention checks pass.
+The complete recorded sweep again covers **44 surfaces / 88 screenshots**.
+Screenshots and sampled video transitions were reviewed for both supported screen
+classes, including the private Merchant pledge overlay's arrival and dismissal.
+Its regression checks enforce viewport/header bounds and a centered heading.
+Older Courier/disclosure fixtures were updated to exercise the current UI rather
+than removed controls. No browser umbrella or new dependency was needed.

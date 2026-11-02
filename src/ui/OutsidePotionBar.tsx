@@ -9,7 +9,7 @@ import { PotionIcon, PotionTooltipAnchor } from './PotionIcon.tsx'
 import { PotionSlots } from './PotionSlots.tsx'
 
 type Props = {
-  players: Player[]
+  players: readonly Pick<Player, 'id' | 'name' | 'dead' | 'hp' | 'maxHp' | 'potions' | 'relics'>[]
   viewerId: string
   ascension: number
   ruleset: RuleSet

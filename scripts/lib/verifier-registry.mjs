@@ -92,6 +92,15 @@ export const focusedEngineOwners = ownerMap([
 ])
 
 export const focusedUiOwners = ownerMap([
+  ['src/ui/noncombat-player.ts', [
+    'verify-noncombat-actions-browser.mjs', 'verify-event-repeat-browser.mjs',
+    'verify-event-panels-browser.mjs', 'verify-noncombat-browser.mjs',
+  ]],
+  ...['start-turn-draft.ts', 'end-turn-draft.ts', 'useTurnDrafts.ts'].map(file => [`src/ui/combat-screen/${file}`, [
+    'verify-combat-workflows.mjs', 'verify-start-turn-party-browser.mjs',
+    'verify-start-turn-resync-browser.mjs', 'verify-start-turn-order-browser.mjs',
+    'verify-retain-selection-browser.mjs',
+  ]]),
   ...['src/protocol/combat-query.ts', 'src/ui/combat-screen/online-view.ts',
     'src/ui/combat-screen/useCombatQueries.ts'].map(file => [file, [
     'verify-combat-view.mjs', 'verify-card-play.mjs', 'verify-card-damage-preview.mjs', 'verify-room-server.mjs',

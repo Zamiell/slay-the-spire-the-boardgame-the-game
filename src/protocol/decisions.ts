@@ -1,6 +1,7 @@
 import type { CampfireDecision, PotionRewardDecision, RewardSource } from '../game/run.ts'
 import type { MerchantPurchase, TreasureDecision } from '../game/noncombat.ts'
 import type { NeowDecision } from '../game/neow.ts'
+import type { EventDecision } from '../game/event-room.ts'
 
 export type CampfireAction = { kind: 'campfire'; choices: Record<string, CampfireDecision> }
 export type CardRewardAction = { kind: 'cardReward'; choice: number | null | 'reveal'; sources?: RewardSource[] }
@@ -43,6 +44,14 @@ export type AcquisitionAction =
   | { kind: 'resolvePendingRelic'; pendingRelicId: number; cardUids: string[]; rewardIndices: number[] }
   | { kind: 'resolveGuardianSocket'; cardUid: string; gemId: string | null }
 export type SetupAction = { kind: 'setupStep'; cardUids: string[] }
+export type EventAction =
+  | { kind: 'event'; playerId?: string; decision: EventDecision }
+  | { kind: 'eventSkip'; playerId?: string }
+  | { kind: 'eventCancel' }
+export type CourierAction =
+  | { kind: 'courierReveal'; itemKind: 'relic' | 'potion' }
+  | { kind: 'courierResolve'; playerId?: string; decision: 'buy' | 'discard'; payments?: Record<string, number>; discardPotionId?: string }
 
 /** Current client contracts. The server still validates untrusted and legacy wire inputs. */
-export type RoomDecisionAction = NoncombatAction | RelicRewardAction | MerchantAction | NeowAction | AcquisitionAction | SetupAction
+export type RoomDecisionAction = NoncombatAction | RelicRewardAction | MerchantAction | NeowAction | AcquisitionAction | SetupAction |
+  EventAction | CourierAction

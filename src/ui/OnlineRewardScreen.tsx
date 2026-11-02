@@ -90,8 +90,13 @@ export function OnlineRewardScreen({ run, viewerId, waitingForTeammate = false, 
     onChoose={(relicId) => dispatchLoot([{ kind: 'bossRelicReward', choice: 'gain', relicId }])}
     onSkip={() => dispatchLoot([{ kind: 'bossRelicReward', choice: 'skip' }])} />
 
-  if (activeTransform && offer.transformReward) return <CardPicker
-    cards={(player.deck ?? []).filter((card) => !cardIsCurse(card.defId))}
+  if (activeTransform && offer.transformReward && player.deck === null) return <RewardChoiceScreen
+    title="Transform a card" choiceKey="transform-waiting" style={backdrop} onBack={() => setActiveTransform(false)}>
+    <p role="status">Waiting for your deck…</p>
+    <button type="button" onClick={() => setActiveTransform(false)}>Back to loot</button>
+  </RewardChoiceScreen>
+  if (activeTransform && offer.transformReward && player.deck !== null) return <CardPicker
+    cards={player.deck.filter((card) => !cardIsCurse(card.defId))}
     verb="Transform"
     backLabel="Back to loot"
     selectedCardUids={transformUid ? [transformUid] : []}

@@ -10,7 +10,7 @@ import { independentPlayerTurn, onlineCombatView } from './combat-screen/online-
 import { ASCENSION_RULES, canGiveUpRun, hasPendingRelicAcquisition, victoryIsTerminal } from '../game/run.ts'
 import { relicDef } from '../game/relics.ts'
 import type { Room } from '../game/map.ts'
-import type { CharacterId, Player } from '../game/types.ts'
+import type { CharacterId } from '../game/types.ts'
 import { useRoomSession } from '../multiplayer/useRoomSession.ts'
 import type { PublicSeat, VisibleCombat, VisiblePlayer } from '../multiplayer/useRoomSession.ts'
 import { useVoiceChat } from '../multiplayer/useVoiceChat.ts'
@@ -120,18 +120,6 @@ type Props = {
   onLocal: () => void
   settings: GameSettings
   onSettings: (settings: GameSettings) => void
-}
-
-function playerForUi(player: VisiblePlayer): Player {
-  return {
-    ...player,
-    deck: player.deck ?? [],
-    draw: player.draw ?? [],
-    hand: player.hand ?? [],
-    chamber: player.chamber ?? [],
-    cardRewards: [],
-    rareRewards: [],
-  }
 }
 
 /**
@@ -293,7 +281,7 @@ function VoiceControls({ voice, seats, connected, volume, compact = false, showE
 
 export function OnlineGame({ onLocal, settings, onSettings }: Props) {
   const room = useRoomSession()
-  const { act: roomAct } = room
+  const { decide: roomAct } = room
   const revealCourierOnline = useCallback((kind: 'relic' | 'potion') => roomAct({ kind: 'courierReveal', itemKind: kind }), [roomAct])
   const prefersReducedMotion = usePrefersReducedMotion()
   const name = savedProfile()?.username ?? ''
@@ -736,7 +724,7 @@ export function OnlineGame({ onLocal, settings, onSettings }: Props) {
         inventory={<>
           {viewer && run.phase !== 'combat' && run.phase !== 'defeat' && run.phase !== 'neow' &&
           !victoryIsTerminal(run, snapshot.campaignProgress) && !pendingAcquisition ? (
-            <OutsidePotionBar players={run.players.map(playerForUi)} viewerId={snapshot.you.playerId}
+            <OutsidePotionBar players={run.players} viewerId={snapshot.you.playerId}
               ascension={run.ascension}
               ruleset={run.meta.ruleset ?? 'base'}
               disabled={giveUpStartPending || room.connection !== 'connected' || foreignInteractionLock}
@@ -892,7 +880,7 @@ export function OnlineGame({ onLocal, settings, onSettings }: Props) {
           autoAdvance={!compendiumOpen && !pauseOpen && !settingsOpen && !giveUpStartPending && !soloGiveUpOpen && !giveUpVote && !run.courier.offer && room.connection === 'connected' && snapshot.seats.find((seat) => seat.connected &&
             !combat.players.find((player) => player.id === seat.playerId)?.dead)?.playerId === snapshot.you.playerId}
           onAction={room.act}
-        /></div><CourierPanel players={combat.players} viewerId={snapshot.you.playerId} ascension={run.ascension} offer={run.courier.offer} pledge={snapshot.courierPledge} online onResolve={(decision, payments, discardPotionId) => room.act({ kind: 'courierResolve', playerId: run.courier.offer?.playerId, decision, payments, discardPotionId })} /></>
+        /></div><CourierPanel players={combat.players} viewerId={snapshot.you.playerId} ascension={run.ascension} offer={run.courier.offer} pledge={snapshot.courierPledge} online onResolve={(decision, payments, discardPotionId) => room.decide({ kind: 'courierResolve', playerId: run.courier.offer?.playerId, decision, payments, discardPotionId })} /></>
       ) : null}
       {run.phase === 'map' ? <><MapScreen map={run.map} choices={pendingAcquisition ? [] : choices(run.map)}
         blocked={pendingAcquisition} bossDefId={run.actBossDefId}
@@ -914,7 +902,7 @@ export function OnlineGame({ onLocal, settings, onSettings }: Props) {
       </section> : null}
       {snapshot.pendingRelic && viewer?.deck ? <RelicResolvePanel key={`${snapshot.you.playerId}:${snapshot.pendingRelic.id}`}
         delivery={{ snapshot, refresh: room.refreshEpoch, onResync: room.resync }}
-        pending={snapshot.pendingRelic} player={playerForUi(viewer)}
+        pending={snapshot.pendingRelic} player={viewer}
         potion={run.rewards.find((offer) => offer.playerId === snapshot.you.playerId)?.potion}
         ascension={run.ascension}
         onPotion={(decision) => room.decide(potionRewardAction(decision))}
@@ -972,7 +960,7 @@ export function OnlineGame({ onLocal, settings, onSettings }: Props) {
       {run.phase === 'setup' && run.setup && !pendingAcquisition ? <QuickSetupScreen
         delivery={{ snapshot, refresh: room.refreshEpoch, onResync: room.resync }}
         setup={run.setup}
-        players={run.players.map(playerForUi)}
+        players={run.players}
         currentStep={currentQuickSetupStep(run.setup)}
         transformAvailable={snapshot.quickSetupTransformAvailable}
         enabled={room.connection === 'connected' && run.setup.playerIds[run.setup.playerIndex] === snapshot.you.playerId}
@@ -1017,7 +1005,7 @@ export function OnlineGame({ onLocal, settings, onSettings }: Props) {
         <RoomScreen
           selectionDialogsActive={!compendiumOpen && !pauseOpen && !settingsOpen && !soloGiveUpOpen}
           room={run.roomState}
-          players={run.players.map(playerForUi)}
+          players={run.players}
           viewerId={snapshot.you.playerId}
           ascension={run.ascension}
           onPurchase={(purchase) => room.decide({ kind: 'merchantPurchase', purchase })}
@@ -1025,13 +1013,13 @@ export function OnlineGame({ onLocal, settings, onSettings }: Props) {
           onResumeMerchant={() => room.decide({ kind: 'merchantResume' })}
           onFinishMerchant={() => room.decide({ kind: 'merchantFinish' })}
           onRelic={(playerId, decision) => room.decide({ kind: 'relicReward', playerId, decision })}
-          onEvent={(playerId, decision) => room.act({ kind: 'event', playerId, decision })}
+          onEvent={(playerId, decision) => room.decide({ kind: 'event', playerId, decision })}
           onPreparedHermitSetup={(cardUid, enemyUid) => room.act({ kind: 'resolveHermitSetupLoad', cardUid, enemyUid })}
           onPreparedStartTurnScryOrder={(order) => room.act({ kind: 'orderStartTurnScries', order })}
           onPreparedStartTurnScry={(sourceId, discardUids) => room.act({ kind: 'resolveStartTurnScry', sourceId, discardUids })}
           eventCanSkip={snapshot.eventCanSkip}
           unavailableEventOptionIds={snapshot.unavailableEventOptionIds}
-          onSkipEvent={(playerId) => room.act({ kind: 'eventSkip', playerId })}
+          onSkipEvent={(playerId) => room.decide({ kind: 'eventSkip', playerId })}
           sapphireAvailable={snapshot.campaignProgress.actIV >= ACT_IV_UNLOCK_BOXES && !run.campaign.keys.sapphire}
           merchantPledges={snapshot.merchantPledges}
           merchantReady={snapshot.merchantReady}
@@ -1040,7 +1028,7 @@ export function OnlineGame({ onLocal, settings, onSettings }: Props) {
           eventMap={run.map}
           eventBossDefId={run.actBossDefId}
           eventPledge={snapshot.eventPledge}
-          onCancelEventPayment={() => room.act({ kind: 'eventCancel' })}
+          onCancelEventPayment={() => room.decide({ kind: 'eventCancel' })}
           onArmCardGain={morph.armGain}
         />
       ) : null}

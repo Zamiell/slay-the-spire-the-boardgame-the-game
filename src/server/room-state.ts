@@ -4,7 +4,7 @@ import type { MerchantPurchase } from '../game/noncombat.ts'
 import type { PublicSeat, RoomSnapshot } from '../protocol/room.ts'
 
 /** Private identity; never a public snapshot DTO. */
-export type RoomSeat = Omit<PublicSeat, 'connected'> & { token: string; connected?: boolean }
+export type RoomSeat = Omit<PublicSeat, 'connected'> & { token: string; connected?: boolean; pendingCatchUp?: boolean }
 
 export type MerchantPledge = Partial<Omit<MerchantPurchase, 'buyerId' | 'payments'>> & {
   kind?: 'removal'
@@ -32,8 +32,11 @@ export type RoomState = {
   campfireChoices?: Record<string, CampfireDecision>
   rewardChoices?: Record<string, number | null>
   rewardConfirmed?: string[]
+  courierPledge?: RoomSnapshot['courierPledge']
+  eventPledge?: RoomSnapshot['eventPledge']
 }
 
 export type ActiveRoom = RoomState & { run: RunState }
 export type RoomStore = { rooms: Map<string, RoomState>; file?: string }
 export type RoomSettlement = (room: RoomState) => void
+export type RoomProjection = (room: RoomState, seatToken: string) => RoomSnapshot

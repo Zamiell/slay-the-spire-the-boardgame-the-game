@@ -50,7 +50,8 @@ export function redactRun(run, viewerId, room) {
               .some((player) => player.id === seat.playerId && !player.dead))?.playerId ?? null
           : undefined,
         preparedCombat: run.roomState.preparedCombat
-          ? { players: run.roomState.preparedCombat.players.map((player) => ({
+          ? { combatId: run.roomState.preparedCombat.combatId,
+            players: run.roomState.preparedCombat.players.map((player) => ({
               id: player.id,
               hand: player.id === viewerId ? structuredClone(player.hand) : null,
             })),

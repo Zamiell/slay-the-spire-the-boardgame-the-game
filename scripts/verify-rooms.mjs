@@ -13846,7 +13846,8 @@ check('Mysterious Sphere shows only the viewer opening hand before its party cho
   room.run.roomState.preparedCombat = prepared
   const preview = snapshotFor(room, a.token).run.roomState.preparedCombat
   assertEqual(preview.players.find((player) => player.id === a.playerId).hand[0].uid, 'sphere-opening-card')
-  assertDeepEqual(Object.keys(preview).sort(), ['enemies', 'players'])
+  assertDeepEqual(Object.keys(preview).sort(), ['combatId', 'enemies', 'players'])
+  assertEqual(preview.combatId, prepared.combatId)
   assertDeepEqual(preview.enemies.map(({ defId, row }) => ({ defId, row })),
     prepared.enemies.map(({ defId, row }) => ({ defId, row })))
   assert(!('actionIndex' in preview.enemies[0]), 'the prepared enemy future action leaked')

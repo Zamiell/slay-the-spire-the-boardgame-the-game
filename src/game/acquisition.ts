@@ -2,7 +2,7 @@ import { CARDS, cardIsCurse } from './cards.ts'
 import { createRelicInstance, POTION_DECK, POTIONS, RELIC_DECK, RELICS, relicDef } from './relics.ts'
 import { shuffle } from './rng.ts'
 import type { RngState } from './rng.ts'
-import type { Player } from './types.ts'
+import type { CardInstance, Player } from './types.ts'
 import { BASE_CHARACTER_IDS, DOWNFALL_CHARACTER_IDS } from './types.ts'
 import type { CharacterId } from './types.ts'
 import { CHARACTER_UNLOCKS, createCampaignProgress } from './campaign.ts'
@@ -128,13 +128,23 @@ export function acquisitionCardType(defId: string) {
   return guardian ? resolveGuardianCardType(guardian.type) : def?.type
 }
 
-function eggUpgrade(player: Player, defId: string, alreadyUpgraded: boolean): { player: Player; upgraded: boolean } {
-  if (alreadyUpgraded) return { player, upgraded: true }
+function cardGainEgg(player: Pick<Player, 'relics'>, defId: string) {
   const type = acquisitionCardType(defId)
   const eggId = type === 'attack' ? 'molten_egg' : type === 'skill' ? 'toxic_egg' : undefined
   const egg = eggId ? player.relics.find((relic) => relic.defId === eggId) : undefined
   const uses = egg ? egg.uses ?? relicDef(egg.defId).uses ?? 0 : 0
-  if (!egg || uses < 1) return { player, upgraded: false }
+  return egg && uses >= 1 ? { egg, uses } : undefined
+}
+
+export function previewCardGain(player: Pick<Player, 'relics'>, defId: string, uid: string): CardInstance {
+  return { uid, defId, upgraded: Boolean(cardGainEgg(player, defId)) }
+}
+
+function eggUpgrade(player: Player, defId: string, alreadyUpgraded: boolean): { player: Player; upgraded: boolean } {
+  if (alreadyUpgraded) return { player, upgraded: true }
+  const upgrade = cardGainEgg(player, defId)
+  if (!upgrade) return { player, upgraded: false }
+  const { egg, uses } = upgrade
   return {
     player: {
       ...player,

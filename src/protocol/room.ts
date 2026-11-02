@@ -56,6 +56,15 @@ export type VisiblePlayer = Pick<Player,
   transformAvailable?: boolean
 }
 
+export type VisiblePreparedCombat = Pick<CombatState, 'combatId' | 'pendingHermitSetupLoads'> & {
+  players: { id: string; hand: CardInstance[] | null }[]
+  enemies: Pick<CombatState['enemies'][number], 'uid' | 'defId' | 'row' | 'isBoss' | 'ascension' | 'hp' | 'maxHp' | 'dead'>[]
+}
+
+export type VisibleEventRoom = Omit<EventRoomState, 'preparedCombat'> & {
+  preparedCombat?: VisiblePreparedCombat
+}
+
 export type VisibleCombat = {
   combatId: string
   initialEnemyCount?: number
@@ -171,7 +180,7 @@ export type VisibleRun = {
   players: VisiblePlayer[]
   combat: VisibleCombat | null
   rewards: CardRewardOffer[]
-  roomState: MerchantState | RelicRewardState | EventRoomState | null
+  roomState: MerchantState | RelicRewardState | VisibleEventRoom | null
   courier: { usedBy: string[]; offer: CourierOffer | null }
   campaign: {
     runId: string

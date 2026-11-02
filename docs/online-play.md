@@ -23,6 +23,14 @@ Other seats' private hand effects are excluded from incoming-damage estimates:
 Eligibility that depends on an unrevealed reaction remains unknown, rather than
 being reported as an empty set of legal choices; final decisions are server-validated.
 
+Noncombat screens also distinguish unknown cards from empty piles. They consume
+public player fields, nullable decks, and published counts/capabilities rather
+than fabricated `Player` objects. A missing owner deck cannot automatically skip a
+setup or campfire choice. Merchant contributors can fund an authorized removal
+without receiving the chosen card's identity. Prepared Event encounters publish
+only their encounter ID, public enemies, and owner-visible opening hands; local
+Scry simulation requires an actual local combat state.
+
 ## Production host
 
 Production multiplayer runs on `DESKTOP-09UIMTJ` instead of an expiring GitHub-hosted

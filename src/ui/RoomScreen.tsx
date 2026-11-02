@@ -10,6 +10,7 @@ import { enemyDef } from "../game/enemies.ts";
 import { enemyLabel, startTurnScryAbilities, startTurnScryPreview } from "../game/combat.ts";
 import { potionDef, relicDef } from "../game/relics.ts";
 import type { EventDecision, EventRoomState } from "../game/event-room.ts";
+import type { VisibleEventRoom } from "../protocol/room.ts";
 import type {
   MerchantPurchase,
   MerchantState,
@@ -23,7 +24,9 @@ import { Card } from "./Card.tsx";
 import { CardPicker, PickerConfirmButton } from "./CardPicker.tsx";
 import { HandSelectionScreen } from "./combat-screen/HandSelectionScreen.tsx";
 import { CHARACTER_IDS } from "../game/types.ts";
-import type { Player } from "../game/types.ts";
+import type { CardInstance } from "../game/types.ts";
+import { hasKnownDeck, type NoncombatActor, type NoncombatPlayerView } from "./noncombat-player.ts";
+import { RewardChoiceScreen } from "./RewardChoiceScreen.tsx";
 import type { EventEffect } from "../game/events.ts";
 import { rewardSourceLabel } from "./reward-source.ts";
 import { PotionTooltipAnchor } from "./PotionIcon.tsx";
@@ -40,8 +43,8 @@ import type { SpireMap } from "../game/map.ts";
 import type { ActionOutcome } from "../multiplayer/useRoomSession.ts";
 
 type Props = {
-  room: MerchantState | RelicRewardState | EventRoomState;
-  players: Player[];
+  room: MerchantState | RelicRewardState | EventRoomState | VisibleEventRoom;
+  players: readonly NoncombatPlayerView[];
   viewerId: string;
   selectionDialogsActive?: boolean;
   ascension: number;
@@ -89,12 +92,11 @@ type PropsPledgeMap = Record<
   }
 >;
 
-type EventCardSlot = (card: Player["deck"][number]) => boolean;
-type PublicPlayerCounts = { cardRewardCount?: number; tradableDeckCount?: number };
+type EventCardSlot = (card: CardInstance) => boolean;
 
-const hasSozu = (player: Player) => player.relics.some((relic) => relic.defId === "sozu");
+const hasSozu = (player: NoncombatPlayerView) => player.relics.some((relic) => relic.defId === "sozu");
 
-function eventCardSlots(effects: readonly EventEffect[], die: number | undefined, player: Player, players: readonly Player[]): EventCardSlot[] {
+function eventCardSlots(effects: readonly EventEffect[], die: number | undefined, player: NoncombatActor, players: readonly NoncombatPlayerView[]): EventCardSlot[] {
   const slots: EventCardSlot[] = [];
   for (const effect of effects) {
     if (effect.tag === "roll-d6" && die) {
@@ -106,8 +108,8 @@ function eventCardSlots(effects: readonly EventEffect[], die: number | undefined
       const def = CARDS[card.defId];
       if (card.defId === "ascenders_bane") return false;
       if (effect.tag === "upgrade-card" && (card.upgraded || !def?.upgrade)) return false;
-      if (effect.tag === "transform-card" && (cardIsCurse(card.defId) || (player.cardRewards.length === 0 && ((player as PublicPlayerCounts).cardRewardCount ?? 0) === 0))) return false;
-      if (effect.tag === "trade-card" && !players.some((candidate) => candidate.id !== player.id && !candidate.dead && (candidate.deck.some((entry) => entry.defId !== "ascenders_bane") || ((candidate as PublicPlayerCounts).tradableDeckCount ?? 0) > 0))) return false;
+      if (effect.tag === "transform-card" && (cardIsCurse(card.defId) || player.cardRewardCount === 0)) return false;
+      if (effect.tag === "trade-card" && !players.some((candidate) => candidate.id !== player.id && !candidate.dead && candidate.tradableDeckCount > 0)) return false;
       if (effect.filter === "starter Strike") return def?.rarity === "starter" && def.name === "Strike";
       if (effect.filter === "rare or uncommon") return ["rare", "uncommon"].includes(def?.rarity ?? "");
       return true;
@@ -124,7 +126,7 @@ function eventCardSlots(effects: readonly EventEffect[], die: number | undefined
   return slots.slice(0, eligible.size);
 }
 
-function canFillCardSlots(cards: readonly Player["deck"][number][], slots: readonly EventCardSlot[]): boolean {
+function canFillCardSlots(cards: readonly CardInstance[], slots: readonly EventCardSlot[]): boolean {
   const [slot, ...rest] = slots;
   return !slot || cards.some((card, index) => slot(card) && canFillCardSlots(cards.filter((_, at) => at !== index), rest));
 }
@@ -140,10 +142,16 @@ function Price({ value, sale = false }: { value: number | null; sale?: boolean }
 }
 
 export function RoomScreen(props: Props) {
+  const player = props.players.find(candidate => candidate.id === props.viewerId);
+  if (!player) return <section className="room-screen" role="status">Waiting for your seat…</section>;
+  if ((props.room.kind === "merchant" || props.room.kind === "event") && !hasKnownDeck(player))
+    return <section className="room-screen" role="status">Waiting for your deck…</section>;
   if (props.room.kind === "merchant")
     return <MerchantScreen {...props} room={props.room} />;
-  if (props.room.kind === "event")
-    return <EventScreen {...props} room={props.room} />;
+  if (props.room.kind === "event") {
+    if (!hasKnownDeck(player)) return <section className="room-screen" role="status">Waiting for your deck…</section>;
+    return <EventScreen {...props} room={props.room} player={player} />;
+  }
   return <RelicRoomScreen {...props} room={props.room} />;
 }
 
@@ -197,7 +205,7 @@ function MerchantScreen({
   const removalPending = merchantPledges[removalKey];
   const removalUid = removalPending?.cardUid ?? removeUid;
   const removalRemaining = Math.max(0, removalCost - Object.values(removalPending?.payments ?? {}).reduce((sum, amount) => sum + amount, 0));
-  const unpledgedGold = (candidate: Player, key: string) => Math.max(0, candidate.gold - Object.entries(merchantPledges).reduce((sum, [pendingKey, pending]) => pendingKey === key ? sum : sum + (pending.payments[candidate.id] ?? 0), 0));
+  const unpledgedGold = (candidate: NoncombatPlayerView, key: string) => Math.max(0, candidate.gold - Object.entries(merchantPledges).reduce((sum, [pendingKey, pending]) => pendingKey === key ? sum : sum + (pending.payments[candidate.id] ?? 0), 0));
   const contribution = (remaining: number, key: string) => onWithdraw
     ? Math.min(unpledgedGold(player, key), remaining)
     : players.reduce((sum, candidate) => sum + candidate.gold, 0) >= remaining ? remaining : 0;
@@ -533,12 +541,27 @@ function MerchantScreen({
             }}>Confirm {replacementPotionId ? potionDef(replacementPotionId).name : "purchase"}</button>
         </section>
       </dialog>
-      {removalOpen ? createPortal(<div onKeyDown={event => {
+      {removalOpen ? createPortal(<div className={buyer.deck === null ? "sts-scope" : undefined}
+        style={buyer.deck === null ? { display: "contents" } : undefined} onKeyDown={event => {
         if (event.key === "Escape" && !event.defaultPrevented) {
           event.preventDefault();
           setRemovalOpen(false);
         }
-      }}><CardPicker verb="Remove" heading="Card Removal Service"
+      }}>{buyer.deck === null ? <RewardChoiceScreen title="Card Removal Service" choiceKey={removalKey}
+        description={`Pledge ${additional(removalRemaining, removalKey)} Gold toward ${buyer.name}'s card removal.`}
+        onBack={() => setRemovalOpen(false)}>
+        <p role="status">{buyer.name}'s deck is private.{removalPending ? " They have chosen a card to remove." : " Waiting for their choice."}</p>
+        <button type="button"
+          disabled={!removalPending || additional(removalRemaining, removalKey) <= 0 || removalUsed}
+          onClick={() => {
+            if (!removalPending) return;
+            // The room binds the card privately; contributors fund the existing pledge.
+            onRemove(buyer.id, removalUid, pay(additional(removalRemaining, removalKey), removalKey));
+            pointAtTarget("removal");
+            setRemovalOpen(false);
+          }}>Pledge {additional(removalRemaining, removalKey)} Gold</button>
+        <button type="button" onClick={() => setRemovalOpen(false)}>Cancel</button>
+      </RewardChoiceScreen> : <CardPicker verb="Remove" heading="Card Removal Service"
             description={removalPending ? `Pledge · ◉ ${additional(removalRemaining, removalKey)}` : `Remove selected card · ◉ ${removalCost}`}
             cards={buyer.deck.filter(card => card.defId !== "ascenders_bane")}
             selectedCardUids={removalUid ? [removalUid] : []} selectionLocked={Boolean(removalPending?.cardUid)}
@@ -556,7 +579,7 @@ function MerchantScreen({
               setRemovalOpen(false);
             }}
             confirmLabel={removalPending ? `Pledge · ◉ ${additional(removalRemaining, removalKey)}` : `Remove selected card · ◉ ${removalCost}`}
-          /></div>, document.body) : null}
+          />}</div>, buyer.deck === null ? merchantStage.current?.closest(".app-shell") ?? document.body : document.body) : null}
       {Object.entries(merchantPledges).some(
         ([, pending]) => player.id in pending.payments,
       ) ? (
@@ -775,7 +798,7 @@ function RelicRoomScreen({
 function EventScreen({
   room,
   players,
-  viewerId,
+  player,
   selectionDialogsActive = true,
   ascension,
   onEvent,
@@ -791,13 +814,11 @@ function EventScreen({
   unavailableEventOptionIds = [],
   onSkipEvent,
   onArmCardGain,
-}: Props & { room: Extract<Props["room"], { kind: "event" }> }) {
+}: Props & { room: Extract<Props["room"], { kind: "event" }>; player: NoncombatActor }) {
   // Touch layouts already include the rules in the button's visible text.
   const printsRulesInline = useHoverUnavailable();
   const relicDescription = (id: string, withCost = false) =>
     printsRulesInline ? undefined : relicOptionLabel(id, withCost);
-  const player =
-    players.find((candidate) => candidate.id === viewerId) ?? players[0]!;
   const leavingRef = useRef(false);
   const [leaving, setLeaving] = useState(false);
   const continueUnavailableEvent = async () => {
@@ -824,6 +845,8 @@ function EventScreen({
     : "";
   const eventDraftStage = `${player.id}/${room.card.instanceId}`;
   const itemDraftStage = `${eventDraftStage}/${JSON.stringify([itemOffers, pendingDecision?.rewardItemIds?.length ?? 0])}`;
+  const preparedCombat = room.preparedCombat;
+  const localPreparedCombat = preparedCombat && "rng" in preparedCombat ? preparedCombat : undefined;
   const eventDraft = useEventDraft({
     event: eventDraftStage,
     items: itemDraftStage,
@@ -831,7 +854,7 @@ function EventScreen({
     cardSources: (room.availableRewardSources?.card ?? []).join(","),
     rareSources: (room.availableRewardSources?.rare ?? []).join(","),
     trade: pendingTradeStage,
-    prepared: JSON.stringify([room.preparedCombat?.combatId, room.preparedCombat?.startTurnProgress?.choices,
+    prepared: JSON.stringify([preparedCombat?.combatId, localPreparedCombat?.startTurnProgress?.choices,
       room.preparedStartTurnScry?.id]),
   }, { rewards: rewardOffers?.length ?? 0, potions: itemOffers?.filter(offer => offer.kind === 'potion').length ?? 0 });
   const [cards, setCards] = eventDraft.field('cards');
@@ -930,8 +953,8 @@ function EventScreen({
   const trade = effects.some((effect) => effect.tag === "trade-card" || effect.tag === "trade-relic");
   const tradeCard = effects.some((effect) => effect.tag === "trade-card");
   const tradeRelic = effects.some((effect) => effect.tag === "trade-relic");
-  const canTradeWith = (candidate: Player) => candidate.id !== player.id && !candidate.dead &&
-    (!tradeCard || candidate.deck.some((card) => card.defId !== "ascenders_bane") || ((candidate as PublicPlayerCounts).tradableDeckCount ?? 0) > 0) &&
+  const canTradeWith = (candidate: NoncombatPlayerView) => candidate.id !== player.id && !candidate.dead &&
+    (!tradeCard || candidate.tradableDeckCount > 0) &&
     (!tradeRelic || candidate.relics.length > 0);
   const otherCharacter = effects.some((effect) => effect.source === "other-character");
   const needsTarget = effects.some(
@@ -1005,7 +1028,7 @@ function EventScreen({
   const firstPickerCard = player.deck.find((card) => card.uid === cards[0]);
   const cardPickerStep = ancientWritingSimplicity && cards.length < maximumCards
     ? cards.length === 0
-      ? { matches: (card: Player["deck"][number]) => cardPickerSteps.some((step) => step.matches(card)), verb: "Upgrade" as const }
+      ? { matches: (card: CardInstance) => cardPickerSteps.some((step) => step.matches(card)), verb: "Upgrade" as const }
       : cardPickerSteps.find((step) => !firstPickerCard || !step.matches(firstPickerCard))
     : cardPickerSteps[cards.length];
   const remainingPickerSteps = cardPickerSteps.slice(cards.length);
@@ -1311,7 +1334,7 @@ function EventScreen({
         </div>
       </section>
     );
-  const openingHand = room.preparedCombat?.players.find((candidate) => candidate.id === player.id)?.hand ?? [];
+  const openingHand = preparedCombat?.players.find((candidate) => candidate.id === player.id)?.hand;
   const preparedEnemies = room.preparedCombat?.enemies ?? [];
   const encounterPreview = preparedEnemies.length > 0 ? <fieldset className="event-encounter-preview">
     <legend>Prepared encounter</legend>
@@ -1324,9 +1347,9 @@ function EventScreen({
     })}
   </fieldset> : null;
   const preparedSetup = room.preparedCombat?.pendingHermitSetupLoads?.[0];
-  const localPreparedScries = room.preparedCombat ? startTurnScryAbilities(room.preparedCombat) : [];
+  const localPreparedScries = localPreparedCombat ? startTurnScryAbilities(localPreparedCombat) : [];
   const preparedScries = room.preparedStartTurnScryAbilities ?? localPreparedScries;
-  const localPreparedScry = room.preparedCombat ? startTurnScryPreview(room.preparedCombat) : undefined;
+  const localPreparedScry = localPreparedCombat ? startTurnScryPreview(localPreparedCombat) : undefined;
   const preparedScry = room.preparedStartTurnScry ?? localPreparedScry;
   const preparedScryIds = preparedScryOrder.length === preparedScries.length &&
     preparedScryOrder.every((id) => preparedScries.some((ability) => ability.id === id))
@@ -1335,7 +1358,7 @@ function EventScreen({
     preparedScry?.cards?.some((card) => card.uid === uid));
   if (preparedSetup) {
     const owner = players.find((candidate) => candidate.id === preparedSetup.playerId);
-    const setupHand = preparedSetup.playerId === player.id ? openingHand : [];
+    const setupHand = preparedSetup.playerId === player.id ? openingHand : undefined;
     const targetedCurses = ["hermit_grudge", "hermit_malice", "hermit_horror"];
     const setupEnemies = room.preparedCombat?.enemies.filter(enemy => !enemy.dead) ?? [];
     return <section className="room-stage event-stage" style={eventArt} aria-labelledby="event-title">
@@ -1346,7 +1369,8 @@ function EventScreen({
             ? "Hermit start of combat — choose a card from your opening hand to Load into the Chamber."
             : `Waiting for ${owner?.name ?? "the Hermit"} to finish their private setup Load.`}</p></RoomBanner>
         {encounterPreview}
-        {setupHand.length > 0 ? <HandSelectionScreen action="Load" source="Hermit start of combat"
+        {preparedSetup.playerId === player.id && !setupHand ? <p role="status">Waiting for your opening hand…</p> : null}
+        {setupHand && setupHand.length > 0 ? <HandSelectionScreen action="Load" source="Hermit start of combat"
           active={selectionDialogsActive}
           cards={setupHand} selectedUids={[]} minimum={1} maximum={1} disabled={!onPreparedHermitSetup}
           viewLabel="View encounter"
@@ -1440,7 +1464,8 @@ function EventScreen({
           ))}
         </RoomBanner>
         {encounterPreview}
-        {openingHand.length > 0 ? <fieldset className="event-cards"><legend>Your opening hand · choose for the party</legend>{openingHand.map((card) => <Card key={card.uid} card={card} className="card--preview" playable={false} />)}</fieldset> : null}
+        {preparedCombat && !openingHand ? <p role="status">Your opening hand is not available yet.</p> : null}
+        {openingHand && openingHand.length > 0 ? <fieldset className="event-cards"><legend>Your opening hand · choose for the party</legend>{openingHand.map((card) => <Card key={card.uid} card={card} className="card--preview" playable={false} />)}</fieldset> : null}
         {resolverOpen ? <p className="event-choice-summary">
           {draftOptionIds.map((id) => room.card.options.find((choice) => choice.id === id))
             .filter((choice) => choice)

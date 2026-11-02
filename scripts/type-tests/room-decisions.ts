@@ -3,6 +3,10 @@ import type { RoomSeat } from '../../src/server/room-state.ts'
 import type { PublicSeat } from '../../src/protocol/room.ts'
 import type { CombatView } from '../../src/game/combat/view.ts'
 import { playCard, evaluateCombatQuery } from '../../src/game/combat.ts'
+import type { NoncombatPlayerView } from '../../src/ui/noncombat-player.ts'
+import { addCard } from '../../src/game/acquisition.ts'
+import type { VisiblePreparedCombat } from '../../src/protocol/room.ts'
+import { startTurnScryPreview } from '../../src/game/combat.ts'
 
 const decision = (action: RoomDecisionAction) => action
 decision({ kind: 'potionReward', choice: 'pass', playerId: 'p2' })
@@ -33,3 +37,18 @@ evaluateCombatQuery(combatView, 'p1', { kind: 'hud' })
 combatView.rng.seed
 // @ts-expect-error A private hand is unknown, not an empty array.
 combatView.players[0]!.hand.length
+
+declare const noncombatView: NoncombatPlayerView
+// @ts-expect-error A hidden noncombat deck is not an empty deck.
+noncombatView.deck.length
+// @ts-expect-error Presentation does not reveal the ordered reward supply.
+noncombatView.cardRewards.length
+// @ts-expect-error A presentation seat cannot acquire a card through the engine.
+addCard(noncombatView, 'strike_ironclad', 'c1')
+declare const preparedView: VisiblePreparedCombat
+// @ts-expect-error A projected encounter cannot reveal the next private draw.
+startTurnScryPreview(preparedView)
+// @ts-expect-error Event answers must include their option ids.
+decision({ kind: 'event', decision: { cardUids: ['c1'] } })
+// @ts-expect-error Courier purchases cannot choose a card reward supply.
+decision({ kind: 'courierReveal', itemKind: 'card' })

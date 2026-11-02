@@ -1,3 +1,4 @@
+import { useStartTurnDraft, useEndTurnDraft } from './combat-screen/useTurnDrafts.ts'
 import { useCombatStage } from './combat-screen/useCombatStage.ts'
 import { useCombatPresentation } from './combat-screen/useCombatPresentation.ts'
 import { SmokeTrail, warmSmokeTrails } from './combat-screen/SmokeTrail.tsx'
@@ -171,7 +172,6 @@ import type {
   CardBlockPreview,
   CombatPresentationEvent,
   CombatState,
-  DiscardOrders,
   EndTurnAbility,
   PlayerChoiceAnswer,
   StartTurnChoice,
@@ -552,23 +552,9 @@ function CombatScreenReady({
   const [editingStagedStartTurnTrigger, setEditingStagedStartTurnTrigger] = useState<number | null>(null)
   const [usingDieRelic, setUsingDieRelic] = useState(false)
   const [previewingCard, setUsingCard] = useState(false)
-  const [discardTops, setDiscardTops] = useState<Record<string, string>>({})
-  const [retainedCards, setRetainedCards] = useState<Record<string, string[]>>({})
-  const [retainChoiceOpen, setRetainChoiceOpen] = useState<boolean | 'auto'>('auto')
-  const [discardChoiceOpen, setDiscardChoiceOpen] = useState<boolean | 'auto'>('auto')
-  const [discardOrders, setDiscardOrders] = useState<DiscardOrders>({})
   const [endTurnEffectDrag, setEndTurnEffectDrag] = useState<EndTurnEffectDrag | null>(null)
-  const [armedEndTurnAbilityId, setArmedEndTurnAbilityId] = useState<string | null>(null)
-  /** Slayer Pack: Companion's owner also Exhausts it with the next chosen enemy. */
-  const [endTurnSelfExhaust, setEndTurnSelfExhaust] = useState(false)
   const [slimeCardZoom, setSlimeCardZoom] = useState<SlimeCardZoom | null>(null)
   const closeSlimeCardZoom = useRef(() => setSlimeCardZoom(null))
-  const [startTurnOrder, setStartTurnOrder] = useState<string[]>([])
-  const [startTurnScryOrder, setStartTurnScryOrder] = useState<string[]>([])
-  const [startTurnEnemyTargets, setStartTurnEnemyTargets] = useState<Record<string, string | undefined>>({})
-  const [startTurnPlayerTargets, setStartTurnPlayerTargets] = useState<Record<string, string | undefined>>({})
-  const [startTurnExhaustUids, setStartTurnExhaustUids] = useState<Record<string, string | undefined>>({})
-  const [startTurnModeShifts, setStartTurnModeShifts] = useState<Record<string, boolean | undefined>>({})
   const [resolvingStartTurnMode, setResolvingStartTurnMode] = useState(false)
   const [planningStartTurn, setPlanningStartTurn] = useState(false)
   const startPlanRequest = useRef<object | null>(null)
@@ -580,12 +566,6 @@ function CombatScreenReady({
     abilityId: string
     refreshAttempt: number
   } | null>(null)
-  const [startTurnTargets, setStartTurnTargets] = useState<Record<string, (string | null | undefined)[]>>({})
-  const [startTurnEvokeSlots, setStartTurnEvokeSlots] = useState<Record<string, number[]>>({})
-  const [startTurnEvokeTargets, setStartTurnEvokeTargets] = useState<
-    Record<string, (string | null | undefined)[]>
-  >({})
-  const [startTurnScryPicked, setStartTurnScryPicked] = useState<string[]>([])
   const [resolvingStartTurnScry, setResolvingStartTurnScry] = useState(false)
   // A sent start-of-turn plan: the hand stops offering re-picks until the server answers.
   const [sendingStartTurn, setSendingStartTurn] = useState(false)
@@ -1241,6 +1221,25 @@ function CombatScreenReady({
   const baseStartTurnScries = state.phase === 'start' && !activeStartTurnScry && !pendingTrigger
     ? (partyStartTurnScryAbilities ?? startTurnScryAbilities(localCombat(state)))
     : []
+  const baseStartAbilities = useMemo(() => state.phase === 'start' && !pendingTrigger
+    ? (partyStartTurnAbilities ?? (hasCombatSimulation(state) ? startTurnAbilities(state) : []))
+    : [], [partyStartTurnAbilities, pendingTrigger?.id, state])
+  const turnDraftScope = JSON.stringify([state.combatId, state.turn, state.phase, authoritativeRestoration])
+  const startDraft = useStartTurnDraft({
+    scope: turnDraftScope, viewerId, online: Boolean(onAction),
+    abilities: baseStartAbilities, savedTargets: savedStartTurnEnemyTargets, savedChoices: savedStartTurnChoices,
+    scryIds: baseStartTurnScries.map(ability => ability.id), scryKey: startTurnScryKey,
+  })
+  const [startTurnOrder, setStartTurnOrder] = startDraft.field('order')
+  const [startTurnScryOrder, setStartTurnScryOrder] = startDraft.field('scryOrder')
+  const [startTurnEnemyTargets, setStartTurnEnemyTargets] = startDraft.field('enemyTargets')
+  const [startTurnPlayerTargets, setStartTurnPlayerTargets] = startDraft.field('playerTargets')
+  const [startTurnExhaustUids, setStartTurnExhaustUids] = startDraft.field('exhaustUids')
+  const [startTurnModeShifts, setStartTurnModeShifts] = startDraft.field('modeShifts')
+  const [startTurnTargets, setStartTurnTargets] = startDraft.field('targets')
+  const [startTurnEvokeSlots, setStartTurnEvokeSlots] = startDraft.field('evokeSlots')
+  const [startTurnEvokeTargets, setStartTurnEvokeTargets] = startDraft.field('evokeTargets')
+  const [startTurnScryPicked, setStartTurnScryPicked] = startDraft.field('scryPicked')
   const startTurnScryIds = startTurnScryOrder.length === baseStartTurnScries.length &&
     startTurnScryOrder.every((id) => baseStartTurnScries.some((ability) => ability.id === id))
     ? startTurnScryOrder
@@ -1261,12 +1260,22 @@ function CombatScreenReady({
   const facingEnemies = state.enemies.filter((enemy) =>
     enemyAbilities(enemyDef(enemy.defId, enemy.ascension)).some((ability) => ability.kind === 'facing'))
   const liveFacingEnemies = facingEnemies.filter((enemy) => !enemy.dead)
-  const savedDiscardKey = savedDiscardOrder?.join('\0')
   const cardPreviewKey = cardPreview
     ? `${cardPreview.cardUid}\0${cardPreview.copy === true}\0${cardPreview.chamber === true}\0${cardPreview.kind}\0${cardPreview.spendMiracle}\0${cardPreview.enemyUid ?? ''}\0${cardPreview.slimeUids?.join('\0') ?? ''}\0${cardPreview.slimeEnemyUids?.join('\0') ?? ''}\0${cardPreview.cards.map((card) => card.uid).join('\0')}`
     : ''
   const endTurnEffect = onAction ? partyEndTurnAbilities?.[0] : endTurnResolutionAbility(localCombat(state))
   const endTurnResolving = endTurnEffect !== undefined
+  const endDraft = useEndTurnDraft({
+    scope: turnDraftScope, viewer, online: Boolean(onAction), phase: state.phase,
+    savedOrder: savedDiscardOrder, effectId: endTurnEffect?.id,
+  })
+  const [discardTops, setDiscardTops] = endDraft.field('discardTops')
+  const [retainedCards, setRetainedCards] = endDraft.field('retainedCards')
+  const [retainChoiceOpen, setRetainChoiceOpen] = endDraft.field('retainChoiceOpen')
+  const [discardChoiceOpen, setDiscardChoiceOpen] = endDraft.field('discardChoiceOpen')
+  const [discardOrders, setDiscardOrders] = endDraft.field('discardOrders')
+  const [armedEndTurnAbilityId, setArmedEndTurnAbilityId] = endDraft.field('armedAbilityId')
+  const [endTurnSelfExhaust, setEndTurnSelfExhaust] = endDraft.field('selfExhaust')
   const powerController = usePowerController({
     state, viewerId, onAction, onChange, powerPreview, authoritativeVersion, authoritativeRefresh,
     reconciliation, triggerId: pendingTrigger?.id, endTurnResolving,
@@ -1279,20 +1288,6 @@ function CombatScreenReady({
     chooseContext: choosePowerContext, confirmScry: confirmPowerScry,
     chooseOrb: chooseCreativeAiOrb,
   } = powerController
-  const baseStartAbilities = useMemo(() => state.phase === 'start' && !pendingTrigger
-    ? (partyStartTurnAbilities ?? (hasCombatSimulation(state) ? startTurnAbilities(state) : []))
-    : [], [partyStartTurnAbilities, pendingTrigger?.id, state])
-  const startAbilityKey = baseStartAbilities.map((ability) =>
-    `${ability.id}:${ability.overflowShivs}:${ability.targets?.map((target) => target.uid).join(',') ?? ''}:` +
-    `${ability.players?.map((player) => player.id).join(',') ?? ''}:` +
-    `${ability.exhaustCards?.map((card) => card.uid).join(',') ?? ''}:` +
-    `${ability.evokeChoice?.options.map((option) => `${option.slot}:${option.orb}`).join(',') ?? ''}:` +
-    `${!onAction || ability.playerId === viewerId ? savedStartTurnEnemyTargets?.[ability.id] ?? '' : ''}`).join('\0') +
-    `\0${savedStartTurnChoices?.filter((choice) => !onAction || baseStartAbilities.some((ability) =>
-      ability.id === choice.id && ability.playerId === viewerId)).map((choice) =>
-      `${choice.id}:${choice.enemyUid ?? ''}:${choice.targetPlayerId ?? ''}:${choice.guardianModeShift ?? ''}:` +
-      `${choice.exhaustUids?.join(',') ?? ''}:${choice.shivEnemyUids.join(',')}:` +
-      `${choice.evokeSlots?.join(',') ?? ''}:${choice.evokeEnemyUids?.join(',') ?? ''}`).join('\0') ?? ''}`
 
   const { hits } = useStruck(
     state,
@@ -1647,11 +1642,6 @@ function CombatScreenReady({
     cancelPotionChoice()
   }, [endTurnResolving])
 
-  useEffect(() => {
-    setArmedEndTurnAbilityId(null)
-    setEndTurnSelfExhaust(false)
-  }, [endTurnEffect?.id])
-
   // A private reveal is room state, not transient component state: restore it
   // after a reconnect so the player must finish the card they already saw.
   useEffect(() => {
@@ -1766,7 +1756,6 @@ function CombatScreenReady({
   }, [itemModalOpen, owesChoice])
 
   useEffect(() => {
-    setStartTurnScryPicked([])
     setResolvingStartTurnScry(false)
   }, [startTurnScryKey])
 
@@ -1922,104 +1911,6 @@ function CombatScreenReady({
       }
     })
   }, [state, viewer, drawCount, usingCard])
-
-  useEffect(() => {
-    if (state.phase !== 'discard') {
-      setDiscardTops({})
-      setRetainedCards({})
-      setRetainChoiceOpen('auto')
-      setDiscardChoiceOpen('auto')
-      setDiscardOrders({})
-    }
-    if (state.phase !== 'player') setArmedEndTurnAbilityId(null)
-    if (state.phase !== 'start') {
-      setStartTurnOrder([])
-      setStartTurnEnemyTargets({})
-      setStartTurnPlayerTargets({})
-      setStartTurnExhaustUids({})
-      setStartTurnModeShifts({})
-      setStartTurnTargets({})
-      setStartTurnEvokeSlots({})
-      setStartTurnEvokeTargets({})
-    }
-  }, [state.phase])
-  useEffect(() => {
-    setRetainChoiceOpen('auto')
-    setDiscardChoiceOpen('auto')
-  }, [viewerId, state.turn])
-
-  useEffect(() => {
-    if (state.phase !== 'start') return
-    const savedChoices = new Map((savedStartTurnChoices ?? []).map((choice) => [choice.id, choice]))
-    setStartTurnOrder(baseStartAbilities.map((ability) => ability.id))
-    setStartTurnEnemyTargets(Object.fromEntries(baseStartAbilities.map((ability) => [
-      ability.id,
-      savedStartTurnEnemyTargets?.[ability.id] ??
-        savedChoices.get(ability.id)?.enemyUid ??
-        (ability.targets?.length === 1 ? ability.targets[0]!.uid : undefined),
-    ])))
-    setStartTurnPlayerTargets(Object.fromEntries(baseStartAbilities.map((ability) => [
-      ability.id,
-      savedChoices.get(ability.id)?.targetPlayerId ??
-        (ability.players?.length === 1 ? ability.players[0]!.id : undefined),
-    ])))
-    setStartTurnExhaustUids(Object.fromEntries(baseStartAbilities.map((ability) => [
-      ability.id, savedChoices.get(ability.id)?.exhaustUids?.[0] ??
-        (ability.exhaustCards?.length === 1 ? ability.exhaustCards[0]!.uid : undefined),
-    ])))
-    setStartTurnModeShifts(Object.fromEntries(baseStartAbilities.map((ability) => [
-      ability.id, savedChoices.get(ability.id)?.guardianModeShift,
-    ])))
-    setStartTurnTargets(Object.fromEntries(baseStartAbilities.map((ability) => [
-      ability.id,
-      savedChoices.get(ability.id)?.shivEnemyUids ?? Array(ability.overflowShivs).fill(undefined),
-    ])))
-    setStartTurnEvokeSlots(Object.fromEntries(baseStartAbilities.map((ability) => [
-      ability.id, savedChoices.get(ability.id)?.evokeSlots ?? [],
-    ])))
-    setStartTurnEvokeTargets(Object.fromEntries(baseStartAbilities.map((ability) => [
-      ability.id, savedChoices.get(ability.id)?.evokeEnemyUids ?? [],
-    ])))
-  }, [startAbilityKey, state.phase])
-
-  // A teammate's staged picks change what this plan simulates (a Shiv or Evoke can
-  // kill an enemy a later ability needs), but they arrive without resetting the
-  // viewer's own unsent picks, so refresh only the teammates' drafts.
-  const teammateChoicesKey = onAction ? JSON.stringify(baseStartAbilities
-    .filter((ability) => ability.playerId !== viewerId).map((ability) => {
-      const choice = savedStartTurnChoices?.find((candidate) => candidate.id === ability.id)
-      return [ability.id, savedStartTurnEnemyTargets?.[ability.id], choice?.enemyUid, choice?.targetPlayerId,
-        choice?.guardianModeShift, choice?.shivEnemyUids, choice?.evokeSlots, choice?.evokeEnemyUids]
-    })) : ''
-  useEffect(() => {
-    if (state.phase !== 'start' || !onAction) return
-    const teammates = baseStartAbilities.filter((ability) => ability.playerId !== viewerId)
-    if (teammates.length === 0) return
-    const savedChoices = new Map((savedStartTurnChoices ?? []).map((choice) => [choice.id, choice]))
-    const refresh = <S extends Record<string, unknown>>(pick: (ability: (typeof teammates)[number]) => S[string]) =>
-      (current: S): S => ({ ...current, ...Object.fromEntries(teammates.map((ability) => [ability.id, pick(ability)])) })
-    setStartTurnEnemyTargets(refresh((ability) => savedStartTurnEnemyTargets?.[ability.id] ??
-      savedChoices.get(ability.id)?.enemyUid ?? (ability.targets?.length === 1 ? ability.targets[0]!.uid : undefined)))
-    setStartTurnPlayerTargets(refresh((ability) => savedChoices.get(ability.id)?.targetPlayerId ??
-      (ability.players?.length === 1 ? ability.players[0]!.id : undefined)))
-    setStartTurnModeShifts(refresh((ability) => savedChoices.get(ability.id)?.guardianModeShift))
-    setStartTurnTargets(refresh((ability) => savedChoices.get(ability.id)?.shivEnemyUids ??
-      Array(ability.overflowShivs).fill(undefined)))
-    setStartTurnEvokeSlots(refresh((ability) => savedChoices.get(ability.id)?.evokeSlots ?? []))
-    setStartTurnEvokeTargets(refresh((ability) => savedChoices.get(ability.id)?.evokeEnemyUids ?? []))
-  }, [teammateChoicesKey, state.phase])
-
-  useEffect(() => {
-    if (state.phase !== 'discard' || !savedDiscardOrder) return
-    setDiscardOrders({ [viewerId]: savedDiscardOrder })
-    const ordered = new Set(savedDiscardOrder)
-    setRetainedCards({
-      [viewerId]: viewer?.hand.filter((card) => !ordered.has(card.uid) && !card.endTurnProtected &&
-        !card.retainThisTurn && !cardHasRetain(viewer, card)).map((card) => card.uid) ?? [],
-    })
-    const top = savedDiscardOrder.at(-1)
-    if (top) setDiscardTops({ [viewerId]: top })
-  }, [savedDiscardKey, state.phase, viewerId])
 
   const endTurnRef = useRef<HTMLButtonElement | null>(null)
   useButtonShortcut(endTurnRef, ' ', state.phase === 'player')

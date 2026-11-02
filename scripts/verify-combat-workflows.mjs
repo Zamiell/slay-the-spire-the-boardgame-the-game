@@ -11,6 +11,8 @@ import { activateRelic, createCombat, powerAbilityKey } from '../src/game/combat
 import { createPlayer } from '../src/game/run.ts'
 import { createRng } from '../src/game/rng.ts'
 import { relicDef } from '../src/game/relics.ts'
+import { createStartTurnDraft, reconcileStartTurnDraft, updateStartTurnField } from '../src/ui/combat-screen/start-turn-draft.ts'
+import { createEndTurnDraft, reconcileEndTurnDraft, updateEndTurnField } from '../src/ui/combat-screen/end-turn-draft.ts'
 
 const idle = { kind: 'idle' }
 const board = { revision: 1 }
@@ -346,4 +348,70 @@ for (const draft of [restoredGem, relicCards, stage('purity_potion')]) {
   assert.equal(observe(uncertain, 6).resolution.committed, false,
     'draft scoping does not replace causal refresh reconciliation')
 }
-console.log('✓ combat workflows: complete Power/relic choices, private reveals, stale drafts, causal reconciliation and exact evidence')
+{
+  const abilities = ['me', 'peer'].map(playerId => ({
+    id: `${playerId}-ability`, playerId, label: 'Choose a target', overflowShivs: 0,
+    targets: [{ uid: 'a' }, { uid: 'b' }],
+  }))
+  const input = { scope: 'combat/1/start', viewerId: 'me', online: true, abilities,
+    scryIds: ['scry-a', 'scry-b'], scryKey: 'reveal-a' }
+  let draft = createStartTurnDraft(input)
+  draft = updateStartTurnField(draft, draft.scopes, 'enemyTargets', targets => ({ ...targets, 'me-ability': 'b' }))
+  draft = updateStartTurnField(draft, draft.scopes, 'order', ['peer-ability', 'me-ability'])
+  assert.equal(reconcileStartTurnDraft(draft, structuredClone(input)), draft,
+    'unrelated snapshots preserve an unsent plan')
+  const peerUpdate = { ...input, savedChoices: [{
+    id: 'peer-ability', enemyUid: 'a', exhaustUids: ['peer-card'], shivEnemyUids: [],
+  }] }
+  const refreshed = reconcileStartTurnDraft(draft, peerUpdate)
+  assert.equal(refreshed.value.enemyTargets['me-ability'], 'b')
+  assert.deepEqual(refreshed.value.order, ['peer-ability', 'me-ability'])
+  assert.equal(refreshed.value.enemyTargets['peer-ability'], 'a')
+  assert.equal(refreshed.value.exhaustUids['peer-ability'], 'peer-card',
+    'peer Exhaust restoration belongs to the same plan as peer targets')
+  assert.equal(updateStartTurnField(refreshed, draft.scopes, 'enemyTargets', {}), refreshed,
+    'an obsolete calculation cannot overwrite newly staged peer choices')
+  const picked = updateStartTurnField(refreshed, refreshed.scopes, 'scryPicked', ['secret-card'])
+  const reveal = reconcileStartTurnDraft(picked, { ...peerUpdate, scryKey: 'reveal-b' })
+  assert.deepEqual(reveal.value.scryPicked, [])
+  assert.equal(reveal.value.enemyTargets['me-ability'], 'b', 'a new reveal does not erase the turn plan')
+  assert.equal(updateStartTurnField(reveal, picked.scopes, 'scryPicked', ['secret-card']), reveal)
+  const switched = reconcileStartTurnDraft(reveal, { ...input, viewerId: 'other' })
+  assert.equal(switched.value.enemyTargets['me-ability'], undefined)
+  assert.equal(updateStartTurnField(switched, reveal.scopes, 'order', ['me-ability']), switched)
+  const localInput = { ...input, online: false }
+  let local = createStartTurnDraft(localInput)
+  local = updateStartTurnField(local, local.scopes, 'exhaustUids', { 'me-ability': 'my-card' })
+  const localSwitch = reconcileStartTurnDraft(local, { ...localInput, viewerId: 'peer' })
+  assert.equal(localSwitch.value.exhaustUids['me-ability'], 'my-card',
+    'local party Exhaust choices must survive taking another seat')
+  assert.equal(updateStartTurnField(localSwitch, local.scopes, 'exhaustUids', {}), localSwitch)
+}
+{
+  const viewer = createPlayer(createRng(1), 'me', 'Me', 'ironclad', 0)
+  viewer.hand = [
+    { uid: 'retained', defId: 'strike_ironclad', upgraded: false },
+    { uid: 'discarded', defId: 'defend_ironclad', upgraded: false },
+    { uid: 'protected', defId: 'defend_ironclad', upgraded: false, endTurnProtected: true },
+    { uid: 'automatic', defId: 'defend_ironclad', upgraded: false, retainThisTurn: true },
+  ]
+  const input = { scope: 'combat/1/discard', viewer, online: false, phase: 'discard' }
+  let draft = createEndTurnDraft(input)
+  draft = updateEndTurnField(draft, draft.scopes, 'discardOrders', { me: ['discarded'] })
+  draft = updateEndTurnField(draft, draft.scopes, 'retainChoiceOpen', false)
+  const other = { ...viewer, id: 'peer' }
+  const localSwitch = reconcileEndTurnDraft(draft, { ...input, viewer: other })
+  assert.deepEqual(localSwitch.value.discardOrders, { me: ['discarded'] }, 'hotseat switching preserves submitted party orders')
+  assert.equal(localSwitch.value.retainChoiceOpen, 'auto')
+  assert.equal(updateEndTurnField(localSwitch, draft.scopes, 'retainedCards', { me: ['retained'] }), localSwitch)
+  const onlineSwitch = reconcileEndTurnDraft(draft, { ...input, viewer: other, online: true })
+  assert.deepEqual(onlineSwitch.value.discardOrders, {}, 'a new online seat cannot inherit private orders')
+  const saved = reconcileEndTurnDraft(draft, { ...input, savedOrder: ['discarded'] })
+  assert.deepEqual(saved.value.retainedCards, { me: ['retained'] })
+  assert.deepEqual(saved.value.discardTops, { me: 'discarded' })
+  const empty = reconcileEndTurnDraft(saved, { ...input, savedOrder: [] })
+  assert.deepEqual(empty.value.discardTops, {}, 'an empty authoritative discard must clear the old top card')
+  const nextTurn = reconcileEndTurnDraft(saved, { ...input, scope: 'combat/2/discard' })
+  assert.deepEqual(nextTurn.value.discardOrders, {})
+}
+console.log('✓ combat workflows: scoped turn drafts, Power/relic choices, private reveals, causal reconciliation and exact evidence')

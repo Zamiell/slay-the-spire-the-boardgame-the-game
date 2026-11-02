@@ -227,6 +227,7 @@ try {
     else { await poisonBadge.focus(); await page.keyboard.press('Enter') }
     assert.equal(await list.isVisible(), false, `${name}: editing the target must reveal the battlefield`)
     await page.locator('[data-enemy-id="e1"] .enemy__hit-area').click()
+    await panel.locator('summary').click()
     await panel.getByRole('button', { name: 'Applying 1 Poison to Jaw Worm #2', exact: true }).waitFor()
     await panel.getByRole('button', { name: 'Applying 1 Weak to Jaw Worm #2', exact: true }).waitFor()
     assert.equal(await page.evaluate(() => JSON.stringify(window.__STS_DEBUG__.getRun().combat)), beforeRetarget,
@@ -243,6 +244,7 @@ try {
       if (uid === 'e0') await panel.getByRole('button', { name: 'Dealing 2 damage to Jaw Worm #2', exact: true }).click()
       else await page.locator('.start-turn-effects .end-turn-effect--relic').click()
       await page.locator(`[data-enemy-id="${uid}"] .enemy__hit-area`).click()
+      if (await panel.getAttribute('open') === null) await panel.locator('summary').click()
       const badge = panel.locator('.start-turn-order__badge--done')
       assert.equal(await badge.innerText(), `Dealing 2 damage to ${label}`)
       assert(await badge.evaluate(element => element.scrollWidth <= element.clientWidth + 1),

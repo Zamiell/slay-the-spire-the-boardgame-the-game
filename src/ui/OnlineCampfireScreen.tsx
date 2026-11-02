@@ -14,6 +14,8 @@ import type { NoncombatAction } from '../protocol/decisions.ts'
 import { Icon } from './Icon.tsx'
 import { CampfireScene } from './CampfireScene.tsx'
 import { playerVisualId } from '../game/skins.ts'
+import { hasKnownDeck } from './noncombat-player.ts'
+import type { CardInstance } from '../game/types.ts'
 
 type Decision = CampfireDecision
 
@@ -29,11 +31,17 @@ type Props = RoomActionContext & {
   transformAvailable?: boolean
 }
 
-export function OnlineCampfireScreen({ player, saved, decided, seats, onAction, rubyAvailable = false,
-  restAllowed = true, ruleset: requestedRuleset = 'base', transformAvailable = false, snapshot, refresh, onResync }: Props) {
+export function OnlineCampfireScreen({ player, ...props }: Props) {
+  if (!hasKnownDeck(player)) return <section className="room-screen" role="status">Waiting for your deck…</section>
+  return <OnlineCampfireReady {...props} player={player} />
+}
+
+function OnlineCampfireReady({ player, saved, decided, seats, onAction, rubyAvailable = false,
+  restAllowed = true, ruleset: requestedRuleset = 'base', transformAvailable = false, snapshot, refresh, onResync }:
+  Props & { player: VisiblePlayer & { deck: CardInstance[] } }) {
   const [decision, setDecision] = useState<Decision | null>(saved ?? null)
   const [picker, setPicker] = useState<CampfirePicker | null>(null)
-  const deck = player.deck ?? []
+  const deck = player.deck
   const alive = seats.some((seat) => seat.playerId === player.id)
   const seatCharacters = seats.map((seat) => seat.character)
   const ruleset = rulesetForCharacters(seatCharacters, requestedRuleset)

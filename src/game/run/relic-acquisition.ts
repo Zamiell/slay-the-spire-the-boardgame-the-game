@@ -18,7 +18,7 @@ import {
 } from './rewards.ts'
 import { canUpgradeCard, hasRelic, nextRunUid, preventsDuplicateCardRewards } from './rules.ts'
 import type { PendingRelicPreview, RunState } from './types.ts'
-import { acquisitionCardType, addCard, bottomCardChoices, drawCardChoices, removeCard } from '../acquisition.ts'
+import { acquisitionCardType, addCard, bottomCardChoices, drawCardChoices, previewCardGain, removeCard } from '../acquisition.ts'
 import { CARDS, isStarterStrikeOrDefend } from '../cards.ts'
 import type { CardInstance, Player } from '../types.ts'
 import { bottomGuardianGems, cardHasGuardianSocket, queueGuardianSocket, queueNewGuardianSockets } from '../guardian-gems.ts'
@@ -27,9 +27,8 @@ import { bottomGuardianGems, cardHasGuardianSocket, queueGuardianSocket, queueNe
 export const TINY_HOUSE_REWARD_CARD_UID = 'tiny-house-reward-card'
 
 /** Preview the gained card through Eggs before offering Tiny House's separate upgrade. */
-export function previewTinyHouseRewardCard(player: Player, defId: string): CardInstance {
-  return addCard(player, defId, TINY_HOUSE_REWARD_CARD_UID).deck.find((card) =>
-    card.uid === TINY_HOUSE_REWARD_CARD_UID)!
+export function previewTinyHouseRewardCard(player: Pick<Player, 'relics'>, defId: string): CardInstance {
+  return previewCardGain(player, defId, TINY_HOUSE_REWARD_CARD_UID)
 }
 
 function commonReward(player: Player, count: number, choice: number, replaceDuplicates: boolean) {

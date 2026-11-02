@@ -218,7 +218,8 @@ async function localFlow(page, name, pause = 0) {
   await page.evaluate((run) => window.__STS_DEBUG__.setRun(run), courierCombat(8801, [
     { id: 'p1', name: 'Ironclad', character: 'ironclad' }, { id: 'p2', name: 'Silent', character: 'silent' },
     { id: 'p3', name: 'Defect', character: 'defect' }, { id: 'p4', name: 'Watcher', character: 'watcher' },
-  ], [2, 4, 0, 0], [{ defId: 'holy_water', spent: false, cubes: 2 }, { defId: 'runic_pyramid', spent: false }]))
+  ], [2, 4, 0, 0], [{ defId: 'holy_water', spent: false, cubes: 2 }, { defId: 'runic_pyramid', spent: false },
+    { defId: 'shot_glass', spent: false }]))
   await page.waitForFunction(() => window.__STS_DEBUG__.getRun().combat?.phase === 'player')
   const available = page.getByRole('group', { name: 'The Courier', exact: true })
   await available.waitFor()
@@ -241,7 +242,7 @@ async function localFlow(page, name, pause = 0) {
   await page.waitForTimeout(400)
   await page.screenshot({ path: `${output}/${name}-available.png` })
   const clearances = await clearancesAt(page, viewportsFor(name, page))
-  const disclosure = page.locator('.relic-actions details').first()
+  const disclosure = page.locator('.relic-actions details').filter({ has: page.getByText('Shot Glass', { exact: true }) })
   const plaqueBeforeDisclosure = await available.boundingBox()
   await disclosure.locator('summary').click()
   await page.waitForTimeout(200)

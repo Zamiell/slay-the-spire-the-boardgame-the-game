@@ -23,6 +23,7 @@ let originalPlayers
 const card = (uid, defId, upgraded = false) => ({ uid, defId, upgraded })
 const errors = []
 const pages = []
+const actionMessages = new WeakMap()
 let fixture = 0
 
 function loadParty(summons = false) {
@@ -57,11 +58,16 @@ const snapshot = (index) => snapshotFor(room, room.seats[index].token)
 const resolveButton = (page) => page.getByRole('button', { name: /^(Resolve start|Confirm start-of-turn|Confirm Noxious)/ })
 async function action(page, click) {
   const before = room.version
+  const messages = actionMessages.get(page)
+  messages.length = 0
   await click()
   for (let attempt = 0; room.version <= before && attempt < 500; attempt++) {
     await new Promise((resolve) => setTimeout(resolve, 20))
   }
-  assert(room.version > before, 'the action was not accepted')
+  assert(room.version > before, `the action was not accepted: ${JSON.stringify({
+    messages, errors: await page.locator('.online-error').allTextContents(),
+    controls: await resolveButton(page).allTextContents(), ready: room.startTurnReady,
+  })}`)
 }
 async function waiting(page, name) {
   const button = page.getByRole('button', { name: new RegExp(`Waiting for ${name}`) })
@@ -81,6 +87,18 @@ try {
       localStorage.setItem(key, JSON.stringify({ reducedMotion: true, bgmVolume: 0, sfxVolume: 0 }))
     }, GAME_SETTINGS_KEY)
     const page = await context.newPage()
+    const messages = []
+    actionMessages.set(page, messages)
+    page.on('websocket', socket => {
+      socket.on('framesent', frame => {
+        const message = JSON.parse(String(frame.payload))
+        if (message.type === 'action') messages.push({ sent: message.action })
+      })
+      socket.on('framereceived', frame => {
+        const message = JSON.parse(String(frame.payload))
+        if (message.requestId) messages.push({ type: message.type, error: message.error, version: message.snapshot?.version })
+      })
+    })
     pages.push(page)
     page.setDefaultTimeout(10_000)
     page.on('pageerror', (error) => errors.push(String(error)))

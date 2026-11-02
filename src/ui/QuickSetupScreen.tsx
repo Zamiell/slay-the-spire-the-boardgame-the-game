@@ -1,8 +1,9 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { cardIsCurse } from '../game/cards.ts'
 import type { QuickStartStep } from '../game/meta.ts'
-import { availableTransformRewards, canUpgradeCard } from '../game/run.ts'
-import type { CardInstance, Player } from '../game/types.ts'
+import { canUpgradeCard } from '../game/run.ts'
+import type { CardInstance } from '../game/types.ts'
+import type { NoncombatPlayerView } from './noncombat-player.ts'
 import type { ActionOutcome } from '../multiplayer/useRoomSession.ts'
 import { Card } from './Card.tsx'
 import { useActionLifecycle } from './actions/useActionLifecycle.ts'
@@ -23,7 +24,7 @@ type QuickSetup = Readonly<{
 
 type Props = Readonly<{
   setup: QuickSetup
-  players: readonly Player[]
+  players: readonly NoncombatPlayerView[]
   currentStep: QuickStartStep | null
   enabled?: boolean
   transformAvailable?: boolean
@@ -47,8 +48,8 @@ const STEP_LABELS: Record<QuickStartStep['kind'], string> = {
   merchant: 'Merchant',
 }
 
-function selectableCards(player: Player | undefined, kind: QuickStartStep['kind'] | undefined): CardInstance[] {
-  if (!player) return []
+function selectableCards(player: NoncombatPlayerView | undefined, kind: QuickStartStep['kind'] | undefined): CardInstance[] | null {
+  if (!player || player.deck === null) return null
   if (kind === 'upgrade') return player.deck.filter(canUpgradeCard)
   if (kind === 'cardRemove') return player.deck.filter((card) => card.defId !== 'ascenders_bane')
   if (kind === 'transform') return player.deck.filter((card) => !cardIsCurse(card.defId))
@@ -67,6 +68,8 @@ export function QuickSetupScreen({ setup, players, currentStep, enabled = true, 
     () => selectableCards(activePlayer, selectionKind),
     [activePlayer, selectionKind],
   )
+  const canTransform = transformAvailable ?? activePlayer?.transformAvailable
+  const choicesKnown = !selectionKind || eligible !== null && (selectionKind !== 'transform' || canTransform !== undefined)
   const [selectedUid, setSelectedUid] = useState<string | null>(null)
   const submittedAutomaticStep = useRef('')
   const [retryRequired, setRetryRequired] = useState(false)
@@ -80,7 +83,7 @@ export function QuickSetupScreen({ setup, players, currentStep, enabled = true, 
     reconciled: (_step, committed) => { if (!committed) setRetryRequired(true) },
   })
   const advance = (cardUids?: string[]) => {
-    if (!enabled || lifecycle.locked()) return
+    if (!enabled || !choicesKnown || lifecycle.locked()) return
     setRetryRequired(false)
     lifecycle.submit(automaticStep, () => onAdvance(cardUids), true, outcome => {
       const next = outcome.snapshot?.run
@@ -89,15 +92,14 @@ export function QuickSetupScreen({ setup, players, currentStep, enabled = true, 
     })
   }
 
-  const selectionRequired = selectionKind !== undefined && eligible.length > 0 &&
-    (selectionKind !== 'transform' || (transformAvailable ?? Boolean(activePlayer &&
-      availableTransformRewards(activePlayer) > 0)))
+  const selectionRequired = selectionKind !== undefined && Boolean(eligible?.length) &&
+    (selectionKind !== 'transform' || canTransform === true)
   useEffect(() => {
-    if (!enabled || lifecycle.locked() || retryRequired || !currentStep || selectionRequired ||
+    if (!enabled || !choicesKnown || lifecycle.locked() || retryRequired || !currentStep || selectionRequired ||
       submittedAutomaticStep.current === automaticStep) return
     submittedAutomaticStep.current = automaticStep
     advance()
-  }, [automaticStep, currentStep, enabled, selectionRequired, lifecycle.busy, retryRequired])
+  }, [automaticStep, currentStep, enabled, choicesKnown, selectionRequired, lifecycle.busy, retryRequired])
   const stepLabel = currentStep ? STEP_LABELS[currentStep.kind] : 'Setup complete'
   const quantity = currentStep?.kind === 'gold' ? ` · ${currentStep.count} Gold`
     : currentStep && currentStep.count > 1 ? ` · ${setup.repeatIndex + 1} of ${currentStep.count}` : ''
@@ -117,7 +119,7 @@ export function QuickSetupScreen({ setup, players, currentStep, enabled = true, 
       <span> · effect {setup.die.effectIndex + 1}</span>
     </p> : null}
 
-    {selectionKind && enabled ? <fieldset className="quick-setup__selection" disabled={lifecycle.busy}>
+    {selectionKind && enabled && choicesKnown && eligible ? <fieldset className="quick-setup__selection" disabled={lifecycle.busy}>
       <legend>{STEP_LABELS[selectionKind]}{activePlayer ? ` for ${activePlayer.name}` : ''}</legend>
       {eligible.length > 0
         ? <div className="quick-setup__cards">
@@ -132,7 +134,7 @@ export function QuickSetupScreen({ setup, players, currentStep, enabled = true, 
         : <p className="quick-setup__empty" role="status">No eligible card. Continue to resolve this reward as a no-op.</p>}
     </fieldset> : null}
 
-    {selectionRequired ? <button
+    {!choicesKnown && enabled ? <p role="status">Waiting for your card choices…</p> : selectionRequired ? <button
       type="button"
       className="quick-setup__advance"
       disabled={!enabled || lifecycle.busy || selectedUid === null}

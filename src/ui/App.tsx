@@ -82,6 +82,7 @@ import { CampfireScreen } from './CampfireScreen.tsx'
 import { RewardScreen } from './RewardScreen.tsx'
 import { refreshCombatRelic, relicDef } from '../game/relics.ts'
 import { OutsidePotionBar } from './OutsidePotionBar.tsx'
+import { noncombatPlayerView } from './noncombat-player.ts'
 import { PotionSlots } from './PotionSlots.tsx'
 import { GuardianSocketPanel, RelicResolvePanel } from './RelicResolvePanel.tsx'
 import { StartMenu } from './StartMenu.tsx'
@@ -1125,7 +1126,7 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
 
       {!allocatingCampaignMarks && run.phase === 'setup' && run.setup && !pendingAcquisition ? <QuickSetupScreen
         setup={run.setup}
-        players={run.players}
+        players={run.players.map(noncombatPlayerView)}
         currentStep={currentQuickSetupStep(run.setup)}
         onAdvance={(cardUids) => setRun((current) => advanceQuickSetup(current, cardUids))}
       /> : null}
@@ -1204,7 +1205,7 @@ function LocalGame({ onOnline, settings, onSettings, active }: {
         <RoomScreen
           selectionDialogsActive={!compendium && !pauseOpen && !settingsOpen && !giveUpOpen}
           room={run.roomState}
-          players={run.players}
+          players={run.players.map(noncombatPlayerView)}
           viewerId={viewerId}
           ascension={run.ascension}
           onPurchase={(purchase) => setRun((current) => purchaseAtMerchant(current, purchase))}

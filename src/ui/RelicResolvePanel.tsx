@@ -14,10 +14,11 @@ import type { RoomActionContext } from './actions/useRoomAction.ts'
 import { RoomActionStatus } from './actions/RoomActionStatus.tsx'
 import { roomActionScope } from './actions/room-action.ts'
 import { RewardChoiceScreen } from './RewardChoiceScreen.tsx'
+import { hasKnownDeck } from './noncombat-player.ts'
 
 type Props = {
   pending: PendingRelicPreview
-  player: Player
+  player: Pick<Player, 'id' | 'potions' | 'relics'> & { deck: CardInstance[] | null }
   potion?: false | null | string
   ascension: number
   onPotion: (decision: PotionRewardDecision) => void | Promise<ActionOutcome>
@@ -38,7 +39,13 @@ type Submission = {
   potion?: { id: Props['potion']; inventory: string }
 }
 
-export function RelicResolvePanel({ pending, player, potion, ascension, onPotion, onRewardChoice, onResolve, delivery }: Props) {
+export function RelicResolvePanel({ player, ...props }: Props) {
+  if (!hasKnownDeck(player)) return <section className="room-screen" role="status">Waiting for your deck…</section>
+  return <RelicResolveReady {...props} player={player} />
+}
+
+function RelicResolveReady({ pending, player, potion, ascension, onPotion, onRewardChoice, onResolve, delivery }:
+  Props & { player: Props['player'] & { deck: CardInstance[] } }) {
   const [cards, setCards] = useState<string[]>([])
   const [selectedCardUids, setSelectedCardUids] = useState<string[]>([])
   const [rewards, setRewards] = useState<number[]>(() => Object.assign([], pending.rewardIndices))

@@ -36,23 +36,24 @@ function fixture(phase) {
   return { room, seat, other }
 }
 
-async function mount(page, appURL, room, seat, mode) {
+async function mount(page, appURL, room, seat, mode, initialSnapshot = snapshotFor(room, seat.token)) {
   await page.route('**/__noncombat-fixture', async route => {
     const response = await route.fetch()
     const html = await response.text()
     const entry = '<script type="module" src="/src/main.tsx"></script>'
     assert(html.includes(entry), 'fixture must replace only the application entrypoint')
-    await route.fulfill({ response, body: html.replace(entry, '')
-      .replace('<div id="root"></div>', '<main id="root" class="app-shell sts-scope"></main>') })
+    await route.fulfill({ response, body: html.replace(entry, '') })
   })
   await page.goto(`${appURL}/__noncombat-fixture`)
   await page.evaluate(async ({ snapshot, players, mode }) => {
-    const [React, DOM, campfire, reward, local, scope, setup, relic, meta, neow] = await Promise.all([
+    const [React, DOM, campfire, reward, local, scope, setup, relic, meta, neow, noncombat, header] = await Promise.all([
       import('/@id/react'), import('/@id/react-dom/client'),
       import('/src/ui/OnlineCampfireScreen.tsx'), import('/src/ui/OnlineRewardScreen.tsx'),
       import('/src/ui/CampfireScreen.tsx'), import('/src/ui/actions/room-action.ts'),
       import('/src/ui/QuickSetupScreen.tsx'), import('/src/ui/RelicResolvePanel.tsx'), import('/src/game/meta.ts'),
       import('/src/ui/NeowScreen.tsx'),
+      import('/src/ui/RoomScreen.tsx'),
+      import('/src/ui/RunHeader.tsx'),
       import('/src/ui/styles.css'), import('/src/ui/chrome.css'),
     ])
     const h = React.createElement ?? React.default.createElement
@@ -67,6 +68,11 @@ async function mount(page, appURL, room, seat, mode) {
       const snapshot = api.snapshot
       const run = snapshot.run
       const viewer = snapshot.you.playerId
+      const renderSurface = element => root.render(h('main', {
+        className: `app-shell sts-scope${mode === 'local-campfire' ? '' : ' app-shell--online'}${run.phase === 'neow' ? ' app-shell--neow' : ''}`,
+      }, h(header.RunHeader, { player: run.players.find(player => player.id === viewer),
+        act: run.act, ascension: run.ascension }),
+      mode === 'local-campfire' ? element : h('div', { className: 'online-mutations' }, element)))
       const onAction = action => new Promise((resolve, reject) => {
         api.calls.push({ action, viewer, resolve, reject })
       })
@@ -77,7 +83,7 @@ async function mount(page, appURL, room, seat, mode) {
           return true
         } }
       if (mode === 'neow') {
-        root.render(h(neow.NeowScreen, { key: props.key, players: run.players, progress: run.neow.players,
+        renderSurface(h(neow.NeowScreen, { key: props.key, players: run.players, progress: run.neow.players,
           viewerId: viewer, ascension: run.ascension, delivery: props,
           onReveal: (_player, _stage, sources) => onAction({ kind: 'neow', stage: 'reveal', sources }),
           onReward: (_player, choice, stage) => onAction({ kind: 'neow', stage, choice }),
@@ -85,13 +91,14 @@ async function mount(page, appURL, room, seat, mode) {
           onChoose: (_player, optionIndex, decision) => onAction({ kind: 'neow', stage: 'option', optionIndex, ...decision }),
         }))
       } else if (mode === 'setup') {
-        root.render(run.phase === 'setup' ? h(setup.QuickSetupScreen, {
+        renderSurface(run.phase === 'setup' ? h(setup.QuickSetupScreen, {
           key: props.key, setup: run.setup, players: run.players,
           currentStep: meta.currentQuickSetupStep(run.setup), delivery: props,
+          transformAvailable: snapshot.quickSetupTransformAvailable,
           onAdvance: cardUids => onAction({ kind: 'setupStep', cardUids }),
         }) : h('p', { role: 'status' }, 'Setup advanced'))
       } else if (mode === 'relic') {
-        root.render(snapshot.pendingRelic ? h(relic.RelicResolvePanel, {
+        renderSurface(snapshot.pendingRelic ? h(relic.RelicResolvePanel, {
           key: `${props.key}/${snapshot.pendingRelic.id}`, pending: snapshot.pendingRelic,
           player: run.players.find(player => player.id === viewer), ascension: run.ascension, delivery: props,
           potion: run.rewards.find(offer => offer.playerId === viewer)?.potion,
@@ -101,23 +108,30 @@ async function mount(page, appURL, room, seat, mode) {
           onResolve: (cardUids, rewardIndices) => onAction({ kind: 'resolvePendingRelic',
             pendingRelicId: snapshot.pendingRelic.id, cardUids, rewardIndices }),
         }) : h('p', { role: 'status' }, 'Relic resolved'))
+      } else if (mode === 'merchant') {
+        renderSurface(h(noncombat.RoomScreen, {
+          room: run.roomState, players: run.players, viewerId: viewer, ascension: run.ascension,
+          merchantPledges: snapshot.merchantPledges, merchantReady: snapshot.merchantReady,
+          onWithdraw: key => onAction({ kind: 'merchantWithdraw', key }),
+          onRemove: (playerId, cardUid, payments) => onAction({ kind: 'merchantRemove', playerId, cardUid, payments }),
+        }))
       } else if (mode === 'local-campfire') {
-        root.render(h(local.CampfireScreen, { players: [players[0]], onResolve: choices => {
+        renderSurface(h(local.CampfireScreen, { players: [players[0]], onResolve: choices => {
           api.calls.push({ action: { kind: 'campfire', choices }, viewer })
         } }))
       } else if (mode === 'campfire') {
-        root.render(h(campfire.OnlineCampfireScreen, { ...props,
+        renderSurface(h(campfire.OnlineCampfireScreen, { ...props,
           player: run.players.find(player => player.id === viewer), saved: snapshot.campfireChoice,
           decided: snapshot.campfireDecided, seats: snapshot.seats,
           transformAvailable: snapshot.campfireTransformAvailable,
         }))
       } else {
-        root.render(h(reward.OnlineRewardScreen, { ...props, run, viewerId: viewer }))
+        renderSurface(h(reward.OnlineRewardScreen, { ...props, run, viewerId: viewer }))
       }
     }
     render()
     await document.fonts.ready
-  }, { snapshot: snapshotFor(room, seat.token), players: room.run.players, mode })
+  }, { snapshot: initialSnapshot, players: room.run.players, mode })
 }
 
 const calls = page => page.evaluate(() => window.noncombat.calls.map(({ action, viewer }) => ({ action, viewer })))
@@ -130,6 +144,67 @@ const commit = async (page, room, seat, index) => {
   await update(page, result.snapshot)
   await reply(page, index, { status: 'accepted', snapshot: result.snapshot })
 }
+
+for (const mode of ['campfire', 'setup']) test(`${mode}: unknown cards never become an automatic empty-deck decision`, async ({ page, appURL }, info) => {
+  const { room, seat } = fixture(mode)
+  if (mode === 'setup') room.run.setup.rowIndex = 3
+  else room.run.players[0].relics = [{ defId: 'coffee_dripper', spent: false }]
+  const known = snapshotFor(room, seat.token)
+  const hidden = structuredClone(known)
+  hidden.run.players[0].deck = null
+  await mount(page, appURL, room, seat, mode, hidden)
+  await expect(page.getByText(/Waiting for your (deck|card choices)/)).toBeVisible()
+  await page.waitForTimeout(400)
+  assert.deepEqual(await calls(page), [], 'missing cards must not submit a no-op or leave')
+  await update(page, known)
+  if (mode === 'campfire') await expect(page.getByRole('button', { name: /Smith/ })).toBeEnabled()
+  else await expect(page.locator('.quick-setup__cards .card').first()).toBeVisible()
+  await page.screenshot({ path: info.outputPath(`${mode}-known-deck.png`) })
+})
+
+test('merchant: a hidden teammate deck can be funded without inventing empty cards', async ({ page, appURL }, info) => {
+  const { room, seat, other } = fixture('campfire')
+  room.run.phase = 'map'
+  const id = room.run.map.rows[0][0]
+  room.run.map.rooms[id].visited = false
+  room.run.map.rooms[id].kind = 'merchant'
+  room.run.map.position = null
+  room.run = enterRoom(room.run, id)
+  room.run.players[0].gold = 2
+  room.run.players[1].gold = 1
+  const cardUid = room.run.players[1].deck[0].uid
+  apply(room, other.token, { kind: 'merchantRemove', playerId: other.playerId, cardUid,
+    payments: { [other.playerId]: 1 } })
+  const snapshot = snapshotFor(room, seat.token)
+  assert.equal(snapshot.run.players[1].deck, null)
+  assert.equal(snapshot.merchantPledges[`remove/${other.playerId}`].cardUid, undefined)
+  await mount(page, appURL, room, seat, 'merchant', snapshot)
+  await page.getByRole('button', { name: 'Enter merchant shop' }).click()
+  await page.getByLabel('Shopping for').selectOption(other.playerId)
+  await page.getByRole('button', { name: /Card Removal Service/ }).click()
+  await expect(page.getByRole('status')).toContainText("Bo's deck is private")
+  await expect(page.locator('.card-picker__grid .card')).toHaveCount(0)
+  const dialog = page.getByRole('dialog', { name: 'Card Removal Service' })
+  await page.screenshot({ path: info.outputPath('private-removal-pledge-arrival.png') })
+  await dialog.evaluate(element => Promise.all(element.getAnimations().filter(animation =>
+    animation.effect?.getTiming().iterations !== Infinity).map(animation => animation.finished)))
+  const layout = await dialog.evaluate(element => ({
+    box: element.getBoundingClientRect().toJSON(),
+    title: element.querySelector('h2').getBoundingClientRect().toJSON(),
+    header: document.querySelector('.app-shell__header').getBoundingClientRect().toJSON(),
+    position: getComputedStyle(element).position, height: visualViewport?.height ?? innerHeight, scrollY,
+  }))
+  assert(layout.position === 'fixed' && layout.box.top >= layout.header.bottom - 1 &&
+    layout.box.bottom <= layout.height + 1 && layout.scrollY === 0 &&
+    Math.abs(layout.title.left + layout.title.width / 2 - layout.box.left - layout.box.width / 2) <= 1,
+  `the private pledge must remain a full-screen overlay below the actual header: ${JSON.stringify(layout)}`)
+  await page.screenshot({ path: info.outputPath('private-removal-pledge.png') })
+  await page.getByRole('button', { name: /Pledge/ }).click()
+  const submitted = (await calls(page))[0].action
+  assert.deepEqual(submitted, { kind: 'merchantRemove', playerId: other.playerId, cardUid: '', payments: { [seat.playerId]: 2 } })
+  apply(room, seat.token, submitted)
+  assert(!room.run.players[1].deck.some(card => card.uid === cardUid))
+})
 
 for (const mode of ['local-campfire', 'campfire']) test(`${mode}: shared Remove then Transform choices`, async ({ page, appURL }, info) => {
   const { room, seat } = fixture('campfire')

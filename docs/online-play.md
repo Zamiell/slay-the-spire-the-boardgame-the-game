@@ -21,6 +21,12 @@ schema-derived wire types. In particular, ally choices carry `{ id, label }`,
 not a separate player-name shape. Compile-time compatibility checks and real
 producer/decoder regressions keep these contracts aligned.
 
+Client mutations use the closed `RoomAction`/`CombatAction` contracts, including
+card reveals, copy identities, resource spending, turn choices, and campaign
+progression. Card payloads expose only caller-owned decisions, not internal engine
+cursors or callbacks. These compile-time contracts do not replace server parsing,
+authorization, or the existing legacy-input normalization policies.
+
 ## Combat views and calculations
 
 The browser's `CombatView` is not an authoritative `CombatState`: hidden piles stay

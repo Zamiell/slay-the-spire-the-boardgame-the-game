@@ -1943,20 +1943,14 @@ function deterministicForcedCardContext(
       continue
     }
 
-    const slime = effect as unknown as {
-      kind: string
-      amount?: number | import('../cards.ts').Amount
-      upToDifferent?: number
-      all?: boolean
-      same?: boolean
-    }
-    if (['growSlime', 'commandSlime', 'gainSlimeVigor', 'tapSlime'].includes(slime.kind)) {
+    const slime = effect
+    if (slime.kind === 'growSlime' || slime.kind === 'commandSlime' || slime.kind === 'gainSlimeVigor' || slime.kind === 'tapSlime') {
       const available = player.slimes.filter((candidate) =>
         slimeChoiceIsAvailable({ ...def, modes: undefined, effects: [...effects] }, state, player,
           candidate.card.uid, 0))
       if (slime.kind === 'commandSlime' && slime.all) {
         // `all` has no Slime-card choice; enemy targets are synthesized below.
-      } else if (slime.upToDifferent !== undefined && slime.upToDifferent !== 99) {
+      } else if ('upToDifferent' in slime && slime.upToDifferent !== undefined && slime.upToDifferent !== 99) {
         if (available.length > 0) return null
       } else {
         const required = slime.kind === 'commandSlime' && slime.upToDifferent === 99

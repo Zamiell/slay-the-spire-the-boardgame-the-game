@@ -2,6 +2,7 @@ import type { CampfireDecision, PotionRewardDecision, RewardSource } from '../ga
 import type { MerchantPurchase, TreasureDecision } from '../game/noncombat.ts'
 import type { NeowDecision } from '../game/neow.ts'
 import type { EventDecision } from '../game/event-room.ts'
+import type { CombatAction } from './combat-actions.ts'
 
 export type CampfireAction = { kind: 'campfire'; choices: Record<string, CampfireDecision> }
 export type CardRewardAction = { kind: 'cardReward'; choice: number | null | 'reveal'; sources?: RewardSource[] }
@@ -55,3 +56,15 @@ export type CourierAction =
 /** Current client contracts. The server still validates untrusted and legacy wire inputs. */
 export type RoomDecisionAction = NoncombatAction | RelicRewardAction | MerchantAction | NeowAction | AcquisitionAction | SetupAction |
   EventAction | CourierAction
+
+type RunProgressAction =
+  | { kind: 'enterRoom'; roomId: string; useWingBoots?: boolean }
+  | { kind: 'switchBetweenCombatRow'; row: number }
+  | { kind: 'tradePotion'; potionId: string; playerId: string }
+  | { kind: 'usePotionOutsideCombat'; potionId: string; replacePotionId?: string }
+  | { kind: 'giveUpVote'; vote: 'start'; deadlineAt?: undefined }
+  | { kind: 'giveUpVote'; vote: 'yes' | 'no'; deadlineAt: number }
+  | { kind: 'allocateCampaign'; colorless: number; actIV: number; expectedUnspentMarks: number; expectedRunId: string }
+  | { kind: 'leaveRoom' | 'advanceAct' | 'startPendingBoss' | 'rerollDownfallSelfBoss' | 'finishRun' | 'returnToLobby' }
+
+export type RoomAction = RoomDecisionAction | CombatAction | RunProgressAction

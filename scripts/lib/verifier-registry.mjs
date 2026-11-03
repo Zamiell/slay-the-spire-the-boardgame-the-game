@@ -97,6 +97,10 @@ export const focusedEngineOwners = ownerMap([
 ])
 
 export const focusedUiOwners = ownerMap([
+  ['src/protocol/combat-actions.ts', [
+    'verify-room-protocol.mjs', 'verify-rooms.mjs', 'verify-card-play.mjs',
+    'verify-combat-view-browser.mjs', 'verify-card-choices-browser.mjs', 'verify-start-turn-party-browser.mjs',
+  ]],
   ['src/protocol/combat-replies.ts', [
     'verify-room-protocol.mjs', 'verify-combat-view.mjs', 'verify-combat-view-browser.mjs',
     'verify-start-turn-party-browser.mjs',
@@ -416,7 +420,7 @@ export const focusedOnlyUiOwners = ownerMap([
   ['src/ui/run-log.ts', ['verify-run-replay-browser.mjs', 'verify-replay-controls-browser.mjs', 'verify-live-run-browser.mjs']],
   ...['codec', 'controls', 'history', 'player', 'recorder', 'storage'].map(name =>
     [`src/ui/run-log/${name}.ts`, ['verify-run-log-codec.mjs', 'verify-run-replay-browser.mjs',
-      'verify-replay-controls-browser.mjs', 'verify-live-run-browser.mjs']]),
+      'verify-replay-controls-browser.mjs', 'verify-live-run-browser.mjs', 'verify-run-log-storage-browser.mjs']]),
   ...['solo-save', 'run-state-validation'].map(name =>
     [`src/ui/${name}.ts`, ['verify-run-log-codec.mjs', 'verify-solo-resume-browser.mjs',
       'verify-room-resume-browser.mjs', 'verify-run-replay-browser.mjs']]),

@@ -16,7 +16,6 @@ import { actionsForEnemy, enemyAbilities, enemyDef } from '../enemies.ts'
 import { CAPS } from '../types.ts'
 import type { CardInstance, Enemy, GuardianMode, OrbType } from '../types.ts'
 import { previewSlimeCommand, slimeDef } from '../downfall/slime-boss.ts'
-import type { SlimeBossEffect } from '../downfall/slime-boss.ts'
 
 const GUARDIAN_ROW_CARDS = new Set(['guardian_prismatic_spray', 'guardian_sentry_beam'])
 const GUARDIAN_UPGRADED_ROW_CARDS = new Set(['guardian_roll_attack', 'guardian_vent_steam'])
@@ -258,10 +257,7 @@ export function playCost(
 /** The largest legal X on this board, including card-specific physical limits. */
 export function maximumXEnergy(def: CardDef, actor: CombatActor): number {
   if (def.id !== 'slime_boss_divide_conquer') return actor.energy
-  const command = def.effects.find((effect) =>
-    (effect as unknown as SlimeBossEffect).kind === 'commandSlime') as unknown as
-    | Extract<SlimeBossEffect, { kind: 'commandSlime' }>
-    | undefined
+  const command = def.effects.find(effect => effect.kind === 'commandSlime')
   const bonus = command && typeof command.amount !== 'number' ? command.amount.base : 0
   return Math.min(actor.energy, Math.max(0,
     actor.slimes.filter((slime) => previewSlimeCommand(slime) !== null).length - bonus))
@@ -279,7 +275,7 @@ export function slimeChoiceIsAvailable(
   if (!slime) return false
   const mustCommand = def.effects.some((raw) => {
     if (!effectIsActive(raw, state, actor)) return false
-    const effect = raw as unknown as SlimeBossEffect
+    const effect = raw
     return effect.kind === 'commandSlime' && !effect.all &&
       amountOf(effect.amount, state, actor, undefined, { enemyUid: null, playerId: actor.id, energySpent }) > 0 ||
       (effect.kind === 'growSlime' || effect.kind === 'gainSlimeVigor') && effect.commandAfter === true
@@ -921,11 +917,11 @@ export function slimeCommandEnemyChoiceLabels(
     }
   }
   const effects = grownSlime
-    ? [...def.effects, { kind: 'growSlime' as const, amount: 1 } as unknown as Effect]
+    ? [...def.effects, { kind: 'growSlime' as const, amount: 1 }]
     : def.effects
   for (const raw of effects) {
     if (!effectIsActive(raw, state, actor)) continue
-    const effect = raw as unknown as SlimeBossEffect
+    const effect = raw
     if (effect.kind === 'commandSlime') {
       const repeat = amountOf(effect.amount, state, actor, undefined, { enemyUid: null, playerId: actor.id, energySpent })
       let picked: typeof slimes
@@ -1117,7 +1113,7 @@ function forcedSlimeChoicesExist(
     !requireAvailableSlimes || slimeChoiceIsAvailable(active, state, actor, slime.card.uid, 0)).length
   return effects.every((raw) => {
     if (!effectIsActive(raw, state, actor)) return true
-    const effect = raw as unknown as SlimeBossEffect
+    const effect = raw
     if (effect.kind === 'growSlime') return effect.upToDifferent !== undefined || available >= 1
     if (effect.kind === 'commandSlime') {
       if (effect.all || effect.upToDifferent !== undefined && effect.upToDifferent !== 99) return true

@@ -19,6 +19,7 @@ import type { VfxRecipe } from '../combat-vfx.ts'
 import type { CombatView } from '../../game/combat/view.ts'
 import type { CombatQueryResult } from '../../game/combat/preview-queries.ts'
 import type { CombatQueryRequest } from '../../protocol/combat-query.ts'
+import type { CombatAction } from '../../protocol/combat-actions.ts'
 
 export type CombatScreenProps = {
   state: CombatView
@@ -27,7 +28,7 @@ export type CombatScreenProps = {
   viewerId: string
   onChange?: (next: CombatState) => void
   /** Fulfilled void acknowledges completion; reject or return unknown for uncertain delivery. */
-  onAction?: (action: Record<string, unknown>) => void | Promise<ActionOutcome | void>
+  onAction?: (action: CombatAction) => void | Promise<ActionOutcome | void>
   /** Read-only room calculations are bound to the exact rendered combat version. */
   onQuery?: (request: CombatQueryRequest, signal: AbortSignal) => Promise<CombatQueryResult>
   autoAdvance?: boolean

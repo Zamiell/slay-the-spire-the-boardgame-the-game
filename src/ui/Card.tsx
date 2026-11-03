@@ -201,15 +201,30 @@ function timesText(times: Amount): string {
 }
 
 export function effectText(effect: Effect): string {
-  if ((effect as { kind: string }).kind === 'gainSlimeVigor') {
-    const slimeEffect = effect as unknown as {
-      amount: number; temporary?: boolean; commandAfter?: boolean
-    }
-    return `gain ${slimeEffect.amount} Strength${slimeEffect.commandAfter ? ', then Command it' : ''}` +
-      `${slimeEffect.temporary ? `, lose that ${slimeEffect.amount} Strength at end of turn` : ''}`
+  if (effect.kind === 'gainSlimeVigor') {
+    return `gain ${effect.amount} Strength${effect.commandAfter ? ', then Command it' : ''}` +
+      `${effect.temporary ? `, lose that ${effect.amount} Strength at end of turn` : ''}`
   }
   const condition = effect.when ? ` if ${conditionText(effect.when)}` : ''
   switch (effect.kind) {
+    case 'growSlime': return (effect.upToDifferent !== undefined
+      ? `grow up to ${effect.upToDifferent} different Slimes`
+      : `grow a Slime ${timesText(effect.amount)}`) + (effect.commandAfter ? ', then Command it' : '') + condition
+    case 'commandSlime': return (effect.all ? 'Command all Slimes'
+      : effect.same ? `Command the same Slime ${timesText(effect.amount)}`
+      : effect.upToDifferent === 99 ? `Command ${amountText(effect.amount)} different Slimes`
+      : effect.upToDifferent !== undefined ? `Command up to ${effect.upToDifferent} different Slimes`
+      : 'Command a Slime') + condition
+    case 'discountPartyAttack': return `the next Attack played by any player this turn costs 0${condition}`
+    case 'discountNextPowerOrSlime': return `your next Power or Slime this turn costs ${effect.amount === 'free' ? '0' : `${effect.amount} less`}${condition}`
+    case 'tapSlime': return `choose a Slime; draw cards and gain Energy equal to its level${condition}`
+    case 'rainOfGoop': return `place ${amountText({ base: effect.bonus, per: 'energySpent' })} Strength on this when played; at start of turn, move 1 onto you or a Slime, then Exhaust this if empty${condition}`
+    case 'blockIfRetain': return `gain ${effect.amount} Block if a card in your hand has Retain${condition}`
+    case 'vulnerableIfTackle': return `apply ${effect.amount} Vulnerable if a Tackle is in your hand${condition}`
+    case 'gainEnergyIfExhaustCost': return `gain ${effect.amount} Energy if the exhausted card costs at least ${effect.minimum}${condition}`
+    case 'growIfExhaustCost': return `grow a Slime if the exhausted card costs at least ${effect.minimum}${condition}`
+    case 'overexert': return `play a card from your hand for 0 Energy; if it is an Attack, play it twice${condition}`
+    case 'replicateSlime': return `search your draw pile for a Slime and play it for 0 Energy${effect.grow ? ', then Grow it' : ''}; shuffle the draw pile${condition}`
     case 'sequence': return `${effect.effects.map(effectText).join(', then ')}${condition}`
     case 'branch': return `if ${conditionText(effect.condition)}, ${effect.effects.map(effectText).join(', then ')}; otherwise, ${effect.otherwise.map(effectText).join(', then ')}${condition}`
     case 'hit': return typeof effect.amount !== 'number' && effect.amount.per === 'miracles' &&

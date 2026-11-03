@@ -9,6 +9,27 @@ import type { VisiblePreparedCombat } from '../../src/protocol/room.ts'
 import { startTurnScryPreview } from '../../src/game/combat.ts'
 import type { StartTurnAbility } from '../../src/game/combat.ts'
 import type { WirePlayerTarget, WireStartTurnAbility } from '../../src/protocol/combat-replies.ts'
+import type { CombatScreenProps } from '../../src/ui/combat-screen/types.ts'
+
+declare const sendCombat: NonNullable<CombatScreenProps['onAction']>
+declare const session: ReturnType<typeof import('../../src/multiplayer/useRoomSession.ts').useRoomSession>
+sendCombat({ kind: 'spendShiv', enemyUid: 'e1' })
+sendCombat({ kind: 'playCardCopy', cardUid: 'c1', copyId: 7 })
+session.act({ kind: 'enterRoom', roomId: 'room-1' })
+// @ts-expect-error Enemy identifiers are strings at the UI boundary.
+sendCombat({ kind: 'spendShiv', enemyUid: 123 })
+// @ts-expect-error The transport must not erase the combat contract.
+session.act({ kind: 'spendShiv', enemyUid: 123 })
+// @ts-expect-error A copied play identifies its exact copy instance.
+sendCombat({ kind: 'playCardCopy', cardUid: 'c1' })
+// @ts-expect-error Reveal actions are not read-only queries.
+sendCombat({ kind: 'previewCard', cardUid: 'c1', enemyUid: null })
+// @ts-expect-error Unknown action kinds cannot be sent by the client.
+session.act({ kind: 'inventedAction' })
+// @ts-expect-error Engine-only observers are not wire choices.
+sendCombat({ kind: 'playCard', cardUid: 'c1', previewShivTarget: () => true })
+// @ts-expect-error Closed client choice contracts do not inherit loose schema index signatures.
+sendCombat({ kind: 'resolvePlayerChoice', choiceId: 1, typo: true })
 
 const decision = (action: RoomDecisionAction) => action
 decision({ kind: 'potionReward', choice: 'pass', playerId: 'p2' })

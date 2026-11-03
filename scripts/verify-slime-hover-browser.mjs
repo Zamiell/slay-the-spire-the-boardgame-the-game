@@ -3,10 +3,12 @@ import { mkdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { createServer } from 'vite'
 import { chromium } from './lib/profile-browser.mjs'
+import { browserOutputDirectory } from './lib/verification-output.mjs'
 
 const root = resolve(import.meta.dirname, '..')
-const output = resolve(root, 'artifacts/slime-hover-browser')
+const output = browserOutputDirectory(root, 'slime-hover')
 mkdirSync(output, { recursive: true })
+console.log(`Browser artifacts: ${output}`)
 const server = await createServer({ root, logLevel: 'silent', server: { port: 0 } })
 await server.listen()
 const browser = await chromium.launch()
@@ -57,7 +59,8 @@ try {
     ['horizontal-phone', { width: 844, height: 390 }, true, 1],
     ['horizontal-phone-party', { width: 844, height: 390 }, true, 4],
   ]) {
-    const context = await browser.newContext({ viewport, isMobile: phone, hasTouch: phone, deviceScaleFactor: 1 })
+    const context = await browser.newContext({ viewport, isMobile: phone, hasTouch: phone, deviceScaleFactor: 1,
+      recordVideo: { dir: resolve(output, name + '-recording'), size: viewport } })
     const page = await context.newPage()
     page.setDefaultTimeout(15_000)
     page.setDefaultNavigationTimeout(60_000)
@@ -67,6 +70,16 @@ try {
       await page.route('**/src/main.tsx', route => route.fulfill({ contentType: 'text/javascript', body: '' }))
       await page.goto(`http://localhost:${server.httpServer.address().port}`, { waitUntil: 'domcontentloaded' })
       await page.evaluate(installFixture, { partySize })
+      const missingText = await page.evaluate(async () => {
+        const { CARDS, faceOf } = await import('/src/game/cards.ts')
+        const { effectText } = await import('/src/ui/Card.tsx')
+        return Object.values(CARDS).filter(card => card.owner === 'slime_boss').flatMap(card =>
+          [false, true].flatMap(upgraded => faceOf(card, upgraded).effects.flatMap(effect => {
+            const text = effectText(effect)
+            return typeof text !== 'string' || !text || text.includes('undefined') ? [`${card.id}: ${effect.kind}`] : []
+          })))
+      })
+      assert.deepEqual(missingText, [], 'Every Slime effect must have usable fallback text')
       await page.locator('.slime-party__art').first().waitFor()
       assert.equal(await page.locator('.slime-party').count(), partySize, name + ': every player has a visible slime party')
       await page.waitForFunction(() => [...document.querySelectorAll('.slime-party__art')]
@@ -134,7 +147,10 @@ try {
       assert.equal(await page.locator('.slime-party__zoom .card').getAttribute('data-card-name'), 'Bruiser Slime')
       assert.deepEqual(errors, [], name + ': browser errors')
       console.log(name + ': visible slime artwork, card preview, keyboard/touch and Power coexistence passed')
-    } finally { await context.close() }
+    } finally {
+      await context.close()
+      await page.video()?.saveAs(resolve(output, name + '.webm'))
+    }
   }
 } finally {
   await browser.close()

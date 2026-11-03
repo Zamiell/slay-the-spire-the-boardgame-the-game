@@ -1,11 +1,12 @@
 // Official Downfall TTS public-v1.47 Hexaghost card faces.
 // These are board-game transcriptions; no PC-mod values or behavior are used.
+import type { CardDef } from '../cards.ts'
 const heat = (amount: number) => ({ kind: 'heatAtLeast' as const, amount })
 const exhausted = { kind: 'cardsInExhaustAtLeast' as const, amount: 2 }
 const advance = { kind: 'advance' as const }
 const retract = { kind: 'retract' as const }
 
-const card = <T>(def: T): T => def
+const card = (def: CardDef): CardDef => def
 
 export const HEXAGHOST_CARDS = {
   strike_hexaghost: card({

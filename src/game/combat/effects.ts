@@ -52,7 +52,6 @@ import {
 } from './pieces.ts'
 import { addPresentationEvent, presentationTargets } from './presentation.ts'
 import { commandSlime, gainSlimeVigor, growSlime, previewSlimeCommand, slimeDef } from '../downfall/slime-boss.ts'
-import type { SlimeBossEffect } from '../downfall/slime-boss.ts'
 import { hermitCurseLoadReaction } from '../downfall/hermit.ts'
 import {
   persistentEffectOf,
@@ -1404,7 +1403,7 @@ function resolveGuardianGem(
 export function applyEffect(
   state: CombatState,
   actor: Player,
-  effect: Effect | SlimeBossEffect,
+  effect: Effect,
   scope: TargetScope,
   supportScope: TargetScope,
   context: PlayContext,
@@ -4511,9 +4510,8 @@ export function triggerNeedsHermitChoice(_state: CombatState, player: Player, so
 
 export function triggerSlimeChoice(state: CombatView, player: CombatActor, source: TriggerSource):
   { cards: { uid: string; label: string }[]; amount: number; minimum: number } | undefined {
-  const effect = source.effects.find((candidate) =>
-    ['growSlime', 'commandSlime', 'gainSlimeVigor', 'tapSlime', 'rainOfGoop'].includes(candidate.kind)) as unknown as
-    Extract<SlimeBossEffect, { kind: 'growSlime' | 'commandSlime' | 'gainSlimeVigor' | 'tapSlime' | 'rainOfGoop' }> | undefined
+  const effect = source.effects.find(candidate => candidate.kind === 'growSlime' || candidate.kind === 'commandSlime' ||
+    candidate.kind === 'gainSlimeVigor' || candidate.kind === 'tapSlime' || candidate.kind === 'rainOfGoop')
   const cards = (player.slimes ?? []).map((slime) => ({ uid: slime.card.uid, label: cardDef(slime.card.defId).name }))
   if (!effect || cards.length === 0 || effect.kind === 'commandSlime' && effect.all) return undefined
   if (effect.kind === 'rainOfGoop') {

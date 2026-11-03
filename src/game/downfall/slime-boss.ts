@@ -4,7 +4,8 @@
 // prototype wording is kept on each face so balance/audit tooling can compare
 // this module with the public TTS sheets without reverse-engineering effects.
 import { registerCardDefinitions, STARTER_DECKS } from '../cards.ts'
-import type { Amount, CardDef, Effect, TargetScope } from '../cards.ts'
+import type { Amount, CardDef, Effect, SlimeBossEffect, TargetScope } from '../cards.ts'
+export type { SlimeBossEffect } from '../cards.ts'
 import type { CardInstance, Player, Rarity, SlimeInstance } from '../types.ts'
 
 export const SLIME_BOSS_MAX_HP = 9
@@ -27,21 +28,7 @@ type SlimeBossCard = CardDef & {
 const id = (name: string) => `slime_boss_${name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')}`
 const hit = (amount: Amount, times?: Amount): Effect => ({ kind: 'hit', amount, ...(times ? { times } : {}) })
 const block = (amount: number): Effect => ({ kind: 'block', amount })
-export type SlimeBossEffect =
-  | { kind: 'growSlime'; amount: number; upToDifferent?: number; commandAfter?: boolean }
-  | { kind: 'commandSlime'; amount: Amount; upToDifferent?: number; all?: boolean; same?: boolean }
-  | { kind: 'gainSlimeVigor'; amount: number; temporary?: boolean; commandAfter?: boolean }
-  | { kind: 'discountPartyAttack' }
-  | { kind: 'discountNextPowerOrSlime'; amount: number | 'free' }
-  | { kind: 'tapSlime' }
-  | { kind: 'rainOfGoop'; bonus: number }
-  | { kind: 'blockIfRetain'; amount: number }
-  | { kind: 'vulnerableIfTackle'; amount: number }
-  | { kind: 'gainEnergyIfExhaustCost'; minimum: number; amount: number }
-  | { kind: 'growIfExhaustCost'; minimum: number }
-  | { kind: 'overexert' }
-  | { kind: 'replicateSlime'; grow: boolean }
-const slimeEffect = (effect: SlimeBossEffect): Effect => effect as unknown as Effect
+const slimeEffect = (effect: SlimeBossEffect): Effect => effect
 const grow = (amount: number, options: Omit<Extract<SlimeBossEffect, { kind: 'growSlime' }>, 'kind' | 'amount'> = {}) =>
   slimeEffect({ kind: 'growSlime', amount, ...options })
 const command = (amount: Amount, options: Omit<Extract<SlimeBossEffect, { kind: 'commandSlime' }>, 'kind' | 'amount'> = {}) =>

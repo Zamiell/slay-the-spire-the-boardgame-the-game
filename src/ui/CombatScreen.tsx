@@ -2409,9 +2409,10 @@ function CombatScreenReady({
     const order = top
       ? [...cardsToDiscard.filter((card) => card.uid !== top), viewer.hand.find((card) => card.uid === top)!]
       : cardsToDiscard
-    const orders = { ...discardOrders, [viewer.id]: order.map((card) => card.uid) }
+    const ownOrder = order.map(card => card.uid)
+    const orders = { ...discardOrders, [viewer.id]: ownOrder }
     if (onAction) {
-      onAction({ kind: 'discardHand', discardOrder: orders[viewer.id] })
+      onAction({ kind: 'discardHand', discardOrder: ownOrder })
       return
     }
     if (endTurnParticipants.every((playerId) => orders[playerId])) {

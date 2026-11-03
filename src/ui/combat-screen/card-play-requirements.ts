@@ -55,8 +55,7 @@ export function requirementsOf(
   const enemyChoices = onPlayEffects.length > 0 ? cardEnemyChoiceCount(def, undefined, state, viewer) : 0
   const playerChoices = onPlayEffects.length > 0 ? cardPlayerChoiceCount(def) : 0
   const slimeCommands = selectableEffects.some((effect) => {
-    const slime = effect as unknown as { kind: string; commandAfter?: boolean }
-    return slime.kind === 'commandSlime' || slime.commandAfter === true
+    return effect.kind === 'commandSlime' || 'commandAfter' in effect && effect.commandAfter === true
   })
   const needsEnemy = cardTarget || slimeCommands || spentShivs > 0 || overflowShivs > 0 || enemyChoices > 0
   // With one player on the board there is nobody to choose between, so asking
@@ -120,20 +119,15 @@ export function requirementsOf(
           ? { kind: load.upTo ? 'loadAny' as const : 'load' as const, amount: loadAmount,
             minimum: load.upTo ? 0 : loadAmount }
         : null
-  const slimeEffect = selectableEffects.find((effect) => ['growSlime', 'commandSlime', 'gainSlimeVigor', 'tapSlime']
-    .includes(effect.kind)) as unknown as {
-      kind: 'growSlime' | 'commandSlime' | 'gainSlimeVigor' | 'tapSlime'
-      amount: import('../../game/cards.ts').Amount
-      upToDifferent?: number
-      all?: boolean
-      same?: boolean
-    } | undefined
+  const slimeEffect = selectableEffects.find(effect => effect.kind === 'growSlime' || effect.kind === 'commandSlime' ||
+    effect.kind === 'gainSlimeVigor' || effect.kind === 'tapSlime')
+  const upToDifferent = slimeEffect && 'upToDifferent' in slimeEffect ? slimeEffect.upToDifferent : undefined
   const slimeAmount = !slimeEffect || slimeEffect.kind === 'commandSlime' && slimeEffect.all ? 0
     : slimeEffect.kind === 'commandSlime' && slimeEffect.upToDifferent === 99
       ? Math.min(viewer.slimes?.length ?? 0, amountOf(slimeEffect.amount, state, viewer, undefined,
         { enemyUid: null, playerId: viewer.id, energySpent }))
-      : Math.min(viewer.slimes?.length ?? 0, slimeEffect.upToDifferent ?? 1)
-  const slimeUpTo = Boolean(slimeEffect?.upToDifferent && slimeEffect.upToDifferent !== 99)
+      : Math.min(viewer.slimes?.length ?? 0, upToDifferent ?? 1)
+  const slimeUpTo = Boolean(upToDifferent && upToDifferent !== 99)
   const dieRelic = selectableEffects.find((effect) => effect.kind === 'triggerDieRelic')
   const chamberEffect = selectableEffects.find((effect) =>
     effect.kind === 'playChamber' || effect.kind === 'discardChamber' || effect.kind === 'discountChamber')

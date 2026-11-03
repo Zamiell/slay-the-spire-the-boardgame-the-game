@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { DailyModifierId, RunMetaOptions } from '../game/meta.ts'
 import type { CharacterId } from '../game/types.ts'
 import type { ActionOutcome, RoomSnapshot } from '../protocol/room.ts'
-import type { RoomDecisionAction } from '../protocol/decisions.ts'
+import type { RoomAction, RoomDecisionAction } from '../protocol/decisions.ts'
 import { RoomCredentialsSchema } from '../protocol/actions.ts'
 import type { RoomCredentials } from '../protocol/actions.ts'
 import { is } from 'valibot'
@@ -711,7 +711,7 @@ export function useRoomSession() {
   const selectCampaign = useCallback((enabled: boolean) => enqueue('campaign-select', { enabled }), [enqueue])
   const start = useCallback((campaign: 'base' | 'downfall', preventDuplicateCardRewards = false) =>
     enqueue('start', { campaign, preventDuplicateCardRewards }), [enqueue])
-  const act = useCallback((action: object) => enqueue('action', { action }), [enqueue])
+  const act = useCallback((action: RoomAction) => enqueue('action', { action }), [enqueue])
   const preview = useCallback(async (request: CombatQueryRequest, signal: AbortSignal) => {
     const source = snapshotRef.current
     const started = generation.current

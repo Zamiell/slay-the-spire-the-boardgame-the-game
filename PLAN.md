@@ -546,3 +546,41 @@ restructuring to justify more churn. Identity-bound choice handlers, intentional
 effect/trigger recursion, static card/transcription tables, and specialized legacy
 migrations retain their existing boundaries. This is a practical stopping point,
 not a claim that future requirements can never justify another refactor.
+
+## Replay durability and remaining type boundaries
+
+- [x] **Failure-aware replay persistence.** The active recording tracks its
+  committed event position separately from its in-memory transitions. A failed
+  transaction stops subsequent writes; an explicit flush/read retries from the
+  first uncommitted event and rejects if storage remains unavailable. Failed
+  database opens can recover, and loading refuses non-contiguous stored indices.
+  Existing IndexedDB names, schema, and legacy normalization remain compatible.
+  Normalization preserves the recorder's object identity; stale hydration cannot
+  replace a newer recording.
+- [x] **Canonical expansion effects.** Slime Boss effects now belong to the shared
+  effect union. Hermit and Hexaghost authoring is checked against the engine's
+  card/effect contracts rather than cast through `unknown`. Removed corresponding
+  casts from calculations, resolution, selection, and presentation. The stronger
+  exhaustiveness check exposed missing Slime effect descriptions; those now have
+  explicit fallback text. Runtime Hermit/Hexaghost card definitions were compared
+  with the previous commit and are unchanged.
+- [x] **Typed outbound combat actions.** Combat callbacks and the room transport
+  use closed protocol unions. Reveals share their protocol contract, copied plays
+  require their copy ID, and card payload types exclude engine-only cursors and
+  callbacks. Compile fixtures reject numeric enemy IDs, unknown actions, missing
+  copy identities, malformed expansion effects, and misspelled choice fields.
+  Server authorization, legacy coercion, and validation ordering are unchanged.
+
+**Verification:** Both compiler projects, production build, and the complete light
+gate pass (**93/93**). Real IndexedDB failure/recovery and missing-transition cases
+pass on desktop and horizontal phone (**6/6**). Expansion mechanics and card
+coordination checks pass. The complete normal-motion UI sweep covers **44 surfaces
+/ 88 screenshots**; screenshots and sampled video transitions were reviewed for
+both supported screen classes. Replay coverage now opens inspection atomically
+when the recorded hand appears rather than racing playback between automation
+calls, and explicitly expects the diagnostic from its injected storage failure.
+Replay playback/controls, assistant history, solo and room recovery, Slime
+interaction, card choices, Chamber, and start-turn party verifiers pass; managed
+combat-view coverage passes **16/16**. Slime hover/focus/touch recordings and
+screenshots were also reviewed on both screen classes, with invocation-isolated
+artifacts. No new dependency was needed; the legacy browser umbrella was not run.

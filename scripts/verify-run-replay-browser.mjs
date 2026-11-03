@@ -748,10 +748,17 @@ try {
   await page.getByRole('button', { name: 'Replay', exact: true }).click()
   await droppedFile(page, 'recorded-run.json', JSON.stringify(downloaded))
   await page.getByText('Your run is accepted', { exact: true }).waitFor()
-  await page.getByRole('button', { name: /^Strike,/ }).waitFor()
+  await page.waitForFunction(() => {
+    const strike = document.querySelector('.hand [data-card-name="Strike"]')
+    const deck = document.querySelector('.deck-peek__open')
+    if (!strike || !deck || deck.disabled) return false
+    // Open in the same browser task that observes the hand, before playback can advance.
+    deck.click()
+    return true
+  })
   assert.equal(await page.getByText('Run log downloaded.', { exact: true }).count(), 0, 'Replay retained a stale download message')
-  await page.locator('.deck-peek__open').click()
   await page.getByRole('dialog', { name: 'Current deck' }).waitFor()
+  await page.waitForTimeout(1400)
   assert.equal(await page.locator('.hand').getByRole('button', { name: /^Strike,/ }).count(), 1,
     'Replay advanced while deck inspection was open')
   await page.getByRole('dialog', { name: 'Current deck' }).getByRole('button', { name: 'Back' }).click()
@@ -1026,7 +1033,8 @@ try {
       } finally { delete indexedDB.open }
     })
     assert.equal(started, false, 'An asynchronous IndexedDB failure must not acknowledge durable recording')
-    assert.deepEqual(unavailableStorage.errors, [])
+    assert.equal(unavailableStorage.errors.length, 1, 'Storage refusal must be reported without unrelated browser errors')
+    assert.match(unavailableStorage.errors[0], /^Could not persist the recorded run\..*Recording storage denied/)
   } finally { await unavailableStorage.context.close() }
 
   console.log('✓ run replay: desktop drag and phone upload validation, Time Eater transition, live cursor, input guard, pause menu, log download, storage refusal')

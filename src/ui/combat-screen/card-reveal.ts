@@ -3,18 +3,9 @@ import { stageChamberCard } from '../../game/combat/queries.ts'
 import type { RoomSnapshot } from '../../protocol/room.ts'
 import { pendingFor } from './card-play-requirements.ts'
 import type { Pending } from './types.ts'
+import type { CardRevealAction } from '../../protocol/combat-actions.ts'
+export type { CardRevealAction } from '../../protocol/combat-actions.ts'
 
-type RevealBinding = {
-  cardUid: string
-  enemyUid: string | null
-  slimeUids?: string[]
-  slimeEnemyUids?: string[]
-}
-export type CardRevealAction = RevealBinding & (
-  | { kind: 'previewCard'; spendMiracle: boolean }
-  | { kind: 'previewCardCopy'; copyId: number }
-  | { kind: 'previewHermitChamberCard'; energySpent?: number }
-)
 export type CardRevealAttempt = {
   combatId: string
   playerId: string

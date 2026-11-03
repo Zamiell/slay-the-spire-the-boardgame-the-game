@@ -17,6 +17,7 @@ import { useScopedSelection } from './useScopedSelection.ts'
 import { createCardChoiceRules } from './card-choice-rules.ts'
 import { cardContext as buildCardContext, reconcileCardDraft, restoreUnknownCardDraft } from './card-draft.ts'
 import { matchingCardReveal, revealedCardDraft, type CardRevealAction, type CardRevealAttempt } from './card-reveal.ts'
+import type { CardPlayAction } from '../../protocol/combat-actions.ts'
 type Coordinator = ReturnType<typeof createCardPlayCoordinator>
 type Options = Pick<CombatScreenProps, 'state' | 'viewerId' | 'onAction' | 'onChange' | 'cardPreview' | 'drawCount' |
   'authoritativeRefresh' | 'authoritativeVersion'> & {
@@ -162,15 +163,21 @@ export function useCardController(options: Options) {
     if (next.cardInHand || next.chamberPlay) {
       presentation.arm(next.card, next.chamberPlay)
     }
-    const action = {
-      kind: next.chamberPlay ? 'playHermitChamberCard' : next.cardInHand ? 'playCard' : 'playCardCopy',
+    const copyId = !next.cardInHand && !next.chamberPlay ? state.pendingCardCopy?.id : undefined
+    if (!next.cardInHand && !next.chamberPlay && copyId === undefined) {
+      queries.report(new Error('The copied card is no longer available. Check room state.'))
+      return
+    }
+    const fields = {
       cardUid: next.card.uid,
-      copyId: !next.cardInHand && !next.chamberPlay ? state.pendingCardCopy?.id : undefined,
       ...context,
       preflight: true,
       expectedShivOverflow: next.overflowShivs > 0 ? next.overflowShivs : undefined,
       skipOverflow: next.overflowShivs > 0 ? skipOverflow : undefined,
     }
+    const action: CardPlayAction & { preflight: boolean } = copyId !== undefined
+      ? { kind: 'playCardCopy', copyId, ...fields }
+      : { kind: next.chamberPlay ? 'playHermitChamberCard' : 'playCard', ...fields }
     const submission = {
       cardUid: next.card.uid,
       source: next.chamberPlay ? 'chamber' as const : next.cardInHand ? 'hand' as const : 'copy' as const,

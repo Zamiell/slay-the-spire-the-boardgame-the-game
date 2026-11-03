@@ -97,6 +97,18 @@ export const focusedEngineOwners = ownerMap([
 ])
 
 export const focusedUiOwners = ownerMap([
+  ['src/protocol/combat-replies.ts', [
+    'verify-room-protocol.mjs', 'verify-combat-view.mjs', 'verify-combat-view-browser.mjs',
+    'verify-start-turn-party-browser.mjs',
+  ]],
+  ['src/ui/combat-screen/card-reveal.ts', [
+    'verify-card-play.mjs', 'verify-combat-workflows.mjs', 'verify-combat-view-browser.mjs',
+    'verify-card-choices-browser.mjs', 'verify-hermit-chamber-browser.mjs', 'verify-double-tap-recover-browser.mjs',
+  ]],
+  ['src/server/suspended-combat.ts', [
+    'verify-rooms.mjs', 'verify-room-protocol.mjs', 'verify-room-server.mjs',
+    'verify-hermit-online-staged-trigger-browser.mjs', 'verify-start-turn-party-browser.mjs',
+  ]],
   ['src/protocol/room-snapshot.ts', [
     'verify-room-protocol.mjs', 'verify-room-server.mjs', 'verify-room-resume-browser.mjs',
     'verify-start-turn-party-browser.mjs', 'verify-combat-view-browser.mjs',

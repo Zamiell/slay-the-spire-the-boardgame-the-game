@@ -7,6 +7,7 @@ import { createPlayer } from '../src/game/run.ts'
 import { createRng } from '../src/game/rng.ts'
 import { bruiserSlime } from '../src/game/downfall/slime-boss.ts'
 import { cardContext, reconcileCardDraft, restoreUnknownCardDraft } from '../src/ui/combat-screen/card-draft.ts'
+import { matchingCardReveal, revealedCardDraft } from '../src/ui/combat-screen/card-reveal.ts'
 
 const rng = createRng(47)
 const player = createPlayer(rng, 'p1', 'Ironclad', 'ironclad', 0)
@@ -23,7 +24,8 @@ let actions = []
 const options = {
   state, viewer, stateRef: { current: state }, cardActionPending: { current: false },
   pending, miracleOnCard: false, blocked: false, survivorDiscard: false,
-  setUsingCard() {}, setPending(next) { pending = next }, clearOtherActions() {},
+  submitReveal(action) { actions.push(action); options.cardActionPending.current = true },
+  setPending(next) { pending = next }, clearOtherActions() {},
   withAdjacentChoices: next => next, downfallChoicesReady: () => true,
   slimeEnemyChoicesRequired: () => 0, slayerTargetAffordable: () => true,
   hermitEnemyChoicesRequired: () => 0,
@@ -163,7 +165,8 @@ assert.equal(options.cardActionPending.current, true)
 online.confirm(viewer.hand[0], 'hand')
 assert.equal(actions.length, 1, 'a pending preview must not be sent twice')
 await Promise.resolve()
-assert.equal(options.cardActionPending.current, false)
+assert.equal(options.cardActionPending.current, true, 'the coordinator must not release its delivery owner’s lock')
+options.cardActionPending.current = false
 const revealed = { ...pendingFor(viewer.hand[0], [viewer.hand[1]], state, viewer),
   choice: { kind: 'discard', amount: 1 } }
 pending = revealed
@@ -196,27 +199,38 @@ assert.equal(createCardPlayCoordinator({ ...options, pending }).cancel(), 'cance
 assert.equal(pending, null, 'an ordinary uncommitted play remains cancellable')
 
 for (const defId of ['third_eye', 'cut_through_fate', 'secret_technique']) {
-  for (const network of [false, true]) {
-    commits = []
-    pending = null
-    viewer.hand = [card(defId)]
-    viewer.draw = []
-    viewer.discard = [card('defend_ironclad')]
-    const before = structuredClone(state)
-    const coordinator = createCardPlayCoordinator({ ...options, pending: null,
-      onAction: network ? async action => ({
-        status: 'accepted',
-        snapshot: { cardPreview: { cardUid: action.cardUid, cards: [],
-          kind: defId === 'secret_technique' ? 'scryToHand' : 'scry', enemyUid: action.enemyUid } },
-      }) : undefined,
-    })
-    coordinator.confirm(viewer.hand[0], 'hand', 'enemy')
-    await Promise.resolve()
-    assert.equal(commits.length, 1, `${defId}/${network}: an empty Scry must automatically continue`)
-    assert.equal(commits[0].choiceConfirmed, true)
-    assert.deepEqual(commits[0].picked, [])
-    assert.deepEqual(state, before, 'skipping the choice must not mutate combat before commit')
-  }
+  commits = []
+  pending = null
+  viewer.hand = [card(defId)]
+  viewer.draw = []
+  viewer.discard = [card('defend_ironclad')]
+  const before = structuredClone(state)
+  const coordinator = createCardPlayCoordinator({ ...options, pending: null })
+  coordinator.confirm(viewer.hand[0], 'hand', 'enemy')
+  assert.equal(commits.length, 1, `${defId}: an empty local Scry must automatically continue`)
+  assert.equal(commits[0].choiceConfirmed, true)
+  assert.deepEqual(commits[0].picked, [])
+  assert.deepEqual(state, before, 'skipping the choice must not mutate combat before commit')
+}
+{
+    const board = structuredClone(state)
+    const actor = board.players[0]
+    actor.hand = [card('third_eye')]
+    const action = { kind: 'previewCard', cardUid: 'third_eye', enemyUid: null, spendMiracle: false }
+    const attempt = { combatId: board.combatId, playerId: actor.id, action }
+    const preview = { ...action, kind: 'scry', cards: [card('defend_ironclad')] }
+    assert(revealedCardDraft(attempt, board, preview)?.choiceCards.length === 1)
+    assert.equal(matchingCardReveal(attempt, { ...board, combatId: 'another-fight' }, preview), false)
+    assert.equal(matchingCardReveal(attempt, board, { ...preview, chamber: true }), false)
+    assert.equal(matchingCardReveal(attempt, board, { ...preview, enemyUid: 'changed-target' }), false)
+    board.phase = 'copy'
+    board.pendingCardCopy = { id: 1, playerId: actor.id, card: actor.hand[0], energySpent: 0,
+      resumePhase: 'player', forcedExhaust: false, forcedChoices: null, deferredHavocs: [], sourceNames: [] }
+    const copied = { ...attempt, action: { kind: 'previewCardCopy', cardUid: 'third_eye', enemyUid: null, copyId: 1 } }
+    assert(matchingCardReveal(copied, board, { ...preview, copy: true }))
+    board.pendingCardCopy.id = 2
+    assert.equal(revealedCardDraft(copied, board, { ...preview, copy: true }), null,
+      'a late copy reveal cannot populate a newer copy of the same card')
 }
 for (const defId of ['third_eye', 'secret_technique']) {
   commits = []

@@ -1,4 +1,5 @@
-import type { CombatPhase, CombatPresentationEvent, CombatState, EndTurnAbility, PendingTriggerAbility, PlayedCard, StartTurnAbility, StartTurnChoice, StartTurnScryAbility } from '../game/combat.ts'
+import type { CombatPhase, CombatPresentationEvent, CombatState, EndTurnAbility, PendingTriggerAbility, PlayedCard, StartTurnChoice, StartTurnScryAbility } from '../game/combat.ts'
+import type { WireStartTurnAbility } from './combat-replies.ts'
 import type { SpireMap } from '../game/map.ts'
 import type { CampfireChoice, CardRewardOffer, PendingGuardianSocket, PendingRelicPreview, RunPhase } from '../game/run.ts'
 import type { DailyModifierId, QuickSetupState, RunMetaState } from '../game/meta.ts'
@@ -225,7 +226,7 @@ export type RoomSnapshot = {
   endTurnRequired: string[]
   endTurnTopPlayerIds?: string[]
   endTurnAbilities?: EndTurnAbility[]
-  startTurnAbilities?: StartTurnAbility[]
+  startTurnAbilities?: WireStartTurnAbility[]
   startTurnDecided?: string[]
   startTurnRequired?: string[]
   startTurnCoordinatorId?: string | null

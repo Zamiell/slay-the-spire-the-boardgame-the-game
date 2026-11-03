@@ -16,6 +16,11 @@ original v1 interpretation; unsupported versions produce an explicit update
 message rather than guessed defaults. This schema version is separate from the
 room's mutation `version` and server-boot `epoch`.
 
+Snapshots and calculation replies share public target/ability schemas and
+schema-derived wire types. In particular, ally choices carry `{ id, label }`,
+not a separate player-name shape. Compile-time compatibility checks and real
+producer/decoder regressions keep these contracts aligned.
+
 ## Combat views and calculations
 
 The browser's `CombatView` is not an authoritative `CombatState`: hidden piles stay
@@ -34,6 +39,13 @@ Other seats' private hand effects are excluded from incoming-damage estimates:
 `~` marks that limitation. Other seats' totals remain unknown to this client.
 Eligibility that depends on an unrevealed reaction remains unknown, rather than
 being reported as an empty set of legal choices; final decisions are server-validated.
+
+The `previewCard`, `previewCardCopy`, and `previewHermitChamberCard` actions are
+irreversible reveals, unlike the read-only calculation endpoint. Their delivery
+locks survive ambiguous outcomes until matching authoritative evidence or a
+causally later successful refresh. Continuations are bound to the combat, source,
+card, copy instance, and reveal choices; accepted/recovered receipts wait for their
+frame to render. Shiv and Soulburn spending use the same recovery discipline.
 
 Noncombat screens also distinguish unknown cards from empty piles. They consume
 public player fields, nullable decks, and published counts/capabilities rather

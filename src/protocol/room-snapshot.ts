@@ -1,6 +1,7 @@
 import * as v from 'valibot'
 import { CHARACTER_IDS } from '../game/types.ts'
 import type { RoomSnapshot } from './room.ts'
+import { StartTurnAbilitySchema } from './combat-replies.ts'
 
 export const ROOM_SNAPSHOT_VERSION = 1
 const text = v.string()
@@ -46,13 +47,6 @@ const player = object({
 })
 const enemy = object({
   uid: text, defId: text, row: number, hp: number, maxHp: number, dead: v.boolean(),
-})
-const target = object({ uid: text, label: text })
-const ability = object({
-  id: text, playerId: text, label: text, overflowShivs: number,
-  targets: optional(v.array(target)), exhaustCards: optional(cards),
-  players: optional(v.array(object({ id: text, name: text }))),
-  evokeSlots: optional(v.array(number)),
 })
 const trigger = object({ id: number, playerId: text, sourceId: text })
 const reveal = object({ playerId: text, cards: v.nullable(cards) })
@@ -123,7 +117,7 @@ const snapshot = object({
   you: seat, seats: v.array(seat), run: v.nullable(run), campaignProgress,
   campfireDecided: strings, endTurnDecided: strings, endTurnRequired: strings,
   startTurnDecided: optional(strings), startTurnRequired: optional(strings), unavailableEventOptionIds: strings, eventCanSkip: v.boolean(),
-  startTurnAbilities: optional(v.array(ability)), endTurnAbilities: optional(v.array(object({ id: text, playerId: text, label: text }))),
+  startTurnAbilities: optional(v.array(StartTurnAbilitySchema)), endTurnAbilities: optional(v.array(object({ id: text, playerId: text, label: text }))),
   startTurnChoices: optional(v.array(object({ id: text, shivEnemyUids: v.array(v.nullable(text)) }))),
   startTurnScry: optional(reveal), startTurnDiscard: optional(reveal),
   startTurnEnemyTargets: optional(dictionary(text)), discardOrder: optional(strings),

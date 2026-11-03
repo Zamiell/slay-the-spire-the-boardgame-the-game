@@ -1,3 +1,5 @@
+import { createSuspendedCombatCoordinator, clearSuspendedCombat, restoreConcurrentCopy,
+  restoreConcurrentDistilled, restoreConcurrentRelicScry, restoreConcurrentForcedCard } from '../../src/server/suspended-combat.ts'
 // Room logic for co-op play: seats, reconnection, action authorisation, and
 // the per-seat redaction that keeps hidden information hidden.
 //
@@ -177,6 +179,9 @@ const { relicReward, cardReward, transformReward, settleReward } =
 const { neowAction, quickSetupStep } = createSetupActions({ snapshotFor })
 const { eventChoice, cancelEventPledge, eventSkip } = createEventActions({ snapshotFor, settlePendingRelics })
 const { courierReveal, courierResolve } = createCourierActions({ snapshotFor })
+const applyWithSuspendedWork = createSuspendedCombatCoordinator({
+  apply, restoreRoom, snapshotFor, settleForcedCards, dieRelicChoiceNeedsInput,
+})
 export { repairInterruptedJournals, saveStore } from './rooms/store.mjs'
 
 /** Characters a seat may pick. Two players may not take the same one (p.4). */
@@ -1050,7 +1055,7 @@ function settleForcedCards(room, consumedPreviewPlayerId = null, suspendActiveCo
       const next = chooseDistilledCard(combat, ownerId, combat.pendingDistilled.cards[0]?.uid)
       if (next === combat) break
       room.run = { ...room.run, combat: next }
-      restoreConcurrentChoice(room, 'pendingDistilled', 'concurrentDistilled')
+      restoreConcurrentDistilled(room)
       combat = room.run.combat
       settled = true
     }
@@ -1061,7 +1066,7 @@ function settleForcedCards(room, consumedPreviewPlayerId = null, suspendActiveCo
       const next = activateRelic(combat, pending.playerId, pending.relicIndex, { scryDiscardUids: [] })
       if (next === combat) break
       room.run = { ...room.run, combat: next }
-      restoreConcurrentChoice(room, 'pendingRelicScry', 'concurrentRelicScries')
+      restoreConcurrentRelicScry(room)
       combat = room.run.combat
       settled = true
     }
@@ -1297,10 +1302,7 @@ export function startRun(room, seatToken, { seed, campaign, preventDuplicateCard
     fail('That Ascension is not unlocked')
   }
   room.run = createRun(seed ?? Number(BigInt('0x' + randomBytes(4).toString('hex'))), party, room.ascension, room.campaignProgress, room.chooseYourRelic && party.length > 1, room.lastStand && party.length > 1, { ...room.metaOptions, campaign, cardPacks: roomCardPacks(room), preventDuplicateCardRewards })
-  room.concurrentCardCopies = undefined
-  room.concurrentDistilled = undefined
-  room.concurrentRelicScries = undefined
-  room.concurrentForcedCards = undefined
+  clearSuspendedCombat(room)
   room.selectingCampaign = false
   room.phase = 'run'
   room.version += 1
@@ -1321,10 +1323,7 @@ function finishGiveUp(room) {
   room.courierPledge = undefined
   room.cardPreviews = undefined
   room.powerPreviews = undefined
-  room.concurrentCardCopies = undefined
-  room.concurrentDistilled = undefined
-  room.concurrentRelicScries = undefined
-  room.concurrentForcedCards = undefined
+  clearSuspendedCombat(room)
   room.endTurnReady = undefined
   room.campfireChoices = undefined
   room.rewardChoices = undefined
@@ -1391,67 +1390,6 @@ function previewSlimeChoices(combat, action, def, player, effectEnergy, charged,
     fail('Choose every Slime Command target before revealing this card')
   }
   return { slimeUids, slimeEnemyUids }
-}
-
-function restoreConcurrentCopy(room) {
-  if (room.run?.phase !== 'combat' || room.run.combat?.phase !== 'player' || room.run.combat.pendingCardCopy) return
-  const queued = room.concurrentCardCopies?.at(-1)
-  if (!queued) return
-  room.concurrentCardCopies = room.concurrentCardCopies.slice(0, -1)
-  room.run = {
-    ...room.run,
-    combat: { ...room.run.combat, phase: 'copy', pendingCardCopy: queued },
-  }
-}
-
-function restoreConcurrentChoice(room, field, queueField) {
-  const combat = room.run?.combat
-  const playerWindow = combat?.phase === 'player' ||
-    combat?.phase === 'copy' && combat.pendingCardCopy?.resumePhase === 'player'
-  if (room.run?.phase !== 'combat' || !playerWindow || combat[field]) return
-  const queued = room[queueField]?.at(-1)
-  if (!queued) return
-  room[queueField] = room[queueField].slice(0, -1)
-  room.run = { ...room.run, combat: { ...combat, [field]: queued } }
-}
-
-function restoreConcurrentForcedCard(room) {
-  const combat = room.run?.combat
-  const playerWindow = combat?.phase === 'player' ||
-    combat?.phase === 'copy' && combat.pendingCardCopy?.resumePhase === 'player'
-  if (room.run?.phase !== 'combat' || !playerWindow || combat.startTurnProgress?.forcedCard) return
-  const queued = room.concurrentForcedCards?.at(-1)
-  if (!queued) return
-  room.concurrentForcedCards = room.concurrentForcedCards.slice(0, -1)
-  room.run = { ...room.run, combat: {
-    ...combat,
-    startTurnProgress: { ...combat.startTurnProgress, forcedCard: queued },
-  } }
-}
-
-function refreshDistilled(combat, pending) {
-  const player = combat?.players.find((candidate) => candidate.id === pending?.playerId)
-  const cards = pending?.cards.filter((card) => player?.hand.some((held) => held.uid === card.uid)) ?? []
-  return cards.length > 0 ? { ...pending, cards } : undefined
-}
-
-function refreshRelicScry(combat, pending) {
-  const player = combat?.players.find((candidate) => candidate.id === pending?.playerId)
-  return player ? { ...pending, cards: player.draw.slice(0, 3) } : undefined
-}
-
-function forcedCardStillValid(combat, pending) {
-  return combat?.players.find((candidate) => candidate.id === pending?.playerId)?.hand
-    .some((card) => card.uid === pending.cardUid) === true
-}
-
-function refreshChoiceTargets(combat, choices) {
-  const living = new Set(combat?.enemies.filter((enemy) => !enemy.dead).map((enemy) => enemy.uid) ?? [])
-  return {
-    ...choices,
-    pendingDieRelicChoices: choices.pendingDieRelicChoices.map((choice) =>
-      choice.enemyUid && !living.has(choice.enemyUid) ? { ...choice, enemyUid: null } : choice),
-  }
 }
 
 function replayedStartTurnTrigger(room, combat, queued) {
@@ -1530,157 +1468,8 @@ function applyRoomAction(room, seatToken, action, consumedPreviewPlayerId, suspe
   if (room.phase !== 'run' || !room.run) fail('The run has not started')
   deferStartTurnTriggersForPostRoll(room)
   const combat = room.run.combat
-  const activeCopy = combat?.phase === 'copy' ? combat.pendingCardCopy : undefined
-  const foreignCopy = activeCopy?.resumePhase === 'player' && activeCopy.playerId !== seat.playerId
-    ? activeCopy : undefined
-  const copyIndex = foreignCopy
-    ? room.concurrentCardCopies?.findLastIndex((copy) => copy.playerId === seat.playerId) ?? -1
-    : -1
-  const ownCopy = copyIndex >= 0 ? room.concurrentCardCopies[copyIndex] : undefined
-  const asyncPlayerTurn = combat?.phase === 'player' ||
-    combat?.phase === 'copy' && activeCopy?.resumePhase === 'player'
-  const choiceFields = [
-    'pendingPlunderSwitches', 'pendingDieRelicChoices', 'pendingHermitSetupLoads',
-    'pendingHermitChamberPlays', 'pendingHermitStrengthRewards', 'pendingSlayerChoices',
-    'pendingPlayerChoices',
-  ]
-  const choiceBelongsToSeat = (field, choice) => choice.playerId === seat.playerId &&
-    (field !== 'pendingDieRelicChoices' || dieRelicChoiceNeedsInput(combat, choice))
-  const foreignChoices = Object.fromEntries(choiceFields.map((field) => [
-    field, asyncPlayerTurn
-      ? (combat?.[field] ?? []).filter((choice) => !choiceBelongsToSeat(field, choice)) : [],
-  ]))
-  const activeDistilled = asyncPlayerTurn && combat?.pendingDistilled?.playerId !== seat.playerId
-    ? combat?.pendingDistilled : undefined
-  const activeRelicScry = asyncPlayerTurn && combat?.pendingRelicScry?.playerId !== seat.playerId
-    ? combat?.pendingRelicScry : undefined
-  const distilledIndex = asyncPlayerTurn && combat?.pendingDistilled?.playerId !== seat.playerId
-    ? room.concurrentDistilled?.findLastIndex((pending) => pending.playerId === seat.playerId) ?? -1 : -1
-  const relicScryIndex = asyncPlayerTurn && combat?.pendingRelicScry?.playerId !== seat.playerId
-    ? room.concurrentRelicScries?.findLastIndex((pending) => pending.playerId === seat.playerId) ?? -1 : -1
-  const ownDistilled = distilledIndex >= 0 ? room.concurrentDistilled[distilledIndex] : undefined
-  const ownRelicScry = relicScryIndex >= 0 ? room.concurrentRelicScries[relicScryIndex] : undefined
-  const playerTurnForcedCard = combat?.startTurnProgress?.forcedCard
-  const activeForcedCard = asyncPlayerTurn && playerTurnForcedCard?.playerId !== seat.playerId
-    ? playerTurnForcedCard : undefined
-  const forcedCardIndex = asyncPlayerTurn && playerTurnForcedCard?.playerId !== seat.playerId
-    ? room.concurrentForcedCards?.findLastIndex((pending) => pending.playerId === seat.playerId) ?? -1 : -1
-  const ownForcedCard = forcedCardIndex >= 0 ? room.concurrentForcedCards[forcedCardIndex] : undefined
-  const foreignTriggers = asyncPlayerTurn
-    ? (combat.pendingTriggers ?? []).filter((trigger) => trigger.playerId !== seat.playerId) : []
-  const hasForeignWork = foreignCopy || activeDistilled || ownDistilled || activeRelicScry || ownRelicScry ||
-    activeForcedCard || ownForcedCard ||
-    foreignTriggers.length > 0 ||
-    Object.values(foreignChoices).some((choices) => choices.length > 0)
-  if (!suspendedWork && hasForeignWork) {
-    const checkpoint = structuredClone(room)
-    const foreignWork = {
-      copies: [foreignCopy, ...(room.concurrentCardCopies ?? [])].filter(Boolean),
-      forcedCards: [activeForcedCard, ...(room.concurrentForcedCards ?? [])].filter(Boolean),
-      choices: foreignChoices,
-    }
-    if (copyIndex >= 0) {
-      room.concurrentCardCopies = room.concurrentCardCopies.filter((_copy, index) => index !== copyIndex)
-    }
-    if (distilledIndex >= 0) {
-      room.concurrentDistilled = room.concurrentDistilled.filter((_pending, index) => index !== distilledIndex)
-    }
-    if (relicScryIndex >= 0) {
-      room.concurrentRelicScries = room.concurrentRelicScries.filter((_pending, index) => index !== relicScryIndex)
-    }
-    if (forcedCardIndex >= 0) {
-      room.concurrentForcedCards = room.concurrentForcedCards.filter((_pending, index) => index !== forcedCardIndex)
-    }
-    room.run = {
-      ...room.run,
-      combat: {
-        ...combat,
-        ...(foreignCopy ? { phase: ownCopy ? 'copy' : 'player', pendingCardCopy: ownCopy } : {}),
-        ...(activeDistilled || ownDistilled ? { pendingDistilled: ownDistilled } : {}),
-        ...(activeRelicScry || ownRelicScry ? { pendingRelicScry: ownRelicScry } : {}),
-        ...(activeForcedCard || ownForcedCard ? { startTurnProgress: {
-          ...combat.startTurnProgress,
-          forcedCard: ownForcedCard,
-        } } : {}),
-        pendingTriggers: (combat.pendingTriggers ?? []).filter((trigger) => trigger.playerId === seat.playerId),
-        ...Object.fromEntries(choiceFields.map((field) => [
-          field, (combat[field] ?? []).filter((choice) => choiceBelongsToSeat(field, choice)),
-        ])),
-      },
-    }
-    try {
-      const result = apply(room, seatToken, action, consumedPreviewPlayerId, foreignWork)
-      if (!result.changed) {
-        restoreRoom(room, checkpoint)
-        return { changed: false, snapshot: snapshotFor(room, seatToken) }
-      }
-      if (room.run?.phase === 'combat' && !['won', 'lost'].includes(room.run.combat?.phase)) {
-        let restored = room.run.combat
-        const restoredChoices = refreshChoiceTargets(restored, foreignChoices)
-        room.concurrentDistilled = room.concurrentDistilled
-          ?.map((pending) => refreshDistilled(restored, pending)).filter(Boolean)
-        room.concurrentRelicScries = room.concurrentRelicScries
-          ?.map((pending) => refreshRelicScry(restored, pending)).filter(Boolean)
-        room.concurrentForcedCards = room.concurrentForcedCards
-          ?.filter((pending) => forcedCardStillValid(restored, pending))
-        if (activeDistilled) {
-          const pending = refreshDistilled(restored, activeDistilled)
-          if (pending && restored.pendingDistilled) room.concurrentDistilled = [...(room.concurrentDistilled ?? []), pending]
-          else if (pending) restored = { ...restored, pendingDistilled: pending }
-        }
-        const refreshedRelicScry = refreshRelicScry(restored, activeRelicScry)
-        if (refreshedRelicScry) {
-          if (restored.pendingRelicScry) room.concurrentRelicScries = [...(room.concurrentRelicScries ?? []), refreshedRelicScry]
-          else restored = { ...restored, pendingRelicScry: refreshedRelicScry }
-        }
-        if (activeForcedCard && forcedCardStillValid(restored, activeForcedCard)) {
-          if (restored.startTurnProgress?.forcedCard) {
-            room.concurrentForcedCards = [...(room.concurrentForcedCards ?? []), activeForcedCard]
-          } else {
-            restored = { ...restored, startTurnProgress: {
-              ...restored.startTurnProgress,
-              forcedCard: activeForcedCard,
-            } }
-          }
-        }
-        restored = { ...restored, pendingTriggers: [...foreignTriggers, ...(restored.pendingTriggers ?? [])],
-          ...Object.fromEntries(choiceFields.map((field) => [
-            field, [...restoredChoices[field], ...(restored[field] ?? [])],
-          ])) }
-        room.run = { ...room.run, combat: restored }
-        restoreConcurrentChoice(room, 'pendingDistilled', 'concurrentDistilled')
-        restoreConcurrentChoice(room, 'pendingRelicScry', 'concurrentRelicScries')
-        restoreConcurrentForcedCard(room)
-        settleForcedCards(room, consumedPreviewPlayerId, true, foreignWork)
-        if (foreignCopy) {
-          const current = room.run.combat
-          if (current.pendingCardCopy) room.concurrentCardCopies = [...(room.concurrentCardCopies ?? []), foreignCopy]
-          else room.run = { ...room.run, combat: { ...current, phase: 'copy', pendingCardCopy: foreignCopy } }
-        }
-        restoreConcurrentCopy(room)
-        settleForcedCards(room, consumedPreviewPlayerId)
-      } else if (room.run?.combat && ['won', 'lost'].includes(room.run.combat.phase)) {
-        room.concurrentCardCopies = undefined
-        room.concurrentDistilled = undefined
-        room.concurrentRelicScries = undefined
-        room.concurrentForcedCards = undefined
-        // Slayer Pack: set-aside choices end with the combat exactly as
-        // `clearTerminalChoices` ends them, except a Ritual Dagger+ reveal: that
-        // kill already happened, and its owner still answers after a victory
-        // that another seat's blow decided.
-        const ritual = room.run.combat.phase === 'won'
-          ? foreignChoices.pendingSlayerChoices.filter((choice) => choice.kind === 'ritualDagger') : []
-        if (ritual.length > 0) {
-          room.run = { ...room.run, combat: { ...room.run.combat,
-            pendingSlayerChoices: [...ritual, ...(room.run.combat.pendingSlayerChoices ?? [])] } }
-        }
-      }
-      return { ...result, snapshot: snapshotFor(room, seatToken) }
-    } catch (error) {
-      restoreRoom(room, checkpoint)
-      throw error
-    }
-  }
+  const suspendedResult = applyWithSuspendedWork(room, seat, action, seatToken, consumedPreviewPlayerId, suspendedWork)
+  if (suspendedResult) return suspendedResult
   if (action?.kind === 'giveUpVote') return applyGiveUpVote(room, seat, action, seatToken)
   if (activeGiveUpVote(room)) fail('Resolve the give-up vote first')
   const pendingCatchUp = room.seats.filter((candidate) => candidate.pendingCatchUp)
@@ -2221,8 +2010,8 @@ function applyRoomAction(room, seatToken, action, consumedPreviewPlayerId, suspe
   // owner-private payment opened by a post-roll item.
   if (postRollWindowOpen) suspendPostRollNestedChoice(room)
   if (!suspendedWork) {
-    restoreConcurrentChoice(room, 'pendingDistilled', 'concurrentDistilled')
-    restoreConcurrentChoice(room, 'pendingRelicScry', 'concurrentRelicScries')
+    restoreConcurrentDistilled(room)
+    restoreConcurrentRelicScry(room)
     restoreConcurrentForcedCard(room)
     settleForcedCards(room, consumedPreviewPlayerId)
     restoreConcurrentCopy(room)
@@ -2275,10 +2064,7 @@ function applyRoomAction(room, seatToken, action, consumedPreviewPlayerId, suspe
     room.merchantReady = undefined
     room.eventPledge = undefined
     if (current.phase !== 'combat') {
-      room.concurrentCardCopies = undefined
-      room.concurrentDistilled = undefined
-      room.concurrentRelicScries = undefined
-      room.concurrentForcedCards = undefined
+      clearSuspendedCombat(room)
     }
   }
   settleDisconnectedRewards(room)

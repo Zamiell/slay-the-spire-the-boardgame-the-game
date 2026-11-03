@@ -14,9 +14,10 @@ import type { CardInstance, Enemy } from '../../game/types.ts'
 import type { CardInteractionMode } from './card-interaction.ts'
 import { cardShivsOnPlay, pendingFor } from './card-play-requirements.ts'
 import type { CombatScreenProps, Pending } from './types.ts'
-import { combatActor, localCombat } from '../../game/combat/view.ts'
+import { localCombat } from '../../game/combat/view.ts'
 import type { CombatState } from '../../game/combat.ts'
 import type { CombatTargetProgress } from '../../game/combat/preview-queries.ts'
+import type { CardRevealAction } from './card-reveal.ts'
 
 import { stageChamberCard as stageHermitChamberViewer } from '../../game/combat/queries.ts'
 export { stageHermitChamberViewer }
@@ -72,12 +73,12 @@ type Options = {
   blocked: boolean
   survivorDiscard: boolean
   stateRef: { current: CombatView }
-  cardActionPending: { current: boolean }
+  cardActionPending: { readonly current: boolean }
   targetQueryPending?: { current: object | null }
   setQueryBusy?: (busy: boolean) => void
   onQueryError?: (error: unknown) => void
   onAction: CombatScreenProps['onAction']
-  setUsingCard: (using: boolean) => void
+  submitReveal: (action: CardRevealAction, selection?: Pending) => void
   setPending: (pending: Pending | null) => void
   clearOtherActions: () => void
   withAdjacentChoices: (next: Pending) => Pending
@@ -92,7 +93,7 @@ type Options = {
 /** Coordinates confirmed plays and choices; pickup never enters this flow. */
 export function createCardPlayCoordinator(options: Options) {
   const { state, viewer, pending, miracleOnCard, blocked, survivorDiscard,
-    stateRef, cardActionPending, onAction, setUsingCard, setPending, clearOtherActions,
+    stateRef, cardActionPending, onAction, submitReveal, setPending, clearOtherActions,
     withAdjacentChoices, downfallChoicesReady, slimeEnemyChoicesRequired, hermitEnemyChoicesRequired,
     slayerTargetAffordable, cardContext, commit } = options
   const viewerId = viewer.id
@@ -349,28 +350,10 @@ export function createCardPlayCoordinator(options: Options) {
       return
     }
 
-    cardActionPending.current = true
-    setUsingCard(true)
-    Promise.resolve(onAction({
+    submitReveal({
       kind: 'previewCard', cardUid: card.uid, spendMiracle: miracleOnCard, enemyUid,
       slimeUids: selections?.slimeUids, slimeEnemyUids: selections?.slimeEnemyUids,
-    })).then((outcome) => {
-      cardActionPending.current = false
-      setUsingCard(false)
-      const preview = outcome?.snapshot?.cardPreview
-      const current = stateRef.current
-      const player = combatActor(current, viewerId)
-      const held = player?.hand.find((candidate) => candidate.uid === card.uid)
-      if (outcome?.status !== 'accepted' || !preview || preview.cardUid !== card.uid || !player || !held) return
-      const next = preserveRevealedSelection({
-        ...pendingFor(held, preview.cards, current, player), enemyUid: preview.enemyUid,
-        slimeUids: preview.slimeUids ?? [], slimeEnemyUids: preview.slimeEnemyUids ?? []
-      }, selections)
-      if (next.choice?.kind === preview.kind) stageOrCommit(next)
-    }, () => {
-      cardActionPending.current = false
-      setUsingCard(false)
-    })
+    }, selections)
   }
 
   function requestCopyChoicePreview(enemyUid: string | null = null,
@@ -388,30 +371,11 @@ export function createCardPlayCoordinator(options: Options) {
       if (next.choice?.kind === preview.kind) stageOrCommit(next)
       return
     }
-    cardActionPending.current = true
-    setUsingCard(true)
-    Promise.resolve(onAction({
+    submitReveal({
       kind: 'previewCardCopy', cardUid: copy.card.uid,
       copyId: copy.id, enemyUid,
       slimeUids: selections?.slimeUids, slimeEnemyUids: selections?.slimeEnemyUids
-    })).then((outcome) => {
-      cardActionPending.current = false
-      setUsingCard(false)
-      const current = stateRef.current
-      const currentCopy = current.pendingCardCopy
-      const player = combatActor(current, viewerId)
-      const preview = outcome?.snapshot?.cardPreview
-      if (outcome?.status !== 'accepted' || !preview?.copy || !currentCopy || !player) return
-      const next = preserveRevealedSelection({
-        ...pendingFor(currentCopy.card, preview.cards, current, player, false,
-          currentCopy.energySpent), enemyUid: preview.enemyUid,
-        slimeUids: preview.slimeUids ?? [], slimeEnemyUids: preview.slimeEnemyUids ?? []
-      }, selections)
-      if (next.choice?.kind === preview.kind) stageOrCommit(next)
-    }, () => {
-      cardActionPending.current = false
-      setUsingCard(false)
-    })
+    }, selections)
   }
 
   function requestChamberChoicePreview(card: CardInstance, enemyUid: string | null = null,
@@ -435,37 +399,11 @@ export function createCardPlayCoordinator(options: Options) {
       if (next.choice?.kind === preview.kind) stageOrCommit(next)
       return
     }
-    cardActionPending.current = true
-    setUsingCard(true)
-    Promise.resolve(onAction({
+    submitReveal({
       kind: 'previewHermitChamberCard', cardUid: card.uid, enemyUid,
       energySpent: selections?.energySpent ?? undefined,
       slimeUids: selections?.slimeUids, slimeEnemyUids: selections?.slimeEnemyUids
-    })).then((outcome) => {
-      cardActionPending.current = false
-      setUsingCard(false)
-      const current = stateRef.current
-      const player = combatActor(current, viewerId)
-      const preview = outcome?.snapshot?.cardPreview
-      const held = player?.chamber.find((candidate) => candidate.uid === card.uid)
-      if (outcome?.status !== 'accepted' || !preview?.chamber || !player || !held) return
-      const required = current.pendingHermitChamberPlays?.[0]
-      const staged = stageHermitChamberViewer(player, held,
-        required?.playerId === player.id && required.cardUids[0] === held.uid && required.free)
-      const next = preserveRevealedSelection({
-        ...pendingFor(staged.card, preview.cards, current, staged.player, false, undefined, true), chamberPlay: true,
-        enemyUid: preview.enemyUid,
-        ...(preview.energySpent === undefined ? {} : {
-          energySpent: preview.energySpent,
-          effectEnergy: preview.energySpent, energyCharged: preview.energySpent
-        }),
-        slimeUids: preview.slimeUids ?? [], slimeEnemyUids: preview.slimeEnemyUids ?? []
-      }, selections)
-      if (next.choice?.kind === preview.kind) stageOrCommit(next)
-    }, () => {
-      cardActionPending.current = false
-      setUsingCard(false)
-    })
+    }, selections)
   }
 
   function onCardClick(

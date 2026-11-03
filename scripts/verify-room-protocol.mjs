@@ -9,15 +9,41 @@ import {
 } from './lib/rooms/action-context.mjs'
 import { redactPlayer } from '../src/server/player-projection.ts'
 import { redactRun, redactCombat } from './lib/rooms/projection.mjs'
-import { createRoom, createStore, joinRoom, snapshotFor, startRun } from './lib/rooms.mjs'
+import { createRoom, createStore, joinRoom, queryCombat, snapshotFor, startRun } from './lib/rooms.mjs'
 import { createCombat } from '../src/game/combat.ts'
 import { createRng } from '../src/game/rng.ts'
 import { enterRoom } from '../src/game/run.ts'
 import { postNeowRun } from './lib/post-neow-run.mjs'
 import { decodeRoomSnapshot, decodeRoomReply, decodeRoomEntry } from '../src/protocol/room-snapshot.ts'
+import { decodeCombatQueryReply } from '../src/protocol/combat-query.ts'
 import { suite, check, assert, assertEqual, assertDeepEqual, assertThrows, report } from './lib/harness.mjs'
 
 suite('room protocol')
+
+check('ally-targeted abilities round-trip through both real room and calculation replies', () => {
+  const room = createRoom(createStore())
+  const owner = joinRoom(room, { name: 'Owner', character: 'ironclad' })
+  joinRoom(room, { name: 'Peer', character: 'silent' })
+  startRun(room, owner.token)
+  const combat = createCombat(createRng(47), room.run.players, [{
+    uid: 'e1', defId: 'jaw_worm', row: 0, hp: 30, maxHp: 30, block: 0, strength: 0,
+    vulnerable: 0, weak: 0, poison: 0, actionIndex: 0, abilityUsed: false, dead: false,
+  }])
+  Object.assign(combat, { phase: 'start', turn: 2, die: 4, pendingTriggers: [], startTurnProgress: undefined })
+  for (const player of combat.players) { player.relics = []; player.powers = [] }
+  combat.players[0].relics = [{ defId: 'oddly_smooth_stone', spent: false }]
+  Object.assign(room.run, { phase: 'combat', neow: null, combat })
+  const snapshot = decodeRoomSnapshot(JSON.parse(JSON.stringify(snapshotFor(room, owner.token))))
+  const ability = snapshot.startTurnAbilities.find(ability => ability.players)
+  const expected = room.seats.map(seat => ({ id: seat.playerId, label: seat.name }))
+  assertDeepEqual(ability.players, expected)
+  const query = queryCombat(room, owner.token, { combatId: combat.combatId, version: snapshot.version,
+    query: { kind: 'startTurn', order: snapshot.startTurnAbilities.map(ability => ability.id), choices: [] } })
+  assertDeepEqual(decodeCombatQueryReply(query).result.abilities.find(entry => entry.id === ability.id).players, expected)
+  const malformed = structuredClone(snapshot)
+  malformed.startTurnAbilities.find(entry => entry.id === ability.id).players = [{ id: owner.playerId, name: 'Owner' }]
+  assertThrows(() => decodeRoomSnapshot(malformed))
+})
 
 check('snapshot decoder accepts real lobby, Neow, combat and noncombat projections without inventing fields', () => {
   const room = createRoom(createStore())

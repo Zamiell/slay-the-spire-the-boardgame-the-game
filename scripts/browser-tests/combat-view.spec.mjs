@@ -40,7 +40,7 @@ function fixture() {
   return { room, seat, other }
 }
 
-async function mount(page, appURL, room, seat, pause) {
+async function mount(page, appURL, room, seat, pause, respond) {
   const queries = []
   const actions = []
   const held = []
@@ -54,8 +54,8 @@ async function mount(page, appURL, room, seat, pause) {
   await page.route('**/__combat-action', async route => {
     const action = route.request().postDataJSON()
     actions.push(action)
-    const result = apply(room, seat.token, action)
-    await route.fulfill({ json: result.snapshot })
+    const result = respond ? await respond(action) : apply(room, seat.token, action).snapshot
+    await route.fulfill({ json: result })
   })
   await page.route('**/__combat-view-fixture', async route => {
     const response = await route.fetch()
@@ -67,15 +67,16 @@ async function mount(page, appURL, room, seat, pause) {
   })
   await page.goto(`${appURL}/__combat-view-fixture`)
   await page.evaluate(async snapshot => {
-    const [React, DOM, screen, adapter, codec] = await Promise.all([
+    const [React, DOM, screen, adapter, codec, snapshots] = await Promise.all([
       import('/@id/react'), import('/@id/react-dom/client'), import('/src/ui/CombatScreen.tsx'),
       import('/src/ui/combat-screen/online-view.ts'), import('/src/protocol/combat-query.ts'),
+      import('/src/protocol/room-snapshot.ts'),
       import('/src/ui/styles.css'), import('/src/ui/chrome.css'),
     ])
     const h = React.createElement ?? React.default.createElement
     const root = (DOM.createRoot ?? DOM.default.createRoot)(document.querySelector('#root'))
-    const api = window.combatView = { snapshot, refresh: 0,
-      update(next) { api.snapshot = next; render() } }
+    const api = window.combatView = { snapshot: snapshots.decodeRoomSnapshot(snapshot), refresh: 0, resyncFrame: null, deferUpdates: false,
+      update(next) { api.snapshot = snapshots.decodeRoomSnapshot(next); render() } }
     const onQuery = async (request, signal) => {
       const response = await fetch('/__combat-preview', {
         method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(request), signal,
@@ -90,8 +91,9 @@ async function mount(page, appURL, room, seat, pause) {
         method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(action),
       })
       const next = await response.json()
-      api.update(next)
-      return { status: 'accepted', snapshot: next }
+      const outcome = next.status ? next : { status: 'accepted', snapshot: next }
+      if (outcome.snapshot && !api.deferUpdates) api.update(outcome.snapshot)
+      return outcome
     }
     function render() {
       const current = api.snapshot
@@ -99,10 +101,22 @@ async function mount(page, appURL, room, seat, pause) {
       api.state = state
       root.render(h(React.StrictMode ?? React.default.StrictMode, null, h(screen.CombatScreen, {
         state, act: 1, viewerId: current.you.playerId, onAction, onQuery,
+        cardPreview: current.cardPreview,
+        onResync: async () => {
+          if (!api.resyncFrame) return false
+          api.refresh++
+          api.update(api.resyncFrame)
+          return true
+        },
         authoritativeVersion: current.version, authoritativeRefresh: api.refresh, authoritativeConnected: true,
         authoritativePendingTrigger: current.run.combat.pendingTriggerAbility,
         viewerStanceChangedThisTurn: current.run.combat.viewerStanceChangedThisTurn,
         partyStartTurnAbilities: current.startTurnAbilities, partyStartTurnScryAbilities: current.startTurnScryAbilities,
+        startTurnDecidedPlayerIds: current.startTurnDecided, requiredStartTurnPlayerIds: current.startTurnRequired,
+        startTurnCoordinatorId: current.startTurnCoordinatorId, startTurnChoiceId: current.startTurnChoiceId,
+        savedStartTurnEnemyTargets: current.startTurnEnemyTargets, savedStartTurnChoices: current.startTurnChoices,
+        partyStartTurnPostRollLocked: current.startTurnPostRollLocked,
+        partyStartTurnOrderPending: current.startTurnOrderPending, partyStartTurnOrderLocked: current.startTurnOrderLocked,
         requiredEndTurnPlayerIds: current.endTurnRequired, decidedPlayerIds: current.endTurnDecided,
         endTurnTopPlayerIds: current.endTurnTopPlayerIds, partyEndTurnAbilities: current.endTurnAbilities,
       })))
@@ -135,6 +149,91 @@ test('a late HUD reply cannot replace a newer partial combat view', async ({ pag
     assert.equal(driver.actions.length, 0)
     await page.screenshot({ path: resolve(artifacts, 'fresh-hud.png') })
   } finally { driver.release() }
+})
+
+test('a decoded Oddly Smooth Stone choice can give Block to a teammate', async ({ page, appURL }) => {
+  const { room, seat, other } = fixture()
+  Object.assign(room.run.combat, { phase: 'start', turn: 2, die: 4, startTurnProgress: undefined })
+  room.run.combat.players[0].relics = [{ defId: 'oddly_smooth_stone', spent: false }]
+  await mount(page, appURL, room, seat, () => false)
+  await page.getByRole('button', { name: "Resolve Owner's Oddly Smooth Stone", exact: true }).click()
+  await page.locator(`.seat--targetable[data-player-id="${other.playerId}"]`).press('Enter')
+  await page.getByRole('button', { name: /^(Resolve start|Confirm start-of-turn)/ }).click()
+  await expect.poll(() => room.run.combat.phase).toBe('player')
+  assert.equal(room.run.combat.players[1].block, 2)
+})
+
+test('an uncertain private reveal stays locked until a later successful refresh', async ({ page, appURL, artifacts }) => {
+  const { room, seat } = fixture()
+  Object.assign(room.run.combat.players[0], {
+    hand: [{ uid: 'scry', defId: 'third_eye', upgraded: false }], draw: [], discard: [],
+  })
+  let first = true
+  const driver = await mount(page, appURL, room, seat, () => false, action => {
+    if (first) { first = false; return { status: 'unknown', refreshAttempt: 0 } }
+    return apply(room, seat.token, action).snapshot
+  })
+  const card = page.locator('.hand .card[data-card-name="Third Eye"]')
+  await card.press('Enter')
+  await expect(page.getByRole('alert')).toContainText('confirm the card reveal')
+  await page.getByRole('button', { name: 'Check room state' }).click()
+  await expect(page.getByRole('alert')).toContainText('confirm the card reveal')
+  await page.evaluate(() => window.combatView.update(structuredClone(window.combatView.snapshot)))
+  await page.waitForTimeout(100)
+  assert.deepEqual(driver.actions.map(action => action.kind), ['previewCard'])
+  await page.screenshot({ path: resolve(artifacts, 'uncertain-reveal.png') })
+  await page.evaluate(snapshot => { window.combatView.resyncFrame = snapshot }, snapshotFor(room, seat.token))
+  await page.getByRole('button', { name: 'Check room state' }).click()
+  await expect(page.getByRole('alert')).toHaveCount(0)
+  await card.press('Enter')
+  await expect.poll(() => driver.actions.map(action => action.kind)).toEqual(['previewCard', 'previewCard', 'playCard'])
+  await expect(card).toHaveCount(0)
+  assert.equal(room.run.combat.players[0].discard.filter(card => card.uid === 'scry').length, 1)
+})
+
+for (const status of ['accepted', 'reconciled']) test(`a ${status} reveal waits for its rendered frame before continuing an empty Scry`, async ({ page, appURL }) => {
+  const { room, seat } = fixture()
+  Object.assign(room.run.combat.players[0], {
+    hand: [{ uid: 'scry', defId: 'third_eye', upgraded: false }], draw: [], discard: [],
+  })
+  const driver = await mount(page, appURL, room, seat, () => false,
+    action => ({ status, snapshot: apply(room, seat.token, action).snapshot }))
+  await page.evaluate(() => { window.combatView.deferUpdates = true })
+  await page.locator('.hand .card[data-card-name="Third Eye"]').press('Enter')
+  await expect(page.getByRole('alert')).toContainText('confirm the card reveal')
+  assert.deepEqual(driver.actions.map(action => action.kind), ['previewCard'])
+  await page.evaluate(snapshot => {
+    window.combatView.deferUpdates = false
+    window.combatView.update(snapshot)
+  }, snapshotFor(room, seat.token))
+  await expect.poll(() => driver.actions.map(action => action.kind)).toEqual(['previewCard', 'playCard'])
+})
+
+for (const resource of ['shiv', 'soulburn']) test(`uncertain ${resource} spending cannot consume another token before recovery`, async ({ page, appURL }) => {
+  const { room, seat } = fixture()
+  const actor = room.run.combat.players[0]
+  actor.shivs = 2
+  actor.soulburn = 2
+  actor.heat = 3
+  actor.relics = [{ defId: 'corrupted_shard', spent: false }]
+  let first = true
+  const driver = await mount(page, appURL, room, seat, () => false, action => {
+    if (first) { first = false; return { status: 'unknown', refreshAttempt: 0 } }
+    return apply(room, seat.token, action).snapshot
+  })
+  const button = page.getByRole('button', { name: resource === 'shiv' ? 'Use Shiv' : /^Spend Soulburn,/ })
+  await button.press('Enter')
+  await expect(page.getByRole('alert')).toContainText('confirm the resource spend')
+  await expect(button).toBeDisabled()
+  await page.getByRole('button', { name: 'Check room state' }).click()
+  await expect(button).toBeDisabled()
+  assert.equal(driver.actions.length, 1)
+  await page.evaluate(snapshot => { window.combatView.resyncFrame = snapshot }, snapshotFor(room, seat.token))
+  await page.getByRole('button', { name: 'Check room state' }).click()
+  await expect(button).toBeEnabled()
+  await button.press('Enter')
+  await expect.poll(() => driver.actions.length).toBe(2)
+  await expect.poll(() => room.run.combat.players[0][resource === 'shiv' ? 'shivs' : 'soulburn']).toBe(1)
 })
 
 test('delayed authoritative Orb planning submits one card without exposing teammate piles', async ({ page, appURL, artifacts }) => {

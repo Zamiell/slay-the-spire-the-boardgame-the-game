@@ -7,6 +7,8 @@ import type { NoncombatPlayerView } from '../../src/ui/noncombat-player.ts'
 import { addCard } from '../../src/game/acquisition.ts'
 import type { VisiblePreparedCombat } from '../../src/protocol/room.ts'
 import { startTurnScryPreview } from '../../src/game/combat.ts'
+import type { StartTurnAbility } from '../../src/game/combat.ts'
+import type { WirePlayerTarget, WireStartTurnAbility } from '../../src/protocol/combat-replies.ts'
 
 const decision = (action: RoomDecisionAction) => action
 decision({ kind: 'potionReward', choice: 'pass', playerId: 'p2' })
@@ -52,3 +54,14 @@ startTurnScryPreview(preparedView)
 decision({ kind: 'event', decision: { cardUids: ['c1'] } })
 // @ts-expect-error Courier purchases cannot choose a card reward supply.
 decision({ kind: 'courierReveal', itemKind: 'card' })
+
+declare const engineAbility: StartTurnAbility
+const wireAbility: WireStartTurnAbility = engineAbility
+const roundTripAbility: StartTurnAbility = wireAbility
+void roundTripAbility
+const sameAbilityKeys: Exclude<keyof StartTurnAbility, keyof WireStartTurnAbility> |
+  Exclude<keyof WireStartTurnAbility, keyof StartTurnAbility> extends never ? true : never = true
+void sameAbilityKeys
+// @ts-expect-error Public ally choices use label, not a second player-name contract.
+const invalidTarget: WirePlayerTarget = { id: 'p1', name: 'Owner' }
+void invalidTarget

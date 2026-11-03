@@ -23,10 +23,12 @@ import {
   joinRoom,
   markDisconnected,
   removeSeat,
+  restoreRoom,
   roomCode,
   snapshotFor,
   startRun,
 } from './lib/rooms.mjs'
+import { createSuspendedCombatCoordinator } from '../src/server/suspended-combat.ts'
 import { CAPS, CARDS, GOLDEN_TICKET, ROOM_LABEL, cardNeedsEnemy, createCampaignProgress, currentQuickSetupStep, enteringRoom, lightningRowTarget, preparePlayerTurn, preparePlayerTurnThroughDraw, resumePlayerTurnAfterDraw, roomChoices, startPlayerTurnWithChoices } from '../src/game/state.ts'
 import { createMerchant, createRelicReward } from '../src/game/noncombat.ts'
 import { createEventRoom } from '../src/game/event-room.ts'
@@ -14378,6 +14380,53 @@ check('earned Ascension follows party boss thresholds and caps at Ascension 13',
       campaign: { ...room.run.campaign, bossesDefeated: bossAct, highestBossActDefeated: bossAct } }
     apply(room, leader.token, { kind: 'finishRun' })
     assertEqual(snapshotFor(room, leader.token).earnedAscension, expected)
+  }
+})
+
+check('suspended coordination cannot resurrect a copy when settlement finishes combat', () => {
+  for (const terminal of ['won', 'removed']) {
+    const { room, a, b } = twoSeatRoom()
+    room.run.combat.phase = 'copy'
+    room.run.combat.pendingCardCopy = {
+      id: 71, playerId: b.playerId, card: { uid: 'foreign-copy', defId: 'strike_silent', upgraded: false },
+      energySpent: 1, resumePhase: 'player', forcedExhaust: false, forcedChoices: null,
+      deferredHavocs: [], sourceNames: ['Double Tap'],
+    }
+    let settlements = 0
+    const coordinate = createSuspendedCombatCoordinator({
+      apply: () => ({ changed: true }), restoreRoom, snapshotFor, dieRelicChoiceNeedsInput: () => true,
+      settleForcedCards: current => {
+        settlements++
+        if (terminal === 'won') current.run.combat.phase = 'won'
+        else { current.run.phase = 'reward'; current.run.combat = null }
+      },
+    })
+    coordinate(room, a, { kind: 'fixture' }, a.token, null, null)
+    assertEqual(room.run.combat?.phase, terminal === 'won' ? 'won' : undefined)
+    assertEqual(room.concurrentCardCopies, undefined)
+    assertEqual(settlements, 2, 'both ordered settlement passes remain in place')
+  }
+})
+
+check('suspended coordination restores every queue after a no-op or thrown action', () => {
+  for (const refusal of ['no-op', 'throw']) {
+    const { room, a, b } = twoSeatRoom()
+    room.run.combat.pendingDistilled = { playerId: b.playerId, cards: room.run.combat.players[1].hand.slice(0, 1) }
+    room.concurrentRelicScries = [{ id: 8, playerId: a.playerId, relicIndex: 0,
+      cards: room.run.combat.players[0].draw.slice(0, 3) }]
+    const before = structuredClone(room)
+    const coordinate = createSuspendedCombatCoordinator({
+      apply: current => {
+        current.run.combat.players[0].energy = 99
+        current.concurrentRelicScries = []
+        if (refusal === 'throw') throw new Error('Rejected after staging')
+        return { changed: false }
+      },
+      restoreRoom, snapshotFor, dieRelicChoiceNeedsInput: () => true, settleForcedCards: () => {},
+    })
+    if (refusal === 'throw') assertThrows(() => coordinate(room, a, {}, a.token, null, null), 'Rejected after staging')
+    else assertEqual(coordinate(room, a, {}, a.token, null, null).changed, false)
+    assertDeepEqual(room, before)
   }
 })
 

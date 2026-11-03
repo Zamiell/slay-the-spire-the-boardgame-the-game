@@ -16,9 +16,10 @@ import type { SetStateAction } from 'react'
 import { useScopedSelection } from './useScopedSelection.ts'
 import { createCardChoiceRules } from './card-choice-rules.ts'
 import { cardContext as buildCardContext, reconcileCardDraft, restoreUnknownCardDraft } from './card-draft.ts'
+import { matchingCardReveal, revealedCardDraft, type CardRevealAction, type CardRevealAttempt } from './card-reveal.ts'
 type Coordinator = ReturnType<typeof createCardPlayCoordinator>
 type Options = Pick<CombatScreenProps, 'state' | 'viewerId' | 'onAction' | 'onChange' | 'cardPreview' | 'drawCount' |
-  'authoritativeRefresh'> & {
+  'authoritativeRefresh' | 'authoritativeVersion'> & {
     viewer: CombatActor
     queries: ReturnType<typeof useCombatQueries>
     reconciliation: (outcome: ActionOutcome | void) => { combat: CombatView; player: CombatPlayerView } | null
@@ -29,10 +30,10 @@ type Options = Pick<CombatScreenProps, 'state' | 'viewerId' | 'onAction' | 'onCh
 
 export function useCardController(options: Options) {
   const { state, viewer, viewerId, onAction, onChange, cardPreview, drawCount, queries,
-    authoritativeRefresh, reconciliation, presentation } = options
+    authoritativeRefresh, authoritativeVersion, reconciliation, presentation } = options
   const scope = `${state.combatId}:${viewerId}`
-  const [selection, setSelection] = useScopedSelection<{ pending: Pending | null; miracle: boolean; previewing: boolean }>(
-    scope, { pending: null, miracle: false, previewing: false })
+  const [selection, setSelection] = useScopedSelection<{ pending: Pending | null; miracle: boolean }>(
+    scope, { pending: null, miracle: false })
   const pending = selection.pending
   const miracleOnCard = selection.miracle
   function setPending(update: SetStateAction<Pending | null>) {
@@ -47,12 +48,8 @@ export function useCardController(options: Options) {
       return next === previous.miracle ? previous : { ...previous, miracle: next }
     })
   }
-  function setUsingCard(previewing: boolean) {
-    setSelection(previous => previous.previewing === previewing ? previous : { ...previous, previewing })
-  }
   const stateRef = useRef(state)
   stateRef.current = state
-  const cardActionPending = useMemo(() => ({ current: false }), [scope])
   const targetQueryPending = useRef<object | null>(null)
   const [targetQueryBusy, setTargetQueryBusy] = useState(false)
   useLayoutEffect(() => {
@@ -63,7 +60,6 @@ export function useCardController(options: Options) {
   const rules = createCardChoiceRules(state, viewer, miracleOnCard)
   const cardLifecycle = useActionLifecycle<CardSubmission, CombatView>({
     scope: `${state.combatId}:${viewerId}`, board: state, refresh: authoritativeRefresh,
-    lockRef: cardActionPending,
     committed: (card, combat) => cardSubmissionCommitted(card, combat, viewerId),
     reconciled: (card, committed, combat) => {
       if (shouldDisarmCardFlight(card.source !== 'copy', committed)) presentation.disarm()
@@ -72,7 +68,32 @@ export function useCardController(options: Options) {
       else if (current) restoreUnknownCard(card.pending, current, card.usingMiracle, combat)
     },
   })
-  const usingCard = selection.previewing || cardLifecycle.busy || targetQueryBusy
+  const revealBoard = useMemo(() => ({ state, cardPreview }), [state, cardPreview])
+  const revealLifecycle = useActionLifecycle<CardRevealAttempt, typeof revealBoard>({
+    scope, board: revealBoard, refresh: authoritativeRefresh, version: authoritativeVersion, awaitCommit: true,
+    committed: (attempt, board) => matchingCardReveal(attempt, board.state, board.cardPreview),
+    reconciled: (attempt, committed, board) => {
+      if (!committed) return
+      const restored = revealedCardDraft(attempt, board.state, board.cardPreview)
+      if (!restored) return
+      setMiracleOnCard(board.cardPreview?.spendMiracle === true)
+      stageOrCommit(restored)
+    },
+  })
+  const cardActionPending = { get current() { return cardLifecycle.locked() || revealLifecycle.locked() } }
+  const usingCard = cardLifecycle.busy || revealLifecycle.busy || targetQueryBusy
+  function submitReveal(action: CardRevealAction, selection?: Pending) {
+    if (!onAction || cardActionPending.current) return
+    const attempt = { combatId: state.combatId, playerId: viewerId, action, selection }
+    revealLifecycle.submit(attempt, async () => {
+      const outcome = await onAction(action)
+      // An exact recovery receipt proves the reveal, but its frame must still render first.
+      const snapshot = outcome?.snapshot
+      return outcome?.status === 'reconciled' && snapshot?.run?.combat &&
+        matchingCardReveal(attempt, snapshot.run.combat, snapshot.cardPreview)
+        ? { ...outcome, status: 'accepted' as const } : outcome
+    }, true)
+  }
   function restoreUnknownCard(submitted: Pending, current: CombatActor, usingMiracle: boolean, authoritative = stateRef.current) {
     setMiracleOnCard(usingMiracle)
     setPending(restoreUnknownCardDraft(submitted, current, authoritative))
@@ -99,7 +120,7 @@ export function useCardController(options: Options) {
   function coordinator() {
     return createCardPlayCoordinator({
       state, viewer, pending, miracleOnCard, ...options.interaction(), stateRef,
-      cardActionPending, onAction, setUsingCard, setPending,
+      cardActionPending, onAction, submitReveal, setPending,
       withAdjacentChoices: rules.withAdjacentChoices, downfallChoicesReady: rules.downfallChoicesReady,
       slimeEnemyChoicesRequired: rules.slimeEnemyChoicesRequired, hermitEnemyChoicesRequired: rules.loadedTargetCount,
       slayerTargetAffordable: rules.slayerTargetAffordable, cardContext, commit,
@@ -401,6 +422,7 @@ export function useCardController(options: Options) {
   }, [state, viewer, drawCount, usingCard])
   return {
     pending, setPending, miracleOnCard, setMiracleOnCard, usingCard, cardActionPending, stateRef, rules,
+    revealWaiting: revealLifecycle.phase === 'unknown' || revealLifecycle.phase === 'accepted',
     cardQuery, commit, stageOrCommit, requestChoicePreview, requestCopyChoicePreview, requestChamberChoicePreview,
     withEvokeSlot: (...args: Parameters<Coordinator['withEvokeSlot']>) => coordinator().withEvokeSlot(...args),
     confirmCardPlay: (...args: Parameters<Coordinator['confirm']>) => coordinator().confirm(...args),

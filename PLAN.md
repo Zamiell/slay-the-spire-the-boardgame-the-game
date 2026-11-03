@@ -506,3 +506,43 @@ phone, alongside recorded card-planning transitions and compact-picker captures.
 The party verifier now waits for the authoritative coordinator stage instead of
 racing another seat's render. Legacy portal selectors and source-layout checks
 were updated without running the opt-in browser umbrella. No dependency was added.
+
+## Combat contracts and delivery hardening
+
+- [x] **Shared combat reply contracts.** Snapshots and calculation replies reuse
+  target/ability schemas and inferred wire types, while retaining query-specific
+  size budgets. Fixed the ally-target `name`/`label` mismatch that rejected real
+  Oddly Smooth Stone choices. Bidirectional engine/wire type checks, actual
+  producer/decoder round trips, and browser ally selection guard the boundary.
+- [x] **Irreversible reveal delivery.** Hand, copy, and Chamber reveals use the
+  shared action lifecycle instead of manually releasing pending flags. Unknown
+  delivery stays locked through failed refreshes; later successful recovery or
+  matching authoritative evidence reconciles it. Accepted/recovered receipts wait
+  for rendering before continuation. Pure receipt matching binds the combat,
+  source, card, exact copy instance, target, payment, and Slime choices.
+- [x] **Typed suspended combat ownership.** A cohesive server coordinator owns
+  suspension/restoration of other seats' copies, Distilled choices, relic Scries,
+  forced cards, queued choices, and triggers. Authentication and the outer
+  transaction stay in the room coordinator. LIFO ordering, rollback, settlement
+  order, and the Ritual Dagger exception are preserved. Settlement now rechecks
+  combat before restoring foreign work, so it cannot revive a finished combat.
+- [x] **Follow-through on resource delivery.** The continued audit found the same
+  uncertain-outcome weakness in Shiv and Soulburn spending. Both now retain their
+  single-flight locks until authoritative reconciliation and wait for accepted
+  rendered frames. Failed refreshes cannot enable a second spend.
+
+**Verification:** Full light gate **93/93**, both compiler projects, and production
+build pass. Targeted results include room rules **490/490**, room protocol
+**12/12**, start-turn protocol **16/16**, room server **55/55**, combat-view
+contracts **10/10**, and managed combat-view browser cases **16/16**. Card choices,
+Double Tap recovery, Chamber, online staged triggers, start-turn party, and
+Shiv/Soulburn Time Warp flows pass. The complete normal-motion sweep covers
+**44 surfaces / 88 screenshots**. Both screen classes' screenshots and sampled
+video transitions were reviewed, including uncertain-reveal recovery. No new
+dependency or legacy browser umbrella was needed.
+
+**Stopping point:** The follow-up audit found no additional concrete high-value
+restructuring to justify more churn. Identity-bound choice handlers, intentional
+effect/trigger recursion, static card/transcription tables, and specialized legacy
+migrations retain their existing boundaries. This is a practical stopping point,
+not a claim that future requirements can never justify another refactor.

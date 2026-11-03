@@ -1,4 +1,5 @@
 import { useCardController } from './combat-screen/useCardController.ts'
+import { useActionLifecycle } from './actions/useActionLifecycle.ts'
 import { useStartTurnDraft, useEndTurnDraft } from './combat-screen/useTurnDrafts.ts'
 import { useCombatStage } from './combat-screen/useCombatStage.ts'
 import { useCombatPresentation } from './combat-screen/useCombatPresentation.ts'
@@ -506,10 +507,28 @@ function CombatScreenReady({
   const queries = useCombatQueries(state, viewerId, authoritativeVersion, authoritativeRefresh,
     authoritativeRestoration, onQuery)
   const [spendingShiv, setSpendingShiv] = useState<false | 'one' | 'all'>(false)
-  const shivActionPending = useRef(false)
-  const soulburnActionPending = useRef(false)
   const [spendingSoulburn, setSpendingSoulburn] = useState(false)
   const [extraCrispySoulburn, setExtraCrispySoulburn] = useState(false)
+  const shivDelivery = useActionLifecycle<{ mode: 'one' | 'all'; before: number }, CombatView>({
+    scope: `${state.combatId}:${viewerId}:shivs`, board: state,
+    refresh: authoritativeRefresh, version: authoritativeVersion, awaitCommit: true,
+    committed: (spent, current) => (current.players.find(player => player.id === viewerId)?.shivs ?? spent.before) < spent.before,
+    reconciled: (spent, committed) => { if (!committed) setSpendingShiv(spent.mode) },
+  })
+  const soulburnDelivery = useActionLifecycle<{ before: number; usedBefore: boolean; extraCrispy: boolean }, CombatView>({
+    scope: `${state.combatId}:${viewerId}:soulburn`, board: state,
+    refresh: authoritativeRefresh, version: authoritativeVersion, awaitCommit: true,
+    committed: (spent, current) => {
+      const actor = current.players.find(player => player.id === viewerId)
+      return Boolean(actor && (actor.soulburn < spent.before || !spent.usedBefore && actor.soulburnUsedThisTurn))
+    },
+    reconciled: (spent, committed) => {
+      if (!committed) { setSpendingSoulburn(true); setExtraCrispySoulburn(spent.extraCrispy) }
+    },
+  })
+  const shivActionPending = { get current() { return shivDelivery.locked() } }
+  const soulburnActionPending = { get current() { return soulburnDelivery.locked() } }
+  const resourceWaiting = [shivDelivery.phase, soulburnDelivery.phase].some(phase => phase === 'unknown' || phase === 'accepted')
   const [chamberOpen, setChamberOpen] = useState(false)
   const [chamberClosing, setChamberClosing] = useState(false)
   const [chamberContact, setChamberContact] = useState(false)
@@ -619,7 +638,7 @@ function CombatScreenReady({
   const forcedAutoAttempt = useRef<string | null>(null)
   const cardController = useCardController({
     state, viewer, viewerId, onAction, onChange, cardPreview, drawCount, queries,
-    authoritativeRefresh, reconciliation,
+    authoritativeRefresh, authoritativeVersion, reconciliation,
     interaction: () => ({ blocked: Boolean(endTurnResolving || pendingTrigger), survivorDiscard }),
     clearOtherActions: () => {
       cancelPowerChoice(); setSpendingShiv(false); setSpendingSoulburn(false); cancelPotionChoice()
@@ -2955,17 +2974,13 @@ function CombatScreenReady({
     if (shivActionPending.current) return
     if (onAction) {
       const shivsBefore = viewer!.shivs
-      shivActionPending.current = true
       setSpendingShiv(false)
-      const finish = (outcome: ActionOutcome | void) => {
-        shivActionPending.current = false
-        const current = stateRef.current.players.find((player) => player.id === viewerId)
-        if ((outcome?.status === 'refused' || outcome?.status === 'reconciled') &&
-          stateRef.current.combatId === state.combatId && current && current.shivs >= shivsBefore) setSpendingShiv(mode)
-      }
-      Promise.resolve(onAction({ kind: 'spendShiv', enemyUid: enemy.uid, ...(mode === 'all' ? { all: true } : {}) })).then(finish, (error: unknown) => {
-        console.error('Could not spend Shivs.', error)
-        finish({ status: 'refused' })
+      shivDelivery.submit({ mode, before: shivsBefore },
+        () => onAction({ kind: 'spendShiv', enemyUid: enemy.uid, ...(mode === 'all' ? { all: true } : {}) }), true, outcome => {
+        const current = outcome.snapshot ? reconciliation(outcome)?.player
+          : stateRef.current.players.find(player => player.id === viewerId)
+        if ((outcome.status === 'refused' || outcome.status === 'reconciled') &&
+          current && current.shivs >= shivsBefore) setSpendingShiv(mode)
       })
       return
     }
@@ -3124,23 +3139,19 @@ function CombatScreenReady({
     const extraCrispyPowerUid = extraCrispy ? extraCrispyPower?.uid : undefined
     if (onAction) {
       const soulburnBefore = viewer!.soulburn
-      soulburnActionPending.current = true
       setSpendingSoulburn(false)
       setExtraCrispySoulburn(false)
-      const finish = (outcome: ActionOutcome | void) => {
-        soulburnActionPending.current = false
-        const current = stateRef.current.players.find(player => player.id === viewerId)
-        if ((outcome?.status === 'refused' || outcome?.status === 'reconciled') &&
-          stateRef.current.combatId === state.combatId && current && current.soulburn >= soulburnBefore) {
+      soulburnDelivery.submit({ before: soulburnBefore, usedBefore: viewer.soulburnUsedThisTurn === true,
+        extraCrispy: Boolean(extraCrispyPowerUid) },
+        () => onAction({ kind: 'spendSoulburn', enemyUid: enemy.uid, extraCrispyPowerUid }), true, outcome => {
+        const current = outcome.snapshot ? reconciliation(outcome)?.player
+          : stateRef.current.players.find(player => player.id === viewerId)
+        if ((outcome.status === 'refused' || outcome.status === 'reconciled') &&
+          current && current.soulburn >= soulburnBefore) {
           setSpendingSoulburn(true)
           setExtraCrispySoulburn(Boolean(extraCrispyPowerUid))
         }
-      }
-      Promise.resolve(onAction({ kind: 'spendSoulburn', enemyUid: enemy.uid, extraCrispyPowerUid }))
-        .then(finish, (error: unknown) => {
-          console.error('Could not spend Soulburn.', error)
-          finish({ status: 'unknown' })
-        })
+      })
       return
     }
     const result = spendSoulburn(localCombat(state), viewer!.id, enemy.uid, extraCrispyPowerUid)
@@ -3668,11 +3679,11 @@ function CombatScreenReady({
     pendingTrigger?.playerId === viewer.id)
   const resourceActionsAvailable = !viewer.dead && state.phase === 'player' && !relicScry &&
     !voluntaryActionsBlocked && !forcedCard && !distilled && !endTurnResolving && !pendingTrigger
-  const shivActionsAvailable = resourceActionsAvailable && !viewer.cardPlayLocked && viewer.shivs > 0
+  const shivActionsAvailable = resourceActionsAvailable && !shivDelivery.busy && !viewer.cardPlayLocked && viewer.shivs > 0
   const miracleActionAvailable = resourceActionsAvailable && viewer.miracles > 0
   const vigorActionAvailable = resourceActionsAvailable && Boolean(viewer.guardianMode) &&
     viewer.vigor > 0 && !viewer.cardPlayLocked && !reachedTimeWarpLimit(state, viewer)
-  const soulburnActionAvailable = resourceActionsAvailable && !viewer.cardPlayLocked && viewer.soulburn > 0
+  const soulburnActionAvailable = resourceActionsAvailable && !soulburnDelivery.busy && !viewer.cardPlayLocked && viewer.soulburn > 0
   const availableRelics = viewer.relics.map((held, relicIndex) => ({ held, relicIndex }))
     .filter(({ relicIndex }) => canUseRelicNow(relicIndex))
   const relicActionGroups = [true, false].map(startOnly => ({
@@ -3717,8 +3728,10 @@ function CombatScreenReady({
       {groundedVfx}
       <header ref={combatBarRef} className="combat__bar">
         <CombatDie state={state} viewerId={viewerId} />
-        {queries.error ? <span className="combat__power-hint" role="alert">
-          {queries.error}
+        {queries.error || cardController.revealWaiting || resourceWaiting ? <span className="combat__power-hint" role="alert">
+          {queries.error || (cardController.revealWaiting
+            ? 'Waiting for the room to confirm the card reveal. Check room state before trying again.'
+            : 'Waiting for the room to confirm the resource spend. Check room state before trying again.')}
           {onResync ? <button type="button" className="combat__resync" disabled={resyncing} onClick={() => {
             setResyncing(true)
             void onResync().catch(queries.report).finally(() => setResyncing(false))

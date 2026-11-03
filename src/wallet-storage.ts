@@ -1,11 +1,9 @@
 // The wallet's home in this browser profile. Guarded like `campaign-storage.ts`:
 // blocked or full storage never throws into React, it only stops persisting.
 //
-// Every change is a read-modify-write of what storage holds now, never of a copy
-// kept in memory, so two tabs cannot overwrite each other's coins: a tab that
-// credits a boss and a tab that buys a pack or skin both start from the same, latest
-// wallet. When storage refuses a write the newer wallet is kept here, for this
-// tab, until a later write succeeds.
+// Changes read the latest stored wallet or that account's newer pending write.
+// Failed writes stay account-scoped in this tab until storage recovers. A payment
+// record waits for every wallet that received its awards to be saved first.
 //
 // The wallet belongs to the signed-in account, like the play in progress that
 // profile.ts clears on an account change: each account has its own key, and
@@ -16,7 +14,7 @@ import { MAX_BOSS_AWARDS } from './game/coins.ts'
 import type { BossCoinAward } from './game/coins.ts'
 import { ACCOUNT_SERVER, normalizeUsername, savedProfile, syncProfileWallet } from './profile.ts'
 import type { WalletCredit, WalletMigration, WalletPurchase, WalletReply } from './profile.ts'
-import { buyPack, buySkin, creditBossCoins, creditOncePerBrowser, parsePaidRuns, parseWallet } from './wallet.ts'
+import { buyPack, buySkin, creditBossCoins, creditOncePerBrowser, MAX_PAID_RUNS, parsePaidRuns, parseWallet } from './wallet.ts'
 import type { PaidRuns, Wallet } from './wallet.ts'
 
 /** The anonymous wallet's key; an account's is `sts-wallet:<username>`. */
@@ -107,7 +105,9 @@ async function spend(online: WalletPurchase, local: (wallet: Wallet) => ReturnTy
 export const purchasePack = (id: string) => spend({ pack: id }, (wallet) => buyPack(wallet, id))
 export const purchaseSkin = (id: string) => spend({ skin: id }, (wallet) => buySkin(wallet, id))
 
-let unsaved: { key: string; wallet: Wallet } | null = null
+const unsavedWallets = new Map<string, Wallet>()
+type PendingPayment = { count: number; wallets: Set<string> }
+const pendingPayments = new Map<string, PendingPayment>()
 
 const read = (key: string): string | null => {
   try { return localStorage.getItem(key) } catch { return null }
@@ -126,7 +126,8 @@ function adoptAnonymousWallet(key: string): void {
 
 export function savedWallet(): Wallet {
   const key = currentWalletKey()
-  if (unsaved?.key === key) return unsaved.wallet
+  const pending = unsavedWallets.get(key)
+  if (pending) return pending
   adoptAnonymousWallet(key)
   try { return parseWallet(JSON.parse(read(key) ?? 'null')) }
   catch { return parseWallet(null) }
@@ -142,39 +143,50 @@ export function updateWallet(change: (wallet: Wallet) => Wallet): Wallet {
   const current = savedWallet()
   const next = change(current)
   if (next === current) return current
-  try {
-    localStorage.setItem(key, JSON.stringify(next))
-    unsaved = null
-  } catch {
-    // Storage is unavailable; this tab keeps the wallet in memory.
-    unsaved = { key, wallet: next }
-  }
+  persistWallet(key, next)
+  flushPayments()
   window.dispatchEvent(new Event(WALLET_EVENT))
   return next
 }
 
-let unsavedPaid: PaidRuns | null = null
+function persistWallet(key: string, wallet: Wallet): void {
+  try {
+    localStorage.setItem(key, JSON.stringify(wallet))
+    unsavedWallets.delete(key)
+    for (const payment of pendingPayments.values()) payment.wallets.delete(key)
+  } catch {
+    unsavedWallets.set(key, wallet)
+  }
+}
 
-/** Writes whatever an earlier failed write left in memory, now that storage may work again. */
+function paymentRecord(payments: Iterable<[string, PendingPayment]>): PaidRuns {
+  let stored: PaidRuns
+  try { stored = parsePaidRuns(JSON.parse(read(PAID_RUNS_KEY) ?? 'null')) } catch { stored = {} }
+  const record = new Map(Object.entries(stored))
+  for (const [runKey, payment] of payments) {
+    const count = Math.max(record.get(runKey) ?? 0, payment.count)
+    record.delete(runKey)
+    record.set(runKey, count)
+  }
+  return parsePaidRuns(Object.fromEntries(record))
+}
+
+function flushPayments(): void {
+  const ready = [...pendingPayments].filter(([, payment]) => payment.wallets.size === 0)
+  if (ready.length === 0) return
+  try {
+    localStorage.setItem(PAID_RUNS_KEY, JSON.stringify(paymentRecord(ready)))
+    for (const [runKey] of ready) pendingPayments.delete(runKey)
+  } catch { /* Keep these payments pending until their ledger write succeeds. */ }
+}
+
+/** Retry each account independently; only its own payment records wait for it. */
 function flushUnsaved(): void {
-  if (unsaved) {
-    try {
-      localStorage.setItem(unsaved.key, JSON.stringify(unsaved.wallet))
-      unsaved = null
-    } catch { /* Still unavailable. */ }
-  }
-  if (unsavedPaid && !unsaved) {
-    try {
-      localStorage.setItem(PAID_RUNS_KEY, JSON.stringify(unsavedPaid))
-      unsavedPaid = null
-    } catch { /* Still unavailable. */ }
-  }
+  for (const [key, wallet] of unsavedWallets) persistWallet(key, wallet)
+  flushPayments()
 }
 
-function paidRuns(): PaidRuns {
-  if (unsavedPaid) return unsavedPaid
-  try { return parsePaidRuns(JSON.parse(read(PAID_RUNS_KEY) ?? 'null')) } catch { return {} }
-}
+const paidRuns = (): PaidRuns => paymentRecord(pendingPayments)
 
 /**
  * Pays a run's not-yet-paid boss awards into the signed-in account's wallet,
@@ -197,23 +209,22 @@ export function creditRunCoins(runKey: string, awards: readonly BossCoinAward[] 
     }
   }
   let coins = 0
-  let paid: PaidRuns | null = null
+  let paidCount = 0
   const wallet = updateWallet((current) => {
     const credited = creditOncePerBrowser(current, paidRuns(), runKey, awards, joinedAfter)
     coins = credited.coins
-    if (credited.coins > 0) paid = credited.paid
+    if (credited.coins > 0) paidCount = credited.paid[runKey]!
     return credited.wallet
   })
   // The browser record follows the wallet onto disk, never ahead of it: a record of a
   // payment whose wallet write failed would refuse the retry that saves it.
-  if (paid) {
-    if (unsaved) unsavedPaid = paid
-    else {
-      try {
-        localStorage.setItem(PAID_RUNS_KEY, JSON.stringify(paid))
-        unsavedPaid = null
-      } catch { unsavedPaid = paid }
-    }
+  if (paidCount > 0) {
+    const wallets = pendingPayments.get(runKey)?.wallets ?? new Set<string>()
+    if (unsavedWallets.has(key)) wallets.add(key)
+    pendingPayments.delete(runKey)
+    pendingPayments.set(runKey, { count: paidCount, wallets })
+    if (pendingPayments.size > MAX_PAID_RUNS) pendingPayments.delete(pendingPayments.keys().next().value!)
+    flushPayments()
   }
   if (accountCredit) void syncAccountWallet().catch(() => {})
   return { coins, total: wallet.coins }

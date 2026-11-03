@@ -149,6 +149,9 @@ export type VisibleCombat = {
   log: string[]
 }
 
+/** A teammate's reward keeps its existence public, not its upgrade status. */
+export type VisibleCardRewardOffer = Omit<CardRewardOffer, 'upgraded'> & { upgraded?: boolean }
+
 export type VisibleRun = {
   ascension: number
   chooseYourRelic: boolean
@@ -180,7 +183,7 @@ export type VisibleRun = {
   log: string[]
   players: VisiblePlayer[]
   combat: VisibleCombat | null
-  rewards: CardRewardOffer[]
+  rewards: VisibleCardRewardOffer[]
   roomState: MerchantState | RelicRewardState | VisibleEventRoom | null
   courier: { usedBy: string[]; offer: CourierOffer | null }
   campaign: {

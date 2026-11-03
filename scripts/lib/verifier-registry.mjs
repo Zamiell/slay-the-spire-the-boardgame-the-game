@@ -114,7 +114,7 @@ export const focusedUiOwners = ownerMap([
     'verify-hermit-online-staged-trigger-browser.mjs', 'verify-start-turn-party-browser.mjs',
   ]],
   ['src/protocol/room-snapshot.ts', [
-    'verify-room-protocol.mjs', 'verify-room-server.mjs', 'verify-room-resume-browser.mjs',
+    'verify-room-protocol.mjs', 'verify-room-protocol-browser.mjs', 'verify-room-server.mjs', 'verify-room-resume-browser.mjs',
     'verify-start-turn-party-browser.mjs', 'verify-combat-view-browser.mjs',
   ]],
   ['src/ui/ChoiceOverlay.tsx', [
@@ -313,7 +313,7 @@ export const focusedUiOwners = ownerMap([
   ['src/ui/chrome/room-stages.css', ['verify-event-panels-browser.mjs']],
   ['src/ui/styles/non-combat-rooms.css', ['verify-event-panels-browser.mjs']],
   ['src/ui/chrome/mailbox.css', ['verify-mail-browser.mjs']],
-  ['src/multiplayer/useRoomSession.ts', ['verify-ascension-sync-browser.mjs', 'verify-combat-layout-reload-browser.mjs', 'verify-skin-browser.mjs', 'verify-skin-cards-browser.mjs', 'verify-start-turn-resync-browser.mjs', 'verify-monogatari-online-browser.mjs']],
+  ['src/multiplayer/useRoomSession.ts', ['verify-room-protocol-browser.mjs', 'verify-ascension-sync-browser.mjs', 'verify-combat-layout-reload-browser.mjs', 'verify-skin-browser.mjs', 'verify-skin-cards-browser.mjs', 'verify-start-turn-resync-browser.mjs', 'verify-monogatari-online-browser.mjs']],
   ['src/ui/RelicChip.tsx', ['verify-courier-browser.mjs', 'verify-die-relic-browser.mjs']],
   ['src/ui/DieRelicChoices.tsx', ['verify-die-relic-browser.mjs']],
   ['src/ui/OnlineGame.tsx', ['verify-retain-selection-browser.mjs', 'verify-courier-browser.mjs', 'verify-skin-browser.mjs', 'verify-skin-cards-browser.mjs', 'verify-start-turn-resync-browser.mjs', 'verify-monogatari-online-browser.mjs']],

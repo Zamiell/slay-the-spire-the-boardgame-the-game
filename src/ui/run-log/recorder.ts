@@ -2,7 +2,7 @@ import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import type { RunState } from '../../game/run.ts'
 import { applyRunLogEvent, statePatch, normalizeRunLogChoice, runLogEventChoice,
   type RunLog, type RunLogChoice, type RunLogEvent, type ControlRef } from './codec.ts'
-import { appendRunLogEvent, persistedLog, flushRunLog, startRecording, discardRecording } from './storage.ts'
+import { appendRunLogEvent, persistedLog, flushRunLog, startRecording, discardRecording, currentRunLog } from './storage.ts'
 import { setAssistantContext, resetRecordedHistory } from './history.ts'
 import { CONTROL, INSPECTION, CANCEL_CHOICE, controlRef, gameplayControl } from './controls.ts'
 
@@ -16,21 +16,24 @@ export function useRunLog(run: RunState, active: boolean, viewerId: string, rest
   const hydrationGeneration = useRef(0)
   const [available, setAvailable] = useState(false)
   const [logReady, setLogReady] = useState(false)
+  const recording = currentRunLog()
 
   useLayoutEffect(() => {
     if (!active) return
     const runId = run.campaign.runId
-    if (hydrationRun.current === runId && hydrationRestoration.current === restoration) return
+    if (hydrationRun.current === runId && hydrationRestoration.current === restoration && log.current === recording) return
     hydrationRun.current = runId
     hydrationRestoration.current = restoration
     const generation = ++hydrationGeneration.current
     const opening = structuredClone(run)
+    log.current = null
     previous.current = opening
     pendingChoice.current = null
     queuedEvents.current = []
     setLogReady(false)
     void persistedLog(runId).then((current) => {
       if (hydrationGeneration.current !== generation || hydrationRun.current !== runId) return
+      if (currentRunLog() !== (current ?? recording)) return
       log.current = current?.runId === runId ? current : null
       if (restoration > 0 && log.current) {
         // Record a checkpoint rewind before new actions, including after a page reload.
@@ -44,7 +47,7 @@ export function useRunLog(run: RunState, active: boolean, viewerId: string, rest
       console.error('Could not restore the run log.', error)
       if (hydrationGeneration.current === generation) setAvailable(false)
     })
-  }, [active, run.campaign.runId, restoration])
+  }, [active, run.campaign.runId, restoration, recording])
 
   useLayoutEffect(() => {
     setAssistantContext({ run, active, ready: logReady && log.current?.runId === run.campaign.runId })

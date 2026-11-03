@@ -12,7 +12,7 @@ import { redactRun, redactCombat } from './lib/rooms/projection.mjs'
 import { createRoom, createStore, joinRoom, queryCombat, snapshotFor, startRun } from './lib/rooms.mjs'
 import { createCombat } from '../src/game/combat.ts'
 import { createRng } from '../src/game/rng.ts'
-import { enterRoom } from '../src/game/run.ts'
+import { enterRoom, resolveCombat } from '../src/game/run.ts'
 import { postNeowRun } from './lib/post-neow-run.mjs'
 import { decodeRoomSnapshot, decodeRoomReply, decodeRoomEntry } from '../src/protocol/room-snapshot.ts'
 import { decodeCombatQueryReply } from '../src/protocol/combat-query.ts'
@@ -66,6 +66,32 @@ check('snapshot decoder accepts real lobby, Neow, combat and noncombat projectio
     room.run = enterRoom(run, id)
     const decoded = verify()
     assertEqual(decoded.run.players[1].deck, null, 'a private pile must remain unknown')
+  }
+})
+
+check('post-combat rewards decode for every seat without revealing foreign upgrade status', () => {
+  const room = createRoom(createStore())
+  const owner = joinRoom(room, { name: 'Owner', character: 'ironclad' })
+  const peer = joinRoom(room, { name: 'Peer', character: 'silent' })
+  startRun(room, owner.token)
+  const run = postNeowRun(47, room.seats.map(seat => ({ id: seat.playerId, name: seat.name, character: seat.character })))
+  const id = run.map.rows[0][0]
+  run.map.rooms[id].kind = 'encounter'
+  room.run = enterRoom(run, id)
+  for (const enemy of room.run.combat.enemies) Object.assign(enemy, { hp: 0, dead: true })
+  room.run.combat.phase = 'won'
+  room.run = resolveCombat(room.run)
+  assertEqual(room.run.phase, 'reward')
+  for (const seat of [owner, peer]) {
+    const snapshot = JSON.parse(JSON.stringify(snapshotFor(room, seat.token)))
+    const decoded = decodeRoomSnapshot(snapshot)
+    const own = decoded.run.rewards.find(offer => offer.playerId === seat.playerId)
+    const foreign = decoded.run.rewards.find(offer => offer.playerId !== seat.playerId)
+    assertEqual(typeof own.upgraded, 'boolean')
+    assertEqual(foreign.upgraded, undefined)
+    assertEqual(foreign.choices, null)
+    delete own.upgraded
+    assertThrows(() => decodeRoomSnapshot(snapshot), 'Invalid room state')
   }
 })
 

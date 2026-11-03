@@ -555,6 +555,79 @@ check('while the wallet cannot be saved, a later flush never writes the paid rec
   signOut()
 })
 
+check('two accounts retain their pending wallets and recover both payments after a shared failure', () => {
+  const first = 'RecoveryAnn', second = 'RecoveryBo'
+  const firstRun = 'solo:recovery-a:1:a', secondRun = 'solo:recovery-b:1:b'
+  for (const name of [first, second]) store.set(walletKey(name), JSON.stringify(createWallet()))
+  try {
+    storage.failKey = key => key.startsWith(WALLET_KEY)
+    signIn(first)
+    creditRunCoins(firstRun, awards(100))
+    signIn(second)
+    creditRunCoins(secondRun, awards(200))
+    signIn(first)
+    assertEqual(savedWallet().coins, 100, 'the second account replaced the first pending wallet')
+    signIn(second)
+    assertEqual(savedWallet().coins, 200)
+    assertEqual(storedAt(PAID_RUNS_KEY)?.[firstRun], undefined)
+    assertEqual(storedAt(PAID_RUNS_KEY)?.[secondRun], undefined)
+    storage.failKey = null
+    updateWallet(wallet => wallet)
+    assertEqual(storedAt(walletKey(first)).coins, 100)
+    assertEqual(storedAt(walletKey(second)).coins, 200)
+    assertEqual(storedAt(PAID_RUNS_KEY)[firstRun], 1)
+    assertEqual(storedAt(PAID_RUNS_KEY)[secondRun], 1)
+    signIn(first)
+    assertEqual(creditRunCoins(firstRun, awards(100)).coins, 0)
+    signIn(second)
+    assertEqual(creditRunCoins(secondRun, awards(200)).coins, 0)
+  } finally { storage.failKey = null; updateWallet(wallet => wallet); signOut() }
+})
+
+check('a blocked wallet neither loses its payment nor blocks another account from persisting', () => {
+  const first = 'BlockedAnn', second = 'SavedBo'
+  const firstRun = 'solo:blocked-a:1:a', secondRun = 'solo:saved-b:1:b'
+  for (const name of [first, second]) store.set(walletKey(name), JSON.stringify(createWallet()))
+  try {
+    storage.failKey = key => key === walletKey(first)
+    signIn(first)
+    creditRunCoins(firstRun, awards(100))
+    signIn(second)
+    creditRunCoins(secondRun, awards(200))
+    assertEqual(storedAt(walletKey(second)).coins, 200)
+    assertEqual(storedAt(PAID_RUNS_KEY)[secondRun], 1)
+    assertEqual(storedAt(PAID_RUNS_KEY)[firstRun], undefined, 'an unpaid wallet was marked paid')
+    signIn(first)
+    assertEqual(savedWallet().coins, 100)
+    assertEqual(creditRunCoins(firstRun, awards(100)).coins, 0)
+    storage.failKey = null
+    updateWallet(wallet => wallet)
+    assertEqual(storedAt(walletKey(first)).coins, 100)
+    assertEqual(storedAt(PAID_RUNS_KEY)[firstRun], 1)
+  } finally { storage.failKey = null; updateWallet(wallet => wallet); signOut() }
+})
+
+check('one run paid across accounts waits for every owning wallet before advancing its ledger', () => {
+  const first = 'SharedAnn', second = 'SharedBo'
+  const run = 'solo:shared-recovery:1:a'
+  for (const name of [first, second]) store.set(walletKey(name), JSON.stringify(createWallet()))
+  try {
+    storage.failKey = key => key === walletKey(first)
+    signIn(first)
+    creditRunCoins(run, awards(100))
+    signIn(second)
+    assertEqual(creditRunCoins(run, awards(100, 50)).coins, 50)
+    assertEqual(storedAt(walletKey(second)).coins, 50)
+    assertEqual(storedAt(PAID_RUNS_KEY)?.[run], undefined, 'the later owner acknowledged the missing earlier payment')
+    storage.failKey = null
+    updateWallet(wallet => wallet)
+    assertEqual(storedAt(walletKey(first)).coins, 100)
+    assertEqual(storedAt(PAID_RUNS_KEY)[run], 2)
+    signIn(first)
+    assertEqual(creditRunCoins(run, awards(100, 50)).coins, 0)
+  } finally { storage.failKey = null; updateWallet(wallet => wallet); signOut() }
+})
+
 check('the browser record of a payment never reaches the disk ahead of its wallet, and catches up after', () => {
   signIn('Ivy')
   const paidOnDisk = () => JSON.parse(store.get(PAID_RUNS_KEY) ?? '{}')

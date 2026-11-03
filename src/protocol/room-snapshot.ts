@@ -101,7 +101,7 @@ const run = object({
   pendingBossDefId: v.nullable(text), actBossDefId: v.nullable(text),
   pendingGuardianSockets: v.array(object({ playerId: text, cardUid: text, gemIds: strings })),
   rewards: v.array(object({ playerId: text, gold: optional(v.union([v.literal(false), number])), cardReward: v.boolean(),
-    choices: v.nullable(strings), upgraded: v.boolean(),
+    choices: v.nullable(strings), upgraded: optional(v.boolean()),
     potion: v.union([v.literal(false), v.null(), text]),
     relic: optional(v.union([v.literal(false), v.null(), text])),
     bossRelics: optional(v.union([v.literal(false), strings])), transformReward: optional(v.boolean()) })),
@@ -145,6 +145,7 @@ function isRoomSnapshot(value: unknown): value is RoomSnapshot {
     (data.phase === 'run') !== (data.run !== null)) return false
   const current = data.run
   if (!current) return true
+  if (current.rewards.some(offer => offer.playerId === data.you.playerId && offer.upgraded === undefined)) return false
   if (['rng', 'potionDeck', 'relicDeck', 'bossRelicDeck', 'enemyDecks', 'eventDeck'].some(key => key in current)) return false
   if (current.phase === 'combat' && !current.combat || current.phase === 'neow' && !current.neow ||
     current.phase === 'setup' && !current.setup) return false

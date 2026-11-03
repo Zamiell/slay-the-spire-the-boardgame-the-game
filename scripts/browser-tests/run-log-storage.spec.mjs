@@ -1,6 +1,29 @@
-import { test, expect } from '../lib/browser-test.mjs'
+import { test, expect, startStandardCampaign } from '../lib/browser-test.mjs'
 
 test.use({ appKey: import.meta.url })
+
+test('restarting an unrecorded campaign uses the new recording even when its run ID is reused', async ({ page, appURL }) => {
+  await startStandardCampaign(page, appURL)
+  const previousId = await page.evaluate(() => {
+    const run = structuredClone(window.__STS_DEBUG__.getRun())
+    window.__STS_DEBUG__.setRun({ ...run, phase: 'map', neow: null, log: [...run.log, 'previous attempt marker'] })
+    return run.campaign.runId
+  })
+  await page.waitForFunction(() => window.__STS_DEBUG__.getRun().phase === 'map')
+  await page.keyboard.press('Escape')
+  await page.getByRole('button', { name: 'Return to main menu', exact: true }).click()
+  for (const name of ['Single Player', 'Standard', 'Embark', 'Start standard campaign'])
+    await page.getByRole('button', { name, exact: true }).click()
+  await page.waitForFunction(() => window.__STS_DEBUG__?.getRun().phase === 'neow')
+  const next = await page.evaluate(async () => {
+    const { readRunLog } = await import('/src/ui/run-log.ts')
+    const run = window.__STS_DEBUG__.getRun()
+    return { runId: run.campaign.runId, recording: JSON.stringify(await readRunLog(run.campaign.runId)) }
+  })
+  expect(next.runId).toBe(previousId)
+  expect(JSON.parse(next.recording).runId).toBe(previousId)
+  expect(next.recording).not.toContain('previous attempt marker')
+})
 
 test('failed transitions stay queued and flush recovers the complete recording', async ({ page, appURL }) => {
   await page.goto(appURL)

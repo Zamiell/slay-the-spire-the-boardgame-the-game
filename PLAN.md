@@ -584,3 +584,45 @@ interaction, card choices, Chamber, and start-turn party verifiers pass; managed
 combat-view coverage passes **16/16**. Slime hover/focus/touch recordings and
 screenshots were also reviewed on both screen classes, with invocation-isolated
 artifacts. No new dependency was needed; the legacy browser umbrella was not run.
+
+## Account-scoped wallet recovery
+
+- [x] Failed wallet writes are retained per account instead of sharing one
+  replaceable slot. Recovery retries each account independently.
+- [x] Pending payment records track the wallets that must be saved before the
+  record can advance. An unrelated blocked wallet does not hold up a successful
+  payment; rewards from one run paid across accounts wait for all their owners.
+  Recovery merges with the latest stored ledger and retains its existing bound.
+- [x] Added three focused regressions that failed before the fix: two blocked
+  accounts, partial recovery, and a shared run with multiple payment owners.
+  Wallet/storage formats and server credit policies are unchanged. Pending writes
+  remain memory-only while the browser refuses storage.
+- [x] The shop's abandoned-run check exposed a recorder regression from the
+  preceding refactor. Hydration now tracks the recording object as well as the
+  campaign ID, clears the old recorder before another layout effect can append,
+  and fences stale hydration replies. A focused desktop/phone check restarts an
+  unrecorded run with the same campaign ID and verifies fresh history.
+- [x] The UI sweep waits for the real label transition to finish before checking
+  its final scale, instead of comparing an intermediate frame after a fixed delay.
+- [x] Online verification exposed two earlier protocol regressions. Reward
+  snapshots now allow the intentionally omitted upgrade flag on teammates'
+  offers, while still requiring it for the owner. The visible reward type matches
+  that boundary. Invalid socket updates use a browser-permitted application close
+  code and reconnect without retiring the seat. Real producer/decoder and focused
+  browser close-handshake regressions cover both cases.
+- [x] Updated stale Daily and online fixture expectations: dismiss the active
+  Neow picker before pausing, include the displayed hero in ranking rows, enter
+  online recovery explicitly after an unavailable startup probe, and recognize
+  the current opening-hand animation.
+
+**Verification:** Final full light gate **93/93**, both compiler projects, and
+production build pass. Wallet checks pass **50/50** (the three new regressions
+failed against the original implementation), room protocol **13/13**, recording
+storage/restart browser cases **8/8**, invalid-socket recovery **2/2**, noncombat
+delivery **24/24**, and Daily Climb **25/25**. Account-wallet synchronization, Shop
+(including Chromium/WebKit), replay controls/playback, assistant history, solo
+resume, and room resume pass. The online reconnect/opening-hand/Slime-victory
+slice passes **26/26**; the rest of the broad online script was not rerun after
+the failures were isolated into focused checks. The final **44-surface / 88-image**
+sweep and both normal-motion recordings were reviewed, alongside restart video
+samples. No dependency was added and the legacy browser umbrella was not run.

@@ -227,9 +227,9 @@ try {
   const wonCell = await rows.first().locator('.daily-board__result--won').count()
   check('the daily tab ranks registered players by floors reached with their result and stats', () => {
     assertEqual(ranking.length, 3, ranking.join('\n'))
-    assert(ranking[0].startsWith('1 Champion 14 Victory · Act IV 10.0 75%'), ranking[0])
-    assert(ranking[1].startsWith('2 Rival 14 Fell in Act I 20.0 75%'), ranking[1])
-    assert(ranking[2].startsWith('3 DailyTester 12 Fell in Act I 20.0 75%'), `the better climb is not the one that ranks: ${ranking[2]}`)
+    assert(ranking[0].startsWith('1 Champion Watcher 14 Victory · Act IV 10.0 75%'), ranking[0])
+    assert(ranking[1].startsWith('2 Rival Silent 14 Fell in Act I 20.0 75%'), ranking[1])
+    assert(ranking[2].startsWith('3 DailyTester Ironclad 12 Fell in Act I 20.0 75%'), `the better climb is not the one that ranks: ${ranking[2]}`)
     assertEqual(wonCell, 1, 'the won climb is not highlighted')
   })
   await screenshot('daily-board-desktop')
@@ -335,6 +335,12 @@ try {
     assertEqual(resumed.ascension, 10)
     assertEqual(resumed.journal, journalBeforeResume)
   })
+  // The automatic Neow reward picker owns Escape until its choice is dismissed.
+  const resumedReward = page.locator('.reward-screen--card-choice')
+  if (await resumedReward.isVisible()) {
+    await resumedReward.getByRole('button', { name: 'Skip', exact: true }).click()
+    await resumedReward.waitFor({ state: 'detached' })
+  }
   await page.keyboard.press('Escape')
   await page.getByRole('button', { name: 'Return to main menu' }).click()
   await page.getByRole('button', { name: 'Single Player', exact: true }).click()

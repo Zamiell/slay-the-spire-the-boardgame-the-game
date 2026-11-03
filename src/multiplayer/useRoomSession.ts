@@ -394,7 +394,7 @@ export function useRoomSession() {
             }
           } catch (cause) {
             setError(cause instanceof InvalidRoomSnapshot ? cause.message : 'Invalid room update. Reconnecting…')
-            next.close(1002, 'Invalid room update')
+            next.close(4002, 'Invalid room update')
           }
         })
         next.addEventListener('close', (event) => {

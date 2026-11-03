@@ -210,7 +210,7 @@ check('frontend surfaces select their cores and named focused browser checks', (
   assertDeepEqual(affectedBrowser('src\\ui\\OnlineGame.tsx'), online)
   assertDeepEqual(affectedBrowser('src/multiplayer/useRoomSession.ts'),
     [...online.filter(script => !['verify-courier-browser.mjs', 'verify-retain-selection-browser.mjs'].includes(script)),
-      'verify-ascension-sync-browser.mjs', 'verify-combat-layout-reload-browser.mjs'].sort())
+      'verify-ascension-sync-browser.mjs', 'verify-combat-layout-reload-browser.mjs', 'verify-room-protocol-browser.mjs'].sort())
   assertDeepEqual(affectedBrowser('src/ui/WelcomeScreen.tsx'), ['verify-browser.mjs'])
   includesEvery(affectedBrowser('src/ui/combat-screen/vfx.tsx'), [
     'verify-browser.mjs', 'verify-online-browser.mjs', 'verify-lightning-act2-browser.mjs',

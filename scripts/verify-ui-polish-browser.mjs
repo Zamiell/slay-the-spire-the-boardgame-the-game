@@ -87,15 +87,17 @@ try {
     if (capture !== 'before') {
       const start = page.getByRole('button', { name: 'Single Player', exact: true })
       const label = start.locator('.start-menu__label')
+      const settleLabel = () => label.evaluate(element =>
+        Promise.all(element.getAnimations().map(animation => animation.finished)))
       await start.waitFor()
       const resting = await start.boundingBox()
       if (!phone) {
         await start.hover()
-        await page.waitForTimeout(80)
+        await settleLabel()
         assert.equal(await label.evaluate(element => getComputedStyle(element).scale), '1.05')
         assert.deepEqual(await start.boundingBox(), resting, 'hover must not move the click target')
         await page.mouse.down()
-        await page.waitForTimeout(220)
+        await settleLabel()
         assert.equal(await label.evaluate(element => getComputedStyle(element).scale), '0.95')
         await page.mouse.move(1, 1)
         await page.mouse.up()
@@ -103,7 +105,7 @@ try {
         const client = await page.context().newCDPSession(page)
         await client.send('Input.dispatchTouchEvent', { type: 'touchStart',
           touchPoints: [{ x: resting.x + resting.width / 2, y: resting.y + resting.height / 2 }] })
-        await page.waitForTimeout(220)
+        await settleLabel()
         assert.equal(await label.evaluate(element => getComputedStyle(element).scale), '0.95')
         await client.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] })
         assert.equal(await start.getAttribute('data-ui-pressed'), null)

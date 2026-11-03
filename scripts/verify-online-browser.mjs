@@ -252,6 +252,7 @@ try {
   await preservePage.route(`**/api/rooms/${guardedCredentials.code}`, (route) => route.abort())
   await preservePage.routeWebSocket('**/ws', () => {})
   await preservePage.goto(origin, { waitUntil: 'networkidle' })
+  await preservePage.getByRole('button', { name: 'Play online', exact: true }).click()
   await preservePage.getByRole('heading', { name: 'Reconnecting' }).waitFor()
   await preservePage.getByRole('button', { name: 'Back to solo table' }).click()
   await preservePage.getByRole('button', { name: 'Single Player' }).waitFor()
@@ -772,7 +773,7 @@ try {
     assert(onlineRunStatus.includes('Ascension 6'), `missing Ascension status: ${onlineRunStatus}`)
   })
   check('a newly entered online combat deals its opening hand', () => {
-    assertEqual(onlineOpeningDeal, 'card-draw')
+    assertEqual(onlineOpeningDeal, 'hand-layout-deal')
     assertEqual(onlineOpeningFirstFrame, true, 'the hand painted once before its draw class was applied')
     assert(onlineOpeningSounds.includes('/assets/sfx/draw.ogg'), 'the opening draw was silent')
   })

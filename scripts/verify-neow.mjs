@@ -396,7 +396,7 @@ check('red and blue Card Rewards reveal three, may be skipped, and bottom unused
   assert(run.players[0].cardRewards.slice(-blue.cardsDrawn.length).every((id, index) => id === blue.cardsDrawn[index]))
 })
 
-check('opening rewards are revealed automatically; later unseen rewards still skip without drawing', () => {
+check('opening and Colorless rewards reveal automatically; other unseen rewards still skip without drawing', () => {
   let red = createRun(4251, party(2))
   const redDeck = [...red.players[0].cardRewards]
   red = resolveNeowReward(red, 'p1', null)
@@ -412,10 +412,15 @@ check('opening rewards are revealed automatically; later unseen rewards still sk
   const progress = createCampaignProgress()
   progress.colorless = 3
   let colorless = forceCard(beginBlue(4253, 2, progress), 'neow_c01')
-  colorless = chooseNeow(colorless, 'p1', 0)
   const colorlessDeck = [...colorless.itemDecks.colorless]
+  const playerDeck = structuredClone(colorless.players[0].deck)
+  colorless = chooseNeow(colorless, 'p1', 0)
+  assertDeepEqual(colorless.neow.players.p1.reward.choices, colorlessDeck.slice(0, 3))
+  assertDeepEqual(colorless.players[0].deck, playerDeck, 'revealing must not claim a card')
+  assertDeepEqual(neowPreview(colorless, 'p1', 'p2').reward.choices, [], 'other seats cannot see the offer')
   colorless = resolveNeowReward(colorless, 'p1', null)
-  assertDeepEqual(colorless.itemDecks.colorless, colorlessDeck)
+  assertDeepEqual(colorless.itemDecks.colorless, [...colorlessDeck.slice(3), ...colorlessDeck.slice(0, 3)])
+  assertDeepEqual(colorless.players[0].deck, playerDeck)
 
   let potion = forceCard(beginBlue(4254), 'neow_04')
   potion = chooseNeow(potion, 'p1', 1)
@@ -440,6 +445,28 @@ check('opening rewards are revealed automatically; later unseen rewards still sk
   assertEqual(revealed.relicDeck.includes(top), false)
   revealed = resolveNeowReward(revealed, 'p1', null)
   assertEqual(revealed.relicDeck.at(-1), top)
+})
+
+check('restored Colorless rewards reveal once and wait for pending acquisitions', () => {
+  for (const supplySize of [0, 1, 6]) {
+    let run = forceCard(beginBlue(4257, 2, { ...createCampaignProgress(), colorless: 3 }), 'neow_c01')
+    run.itemDecks.colorless = run.itemDecks.colorless.slice(0, supplySize)
+    const supply = [...run.itemDecks.colorless]
+    Object.assign(run.neow.players.p1, { blueOption: 0, rewardKind: 'colorless', reward: null })
+    run.pendingGuardianSockets = [{ playerId: 'p2', cardUid: 'c999', gemIds: ['guardian_ruby'], source: 'draft' }]
+    run = resumeNeow(run)
+    assertEqual(run.neow.players.p1.reward, null)
+    assertDeepEqual(run.itemDecks.colorless, supply)
+    run.pendingGuardianSockets = []
+    run = resumeNeow(JSON.parse(JSON.stringify(run)))
+    assertDeepEqual(run.neow.players.p1.reward.choices, supply.slice(0, 3))
+    assertDeepEqual(run.itemDecks.colorless, supply.slice(3))
+    assertDeepEqual(resumeNeow(JSON.parse(JSON.stringify(run))), run)
+    assertEqual(revealNeowReward(run, 'p1'), run)
+    run = resolveNeowReward(run, 'p1', null)
+    assertEqual(run.neow.players.p1.done, true)
+    assertDeepEqual(run.itemDecks.colorless, [...supply.slice(3), ...supply.slice(0, 3)])
+  }
 })
 
 check('resuming old opening rewards is automatic, private, and idempotent', () => {
@@ -627,10 +654,8 @@ check('two Colorless rewards resolve sequentially and conserve their shared phys
   let run = forceCard(beginBlue(4401, 2, progress), 'neow_c06')
   const total = run.itemDecks.colorless.length
   run = chooseNeow(run, 'p1', 2)
-  run = revealNeowReward(run, 'p1')
   const first = [...run.neow.players.p1.reward.choices]
   run = resolveNeowReward(run, 'p1', 0)
-  run = revealNeowReward(run, 'p1')
   const second = [...run.neow.players.p1.reward.choices]
   assert(first.every((id) => !second.includes(id)), 'the second offer redrew a still-reserved first offer')
   run = resolveNeowReward(run, 'p1', null)

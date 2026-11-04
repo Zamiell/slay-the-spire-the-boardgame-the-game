@@ -8,10 +8,11 @@ import { createRoomServer } from './room-server.mjs'
 import { createRoom, joinRoom, startRun } from './lib/rooms.mjs'
 import { installScreenAudit } from './lib/browser-screen-audit.mjs'
 import { checkRewardSweep } from './lib/reward-hover.mjs'
+import { browserOutputDirectory } from './lib/verification-output.mjs'
 import { cardDef } from '../src/game/cards.ts'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const out = join(root, 'artifacts/neow-viewport')
+const out = browserOutputDirectory(root, 'neow-viewport')
 mkdirSync(out, { recursive: true })
 const rooms = createRoomServer({ maxUpgradesPerWindow: 100 })
 const address = await rooms.listen(0)
@@ -26,7 +27,8 @@ try {
   for (const viewport of [{ width: 1440, height: 900 }, { width: 844, height: 390 }]) {
     const phone = viewport.width === 844
     if (process.argv.includes('--touch-only') && !phone) continue
-    const context = await browser.newContext({ viewport, ...(phone ? { isMobile: true, hasTouch: true } : {}) })
+    const context = await browser.newContext({ viewport, recordVideo: { dir: out, size: viewport },
+      ...(phone ? { isMobile: true, hasTouch: true } : {}) })
     const page = installScreenAudit(await context.newPage())
     await page.addInitScript(() => {
       window.__NEOW_SOCKETS__ = []
@@ -160,6 +162,47 @@ try {
       window.__STS_DEBUG__.setRun(run)
       return run
     })
+    const colorlessFixture = structuredClone(goldFixture)
+    colorlessFixture.neow.players.p1.cardId = 'neow_c05'
+    colorlessFixture.itemDecks.colorless = ['blind', 'trip', 'panacea', 'finesse', 'apotheosis', 'bandage_up']
+    await page.evaluate(run => window.__STS_DEBUG__.setRun(run), colorlessFixture)
+    await page.getByRole('button', { name: /Gain 1 Colorless Card Reward/ }).click()
+    await page.locator('.reward-screen--card-choice').waitFor()
+    await page.screenshot({ path: join(out, `colorless-arrival-${viewport.width}.png`) })
+    assert.equal(await page.locator('.neow-unrevealed').count(), 0)
+    assert.equal(await page.getByRole('button', { name: 'Skip unseen', exact: true }).count(), 0)
+    assert.equal(await page.locator('.neow-action__owner').count(), 0)
+    const colorlessOffer = await page.evaluate(() => window.__STS_DEBUG__.getRun())
+    assert.deepEqual(colorlessOffer.neow.players.p1.reward.choices, colorlessFixture.itemDecks.colorless.slice(0, 3))
+    await page.locator('.reward-screen--card-choice').evaluate(async element =>
+      Promise.all(element.getAnimations({ subtree: true }).map(animation => animation.finished)))
+    await page.screenshot({ path: join(out, `colorless-idle-${viewport.width}.png`) })
+    const colorlessCard = page.locator('.reward-screen__cards .card').first()
+    if (!phone) await colorlessCard.hover()
+    await colorlessCard.focus()
+    await page.locator('.card-keyword-tips[data-open]').waitFor()
+    await page.screenshot({ path: join(out, `colorless-inspect-${viewport.width}.png`) })
+    if (phone) await colorlessCard.tap()
+    else await page.keyboard.press('Enter')
+    await page.locator('.map').waitFor()
+    assert.equal(await page.evaluate(() => window.__STS_DEBUG__.getRun().players[0].deck.at(-1).defId), 'blind')
+    await page.screenshot({ path: join(out, `colorless-departure-${viewport.width}.png`) })
+    const legacyColorless = structuredClone(colorlessFixture)
+    Object.assign(legacyColorless.neow.players.p1, { blueOption: 0, rewardKind: 'colorless', reward: null })
+    await page.evaluate(run => window.__STS_DEBUG__.setRun(run), legacyColorless)
+    await page.waitForFunction(() => JSON.parse(localStorage.getItem('sts-solo-run'))?.run.neow?.players.p1.rewardKind === 'colorless')
+    for (let reload = 0; reload < 2; reload++) {
+      await page.reload()
+      await page.getByRole('button', { name: 'Resume', exact: true }).click()
+      await page.locator('.reward-screen--card-choice').waitFor()
+      const restored = await page.evaluate(() => window.__STS_DEBUG__.getRun())
+      assert.deepEqual(restored.neow.players.p1.reward, JSON.parse(JSON.stringify(colorlessOffer.neow.players.p1.reward)))
+      assert.deepEqual(restored.itemDecks.colorless, colorlessOffer.itemDecks.colorless)
+    }
+    await page.getByRole('button', { name: 'Skip', exact: true }).click()
+    await page.locator('.map').waitFor()
+    assert.deepEqual(await page.evaluate(() => window.__STS_DEBUG__.getRun().players[0].deck), colorlessFixture.players[0].deck)
+    await page.evaluate(run => window.__STS_DEBUG__.setRun(run), goldFixture)
     await page.waitForFunction(() => window.__STS_DEBUG__.getRun().neow.players.p1.cardId === 'neow_03')
     await page.getByRole('button', { name: /Gain 5 Gold/ }).click()
     await page.locator('.map').waitFor()
@@ -292,7 +335,7 @@ try {
     await page.locator('.neow-face--active.neow-face--done').waitFor()
     assert.equal(rareRoom.run.players[0].deck.length, ownerBefore.deck.length + 1, 'reconnect must not repeat the Rare gain')
     assert.deepEqual(errors, [])
-    console.log(`Neow viewport checks passed: ${viewport.width}x${viewport.height}${phone ? ' touch' : ' desktop'}`)
+    console.log(`Neow viewport checks passed: ${viewport.width}x${viewport.height}${phone ? ' touch' : ' desktop'}; captures: ${out}`)
     await context.close()
   }
 } finally {

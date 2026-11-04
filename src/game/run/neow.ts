@@ -50,31 +50,38 @@ export function nextNeowReward(state: RunState, playerId: string): RunState {
   let next = state
   while (true) {
     const progress = next.neow?.players[playerId]
+    if (progress?.rewardKind === 'colorless' && !progress.pendingEffect) return revealNeowReward(next, playerId)
     if (!next.neow || !progress || progress.pendingEffect || progress.rewardKind || progress.reward ||
       hasPendingRelicAcquisition(next) || progress.rewardQueue.length === 0) return next
     const [kind, ...rewardQueue] = progress.rewardQueue
     if (!kind) return next
-    if (typeof kind === 'string') return {
-      ...next,
-      neow: {
-        ...next.neow,
-        players: { ...next.neow.players, [playerId]: { ...progress, rewardKind: kind, reward: null, rewardQueue } },
-      },
+    if (typeof kind === 'string') {
+      next = {
+        ...next,
+        neow: {
+          ...next.neow,
+          players: { ...next.neow.players, [playerId]: { ...progress, rewardKind: kind, reward: null, rewardQueue } },
+        },
+      }
+      continue
     }
-    if (kind.kind === 'reward' || kind.kind === 'relic') return {
-      ...next,
-      neow: {
-        ...next.neow,
-        players: { ...next.neow.players, [playerId]: {
-          ...progress,
-          rewardKind: kind.kind === 'reward' ? kind.reward : 'relic',
-          rewardRequest: kind.kind === 'reward'
-            ? { look: kind.look, upgraded: kind.upgraded }
-            : { relicChoices: kind.choices },
-          reward: null,
-          rewardQueue,
-        } },
-      },
+    if (kind.kind === 'reward' || kind.kind === 'relic') {
+      next = {
+        ...next,
+        neow: {
+          ...next.neow,
+          players: { ...next.neow.players, [playerId]: {
+            ...progress,
+            rewardKind: kind.kind === 'reward' ? kind.reward : 'relic',
+            rewardRequest: kind.kind === 'reward'
+              ? { look: kind.look, upgraded: kind.upgraded }
+              : { relicChoices: kind.choices },
+            reward: null,
+            rewardQueue,
+          } },
+        },
+      }
+      continue
     }
     if (['upgrade', 'remove', 'transform', 'randomRare', 'randomCards'].includes(kind.kind)) {
       const pending: RunState = {
@@ -233,7 +240,7 @@ export function neowPreview(state: RunState, playerId: string, viewerId = player
   }
 }
 
-/** Reveal the current face-down reward. Merely staging it never advances a physical deck. */
+/** Reveal the current face-down reward once, reserving cards from shared supplies. */
 export function revealNeowReward(state: RunState, playerId: string, sources: readonly RewardSource[] = []): RunState {
   const neow = state.neow
   const progress = neow?.players[playerId]
